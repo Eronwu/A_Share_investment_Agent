@@ -10,30 +10,110 @@ from src.utils.logging_config import setup_logger
 logger = setup_logger('api')
 
 
+def get_stock_prefix(symbol: str) -> str:
+    """根据股票代码获取所属交易所前缀"""
+    if symbol.startswith(('60', '68')):
+        return 'sh'
+    elif symbol.startswith(('00', '30')):
+        return 'sz'
+    elif symbol.startswith(('43', '83', '87', '88')):
+        return 'bj'
+    return 'sh'  # 默认返回sh
+
+
+# 全局缓存实时行情数据，避免频繁调用耗时的全市场接口
+_REALTIME_CACHE = {
+    "data": None,
+    "timestamp": None
+}
+_CACHE_DURATION = timedelta(minutes=30)
+
+
+def get_realtime_quotes(symbol: str = None):
+    """获取实时行情数据（带缓存）
+    如果提供了 symbol，则优先使用单股接口以提高速度
+    """
+    global _REALTIME_CACHE
+    now = datetime.now()
+    
+    # 如果有全量缓存且未过期，直接使用
+    if (_REALTIME_CACHE["data"] is not None and 
+        _REALTIME_CACHE["timestamp"] is not None and 
+        now - _REALTIME_CACHE["timestamp"] < _CACHE_DURATION):
+        logger.info("Using cached real-time quotes")
+        if symbol:
+            stock_data = _REALTIME_CACHE["data"][_REALTIME_CACHE["data"]['代码'] == symbol]
+            if not stock_data.empty:
+                return stock_data
+        return _REALTIME_CACHE["data"]
+    
+    # 如果提供了 symbol，尝试使用单股接口（极快）
+    if symbol:
+        logger.info(f"Fetching real-time data for {symbol} using individual info interface...")
+        try:
+            ind_info = ak.stock_individual_info_em(symbol=symbol)
+            if ind_info is not None and not ind_info.empty:
+                info_dict = dict(zip(ind_info['item'], ind_info['value']))
+                # 构造一个与 stock_zh_a_spot_em 格式兼容的 Series/DataFrame
+                stock_data = pd.DataFrame([{
+                    '代码': symbol,
+                    '名称': info_dict.get('股票简称', ''),
+                    '最新': float(info_dict.get('最新', 0)),
+                    '总市值': float(info_dict.get('总市值', 0)),
+                    '流通市值': float(info_dict.get('流通市值', 0)),
+                }])
+                logger.info(f"✓ Quick real-time data fetched for {symbol}")
+                return stock_data
+        except Exception as e:
+            logger.warning(f"Quick real-time data fetch failed for {symbol}: {e}")
+
+    # 回退到全量获取（耗时）
+    logger.info("Fetching real-time quotes for all A-shares (this may take a few minutes)...")
+    try:
+        df = ak.stock_zh_a_spot_em()
+        if df is not None and not df.empty:
+            _REALTIME_CACHE["data"] = df
+            _REALTIME_CACHE["timestamp"] = now
+            logger.info(f"✓ Real-time quotes updated ({len(df)} stocks)")
+            if symbol:
+                return df[df['代码'] == symbol]
+            return df
+    except Exception as e:
+        logger.error(f"Error fetching real-time quotes: {e}")
+    
+    return _REALTIME_CACHE["data"] # 返回旧数据或None
+
+
 def get_financial_metrics(symbol: str) -> Dict[str, Any]:
     """获取财务指标数据"""
     logger.info(f"Getting financial indicators for {symbol}...")
     try:
+        # 获取当前日期
+        current_date = datetime.now()
+        
         # 获取实时行情数据（用于市值和估值比率）
-        logger.info("Fetching real-time quotes...")
-        realtime_data = ak.stock_zh_a_spot_em()
-        if realtime_data is None or realtime_data.empty:
+        realtime_data = get_realtime_quotes(symbol)
+        if realtime_data is not None and not realtime_data.empty:
+            if '代码' in realtime_data.columns:
+                stock_data_match = realtime_data[realtime_data['代码'] == symbol]
+                if not stock_data_match.empty:
+                    stock_data = stock_data_match.iloc[0]
+                    logger.info(f"✓ Real-time quotes found for {symbol}")
+                else:
+                    logger.warning(f"No real-time quotes found for {symbol}")
+                    stock_data = pd.Series()
+            else:
+                # 如果返回的就是单行数据
+                stock_data = realtime_data.iloc[0]
+                logger.info(f"✓ Real-time quotes found for {symbol}")
+        else:
             logger.warning("No real-time quotes data available")
-            return [{}]
-
-        stock_data = realtime_data[realtime_data['代码'] == symbol]
-        if stock_data.empty:
-            logger.warning(f"No real-time quotes found for {symbol}")
-            return [{}]
-
-        stock_data = stock_data.iloc[0]
-        logger.info("✓ Real-time quotes fetched")
+            stock_data = pd.Series()
 
         # 获取新浪财务指标
-        logger.info("Fetching Sina financial indicators...")
-        current_year = datetime.now().year
+        logger.info(f"Fetching Sina financial indicators for {symbol}...")
         financial_data = ak.stock_financial_analysis_indicator(
-            symbol=symbol, start_year=str(current_year-1))
+            symbol=symbol, start_year=str(current_date.year-1))
         if financial_data is None or financial_data.empty:
             logger.warning("No financial indicator data available")
             return [{}]
@@ -41,8 +121,7 @@ def get_financial_metrics(symbol: str) -> Dict[str, Any]:
         # 按日期排序并获取最新的数据
         financial_data['日期'] = pd.to_datetime(financial_data['日期'])
         financial_data = financial_data.sort_values('日期', ascending=False)
-        latest_financial = financial_data.iloc[0] if not financial_data.empty else pd.Series(
-        )
+        latest_financial = financial_data.iloc[0] if not financial_data.empty else pd.Series()
         logger.info(
             f"✓ Financial indicators fetched ({len(financial_data)} records)")
         logger.info(f"Latest data date: {latest_financial.get('日期')}")
@@ -50,8 +129,9 @@ def get_financial_metrics(symbol: str) -> Dict[str, Any]:
         # 获取利润表数据（用于计算 price_to_sales）
         logger.info("Fetching income statement...")
         try:
+            prefix = get_stock_prefix(symbol)
             income_statement = ak.stock_financial_report_sina(
-                stock=f"sh{symbol}", symbol="利润表")
+                stock=f"{prefix}{symbol}", symbol="利润表")
             if not income_statement.empty:
                 latest_income = income_statement.iloc[0]
                 logger.info("✓ Income statement fetched")
@@ -153,11 +233,12 @@ def get_financial_statements(symbol: str) -> Dict[str, Any]:
     """获取财务报表数据"""
     logger.info(f"Getting financial statements for {symbol}...")
     try:
+        prefix = get_stock_prefix(symbol)
         # 获取资产负债表数据
         logger.info("Fetching balance sheet...")
         try:
             balance_sheet = ak.stock_financial_report_sina(
-                stock=f"sh{symbol}", symbol="资产负债表")
+                stock=f"{prefix}{symbol}", symbol="资产负债表")
             if not balance_sheet.empty:
                 latest_balance = balance_sheet.iloc[0]
                 previous_balance = balance_sheet.iloc[1] if len(
@@ -178,7 +259,7 @@ def get_financial_statements(symbol: str) -> Dict[str, Any]:
         logger.info("Fetching income statement...")
         try:
             income_statement = ak.stock_financial_report_sina(
-                stock=f"sh{symbol}", symbol="利润表")
+                stock=f"{prefix}{symbol}", symbol="利润表")
             if not income_statement.empty:
                 latest_income = income_statement.iloc[0]
                 previous_income = income_statement.iloc[1] if len(
@@ -199,7 +280,7 @@ def get_financial_statements(symbol: str) -> Dict[str, Any]:
         logger.info("Fetching cash flow statement...")
         try:
             cash_flow = ak.stock_financial_report_sina(
-                stock=f"sh{symbol}", symbol="现金流量表")
+                stock=f"{prefix}{symbol}", symbol="现金流量表")
             if not cash_flow.empty:
                 latest_cash_flow = cash_flow.iloc[0]
                 previous_cash_flow = cash_flow.iloc[1] if len(
@@ -283,17 +364,41 @@ def get_market_data(symbol: str) -> Dict[str, Any]:
     """获取市场数据"""
     try:
         # 获取实时行情
-        realtime_data = ak.stock_zh_a_spot_em()
-        stock_data = realtime_data[realtime_data['代码'] == symbol].iloc[0]
+        realtime_data = get_realtime_quotes(symbol)
+        if realtime_data is not None and not realtime_data.empty:
+            if '代码' in realtime_data.columns:
+                stock_data_df = realtime_data[realtime_data['代码'] == symbol]
+            else:
+                stock_data_df = realtime_data
+                
+            if not stock_data_df.empty:
+                stock_data = stock_data_df.iloc[0]
+                return {
+                    "market_cap": float(stock_data.get("总市值", 0)),
+                    "volume": float(stock_data.get("成交量", 0)),
+                    # A股没有平均成交量，暂用当日成交量
+                    "average_volume": float(stock_data.get("成交量", 0)),
+                    "fifty_two_week_high": float(stock_data.get("52周最高", 0)),
+                    "fifty_two_week_low": float(stock_data.get("52周最低", 0))
+                }
+        
+        # 如果获取失败，尝试使用单股接口获取基本信息
+        try:
+            logger.info(f"Retrying get_market_data for {symbol} using individual info...")
+            ind_info = ak.stock_individual_info_em(symbol=symbol)
+            if ind_info is not None and not ind_info.empty:
+                info_dict = dict(zip(ind_info['item'], ind_info['value']))
+                return {
+                    "market_cap": float(info_dict.get("总市值", 0)),
+                    "volume": 0, # 单股基本信息接口不含实时成交量
+                    "average_volume": 0,
+                    "fifty_two_week_high": 0,
+                    "fifty_two_week_low": 0
+                }
+        except Exception as retry_e:
+            logger.error(f"Retry market data failed: {retry_e}")
 
-        return {
-            "market_cap": float(stock_data.get("总市值", 0)),
-            "volume": float(stock_data.get("成交量", 0)),
-            # A股没有平均成交量，暂用当日成交量
-            "average_volume": float(stock_data.get("成交量", 0)),
-            "fifty_two_week_high": float(stock_data.get("52周最高", 0)),
-            "fifty_two_week_low": float(stock_data.get("52周最低", 0))
-        }
+        return {}
 
     except Exception as e:
         logger.error(f"Error getting market data: {e}")

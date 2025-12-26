@@ -10,7 +10,7 @@ load_dotenv(env_path)
 
 # 获取配置
 api_key = os.getenv("GEMINI_API_KEY")
-model_name = os.getenv("GEMINI_MODEL")
+model_name = "gemini-1.5-flash-latest"
 
 
 def test_simple_prompt():
@@ -55,8 +55,15 @@ def test_chat_format():
     print("\nResponse text:", response.text)
 
 
+def test_list_models():
+    """列出可用模型"""
+    client = genai.Client(api_key=api_key)
+    print("\nAvailable models:")
+    for model in client.models.list():
+        print(f"- {model.name} (supported actions: {model.supported_actions})")
+
+
 if __name__ == "__main__":
     print("Testing Gemini API...")
-    test_simple_prompt()
-    print("\n" + "="*50 + "\n")
-    test_chat_format()
+    test_list_models()
+    # test_simple_prompt()

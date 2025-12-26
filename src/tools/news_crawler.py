@@ -147,84 +147,110 @@ def convert_search_results_to_news_format(search_results, symbol: str) -> list:
     return news_list
 
 
+def get_stock_news_via_sina(symbol: str, max_news: int = 10) -> list:
+    """直接从新浪财经爬取个股新闻"""
+    from src.tools.api import get_stock_prefix
+    prefix = get_stock_prefix(symbol)
+    url = f"https://vip.stock.finance.sina.com.cn/corp/go.php/vCB_AllNewsStock/symbol/{prefix}{symbol}.phtml"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+    
+    news_list = []
+    try:
+        resp = requests.get(url, headers=headers, timeout=10)
+        resp.encoding = 'gbk'
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        
+        news_container = soup.find('div', {'class': 'datelist'})
+        if not news_container:
+            return []
+            
+        items = news_container.find_all('a')
+        for item in items[:max_news * 2]:
+            title = item.get_text().strip()
+            link = item.get('href')
+            
+            # 提取日期
+            date_str = ""
+            for sibling in item.next_siblings:
+                if isinstance(sibling, str) and "(" in sibling and ")" in sibling:
+                    date_str = sibling.strip("() ")
+                    break
+            
+            if not date_str:
+                date_str = datetime.now().strftime("%Y-%m-%d")
+            
+            if len(date_str) == 5:
+                date_str = f"{datetime.now().year}-{date_str}"
+            
+            publish_time = f"{date_str} 00:00:00" if len(date_str) == 10 else date_str
+            
+            if title and link:
+                news_list.append({
+                    "title": title,
+                    "content": title,
+                    "publish_time": publish_time,
+                    "source": "新浪财经",
+                    "url": link if link.startswith('http') else f"https://finance.sina.com.cn{link}",
+                    "keyword": symbol
+                })
+        
+        return news_list[:max_news]
+    except Exception as e:
+        print(f"新浪新闻抓取失败: {e}")
+        return []
+
 def get_stock_news_via_akshare(symbol: str, max_news: int = 10) -> list:
     """使用 akshare 获取股票新闻的原始方法"""
     if ak is None:
         return []
 
     try:
-        # 获取新闻列表
+        # 尝试接口 1: 东方财富 (可能会 JSON 解析失败)
         news_df = ak.stock_news_em(symbol=symbol)
         if news_df is None or len(news_df) == 0:
-            print(f"未获取到{symbol}的新闻数据")
-            return []
-
-        print(f"成功获取到{len(news_df)}条新闻")
-
-        # 实际可获取的新闻数量
-        available_news_count = len(news_df)
-        if available_news_count < max_news:
-            print(f"警告：实际可获取的新闻数量({available_news_count})少于请求的数量({max_news})")
-            max_news = available_news_count
-
-        # 获取指定条数的新闻（考虑到可能有些新闻内容为空，多获取50%）
-        news_list = []
-        for _, row in news_df.head(int(max_news * 1.5)).iterrows():
-            try:
-                # 获取新闻内容
-                content = row["新闻内容"] if "新闻内容" in row and not pd.isna(
-                    row["新闻内容"]) else ""
-                if not content:
-                    content = row["新闻标题"]
-
-                # 只去除首尾空白字符
-                content = content.strip()
-                if len(content) < 10:  # 内容太短的跳过
-                    continue
-
-                # 获取关键词
-                keyword = row["关键词"] if "关键词" in row and not pd.isna(
-                    row["关键词"]) else ""
-
-                # 添加新闻
-                news_item = {
-                    "title": row["新闻标题"].strip(),
-                    "content": content,
-                    "publish_time": row["发布时间"],
-                    "source": row["文章来源"].strip(),
-                    "url": row["新闻链接"].strip(),
-                    "keyword": keyword.strip()
-                }
-                news_list.append(news_item)
-                print(f"成功添加新闻: {news_item['title']}")
-
-            except Exception as e:
-                print(f"处理单条新闻时出错: {e}")
-                continue
-
-        # 按发布时间排序
-        news_list.sort(key=lambda x: x["publish_time"], reverse=True)
-
-        # 只保留指定条数的有效新闻
-        return news_list[:max_news]
+            return get_stock_news_via_sina(symbol, max_news)
 
     except Exception as e:
-        print(f"akshare 获取新闻数据时出错: {e}")
-        return []
+        return get_stock_news_via_sina(symbol, max_news)
+
+    # 实际可获取的新闻数量
+    available_news_count = len(news_df)
+    if available_news_count < max_news:
+        max_news = available_news_count
+
+    # 获取指定条数的新闻
+    news_list = []
+    for _, row in news_df.head(int(max_news * 1.5)).iterrows():
+        try:
+            content = row["新闻内容"] if "新闻内容" in row and not pd.isna(
+                row["新闻内容"]) else ""
+            if not content:
+                content = row["新闻标题"]
+
+            content = content.strip()
+            if len(content) < 10:
+                continue
+
+            news_item = {
+                "title": row["新闻标题"].strip(),
+                "content": content,
+                "publish_time": row["发布时间"],
+                "source": row["文章来源"].strip(),
+                "url": row["新闻链接"].strip(),
+                "keyword": row["关键词"].strip() if "关键词" in row and not pd.isna(row["关键词"]) else symbol
+            }
+            news_list.append(news_item)
+        except:
+            continue
+
+    news_list.sort(key=lambda x: x["publish_time"], reverse=True)
+    return news_list[:max_news]
 
 
 def get_stock_news(symbol: str, max_news: int = 10, date: str = None) -> list:
     """获取并处理个股新闻
-
-    Args:
-        symbol (str): 股票代码，如 "300059"
-        max_news (int, optional): 获取的新闻条数，默认为10条。最大支持100条。
-        date (str, optional): 截止日期，格式 "YYYY-MM-DD"，用于限制获取新闻的时间范围，
-                             获取该日期及之前的新闻。如果不指定，则使用当前日期。
-
-    Returns:
-        list: 新闻列表，每条新闻包含标题、内容、发布时间等信息。
-              新闻来源通过智能搜索引擎获取，包含各大财经网站的相关报道。
     """
 
     # 限制最大新闻条数
@@ -303,8 +329,8 @@ def get_stock_news(symbol: str, max_news: int = 10, date: str = None) -> list:
 
             # 执行搜索
             search_options = SearchOptions(
-                limit=fetch_count * 2,  # 获取更多结果以便过滤
-                timeout=30000,
+                limit=min(fetch_count * 2, 10),  # 限制搜索结果数量，避免过慢
+                timeout=5000, # 缩短超时时间到5秒
                 locale="zh-CN"
             )
 
@@ -317,7 +343,7 @@ def get_stock_news(symbol: str, max_news: int = 10, date: str = None) -> list:
 
                 print(f"通过 Google 搜索成功获取到{len(new_news_list)}条新闻")
             else:
-                print("Google 搜索未返回有效结果，尝试回退到 akshare")
+                print("Google search未返回有效结果，尝试回退到 akshare")
 
         except Exception as e:
             print(f"Google 搜索获取新闻时出错: {e}，回退到 akshare")
@@ -326,6 +352,55 @@ def get_stock_news(symbol: str, max_news: int = 10, date: str = None) -> list:
     if not new_news_list:
         print("使用 akshare 获取新闻...")
         new_news_list = get_stock_news_via_akshare(symbol, fetch_count)
+
+    # 合并缓存和新获取的新闻，去重
+    if cached_news and new_news_list:
+        # 创建已有新闻的标题集合用于去重
+        existing_titles = {news['title'] for news in cached_news}
+
+        # 过滤掉重复的新闻
+        unique_new_news = [
+            news for news in new_news_list
+            if news['title'] not in existing_titles
+        ]
+
+        # 合并新闻列表
+        combined_news = cached_news + unique_new_news
+        print(
+            f"合并缓存新闻({len(cached_news)}条)和新获取新闻({len(unique_new_news)}条)，总计{len(combined_news)}条")
+    else:
+        combined_news = new_news_list or cached_news
+
+    # 按发布时间排序（如果有发布时间信息）
+    try:
+        combined_news.sort(key=lambda x: x.get(
+            "publish_time", ""), reverse=True)
+    except:
+        pass  # 如果排序失败，保持原顺序
+
+    # 只保留指定条数的新闻
+    final_news_list = combined_news[:max_news]
+
+    # 保存到文件（只有当获取到新数据时才保存）
+    if new_news_list or not cache_valid:
+        try:
+            save_data = {
+                "date": cache_date,
+                "method": "online_search" if new_news_list and google_search_sync else "akshare",
+                "query": build_search_query(symbol, date) if new_news_list and google_search_sync else None,
+                "news": combined_news,  # 保存所有新闻，不只是返回的部分
+                "cached_count": len(cached_news),
+                "new_count": len(new_news_list),
+                "total_count": len(combined_news),
+                "last_updated": datetime.now().isoformat()
+            }
+            with open(news_file, 'w', encoding='utf-8') as f:
+                json.dump(save_data, f, ensure_ascii=False, indent=2)
+            print(f"成功保存{len(combined_news)}条新闻到文件: {news_file}")
+        except Exception as e:
+            print(f"保存新闻数据到文件时出错: {e}")
+
+    return final_news_list
 
     # 合并缓存和新获取的新闻，去重
     if cached_news and new_news_list:

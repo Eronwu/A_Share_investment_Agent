@@ -483,4 +483,8 @@ def google_search_sync(
     """
     同步版本的 Google 搜索函数
     """
-    return asyncio.run(google_search(query, options))
+    try:
+        result = asyncio.run(google_search(query, options))
+        return result
+    except Exception as e:
+        raise e

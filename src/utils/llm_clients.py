@@ -74,68 +74,138 @@ class GeminiClient(LLMClient):
             raise e
 
     def get_completion(self, messages, max_retries=3, initial_retry_delay=1, **kwargs):
-        """获取聊天完成结果，包含重试逻辑"""
+        """获取聊天完成结果，包含重试逻辑和模型回退机制"""
         try:
-            logger.info(f"{WAIT_ICON} 使用 Gemini 模型: {self.model}")
-            logger.debug(f"消息内容: {messages}")
+            # 备选模型列表
+            fallback_models = [
+                self.model,
+                "gemini-2.0-flash",
+                "gemini-1.5-flash-latest",
+                "gemini-flash-latest",
+                "gemini-pro-latest"
+            ]
+            # 去重并保持顺序
+            models_to_try = []
+            for m in fallback_models:
+                if m and m not in models_to_try:
+                    models_to_try.append(m)
 
-            for attempt in range(max_retries):
-                try:
-                    # 转换消息格式
-                    prompt = ""
-                    system_instruction = None
+            for current_model in models_to_try:
+                logger.info(f"{WAIT_ICON} 尝试使用 Gemini 模型: {current_model}")
+                
+                for attempt in range(max_retries):
+                    try:
+                        # 转换消息格式
+                        prompt = ""
+                        system_instruction = None
 
-                    for message in messages:
-                        role = message["role"]
-                        content = message["content"]
-                        if role == "system":
-                            system_instruction = content
-                        elif role == "user":
-                            prompt += f"User: {content}\n"
-                        elif role == "assistant":
-                            prompt += f"Assistant: {content}\n"
+                        for message in messages:
+                            role = message["role"]
+                            content = message["content"]
+                            if role == "system":
+                                system_instruction = content
+                            elif role == "user":
+                                prompt += f"User: {content}\n"
+                            elif role == "assistant":
+                                prompt += f"Assistant: {content}\n"
 
-                    # 准备配置
-                    config = {}
-                    if system_instruction:
-                        config['system_instruction'] = system_instruction
+                        # 准备配置
+                        config = {}
+                        if system_instruction:
+                            config['system_instruction'] = system_instruction
 
-                    # 调用 API
-                    response = self.generate_content_with_retry(
-                        contents=prompt.strip(),
-                        config=config
-                    )
+                        # 调用 API
+                        # 临时更新 self.model 以便 generate_content_with_retry 使用
+                        original_model = self.model
+                        self.model = current_model
+                        try:
+                            response = self.generate_content_with_retry(
+                                contents=prompt.strip(),
+                                config=config
+                            )
+                        finally:
+                            self.model = original_model
 
-                    if response is None:
-                        logger.warning(
-                            f"{ERROR_ICON} 尝试 {attempt + 1}/{max_retries}: API 返回空值")
+                        if response is None:
+                            logger.warning(
+                                f"{ERROR_ICON} 尝试 {attempt + 1}/{max_retries}: API 返回空值")
+                            if attempt < max_retries - 1:
+                                retry_delay = initial_retry_delay * (2 ** attempt)
+                                logger.info(
+                                    f"{WAIT_ICON} 等待 {retry_delay} 秒后重试...")
+                                time.sleep(retry_delay)
+                                continue
+                            break # 尝试下一个模型
+
+                        logger.debug(f"API 原始响应: {response.text}")
+                        logger.info(f"{SUCCESS_ICON} 成功使用 {current_model} 获取 Gemini 响应")
+
+                        # 直接返回文本内容
+                        return response.text
+
+                    except Exception as e:
+                        error_str = str(e)
+                        # 如果是 404 或 400 (模型不支持)，则尝试下一个模型
+                        if "404" in error_str or "not found" in error_str.lower() or "not supported" in error_str.lower():
+                            logger.warning(f"{ERROR_ICON} 模型 {current_model} 不可用 (404)，准备尝试下一个备选模型")
+                            break # 跳出重试循环，尝试下一个模型
+                        
+                        logger.error(
+                            f"{ERROR_ICON} 尝试 {attempt + 1}/{max_retries} 失败: {error_str}")
+                        
+                        # 如果是 429 (配额耗尽)，在重试几次后也尝试换个模型（虽然可能没用，但万一模型配额不同呢）
+                        if "429" in error_str or "quota" in error_str.lower():
+                            if attempt < max_retries - 1:
+                                retry_delay = initial_retry_delay * (2 ** attempt) + 2 # 额外多等一点
+                                logger.info(f"{WAIT_ICON} 配额限制，等待 {retry_delay} 秒后重试...")
+                                time.sleep(retry_delay)
+                                continue
+                            else:
+                                logger.warning(f"{ERROR_ICON} 模型 {current_model} 配额耗尽，尝试下一个备选模型")
+                                break # 尝试下一个模型
+
                         if attempt < max_retries - 1:
                             retry_delay = initial_retry_delay * (2 ** attempt)
-                            logger.info(
-                                f"{WAIT_ICON} 等待 {retry_delay} 秒后重试...")
+                            logger.info(f"{WAIT_ICON} 等待 {retry_delay} 秒后重试...")
                             time.sleep(retry_delay)
-                            continue
-                        return None
+                        else:
+                            logger.error(f"{ERROR_ICON} 模型 {current_model} 的重试次数已达上限")
+                            break # 尝试下一个模型
 
-                    logger.debug(f"API 原始响应: {response.text}")
-                    logger.info(f"{SUCCESS_ICON} 成功获取 Gemini 响应")
-
-                    # 直接返回文本内容
-                    return response.text
-
-                except Exception as e:
-                    logger.error(
-                        f"{ERROR_ICON} 尝试 {attempt + 1}/{max_retries} 失败: {str(e)}")
-                    if attempt < max_retries - 1:
-                        retry_delay = initial_retry_delay * (2 ** attempt)
-                        logger.info(f"{WAIT_ICON} 等待 {retry_delay} 秒后重试...")
-                        time.sleep(retry_delay)
-                    else:
-                        logger.error(f"{ERROR_ICON} 最终错误: {str(e)}")
-                        return None
+            logger.error(f"{ERROR_ICON} 所有备选模型均调用失败")
+            return None
 
         except Exception as e:
-            logger.error(f"{ERROR_ICON} get_completion 发生错误: {str(e)}")
+            logger.error(f"{ERROR_ICON} get_completion 发生总错误: {str(e)}")
+            return None
+                        
+                        logger.error(
+                            f"{ERROR_ICON} 尝试 {attempt + 1}/{max_retries} 失败: {error_str}")
+                        
+                        # 如果是 429 (配额耗尽)，在重试几次后也尝试换个模型（虽然可能没用，但万一模型配额不同呢）
+                        if "429" in error_str or "quota" in error_str.lower():
+                            if attempt < max_retries - 1:
+                                retry_delay = initial_retry_delay * (2 ** attempt) + 2 # 额外多等一点
+                                logger.info(f"{WAIT_ICON} 配额限制，等待 {retry_delay} 秒后重试...")
+                                time.sleep(retry_delay)
+                                continue
+                            else:
+                                logger.warning(f"{ERROR_ICON} 模型 {current_model} 配额耗尽，尝试下一个备选模型")
+                                break # 尝试下一个模型
+
+                        if attempt < max_retries - 1:
+                            retry_delay = initial_retry_delay * (2 ** attempt)
+                            logger.info(f"{WAIT_ICON} 等待 {retry_delay} 秒后重试...")
+                            time.sleep(retry_delay)
+                        else:
+                            logger.error(f"{ERROR_ICON} 模型 {current_model} 的重试次数已达上限")
+                            break # 尝试下一个模型
+
+            logger.error(f"{ERROR_ICON} 所有备选模型均调用失败")
+            return None
+
+        except Exception as e:
+            logger.error(f"{ERROR_ICON} get_completion 发生总错误: {str(e)}")
             return None
 
 
