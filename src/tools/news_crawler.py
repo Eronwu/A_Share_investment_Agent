@@ -402,55 +402,6 @@ def get_stock_news(symbol: str, max_news: int = 10, date: str = None) -> list:
 
     return final_news_list
 
-    # 合并缓存和新获取的新闻，去重
-    if cached_news and new_news_list:
-        # 创建已有新闻的标题集合用于去重
-        existing_titles = {news['title'] for news in cached_news}
-
-        # 过滤掉重复的新闻
-        unique_new_news = [
-            news for news in new_news_list
-            if news['title'] not in existing_titles
-        ]
-
-        # 合并新闻列表
-        combined_news = cached_news + unique_new_news
-        print(
-            f"合并缓存新闻({len(cached_news)}条)和新获取新闻({len(unique_new_news)}条)，总计{len(combined_news)}条")
-    else:
-        combined_news = new_news_list or cached_news
-
-    # 按发布时间排序（如果有发布时间信息）
-    try:
-        combined_news.sort(key=lambda x: x.get(
-            "publish_time", ""), reverse=True)
-    except:
-        pass  # 如果排序失败，保持原顺序
-
-    # 只保留指定条数的新闻
-    final_news_list = combined_news[:max_news]
-
-    # 保存到文件（只有当获取到新数据时才保存）
-    if new_news_list or not cache_valid:
-        try:
-            save_data = {
-                "date": cache_date,
-                "method": "online_search" if new_news_list and google_search_sync else "akshare",
-                "query": build_search_query(symbol, date) if new_news_list and google_search_sync else None,
-                "news": combined_news,  # 保存所有新闻，不只是返回的部分
-                "cached_count": len(cached_news),
-                "new_count": len(new_news_list),
-                "total_count": len(combined_news),
-                "last_updated": datetime.now().isoformat()
-            }
-            with open(news_file, 'w', encoding='utf-8') as f:
-                json.dump(save_data, f, ensure_ascii=False, indent=2)
-            print(f"成功保存{len(combined_news)}条新闻到文件: {news_file}")
-        except Exception as e:
-            print(f"保存新闻数据到文件时出错: {e}")
-
-    return final_news_list
-
 
 def get_news_sentiment(news_list: list, num_of_news: int = 5) -> float:
     """分析新闻情感得分

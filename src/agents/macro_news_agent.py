@@ -77,27 +77,38 @@ def macro_news_agent(state: AgentState) -> Dict[str, Any]:
         try:
             show_workflow_status(
                 f"{agent_name}: Fetching news for symbol {symbol}")
-            news_df = ak.stock_news_em(symbol=symbol)
-            if news_df is None or news_df.empty:
-                message = f"未获取到 {symbol} 的新闻数据。"
-                show_workflow_status(f"{agent_name}: {message}")
-                show_agent_reasoning(
-                    f"No news found for {symbol}. Proceeding with no data summary.", agent_name)
+            
+            # 引入 fallback 机制
+            from src.tools.news_crawler import get_stock_news_via_sina
+            
+            try:
+                news_df = ak.stock_news_em(symbol=symbol)
+                if news_df is None or news_df.empty:
+                    message = f"akshare 未获取到 {symbol} 的新闻数据，尝试新浪财经。"
+                    show_workflow_status(f"{agent_name}: {message}")
+                    news_list = get_stock_news_via_sina(symbol, max_news=20)
+                else:
+                    news_list = []
+                    for _, row in news_df.iterrows():
+                        news_list.append({
+                            "title": str(row.get("新闻标题", "")).strip(),
+                            "content": str(row.get("新闻内容", "")).strip(),
+                            "publish_time": str(row.get("发布时间", "")).strip()
+                        })
+            except Exception as e:
+                logger.warning(f"akshare 获取新闻失败: {e}，尝试新浪财经回退。")
+                news_list = get_stock_news_via_sina(symbol, max_news=20)
+
+            if not news_list:
                 summary = "今日未获取到相关宏观新闻数据。"
             else:
-                retrieved_news_count = len(news_df)
+                retrieved_news_count = len(news_list)
                 message = f"成功获取到 {symbol} 的 {retrieved_news_count} 条新闻数据。"
                 show_workflow_status(f"{agent_name}: {message}")
                 show_agent_reasoning(
                     f"Successfully fetched {retrieved_news_count} news items for {symbol}. Preparing for LLM analysis.", agent_name)
-                for _, row in news_df.iterrows():
-                    news_item = {
-                        "title": str(row.get("新闻标题", "")).strip(),
-                        "content": str(row.get("新闻内容", "")).strip(),  # 全量内容
-                        "publish_time": str(row.get("发布时间", "")).strip()
-                    }
-                    news_list_for_llm.append(news_item)
-
+                
+                news_list_for_llm = news_list
                 news_data_json_string = json.dumps(
                     news_list_for_llm, ensure_ascii=False, indent=2)
                 prompt_filled = LLM_PROMPT_MACRO_ANALYSIS.format(
