@@ -43,6 +43,7 @@ Thumbs.db
 
 # Other common files to ignore
 node_modules/
+web/.next/
 dist/
 .DS_Store 
 
