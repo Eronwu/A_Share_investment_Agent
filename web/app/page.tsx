@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import CommandPrompt from "./components/CommandPrompt";
+import { useAlerts } from "./hooks/useAlerts";
+import { useCommand } from "./hooks/useCommand";
 
 interface Service {
   id: string;
@@ -22,9 +24,18 @@ interface Service {
   cost: number | null;
   shares: number | null;
   pnl: number | null;
+  above: number | null;
+  below: number | null;
+  hidden?: boolean;
 }
 
-const INTERVAL = 60_000;
+interface AlertSettings {
+  poll_interval?: number;
+  big_move_pct?: number;
+  cooldown_minutes?: number;
+}
+
+const DEFAULT_POLL_SEC = 30;
 
 /* ── Official Dracula colors ── */
 const D = {
@@ -53,6 +64,13 @@ function fmtAmt(n: number): string {
   if (n >= 1e8) return (n / 1e8).toFixed(1) + "亿";
   if (n >= 1e4) return (n / 1e4).toFixed(0) + "万";
   return n.toFixed(0);
+}
+
+function fmtMoney(n: number): string {
+  const sign = n >= 0 ? "+" : "";
+  const abs = Math.abs(n);
+  if (abs >= 1e4) return `${sign}${(n / 1e4).toFixed(1)}万`;
+  return `${sign}${Math.round(n).toLocaleString("en-US")}`;
 }
 
 /* ── macOS Title Bar ── */
@@ -89,12 +107,14 @@ function TitleBar() {
 }
 
 /* ── iTerm2 Tab Bar ── */
-function TabBar() {
-  const tabs = [
-    { label: "Python Script Error (node)", active: false },
-    { label: "Claude Code (node)", active: false },
-    { label: "monitor (node)", active: true },
-    { label: "~ (-zsh)", active: false },
+type MarketTab = "A" | "HK";
+
+function TabBar({ activeTab, onTabChange }: { activeTab: MarketTab; onTabChange: (t: MarketTab) => void }) {
+  const tabs: { label: string; key: MarketTab | null }[] = [
+    { label: "Claude Code (node)", key: null },
+    { label: "A-share (node)", key: "A" },
+    { label: "HK (node)", key: "HK" },
+    { label: "~ (-zsh)", key: null },
   ];
   return (
     <div
@@ -106,39 +126,38 @@ function TabBar() {
         userSelect: "none",
       }}
     >
-      {tabs.map((t, i) => (
-        <div
-          key={i}
-          style={{
-            padding: "5px 16px",
-            background: t.active ? D.bg : "#21222c",
-            color: t.active ? D.fg : D.comment,
-            borderRight: "1px solid #191a21",
-            borderTop: t.active
-              ? `2px solid ${D.purple}`
-              : "2px solid transparent",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            minWidth: 130,
-          }}
-        >
-          <span
+      {tabs.map((t, i) => {
+        const isActive = t.key !== null && t.key === activeTab;
+        const clickable = t.key !== null;
+        return (
+          <div
+            key={i}
+            onClick={() => clickable && onTabChange(t.key!)}
             style={{
-              fontSize: 8,
-              color: t.active ? D.green : "#555",
+              padding: "5px 16px",
+              background: isActive ? D.bg : "#21222c",
+              color: isActive ? D.fg : D.comment,
+              borderRight: "1px solid #191a21",
+              borderTop: isActive
+                ? `2px solid ${D.purple}`
+                : "2px solid transparent",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              minWidth: 130,
+              cursor: clickable ? "pointer" : "default",
             }}
           >
-            {t.active ? "✱" : "●"}
-          </span>
-          <span>{t.label}</span>
-          <span
-            style={{ marginLeft: "auto", color: D.comment, fontSize: 10 }}
-          >
-            ⌘{i + 1}
-          </span>
-        </div>
-      ))}
+            <span style={{ fontSize: 8, color: isActive ? D.green : "#555" }}>
+              {isActive ? "✱" : "●"}
+            </span>
+            <span>{t.label}</span>
+            <span style={{ marginLeft: "auto", color: D.comment, fontSize: 10 }}>
+              ⌘{i + 1}
+            </span>
+          </div>
+        );
+      })}
       <div style={{ flex: 1, background: "#21222c" }} />
       <div style={{ padding: "5px 12px", color: D.comment, background: "#21222c" }}>
         +
@@ -167,6 +186,15 @@ export default function Home() {
   const [ts, setTs] = useState(0);
   const [tick, setTick] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<AlertSettings>({});
+  const [hkdCnyRate, setHkdCnyRate] = useState<number | null>(null);
+  // tab & section collapse state
+  const [activeTab, setActiveTab] = useState<MarketTab>("A");
+  const [prodStockOpen, setProdStockOpen] = useState(true);
+  const [prodETFOpen, setProdETFOpen] = useState(true);
+  const [stageStockOpen, setStageStockOpen] = useState(true);
+  const [stageETFOpen, setStageETFOpen] = useState(true);
+  const [hiddenOpen, setHiddenOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -175,6 +203,8 @@ export default function Home() {
       setServices(data.services || []);
       setTs(data.ts || Date.now());
       setTick((t) => t + 1);
+      if (data.settings) setSettings(data.settings);
+      if (data.hkdCnyRate != null) setHkdCnyRate(data.hkdCnyRate);
     } catch {
       /* */
     } finally {
@@ -182,23 +212,71 @@ export default function Home() {
     }
   }, []);
 
+  const cmd = useCommand(fetchData);
+  useAlerts(services, settings, cmd.addLogs);
+
+  const pollMs = (settings.poll_interval ?? DEFAULT_POLL_SEC) * 1000;
+
   useEffect(() => {
     fetchData();
-    const timer = setInterval(fetchData, INTERVAL);
+    const timer = setInterval(fetchData, pollMs);
     return () => clearInterval(timer);
-  }, [fetchData]);
+  }, [fetchData, pollMs]);
 
-  const holdings = services
-    .filter((s) => s.type === "holding")
-    .sort((a, b) => b.change - a.change);
-  const watching = services
-    .filter((s) => s.type !== "holding")
-    .sort((a, b) => b.change - a.change);
-  const hasHold = holdings.length > 0;
+  // 持仓和自选独立排序状态，支持虚拟字段 mktVal / totalPnl
+  type SortKey = keyof Service | "mktVal" | "totalPnl";
+  type SortState = { key: SortKey | null; asc: boolean };
+  const [holdSort, setHoldSort] = useState<SortState>({ key: null, asc: false });
+  const [watchSort, setWatchSort] = useState<SortState>({ key: null, asc: false });
+
+  function toggleHoldSort(key: SortKey) {
+    setHoldSort((prev) =>
+      prev.key === key ? { key, asc: !prev.asc } : { key, asc: false }
+    );
+  }
+
+  function toggleWatchSort(key: SortKey) {
+    setWatchSort((prev) =>
+      prev.key === key ? { key, asc: !prev.asc } : { key, asc: false }
+    );
+  }
+
+  function derivedVal(s: Service, key: SortKey): number {
+    if (key === "mktVal") return s.shares != null ? s.price * s.shares : -Infinity;
+    if (key === "totalPnl") return s.cost != null && s.shares != null ? (s.price - s.cost) * s.shares : -Infinity;
+    return (s[key as keyof Service] as number) ?? -Infinity;
+  }
+
+  function applySortList(list: Service[], st: SortState): Service[] {
+    if (!st.key) return list.slice().sort((a, b) => b.change - a.change);
+    return list.slice().sort((a, b) => {
+      const av = derivedVal(a, st.key!);
+      const bv = derivedVal(b, st.key!);
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return st.asc ? cmp : -cmp;
+    });
+  }
+
+  const isHK = (s: Service) => s.id.startsWith("HK");
+  const isETF = (s: Service) => !isHK(s) && /^(51|15|58)\d{4}$/.test(s.id);
+  const inTab = (s: Service) => activeTab === "HK" ? isHK(s) : !isHK(s);
+  const tabServices = services.filter((s) => inTab(s));
+  const prodStock = applySortList(tabServices.filter((s) => s.type === "holding" && !s.hidden && !isETF(s)), holdSort);
+  const prodETF = applySortList(tabServices.filter((s) => s.type === "holding" && !s.hidden && isETF(s)), holdSort);
+  const stageStock = applySortList(tabServices.filter((s) => s.type !== "holding" && !s.hidden && !isETF(s)), watchSort);
+  const stageETF = applySortList(tabServices.filter((s) => s.type !== "holding" && !s.hidden && isETF(s)), watchSort);
+  const hiddenList = applySortList(tabServices.filter((s) => s.hidden), holdSort);
+  const hasHold = prodStock.length > 0 || prodETF.length > 0;
+
+  // 全局统计（跨 tab）
+  const allProd = services.filter((s) => s.type === "holding" && !s.hidden);
+  const aCount = allProd.filter((s) => !isHK(s)).length;
+  const hkCount = allProd.filter((s) => isHK(s)).length;
 
   const now = ts
     ? new Date(ts).toLocaleTimeString("zh-CN", { hour12: false })
     : "--:--:--";
+  const isStale = ts > 0 && Date.now() - ts > pollMs * 2;
   const totalAmt = services.reduce((a, s) => a + s.amount, 0);
   const avgChg =
     services.length > 0
@@ -206,18 +284,109 @@ export default function Home() {
       : 0;
   const up = services.filter((s) => s.change > 0).length;
   const dn = services.filter((s) => s.change < 0).length;
-  const holdPnl = holdings
-    .filter((s) => s.pnl !== null && s.cost && s.shares)
-    .reduce((sum, s) => sum + (s.price - s.cost!) * s.shares!, 0);
 
-  /* ── render row ── */
-  function Row({ s, hold }: { s: Service; hold: boolean }) {
+  const FALLBACK_HKD_CNY = 0.92;
+  const fxRate = hkdCnyRate ?? FALLBACK_HKD_CNY;
+
+  // P&L 汇总包含所有持仓（含 hidden，隐藏不等于不算钱）
+  const allHoldings = services.filter((s) => s.type === "holding");
+  const holdingsWithPnl = allHoldings.filter((s) => s.pnl !== null && s.cost && s.shares);
+  const totalPnlCNY = holdingsWithPnl.reduce((sum, s) => {
+    const raw = (s.price - s.cost!) * s.shares!;
+    return sum + (s.id.startsWith("HK") ? raw * fxRate : raw);
+  }, 0);
+  const todayPnl = holdingsWithPnl.reduce((sum, s) => {
+    const raw = s.chgAmt * s.shares!;
+    return sum + (s.id.startsWith("HK") ? raw * fxRate : raw);
+  }, 0);
+  const totalPosition = holdingsWithPnl.reduce((sum, s) => {
+    const mv = s.price * s.shares!;
+    return sum + (s.id.startsWith("HK") ? mv * fxRate : mv);
+  }, 0);
+  const totalCostBasis = holdingsWithPnl.reduce((sum, s) => {
+    const cb = s.cost! * s.shares!;
+    return sum + (s.id.startsWith("HK") ? cb * fxRate : cb);
+  }, 0);
+  const returnPct = totalCostBasis > 0 ? (totalPnlCNY / totalCostBasis) * 100 : 0;
+
+  /* ── sort header helpers (per-section) ── */
+  const mkArrow = (st: SortState) => (k: SortKey) =>
+    st.key === k ? (st.asc ? " ▲" : " ▼") : "";
+  const mkHStyle = (st: SortState) => (
+    w: string,
+    k: SortKey | null,
+    right = false,
+  ): React.CSSProperties => ({
+    width: w,
+    textAlign: right ? "right" : "left",
+    cursor: k ? "pointer" : "default",
+    userSelect: "none",
+    color: k && st.key === k ? D.yellow : D.pink,
+  });
+
+  /* ── Holdings Row ── */
+  function HoldRow({ s }: { s: Service }) {
+    const sign = s.change > 0 ? "+" : "";
+    const pnlPctStr = s.pnl !== null ? `${s.pnl >= 0 ? "+" : ""}${s.pnl.toFixed(1)}%` : "-";
+    const mktVal = s.shares != null ? s.price * s.shares : null;
+    const totalPnlRaw = s.cost != null && s.shares != null ? (s.price - s.cost) * s.shares : null;
+    const dayPnl = s.shares != null ? s.chgAmt * s.shares : null;
+    // Near alert threshold indicator
+    const nearAlert =
+      (s.above && s.price > 0 && (s.above - s.price) / s.price < 0.03) ||
+      (s.below && s.price > 0 && (s.price - s.below) / s.price < 0.03);
+
+    return (
+      <div
+        style={{
+          display: "flex",
+          whiteSpace: "pre",
+          padding: "1px 0",
+          borderBottom: `1px solid #191a21`,
+          background: nearAlert ? "#44475a33" : "transparent",
+        }}
+      >
+        <span style={{ color: D.orange, width: "6ch" }}> PROD</span>
+        <span style={{ color: D.cyan, width: "10ch" }}>{pad(s.id, 9)}</span>
+        <span style={{ color: D.fg, width: "10ch" }}>{pad(s.name.slice(0, 6), 8)}</span>
+        <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
+          {pad(s.price.toFixed(2), 9, true)}
+        </span>
+        <span style={{ color: chgColor(s.change), width: "9ch", textAlign: "right", fontWeight: 500 }}>
+          {pad(`${sign}${s.change.toFixed(2)}%`, 8, true)}
+        </span>
+        <span style={{ color: D.comment, width: "9ch", textAlign: "right" }}>
+          {pad(s.cost != null ? s.cost.toFixed(2) : "-", 8, true)}
+        </span>
+        <span style={{ color: s.pnl !== null ? chgColor(s.pnl) : D.comment, width: "10ch", textAlign: "right", fontWeight: 500 }}>
+          {pad(pnlPctStr, 9, true)}
+        </span>
+        <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
+          {pad(mktVal != null ? fmtAmt(mktVal) : "-", 9, true)}
+        </span>
+        <span style={{ color: totalPnlRaw !== null ? chgColor(totalPnlRaw) : D.comment, width: "10ch", textAlign: "right", fontWeight: 500 }}>
+          {pad(totalPnlRaw !== null ? fmtMoney(totalPnlRaw) : "-", 9, true)}
+        </span>
+        <span style={{ color: dayPnl != null ? chgColor(dayPnl) : D.comment, width: "9ch", textAlign: "right", fontWeight: 500 }}>
+          {pad(dayPnl != null ? fmtMoney(dayPnl) : "-", 8, true)}
+        </span>
+        <span style={{ color: s.volRatio >= 1.5 ? D.red : s.volRatio <= 0.5 ? D.comment : D.fg, width: "7ch", textAlign: "right" }}>
+          {pad(s.volRatio.toFixed(2), 6, true)}
+        </span>
+        <span style={{ color: s.turnover >= 5 ? D.red : D.fg, width: "8ch", textAlign: "right" }}>
+          {pad(s.turnover.toFixed(2), 7, true)}
+        </span>
+        <span style={{ color: D.comment, width: "9ch", textAlign: "right" }}>
+          {pad(fmtAmt(s.amount), 8, true)}
+        </span>
+      </div>
+    );
+  }
+
+  /* ── Watching Row (different column set) ── */
+  function WatchRow({ s }: { s: Service }) {
     const sign = s.change > 0 ? "+" : "";
     const csign = s.chgAmt > 0 ? "+" : "";
-    const pnlStr =
-      hold && s.pnl !== null
-        ? `${s.pnl >= 0 ? "+" : ""}${s.pnl.toFixed(1)}%`
-        : "";
 
     return (
       <div
@@ -228,76 +397,29 @@ export default function Home() {
           borderBottom: `1px solid #191a21`,
         }}
       >
-        <span style={{ color: hold ? D.orange : D.comment, width: "6ch" }}>
-          {hold ? " PROD" : "  DEV"}
-        </span>
-        <span style={{ color: D.cyan, width: "10ch" }}>
-          {pad(s.id, 9)}
-        </span>
-        <span style={{ color: D.fg, width: "10ch" }}>
-          {pad(s.name.slice(0, 6), 8)}
-        </span>
+        <span style={{ color: D.comment, width: "6ch" }}>  DEV</span>
+        <span style={{ color: D.cyan, width: "10ch" }}>{pad(s.id, 9)}</span>
+        <span style={{ color: D.fg, width: "10ch" }}>{pad(s.name.slice(0, 6), 8)}</span>
         <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
           {pad(s.price.toFixed(2), 9, true)}
         </span>
-        <span
-          style={{
-            color: chgColor(s.change),
-            width: "9ch",
-            textAlign: "right",
-            fontWeight: 500,
-          }}
-        >
+        <span style={{ color: chgColor(s.change), width: "9ch", textAlign: "right", fontWeight: 500 }}>
           {pad(`${sign}${s.change.toFixed(2)}%`, 8, true)}
         </span>
-        <span
-          style={{ color: chgColor(s.chgAmt), width: "8ch", textAlign: "right" }}
-        >
+        <span style={{ color: chgColor(s.chgAmt), width: "8ch", textAlign: "right" }}>
           {pad(`${csign}${s.chgAmt.toFixed(2)}`, 7, true)}
         </span>
-        {hasHold && (
-          <span
-            style={{
-              color: s.pnl !== null ? chgColor(s.pnl) : D.comment,
-              width: "9ch",
-              textAlign: "right",
-              fontWeight: pnlStr ? 500 : 400,
-            }}
-          >
-            {pad(pnlStr || "-", 8, true)}
-          </span>
-        )}
-        <span
-          style={{
-            color:
-              s.volRatio >= 1.5
-                ? D.red
-                : s.volRatio <= 0.5
-                ? D.comment
-                : D.fg,
-            width: "7ch",
-            textAlign: "right",
-          }}
-        >
+        <span style={{ color: s.volRatio >= 1.5 ? D.red : s.volRatio <= 0.5 ? D.comment : D.fg, width: "7ch", textAlign: "right" }}>
           {pad(s.volRatio.toFixed(2), 6, true)}
         </span>
-        <span
-          style={{
-            color: s.turnover >= 5 ? D.red : D.fg,
-            width: "8ch",
-            textAlign: "right",
-          }}
-        >
+        <span style={{ color: s.turnover >= 5 ? D.red : D.fg, width: "8ch", textAlign: "right" }}>
           {pad(s.turnover.toFixed(2), 7, true)}
-        </span>
-        <span style={{ color: D.comment, width: "7ch", textAlign: "right" }}>
-          {pad(s.amp.toFixed(2), 6, true)}
-        </span>
-        <span style={{ color: D.comment, width: "11ch", textAlign: "right" }}>
-          {pad(s.vol.toLocaleString(), 10, true)}
         </span>
         <span style={{ color: D.comment, width: "9ch", textAlign: "right" }}>
           {pad(fmtAmt(s.amount), 8, true)}
+        </span>
+        <span style={{ color: D.comment, width: "13ch", textAlign: "right" }}>
+          {pad(`${s.low.toFixed(2)}-${s.high.toFixed(2)}`, 12, true)}
         </span>
       </div>
     );
@@ -313,7 +435,7 @@ export default function Home() {
       }}
     >
       <TitleBar />
-      <TabBar />
+      <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Terminal body */}
       <div
@@ -325,25 +447,30 @@ export default function Home() {
           lineHeight: 1.55,
         }}
       >
-        <Prompt cmd="watch -n 60 ./svc-monitor --format table" />
+        <Prompt cmd={`watch -n ${pollMs / 1000} ./svc-monitor --format table`} />
         <div style={{ height: 8 }} />
 
         {/* watch header */}
         <div style={{ color: D.comment, marginBottom: 6 }}>
-          <span>Every 60.0s: svc-monitor --format table</span>
+          <span>Every {pollMs / 1000}.0s: svc-monitor --format table</span>
           <span style={{ float: "right" }}>
-            devbox: {now} &nbsp; refresh #{tick}
+            {isStale && (
+              <span style={{ color: D.red, fontWeight: 500, marginRight: 8 }}>STALE</span>
+            )}
+            devbox: <span style={{ color: isStale ? D.red : D.comment }}>{now}</span> &nbsp; refresh #{tick}
           </span>
         </div>
 
-        {/* stats */}
+        {/* summary bar */}
         <div style={{ color: D.comment, marginBottom: 6 }}>
           <span style={{ color: D.fg }}>
             Nodes: <span style={{ color: D.purple }}>{services.length}</span>
           </span>
           {"  "}
-          up:<span style={{ color: D.green }}>{up}</span>
-          {" "}down:<span style={{ color: D.red }}>{dn}</span>
+          holdings:<span style={{ color: D.orange }}>{allProd.length}</span>
+          {"  "}
+          up:<span style={{ color: D.red }}>{up}</span>
+          {" "}down:<span style={{ color: D.green }}>{dn}</span>
           {"  "}
           throughput:<span style={{ color: D.fg }}>{fmtAmt(totalAmt)}</span>
           {"  "}
@@ -351,63 +478,143 @@ export default function Home() {
           <span style={{ color: chgColor(avgChg) }}>
             {avgChg >= 0 ? "+" : ""}{avgChg.toFixed(2)}%
           </span>
-          {hasHold && (
+          {"  "}alerts:<span style={{ color: isStale ? D.red : D.green }}>{isStale ? "stale" : "on"}</span>
+        </div>
+        {/* portfolio summary (holdings only) */}
+        {hasHold && holdingsWithPnl.length > 0 && (
+          <div style={{ color: D.comment, marginBottom: 6 }}>
+            position:<span style={{ color: D.fg }}>{fmtMoney(totalPosition).replace("+", "")}</span>
+            <span style={{ color: D.comment }}>¥</span>
+            {"  "}
+            yield:<span style={{ color: chgColor(totalPnlCNY) }}>{fmtMoney(totalPnlCNY)}</span>
+            <span style={{ color: D.comment }}>¥</span>
+            {"  "}
+            return:<span style={{ color: chgColor(returnPct) }}>{returnPct >= 0 ? "+" : ""}{returnPct.toFixed(1)}%</span>
+            {"  "}
+            today:<span style={{ color: chgColor(todayPnl) }}>{fmtMoney(todayPnl)}</span>
+            <span style={{ color: D.comment }}>¥</span>
+            {!hkdCnyRate && (
+              <span style={{ color: D.comment, fontSize: 11 }}> (FX≈{FALLBACK_HKD_CNY})</span>
+            )}
+          </div>
+        )}
+
+        {/* ══ Section renderer ══ */}
+        {(() => {
+          const ha = mkArrow(holdSort);
+          const hs = mkHStyle(holdSort);
+          const ht = toggleHoldSort;
+          const wa = mkArrow(watchSort);
+          const ws = mkHStyle(watchSort);
+          const wt = toggleWatchSort;
+
+          const holdHeader = (
+            <div style={{ display: "flex", whiteSpace: "pre", color: D.pink, borderBottom: `1px solid ${D.currentLine}`, paddingBottom: 3, marginBottom: 2, fontWeight: 500 }}>
+              <span style={{ width: "6ch" }}> TYPE</span>
+              <span style={hs("10ch", "id")} onClick={() => ht("id")}>CODE{ha("id")}</span>
+              <span style={{ width: "10ch" }}>NAME</span>
+              <span style={hs("10ch", "price", true)} onClick={() => ht("price")}>{pad("PRICE" + ha("price"), 9, true)}</span>
+              <span style={hs("9ch", "change", true)} onClick={() => ht("change")}>{pad("CHG%" + ha("change"), 8, true)}</span>
+              <span style={hs("9ch", "cost", true)} onClick={() => ht("cost")}>{pad("COST" + ha("cost"), 8, true)}</span>
+              <span style={hs("10ch", "pnl", true)} onClick={() => ht("pnl")}>{pad("P&L%" + ha("pnl"), 9, true)}</span>
+              <span style={hs("10ch", "mktVal", true)} onClick={() => ht("mktVal")}>{pad("MKT_VAL" + ha("mktVal"), 9, true)}</span>
+              <span style={hs("10ch", "totalPnl", true)} onClick={() => ht("totalPnl")}>{pad("P&L¥" + ha("totalPnl"), 9, true)}</span>
+              <span style={hs("9ch", "chgAmt", true)} onClick={() => ht("chgAmt")}>{pad("TODAY" + ha("chgAmt"), 8, true)}</span>
+              <span style={hs("7ch", "volRatio", true)} onClick={() => ht("volRatio")}>{pad("VRATIO" + ha("volRatio"), 6, true)}</span>
+              <span style={hs("8ch", "turnover", true)} onClick={() => ht("turnover")}>{pad("TURN%" + ha("turnover"), 7, true)}</span>
+              <span style={hs("9ch", "amount", true)} onClick={() => ht("amount")}>{pad("AMOUNT" + ha("amount"), 8, true)}</span>
+            </div>
+          );
+
+          const watchHeader = (
+            <div style={{ display: "flex", whiteSpace: "pre", color: D.pink, borderBottom: `1px solid ${D.currentLine}`, paddingBottom: 3, marginBottom: 2, fontWeight: 500 }}>
+              <span style={{ width: "6ch" }}> TYPE</span>
+              <span style={ws("10ch", "id")} onClick={() => wt("id")}>CODE{wa("id")}</span>
+              <span style={{ width: "10ch" }}>NAME</span>
+              <span style={ws("10ch", "price", true)} onClick={() => wt("price")}>{pad("PRICE" + wa("price"), 9, true)}</span>
+              <span style={ws("9ch", "change", true)} onClick={() => wt("change")}>{pad("CHG%" + wa("change"), 8, true)}</span>
+              <span style={ws("8ch", "chgAmt", true)} onClick={() => wt("chgAmt")}>{pad("CHG" + wa("chgAmt"), 7, true)}</span>
+              <span style={ws("7ch", "volRatio", true)} onClick={() => wt("volRatio")}>{pad("VRATIO" + wa("volRatio"), 6, true)}</span>
+              <span style={ws("8ch", "turnover", true)} onClick={() => wt("turnover")}>{pad("TURN%" + wa("turnover"), 7, true)}</span>
+              <span style={ws("9ch", "amount", true)} onClick={() => wt("amount")}>{pad("AMOUNT" + wa("amount"), 8, true)}</span>
+              <span style={{ width: "13ch", textAlign: "right", color: D.pink }}>{pad("RANGE", 12, true)}</span>
+            </div>
+          );
+
+          const secTitle = (
+            label: string,
+            count: number,
+            open: boolean,
+            toggle: (v: (prev: boolean) => boolean) => void,
+            opacity = 1,
+          ) => (
+            <div
+              style={{ color: D.comment, padding: "4px 0 1px", cursor: "pointer", userSelect: "none", opacity }}
+              onClick={() => toggle((v) => !v)}
+            >
+              <span style={{ color: D.purple }}>{open ? "▾" : "▸"}</span>
+              {" "}# ── {label} ({count}) ──
+            </div>
+          );
+
+          return (
             <>
-              {"  "}prod_yield:
-              <span style={{ color: chgColor(holdPnl) }}>
-                {holdPnl >= 0 ? "+" : ""}{holdPnl.toFixed(0)}
-              </span>
+              {/* ── prod:stocks ── */}
+              {prodStock.length > 0 && (
+                <>
+                  {secTitle("prod:stocks", prodStock.length, prodStockOpen, setProdStockOpen)}
+                  {prodStockOpen && <>{holdHeader}{prodStock.map((s) => <HoldRow key={s.id} s={s} />)}</>}
+                </>
+              )}
+
+              {/* ── prod:ETF ── */}
+              {prodETF.length > 0 && (
+                <>
+                  {secTitle("prod:ETF", prodETF.length, prodETFOpen, setProdETFOpen)}
+                  {prodETFOpen && <>{holdHeader}{prodETF.map((s) => <HoldRow key={s.id} s={s} />)}</>}
+                </>
+              )}
+
+              {/* ── stage:stocks ── */}
+              {stageStock.length > 0 && (
+                <>
+                  {secTitle("stage:stocks", stageStock.length, stageStockOpen, setStageStockOpen)}
+                  {stageStockOpen && <>{watchHeader}{stageStock.map((s) => <WatchRow key={s.id} s={s} />)}</>}
+                </>
+              )}
+
+              {/* ── stage:ETF ── */}
+              {stageETF.length > 0 && (
+                <>
+                  {secTitle("stage:ETF", stageETF.length, stageETFOpen, setStageETFOpen)}
+                  {stageETFOpen && <>{watchHeader}{stageETF.map((s) => <WatchRow key={s.id} s={s} />)}</>}
+                </>
+              )}
+
+              {/* ── hidden ── */}
+              {hiddenList.length > 0 && (
+                <>
+                  {secTitle("hidden", hiddenList.length, hiddenOpen, setHiddenOpen, 0.6)}
+                  {hiddenOpen && (
+                    <>
+                      {hiddenList.map((s) =>
+                        s.type === "holding"
+                          ? <HoldRow key={s.id} s={s} />
+                          : <WatchRow key={s.id} s={s} />
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+
+              {prodStock.length === 0 && prodETF.length === 0 && stageStock.length === 0 && stageETF.length === 0 && hiddenList.length === 0 && (
+                <div style={{ color: D.comment, padding: "8px 0" }}>
+                  # no services in {activeTab === "HK" ? "HK" : "A-share"} tab
+                </div>
+              )}
             </>
-          )}
-        </div>
-
-        {/* table header */}
-        <div
-          style={{
-            display: "flex",
-            whiteSpace: "pre",
-            color: D.pink,
-            borderBottom: `1px solid ${D.currentLine}`,
-            paddingBottom: 3,
-            marginBottom: 2,
-            fontWeight: 500,
-          }}
-        >
-          <span style={{ width: "6ch" }}> 类型</span>
-          <span style={{ width: "10ch" }}>代码</span>
-          <span style={{ width: "10ch" }}>名称</span>
-          <span style={{ width: "10ch", textAlign: "right" }}>{pad("现价", 9, true)}</span>
-          <span style={{ width: "9ch", textAlign: "right" }}>{pad("涨跌幅", 8, true)}</span>
-          <span style={{ width: "8ch", textAlign: "right" }}>{pad("涨跌额", 7, true)}</span>
-          {hasHold && (
-            <span style={{ width: "9ch", textAlign: "right" }}>{pad("盈亏", 8, true)}</span>
-          )}
-          <span style={{ width: "7ch", textAlign: "right" }}>{pad("量比", 6, true)}</span>
-          <span style={{ width: "8ch", textAlign: "right" }}>{pad("换手率", 7, true)}</span>
-          <span style={{ width: "7ch", textAlign: "right" }}>{pad("振幅", 6, true)}</span>
-          <span style={{ width: "11ch", textAlign: "right" }}>{pad("成交量", 10, true)}</span>
-          <span style={{ width: "9ch", textAlign: "right" }}>{pad("成交额", 8, true)}</span>
-        </div>
-
-        {/* production */}
-        {hasHold && (
-          <div style={{ color: D.comment, padding: "3px 0 1px" }}>
-            # ── production ({holdings.length}) ──
-          </div>
-        )}
-        {holdings.map((s) => (
-          <Row key={s.id} s={s} hold />
-        ))}
-
-        {/* staging */}
-        {watching.length > 0 && (
-          <div style={{ color: D.comment, padding: "6px 0 1px" }}>
-            # ── staging ({watching.length}) ──
-          </div>
-        )}
-        {watching.map((s) => (
-          <Row key={s.id} s={s} hold={false} />
-        ))}
+          );
+        })()}
 
         {/* log tail */}
         <div style={{ height: 16 }} />
@@ -417,12 +624,12 @@ export default function Home() {
         </div>
         <div style={{ color: D.comment, fontSize: 12 }}>
           [{now}] <span style={{ color: D.green }}>info</span> scheduler: next poll in{" "}
-          {INTERVAL / 1000}s
+          {pollMs / 1000}s
         </div>
 
         {/* interactive command prompt */}
         <div style={{ height: 10 }} />
-        <CommandPrompt onRefresh={fetchData} />
+        <CommandPrompt cmd={cmd} />
       </div>
 
       <style>{`

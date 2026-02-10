@@ -101,6 +101,8 @@ function helpEntries(): LogEntry[] {
     { time: t, level: "info", source: "help", message: "svc add <code> [--env prod] [--cost N] [--shares N] [--above N] [--below N]" },
     { time: t, level: "info", source: "help", message: "svc update <code> [--cost N] [--shares N] [--above N] [--below N] [--env prod|dev]" },
     { time: t, level: "info", source: "help", message: "svc rm <code> [code2 ...]" },
+    { time: t, level: "info", source: "help", message: "svc hide <code>              -- hide stock (long-term hold, out of sight)" },
+    { time: t, level: "info", source: "help", message: "svc unhide <code>            -- restore hidden stock" },
     { time: t, level: "info", source: "help", message: "svc ls [prod|dev]" },
     { time: t, level: "info", source: "help", message: "svc config <key> <value>" },
     { time: t, level: "info", source: "help", message: "svc help" },
@@ -245,5 +247,5 @@ export function useCommand(onRefresh: () => void) {
 
   const clearLogs = useCallback(() => setLogs([]), []);
 
-  return { logs, execute, historyUp, historyDown, clearLogs };
+  return { logs, execute, historyUp, historyDown, clearLogs, addLogs };
 }

@@ -65,6 +65,7 @@ logs/
 # data
 src/data/stock_news
 src/data/sentiment_cache.json
+src/data/market_data.json
 
 # docs
 docs/
@@ -79,7 +80,14 @@ temp/
 # macro analysis
 src/data/macro_analysis_cache.json
 
-test/
-test*
 src/crawler/*.ts
-*.json
+
+# pid files
+.poller.pid
+.web.pid
+
+# playwright test results
+web/test-results/
+
+# monitor config (user-specific data)
+src/data/monitor_config.json

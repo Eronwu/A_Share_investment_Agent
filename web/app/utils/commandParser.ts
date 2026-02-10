@@ -213,6 +213,29 @@ export function parseCommand(input: string): ParsedCommand {
       return { action: "config", settings: { [key]: val } };
     }
 
+    case "hide": {
+      if (args.length === 0) {
+        return { action: "update", errors: ["Usage: svc hide <code> [code2 ...]"] };
+      }
+      // hide multiple: treat first code as primary, rest need separate calls
+      // for simplicity, support single code
+      const code = normalizeCode(args[0]);
+      const codeErr = validateCode(code);
+      if (codeErr) return { action: "update", errors: [codeErr] };
+      return { action: "update", code, data: { hidden: true } };
+    }
+
+    case "unhide":
+    case "show": {
+      if (args.length === 0) {
+        return { action: "update", errors: ["Usage: svc unhide <code> [code2 ...]"] };
+      }
+      const code = normalizeCode(args[0]);
+      const codeErr = validateCode(code);
+      if (codeErr) return { action: "update", errors: [codeErr] };
+      return { action: "update", code, data: { hidden: false } };
+    }
+
     case "help":
     case "h":
     case "?": {
@@ -224,7 +247,7 @@ export function parseCommand(input: string): ParsedCommand {
   }
 }
 
-export const SUBCOMMANDS = ["add", "update", "rm", "ls", "config", "help"];
+export const SUBCOMMANDS = ["add", "update", "rm", "ls", "config", "hide", "unhide", "help"];
 
 export function getCompletions(partial: string): string[] {
   const trimmed = partial.trim();

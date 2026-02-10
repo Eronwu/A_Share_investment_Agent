@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { getCompletions } from "../utils/commandParser";
-import { useCommand, type LogEntry } from "../hooks/useCommand";
+import type { LogEntry } from "../hooks/useCommand";
 
 const D = {
   bg: "#282a36",
@@ -24,15 +24,24 @@ const LOG_COLORS: Record<LogEntry["level"], string> = {
   warn: D.yellow,
 };
 
-interface CommandPromptProps {
-  onRefresh: () => void;
+interface CommandState {
+  logs: LogEntry[];
+  execute: (input: string) => Promise<void>;
+  historyUp: () => string;
+  historyDown: () => string;
+  clearLogs: () => void;
+  addLogs: (entries: LogEntry[]) => void;
 }
 
-export default function CommandPrompt({ onRefresh }: CommandPromptProps) {
+interface CommandPromptProps {
+  cmd: CommandState;
+}
+
+export default function CommandPrompt({ cmd }: CommandPromptProps) {
+  const { logs, execute, historyUp, historyDown, clearLogs } = cmd;
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const logsEndRef = useRef<HTMLDivElement>(null);
-  const { logs, execute, historyUp, historyDown, clearLogs } = useCommand(onRefresh);
 
   // auto-focus on mount
   useEffect(() => {

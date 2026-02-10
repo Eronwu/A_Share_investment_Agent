@@ -13,6 +13,7 @@ interface WatchEntry {
   shares?: number | null;
   above?: number | null;
   below?: number | null;
+  hidden?: boolean;
 }
 
 interface MonitorConfig {
@@ -134,6 +135,7 @@ export async function POST(request: Request) {
         if (data?.shares !== undefined) existing.shares = data.shares;
         if (data?.above !== undefined) existing.above = data.above;
         if (data?.below !== undefined) existing.below = data.below;
+        if (data?.hidden !== undefined) existing.hidden = data.hidden;
 
         // promote to holding if cost/shares are set
         if ((existing.cost != null || existing.shares != null) && existing.type !== "holding") {
@@ -149,6 +151,7 @@ export async function POST(request: Request) {
         if (data?.shares !== undefined) changed.push(`shares:${data.shares}`);
         if (data?.above !== undefined) changed.push(`above:${data.above}`);
         if (data?.below !== undefined) changed.push(`below:${data.below}`);
+        if (data?.hidden !== undefined) changed.push(`hidden:${data.hidden}`);
 
         return NextResponse.json({
           success: true,
