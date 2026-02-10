@@ -75,9 +75,11 @@ def fetch_hkd_cny_rate() -> float | None:
             timeout=5,
         )
         data = resp.json()
-        rate = data.get("data", {}).get("diff", [{}])[0].get("f2")
-        if isinstance(rate, (int, float)) and rate > 0:
-            return round(float(rate), 4)
+        diff = (data.get("data") or {}).get("diff") or []
+        if diff and isinstance(diff[0], dict):
+            rate = diff[0].get("f2")
+            if isinstance(rate, (int, float)) and rate > 0:
+                return round(float(rate), 4)
     except Exception as e:
         logger.warning(f"获取 HKD/CNY 汇率失败: {e}")
     return None

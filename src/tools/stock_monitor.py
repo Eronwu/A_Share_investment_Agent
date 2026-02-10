@@ -765,11 +765,20 @@ class TechnicalSignalEngine:
 # 3. macOS 通知
 # ══════════════════════════════════════════
 
-def notify(title: str, message: str, sound: str = "default"):
-    """发送 macOS 通知，按优先级尝试多种方式"""
+def notify(title: str, message: str, sound: str = "default", group: str = ""):
+    """发送 macOS 通知，按优先级尝试多种方式
+
+    Args:
+        group: terminal-notifier 分组 ID，同 group 的通知会互相覆盖。
+               留空则用时间戳生成唯一 ID，确保每条通知独立显示。
+    """
     # 转义双引号
     safe_title = title.replace('"', '\\"')
     safe_msg = message.replace('"', '\\"')
+
+    # 每条通知独立 group，避免互相覆盖
+    if not group:
+        group = f"stock_{int(time.time() * 1000)}"
 
     # 方式1: terminal-notifier（独立 App，通知权限独立于 Terminal）
     try:
@@ -779,7 +788,7 @@ def notify(title: str, message: str, sound: str = "default"):
         if result.returncode == 0:
             subprocess.run(
                 ["terminal-notifier", "-title", title, "-message", message,
-                 "-sound", sound, "-group", "stock_monitor"],
+                 "-sound", sound, "-group", group],
                 capture_output=True, timeout=5,
             )
             logger.info(f"通知已发送(terminal-notifier): [{title}] {message}")

@@ -4,8 +4,10 @@ set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 POLLER_PID="$DIR/.poller.pid"
+NOTIFIER_PID="$DIR/.notifier.pid"
 WEB_PID="$DIR/.web.pid"
 POLLER_LOG="$DIR/logs/poller.log"
+NOTIFIER_LOG="$DIR/logs/notifier.log"
 WEB_LOG="$DIR/logs/web.log"
 
 mkdir -p "$DIR/logs"
@@ -38,6 +40,17 @@ do_start() {
     echo "Poller  启动  pid=$!  日志=$POLLER_LOG"
   fi
 
+  # Notifier (等 poller 先写一次数据)
+  if _is_running "$NOTIFIER_PID"; then
+    echo "Notifier 已在运行 (pid=$(_read_pid "$NOTIFIER_PID"))，跳过"
+  else
+    cd "$DIR"
+    sleep 2  # 等 poller 首次写入 market_data.json
+    nohup poetry run python src/tools/stock_notifier.py >> "$NOTIFIER_LOG" 2>&1 &
+    echo $! > "$NOTIFIER_PID"
+    echo "Notifier 启动  pid=$!  日志=$NOTIFIER_LOG"
+  fi
+
   # Web
   if _is_running "$WEB_PID"; then
     echo "Web    已在运行 (pid=$(_read_pid "$WEB_PID"))，跳过"
@@ -51,11 +64,12 @@ do_start() {
   echo ""
   echo "全部后台运行中，可关闭终端。"
   echo "  查看状态: ./start_monitor.sh status"
-  echo "  查看日志: tail -f logs/poller.log logs/web.log"
+  echo "  查看日志: tail -f logs/poller.log logs/notifier.log logs/web.log"
   echo "  停止服务: ./start_monitor.sh stop"
 }
 
 do_stop() {
+  _stop_one "$NOTIFIER_PID" "Notifier"
   _stop_one "$POLLER_PID" "Poller"
   _stop_one "$WEB_PID" "Web"
 }
@@ -68,10 +82,17 @@ do_status() {
     rm -f "$POLLER_PID"
   fi
 
-  if _is_running "$WEB_PID"; then
-    echo "Web     运行中  pid=$(_read_pid "$WEB_PID")"
+  if _is_running "$NOTIFIER_PID"; then
+    echo "Notifier 运行中  pid=$(_read_pid "$NOTIFIER_PID")"
   else
-    echo "Web     未运行"
+    echo "Notifier 未运行"
+    rm -f "$NOTIFIER_PID"
+  fi
+
+  if _is_running "$WEB_PID"; then
+    echo "Web      运行中  pid=$(_read_pid "$WEB_PID")"
+  else
+    echo "Web      未运行"
     rm -f "$WEB_PID"
   fi
 }
