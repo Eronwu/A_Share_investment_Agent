@@ -84,7 +84,14 @@ src/crawler/*.ts
 
 # pid files
 .poller.pid
+.notifier.pid
 .web.pid
+
+# browser state (runtime)
+browser-state*.json
+
+# macro summary (runtime)
+src/data/macro_summary.json
 
 # playwright test results
 web/test-results/
