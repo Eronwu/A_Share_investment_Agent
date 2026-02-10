@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync, writeFileSync, renameSync } from "fs";
 import { join } from "path";
 
 const CONFIG_PATH = join(process.cwd(), "..", "src", "data", "monitor_config.json");
@@ -27,7 +27,9 @@ function readConfig(): MonitorConfig {
 }
 
 function writeConfig(config: MonitorConfig) {
-  writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  const tmp = CONFIG_PATH + ".tmp";
+  writeFileSync(tmp, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  renameSync(tmp, CONFIG_PATH);
 }
 
 function emMarket(code: string): string {

@@ -265,7 +265,7 @@ export default function Home() {
   const prodETF = applySortList(tabServices.filter((s) => s.type === "holding" && !s.hidden && isETF(s)), holdSort);
   const stageStock = applySortList(tabServices.filter((s) => s.type !== "holding" && !s.hidden && !isETF(s)), watchSort);
   const stageETF = applySortList(tabServices.filter((s) => s.type !== "holding" && !s.hidden && isETF(s)), watchSort);
-  const hiddenList = applySortList(tabServices.filter((s) => s.hidden), holdSort);
+  const hiddenList = applySortList(services.filter((s) => s.hidden), holdSort);
   const hasHold = prodStock.length > 0 || prodETF.length > 0;
 
   // 全局统计（跨 tab）
