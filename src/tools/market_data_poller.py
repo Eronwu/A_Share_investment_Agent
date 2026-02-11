@@ -88,6 +88,78 @@ def fetch_hkd_cny_rate() -> float | None:
     return None
 
 
+SINA_INDEX_URL = "https://hq.sinajs.cn/list=s_sh000001,s_sz399001"
+SINA_HEADERS = {"Referer": "https://finance.sina.com.cn"}
+
+
+def fetch_market_turnover() -> dict | None:
+    """从新浪获取沪深两市实时成交额（单次请求，<50ms）
+
+    Returns:
+        {sh, sz, total (亿), shPct, szPct, verdict}
+    """
+    import re
+
+    try:
+        resp = requests.get(SINA_INDEX_URL, headers=SINA_HEADERS, timeout=5)
+        resp.encoding = "gbk"
+    except Exception as e:
+        logger.warning(f"获取两市成交额失败: {e}")
+        return None
+
+    result = {}
+    for line in resp.text.strip().split("\n"):
+        m = re.match(r'var hq_str_s_(\w+)="(.*)";', line.strip())
+        if not m:
+            continue
+        code = m.group(1)
+        fields = m.group(2).split(",")
+        if len(fields) < 6:
+            continue
+        # 简化格式: 名称,点位,涨跌点,涨跌幅%,成交量(万手),成交额(万元)
+        key = "sh" if "sh" in code else "sz"
+        result[key] = {
+            "name": fields[0],
+            "price": float(fields[1]),
+            "pct": float(fields[3]),
+            "amount": float(fields[5]) / 10000,  # 万元 → 亿元
+        }
+
+    if "sh" not in result or "sz" not in result:
+        return None
+
+    sh_yi = result["sh"]["amount"]
+    sz_yi = result["sz"]["amount"]
+    total = sh_yi + sz_yi
+
+    # 缩放量判断
+    if total >= 20000:
+        verdict = "extreme_high"
+    elif total >= 15000:
+        verdict = "high"
+    elif total >= 12000:
+        verdict = "above_avg"
+    elif total >= 10000:
+        verdict = "normal"
+    elif total >= 8000:
+        verdict = "below_avg"
+    elif total >= 6000:
+        verdict = "low"
+    else:
+        verdict = "extreme_low"
+
+    return {
+        "sh": round(sh_yi),
+        "sz": round(sz_yi),
+        "total": round(total),
+        "shIndex": result["sh"]["price"],
+        "szIndex": result["sz"]["price"],
+        "shPct": result["sh"]["pct"],
+        "szPct": result["sz"]["pct"],
+        "verdict": verdict,
+    }
+
+
 def poll_once() -> bool:
     """执行一次抓取+写入，返回是否成功"""
     config = load_config()
@@ -110,11 +182,15 @@ def poll_once() -> bool:
     has_hk = any(s.startswith("HK") for s in symbols)
     hkd_cny_rate = fetch_hkd_cny_rate() if has_hk else None
 
+    # 两市成交额
+    turnover = fetch_market_turnover()
+
     payload = {
         "services": services,
         "ts": int(time.time() * 1000),
         "settings": settings,
         "hkdCnyRate": hkd_cny_rate,
+        "marketTurnover": turnover,
     }
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
