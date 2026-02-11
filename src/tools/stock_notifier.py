@@ -276,7 +276,7 @@ class DeltaAlertEngine:
                 "message": message,
                 "_kind": kind,
                 "_change_pct": change_pct,
-                "_stealth": _stealth_line(symbol, change_pct, stealth_extra),
+                "_stealth": _stealth_line(name, change_pct, stealth_extra),
             })
 
         # ── Portfolio summary ──
@@ -347,28 +347,20 @@ def _stealth_title(is_summary: bool = False) -> str:
     return titles[idx]
 
 
-def _stealth_line(symbol: str, change_pct: float, extra: str = "") -> str:
-    """Format one stock as a service monitor line.
-
-    Examples:
-        SVC-159516: crit -10.0%
-        SVC-9988: ok +5.2% (resolved)
-        SVC-159326: threshold breach
-    """
-    # 港股去掉 HK 前缀但保留 SVC- 前缀
-    svc_id = f"SVC-{symbol.upper().removeprefix('HK')}"
+def _stealth_line(name: str, change_pct: float, extra: str = "") -> str:
+    """Format one stock as a concise monitor line using stock name."""
     if extra:
-        return f"{svc_id}: {extra}"
+        return f"{name}: {extra}"
     if change_pct <= -7:
-        return f"{svc_id}: crit {change_pct:+.1f}%"
+        return f"{name}: crit {change_pct:+.1f}%"
     elif change_pct <= -4:
-        return f"{svc_id}: warn {change_pct:+.1f}%"
+        return f"{name}: warn {change_pct:+.1f}%"
     elif change_pct >= 7:
-        return f"{svc_id}: ok {change_pct:+.1f}%"
+        return f"{name}: ok {change_pct:+.1f}%"
     elif change_pct >= 4:
-        return f"{svc_id}: info {change_pct:+.1f}%"
+        return f"{name}: info {change_pct:+.1f}%"
     else:
-        return f"{svc_id}: {change_pct:+.1f}%"
+        return f"{name}: {change_pct:+.1f}%"
 
 
 def stealth_dispatch(alerts: list[dict], *, sound: str = ""):
