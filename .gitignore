@@ -95,6 +95,3 @@ src/data/macro_summary.json
 
 # playwright test results
 web/test-results/
-
-# monitor config (user-specific data)
-src/data/monitor_config.json

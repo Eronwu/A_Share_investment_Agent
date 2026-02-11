@@ -2,37 +2,9 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
+import { D } from "../theme";
 
-/* ── Dracula palette ── */
-const D = {
-  bg: "#282a36",
-  currentLine: "#44475a",
-  fg: "#f8f8f2",
-  comment: "#6272a4",
-  cyan: "#8be9fd",
-  green: "#50fa7b",
-  orange: "#ffb86c",
-  pink: "#ff79c6",
-  purple: "#bd93f9",
-  red: "#ff5555",
-  yellow: "#f1fa8c",
-} as const;
-
-/* ── Types ── */
-interface WatchEntry {
-  name: string;
-  type?: string;
-  cost?: number | null;
-  shares?: number | null;
-  above?: number | null;
-  below?: number | null;
-  hidden?: boolean;
-}
-
-interface MonitorConfig {
-  watchlist: Record<string, WatchEntry>;
-  settings: Record<string, number>;
-}
+import type { WatchEntry, MonitorConfig } from "../types";
 
 /* ── Inline-editable cell ── */
 function EditableCell({

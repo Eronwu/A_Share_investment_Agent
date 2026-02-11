@@ -1,19 +1,8 @@
 import { useEffect, useRef } from "react";
 import type { LogEntry } from "./useCommand";
+import type { Service, AlertSettings } from "../types";
 
-interface AlertService {
-  id: string;
-  name: string;
-  price: number;
-  change: number;
-  above: number | null;
-  below: number | null;
-}
-
-interface AlertSettings {
-  big_move_pct?: number;
-  cooldown_minutes?: number;
-}
+type AlertService = Pick<Service, "id" | "name" | "price" | "change" | "above" | "below">;
 
 type AlertKind = "above" | "below" | "big_move";
 

@@ -4,22 +4,10 @@ import { join } from "path";
 
 const CONFIG_PATH = join(process.cwd(), "..", "src", "data", "monitor_config.json");
 
+import type { WatchEntry, MonitorConfig } from "../../types";
+import { EM_UT } from "../../theme";
+
 const EM_API = "https://push2.eastmoney.com/api/qt/ulist.np/get";
-
-interface WatchEntry {
-  name: string;
-  type?: string;
-  cost?: number | null;
-  shares?: number | null;
-  above?: number | null;
-  below?: number | null;
-  hidden?: boolean;
-}
-
-interface MonitorConfig {
-  watchlist: Record<string, WatchEntry>;
-  settings: Record<string, number>;
-}
 
 function readConfig(): MonitorConfig {
   const raw = readFileSync(CONFIG_PATH, "utf-8");
@@ -46,7 +34,7 @@ function rawCode(code: string): string {
 async function fetchStockName(code: string): Promise<string> {
   try {
     const secid = `${emMarket(code)}.${rawCode(code)}`;
-    const url = `${EM_API}?fltt=2&secids=${secid}&fields=f12,f14&ut=fa5fd1943c7b386f172d6893dbfba10b`;
+    const url = `${EM_API}?fltt=2&secids=${secid}&fields=f12,f14&ut=${EM_UT}`;
     const resp = await fetch(url);
     const data = await resp.json();
     if (data?.data?.diff?.[0]?.f14) {
@@ -194,17 +182,36 @@ export async function POST(request: Request) {
           return NextResponse.json({ success: false, message: "Missing settings" }, { status: 400 });
         }
 
+        // 白名单 + 范围校验
+        const ALLOWED: Record<string, [number, number]> = {
+          poll_interval: [5, 300],
+          big_move_pct: [0.5, 20],
+          cooldown_minutes: [1, 120],
+        };
+
+        const rejected: string[] = [];
+        const applied: string[] = [];
         for (const [key, val] of Object.entries(settings)) {
-          config.settings[key] = val;
+          const range = ALLOWED[key];
+          if (!range) {
+            rejected.push(`${key} (unknown)`);
+            continue;
+          }
+          const n = Number(val);
+          if (isNaN(n) || n < range[0] || n > range[1]) {
+            rejected.push(`${key}=${val} (must be ${range[0]}-${range[1]})`);
+            continue;
+          }
+          config.settings[key] = n;
+          applied.push(`${key}=${n}`);
         }
         writeConfig(config);
 
-        const pairs = Object.entries(settings)
-          .map(([k, v]) => `${k}=${v}`)
-          .join(" ");
+        const msg = applied.length > 0 ? `Updated: ${applied.join(" ")}` : "No changes";
+        const warn = rejected.length > 0 ? ` | Rejected: ${rejected.join(", ")}` : "";
         return NextResponse.json({
-          success: true,
-          message: `Config updated: ${pairs}`,
+          success: applied.length > 0,
+          message: msg + warn,
         });
       }
 

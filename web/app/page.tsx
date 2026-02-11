@@ -5,52 +5,11 @@ import CommandPrompt from "./components/CommandPrompt";
 import { useAlerts } from "./hooks/useAlerts";
 import { useCommand } from "./hooks/useCommand";
 
-interface Service {
-  id: string;
-  name: string;
-  type: string;
-  price: number;
-  change: number;
-  chgAmt: number;
-  vol: number;
-  amount: number;
-  amp: number;
-  turnover: number;
-  volRatio: number;
-  high: number;
-  low: number;
-  open: number;
-  prevClose: number;
-  cost: number | null;
-  shares: number | null;
-  pnl: number | null;
-  above: number | null;
-  below: number | null;
-  hidden?: boolean;
-}
-
-interface AlertSettings {
-  poll_interval?: number;
-  big_move_pct?: number;
-  cooldown_minutes?: number;
-}
+import type { Service, AlertSettings } from "./types";
 
 const DEFAULT_POLL_SEC = 30;
 
-/* ── Official Dracula colors ── */
-const D = {
-  bg: "#282a36",
-  currentLine: "#44475a",
-  fg: "#f8f8f2",
-  comment: "#6272a4",
-  cyan: "#8be9fd",
-  green: "#50fa7b",
-  orange: "#ffb86c",
-  pink: "#ff79c6",
-  purple: "#bd93f9",
-  red: "#ff5555",
-  yellow: "#f1fa8c",
-} as const;
+import { D } from "./theme";
 
 function chgColor(v: number) {
   return v > 0 ? D.red : v < 0 ? D.green : D.comment;

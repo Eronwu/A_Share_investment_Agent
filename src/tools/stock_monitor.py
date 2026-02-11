@@ -45,6 +45,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.tools.api import get_stock_prefix
+from src.tools.market_data_poller import EM_UT
 from src.tools.stock_data_fetcher import AIDC_WATCHLIST
 from src.utils.logging_config import setup_logger
 
@@ -247,7 +248,7 @@ def fetch_realtime_eastmoney(symbols: list[str]) -> list[dict]:
         "fltt": "2",
         "secids": secids,
         "fields": EASTMONEY_FIELDS,
-        "ut": "fa5fd1943c7b386f172d6893dbfba10b",
+        "ut": EM_UT,
     }
 
     try:
@@ -562,7 +563,7 @@ def _fetch_klines_a(symbol: str, days: int) -> list[float]:
         "fields2": "f51,f52,f53,f54,f55,f56,f57",
         "klt": "101", "fqt": "1",
         "end": "20500101", "lmt": str(days),
-        "ut": "fa5fd1943c7b386f172d6893dbfba10b",
+        "ut": EM_UT,
     }
     for attempt in range(2):
         try:

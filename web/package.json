@@ -7,8 +7,11 @@
     "build": "next build",
     "start": "next start -p 3120",
     "test": "lsof -ti:3120 | xargs kill -9 2>/dev/null; npx playwright test",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "test:ui": "npx playwright test --ui",
-    "test:headed": "lsof -ti:3120 | xargs kill -9 2>/dev/null; npx playwright test --headed"
+    "test:headed": "lsof -ti:3120 | xargs kill -9 2>/dev/null; npx playwright test --headed",
+    "test:all": "vitest run && npm test"
   },
   "dependencies": {
     "next": "^15.1.0",
@@ -22,6 +25,7 @@
     "@types/react": "^19.0.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.18"
   }
 }

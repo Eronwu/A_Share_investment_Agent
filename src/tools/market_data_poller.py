@@ -20,6 +20,9 @@ import requests
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+# 东方财富 push API 公开 token（所有 quant 库共用）
+EM_UT = "fa5fd1943c7b386f172d6893dbfba10b"
+
 from src.tools.stock_monitor import fetch_realtime_eastmoney, load_config
 from src.utils.logging_config import setup_logger
 
@@ -70,7 +73,7 @@ def fetch_hkd_cny_rate() -> float | None:
                 "fltt": "2",
                 "secids": "119.HKDCNY",
                 "fields": "f2",
-                "ut": "fa5fd1943c7b386f172d6893dbfba10b",
+                "ut": EM_UT,
             },
             timeout=5,
         )
