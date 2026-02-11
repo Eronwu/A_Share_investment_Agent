@@ -23,10 +23,14 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # 东方财富 push API 公开 token（所有 quant 库共用）
 EM_UT = "fa5fd1943c7b386f172d6893dbfba10b"
 
+from src.tools.futu_enricher import FutuL2Enricher
 from src.tools.stock_monitor import fetch_realtime_eastmoney, load_config
 from src.utils.logging_config import setup_logger
 
 logger = setup_logger("market_data_poller")
+
+# Futu L2 增强器 — 全局单例，懒连接，失败不影响主流程
+_futu_enricher = FutuL2Enricher()
 
 CONFIG_PATH = PROJECT_ROOT / "src" / "data" / "monitor_config.json"
 OUTPUT_PATH = PROJECT_ROOT / "src" / "data" / "market_data.json"
@@ -200,6 +204,15 @@ def poll_once() -> bool:
         return False
 
     services = build_services(stocks, watchlist)
+
+    # Futu L2 增强（可选，失败时 l2_data = {}，不影响后续）
+    l2_data = _futu_enricher.enrich(services)
+    if l2_data:
+        for svc in services:
+            extra = l2_data.get(svc["id"])
+            if extra:
+                svc.update(extra)
+        logger.info(f"L2 增强: {len(l2_data)}/{len(services)} 只")
 
     # 有港股持仓时获取汇率
     has_hk = any(s.startswith("HK") for s in symbols)

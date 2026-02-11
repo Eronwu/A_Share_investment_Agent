@@ -35,6 +35,12 @@ export interface Service {
   above: number | null;
   below: number | null;
   hidden?: boolean;
+  /* Futu L2 enrichment (optional — absent when OpenD offline or A-share no permission) */
+  mainNetInflow?: number;
+  mainNetInflowPct?: number;
+  retailNetInflow?: number;
+  bidAskRatio?: number;
+  avgPrice?: number;
 }
 
 export interface AlertSettings {

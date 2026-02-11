@@ -21,8 +21,10 @@ function pad(s: string, n: number, right = false): string {
 }
 
 function fmtAmt(n: number): string {
-  if (n >= 1e8) return (n / 1e8).toFixed(1) + "亿";
-  if (n >= 1e4) return (n / 1e4).toFixed(0) + "万";
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "-" : "";
+  if (abs >= 1e8) return sign + (abs / 1e8).toFixed(1) + "亿";
+  if (abs >= 1e4) return sign + (abs / 1e4).toFixed(0) + "万";
   return n.toFixed(0);
 }
 
@@ -369,6 +371,12 @@ function Home() {
         <span style={{ color: D.comment, width: "9ch", textAlign: "right" }}>
           {pad(fmtAmt(s.amount), 8, true)}
         </span>
+        <span style={{ color: s.mainNetInflow != null ? chgColor(s.mainNetInflow) : D.comment, width: "9ch", textAlign: "right" }}>
+          {pad(s.mainNetInflow != null ? fmtAmt(s.mainNetInflow) : "-", 8, true)}
+        </span>
+        <span style={{ color: s.mainNetInflowPct != null ? chgColor(s.mainNetInflowPct) : D.comment, width: "7ch", textAlign: "right" }}>
+          {s.mainNetInflowPct != null ? `${s.mainNetInflowPct >= 0 ? "+" : ""}${s.mainNetInflowPct.toFixed(1)}%` : pad("-", 6, true)}
+        </span>
       </div>
     );
   }
@@ -410,6 +418,12 @@ function Home() {
         </span>
         <span style={{ color: D.comment, width: "13ch", textAlign: "right" }}>
           {pad(`${s.low.toFixed(2)}-${s.high.toFixed(2)}`, 12, true)}
+        </span>
+        <span style={{ color: s.mainNetInflow != null ? chgColor(s.mainNetInflow) : D.comment, width: "9ch", textAlign: "right" }}>
+          {pad(s.mainNetInflow != null ? fmtAmt(s.mainNetInflow) : "-", 8, true)}
+        </span>
+        <span style={{ color: s.mainNetInflowPct != null ? chgColor(s.mainNetInflowPct) : D.comment, width: "7ch", textAlign: "right" }}>
+          {s.mainNetInflowPct != null ? `${s.mainNetInflowPct >= 0 ? "+" : ""}${s.mainNetInflowPct.toFixed(1)}%` : pad("-", 6, true)}
         </span>
       </div>
     );
@@ -530,6 +544,8 @@ function Home() {
               <span style={hs("7ch", "volRatio", true)} onClick={() => ht("volRatio")}>{pad("VRATIO" + ha("volRatio"), 6, true)}</span>
               <span style={hs("8ch", "turnover", true)} onClick={() => ht("turnover")}>{pad("TURN%" + ha("turnover"), 7, true)}</span>
               <span style={hs("9ch", "amount", true)} onClick={() => ht("amount")}>{pad("AMOUNT" + ha("amount"), 8, true)}</span>
+              <span style={hs("9ch", "mainNetInflow" as SortKey, true)} onClick={() => ht("mainNetInflow" as SortKey)}>{pad("FLOW" + ha("mainNetInflow" as SortKey), 8, true)}</span>
+              <span style={hs("7ch", "mainNetInflowPct" as SortKey, true)} onClick={() => ht("mainNetInflowPct" as SortKey)}>{pad("FL%" + ha("mainNetInflowPct" as SortKey), 6, true)}</span>
             </div>
           );
 
@@ -545,6 +561,8 @@ function Home() {
               <span style={ws("8ch", "turnover", true)} onClick={() => wt("turnover")}>{pad("TURN%" + wa("turnover"), 7, true)}</span>
               <span style={ws("9ch", "amount", true)} onClick={() => wt("amount")}>{pad("AMOUNT" + wa("amount"), 8, true)}</span>
               <span style={{ width: "13ch", textAlign: "right", color: D.pink }}>{pad("RANGE", 12, true)}</span>
+              <span style={ws("9ch", "mainNetInflow" as SortKey, true)} onClick={() => wt("mainNetInflow" as SortKey)}>{pad("FLOW" + wa("mainNetInflow" as SortKey), 8, true)}</span>
+              <span style={ws("7ch", "mainNetInflowPct" as SortKey, true)} onClick={() => wt("mainNetInflowPct" as SortKey)}>{pad("FL%" + wa("mainNetInflowPct" as SortKey), 6, true)}</span>
             </div>
           );
 
