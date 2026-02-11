@@ -161,7 +161,11 @@ def fetch_market_turnover() -> dict | None:
 
 
 def poll_once() -> bool:
-    """执行一次抓取+写入，返回是否成功"""
+    """执行一次抓取+写入，返回是否成功
+
+    即使个股行情抓取失败，也尝试写入大盘数据（成交额/汇率），
+    确保 dashboard 至少能看到市场概览。
+    """
     config = load_config()
     watchlist = config.get("watchlist", {})
     settings = config.get("settings", {})
@@ -172,8 +176,27 @@ def poll_once() -> bool:
         return False
 
     stocks = fetch_realtime_eastmoney(symbols)
+
+    # 两市成交额（新浪源，独立于东方财富，不受其故障影响）
+    turnover = fetch_market_turnover()
+
     if not stocks:
-        logger.warning("未获取到行情数据")
+        # 个股数据失败，但尝试 partial update（保留旧 services，更新成交额）
+        logger.warning("个股行情获取失败（东方财富不可达），尝试更新大盘数据")
+        try:
+            existing = json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            existing = {"services": []}
+        existing["ts"] = int(time.time() * 1000)
+        existing["settings"] = settings
+        if turnover:
+            existing["marketTurnover"] = turnover
+        tmp = OUTPUT_PATH.with_suffix(".tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(existing, f, ensure_ascii=False, indent=2)
+        tmp.replace(OUTPUT_PATH)
+        if turnover:
+            logger.info(f"大盘数据已更新: 两市 {turnover['total']:,}亿 ({turnover['verdict']})")
         return False
 
     services = build_services(stocks, watchlist)
@@ -181,9 +204,6 @@ def poll_once() -> bool:
     # 有港股持仓时获取汇率
     has_hk = any(s.startswith("HK") for s in symbols)
     hkd_cny_rate = fetch_hkd_cny_rate() if has_hk else None
-
-    # 两市成交额
-    turnover = fetch_market_turnover()
 
     payload = {
         "services": services,
