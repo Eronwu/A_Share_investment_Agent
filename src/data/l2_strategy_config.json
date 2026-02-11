@@ -1,0 +1,32 @@
+{
+  "enabled": true,
+  "strategies": {
+    "capital_flow_spike": {
+      "enabled": true,
+      "description": "5分钟内主力净流入占比从<2%跳到>8%",
+      "window_minutes": 5,
+      "low_threshold_pct": 2,
+      "high_threshold_pct": 8,
+      "cooldown_minutes": 15
+    },
+    "large_order": {
+      "enabled": true,
+      "description": "单笔成交金额超阈值",
+      "min_amount": 5000000,
+      "cooldown_minutes": 10
+    },
+    "order_book_imbalance": {
+      "enabled": true,
+      "description": "委比短时间内剧烈变化",
+      "delta_threshold": 40,
+      "cooldown_minutes": 20
+    },
+    "volume_price_divergence": {
+      "enabled": true,
+      "description": "价格新高但主力资金净流出",
+      "lookback_minutes": 30,
+      "cooldown_minutes": 30
+    }
+  },
+  "max_signals": 200
+}

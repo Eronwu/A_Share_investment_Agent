@@ -5,9 +5,11 @@ set -e
 DIR="$(cd "$(dirname "$0")" && pwd)"
 POLLER_PID="$DIR/.poller.pid"
 NOTIFIER_PID="$DIR/.notifier.pid"
+L2_DAEMON_PID="$DIR/.l2_daemon.pid"
 WEB_PID="$DIR/.web.pid"
 POLLER_LOG="$DIR/logs/poller.log"
 NOTIFIER_LOG="$DIR/logs/notifier.log"
+L2_DAEMON_LOG="$DIR/logs/l2_daemon.log"
 WEB_LOG="$DIR/logs/web.log"
 
 mkdir -p "$DIR/logs"
@@ -51,6 +53,16 @@ do_start() {
     echo "Notifier 启动  pid=$!  日志=$NOTIFIER_LOG"
   fi
 
+  # L2 Strategy Daemon (optional, needs Futu OpenD)
+  if _is_running "$L2_DAEMON_PID"; then
+    echo "L2 Daemon 已在运行 (pid=$(_read_pid "$L2_DAEMON_PID"))，跳过"
+  else
+    cd "$DIR"
+    nohup poetry run python src/tools/l2_strategy_daemon.py >> "$L2_DAEMON_LOG" 2>&1 &
+    echo $! > "$L2_DAEMON_PID"
+    echo "L2 Daemon 启动  pid=$!  日志=$L2_DAEMON_LOG"
+  fi
+
   # Web
   if _is_running "$WEB_PID"; then
     echo "Web    已在运行 (pid=$(_read_pid "$WEB_PID"))，跳过"
@@ -64,12 +76,13 @@ do_start() {
   echo ""
   echo "全部后台运行中，可关闭终端。"
   echo "  查看状态: ./start_monitor.sh status"
-  echo "  查看日志: tail -f logs/poller.log logs/notifier.log logs/web.log"
+  echo "  查看日志: tail -f logs/poller.log logs/notifier.log logs/l2_daemon.log logs/web.log"
   echo "  停止服务: ./start_monitor.sh stop"
 }
 
 do_stop() {
   _stop_one "$NOTIFIER_PID" "Notifier"
+  _stop_one "$L2_DAEMON_PID" "L2 Daemon"
   _stop_one "$POLLER_PID" "Poller"
   _stop_one "$WEB_PID" "Web"
 }
@@ -87,6 +100,13 @@ do_status() {
   else
     echo "Notifier 未运行"
     rm -f "$NOTIFIER_PID"
+  fi
+
+  if _is_running "$L2_DAEMON_PID"; then
+    echo "L2 Daemon 运行中  pid=$(_read_pid "$L2_DAEMON_PID")"
+  else
+    echo "L2 Daemon 未运行"
+    rm -f "$L2_DAEMON_PID"
   fi
 
   if _is_running "$WEB_PID"; then

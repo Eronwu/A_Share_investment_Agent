@@ -33,6 +33,7 @@ MARKET_DATA_PATH = PROJECT_ROOT / "src" / "data" / "market_data.json"
 MONITOR_CONFIG_PATH = PROJECT_ROOT / "src" / "data" / "monitor_config.json"
 ALERT_CONFIG_PATH = PROJECT_ROOT / "src" / "data" / "alert_config.json"
 ALERT_EVENTS_PATH = PROJECT_ROOT / "src" / "data" / "alert_events.json"
+L2_SIGNALS_PATH = PROJECT_ROOT / "src" / "data" / "l2_strategy_signals.json"
 
 # ── Poll intervals ──
 TRADING_CHECK_SEC = 3      # mtime check interval during trading hours
@@ -439,6 +440,56 @@ def write_alert_events(alerts: list[dict]):
     tmp.replace(ALERT_EVENTS_PATH)
 
 
+# ══════════════════════════════════════════
+# 5a. L2 strategy signal consumption
+# ══════════════════════════════════════════
+
+def check_l2_signals() -> list[dict]:
+    """读取 l2_strategy_signals.json 中未处理的信号，转换为 alert 格式。
+
+    L2 daemon 写信号 → notifier 消费 → 统一 dispatch。
+    用 lastConsumed 时间戳避免重复处理。
+    """
+    data = read_json_safe(L2_SIGNALS_PATH)
+    if data is None:
+        return []
+
+    signals = data.get("signals", [])
+    if not signals:
+        return []
+
+    # 只取本次新增的（ts > _l2_last_consumed）
+    new_signals = [s for s in signals if s.get("ts", 0) > check_l2_signals._last_consumed]
+    if not new_signals:
+        return []
+
+    # 更新消费位点
+    check_l2_signals._last_consumed = max(s.get("ts", 0) for s in new_signals)
+
+    # 转换为 notifier alert 格式
+    alerts = []
+    for s in new_signals:
+        strategy = s.get("strategy", "")
+        display = s.get("display", "")
+        message = s.get("message", "")
+        code = s.get("code", "")
+
+        alerts.append({
+            "symbol": code,
+            "title": f"L2 {strategy}",
+            "message": display,
+            "_kind": "l2_strategy",
+            "_change_pct": 0,
+            "_stealth": message,
+        })
+
+    return alerts
+
+
+# Initialize consumption watermark
+check_l2_signals._last_consumed = 0
+
+
 def stealth_dispatch(alerts: list[dict], *, sound: str = ""):
     """Batch alerts into 1~2 stealth notifications.
 
@@ -459,8 +510,8 @@ def stealth_dispatch(alerts: list[dict], *, sound: str = ""):
 
     # ── Per-stock alerts → 1 notification ──
     if stock_alerts:
-        # Sort by severity: threshold > pnl > big_move
-        priority = {"threshold": 0, "pnl": 1, "big_move": 2}
+        # Sort by severity: threshold > pnl > big_move > l2_strategy
+        priority = {"threshold": 0, "pnl": 1, "big_move": 2, "l2_strategy": 3}
         stock_alerts.sort(key=lambda a: priority.get(a.get("_kind", ""), 9))
 
         lines = []
@@ -797,6 +848,11 @@ def run():
                 if trading and quotes:
                     hkd_cny_rate = market.get("hkdCnyRate")
                     all_alerts = engine.check(quotes, hkd_cny_rate)
+
+                    # ── L2 strategy signals (from daemon) ──
+                    l2_alerts = check_l2_signals()
+                    if l2_alerts:
+                        all_alerts.extend(l2_alerts)
 
                     if all_alerts:
                         print()
