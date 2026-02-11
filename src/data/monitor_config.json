@@ -5,8 +5,6 @@
       "type": "holding",
       "cost": 0.918,
       "shares": 1300,
-      "above": null,
-      "below": null,
       "hidden": false
     },
     "159227": {
@@ -14,261 +12,191 @@
       "type": "holding",
       "cost": 1.519,
       "shares": 2000,
-      "above": null,
-      "below": null,
-      "hidden": true
+      "hidden": false
     },
     "159326": {
       "name": "电网设备ETF",
       "type": "holding",
       "cost": 1.704,
-      "shares": 2300,
-      "above": null,
-      "below": null
+      "shares": 2300
     },
     "159516": {
       "name": "半导设备",
       "type": "holding",
       "cost": 1.849,
       "shares": 6000,
-      "above": null,
-      "below": null,
       "hidden": false
     },
     "159691": {
       "name": "港股红利ETF",
       "type": "holding",
       "cost": 1.3,
-      "shares": 5300,
-      "above": null,
-      "below": null
+      "shares": 5300
     },
     "159736": {
       "name": "饮食ETF",
       "type": "holding",
       "cost": 0.757,
-      "shares": 2500,
-      "above": null,
-      "below": null
+      "shares": 2500
     },
     "159755": {
       "name": "电池ETF",
       "type": "holding",
       "cost": 1.129,
-      "shares": 2500,
-      "above": null,
-      "below": null
+      "shares": 2500
     },
     "159819": {
       "name": "AI智能",
       "type": "holding",
       "cost": 0.435,
-      "shares": 3000,
-      "above": null,
-      "below": null
+      "shares": 3000
     },
     "159851": {
       "name": "金科ETF",
       "type": "holding",
       "cost": 0.893,
-      "shares": 23800,
-      "above": null,
-      "below": null
+      "shares": 23800
     },
     "159852": {
       "name": "软件ETF",
       "type": "holding",
       "cost": 0.966,
-      "shares": 6400,
-      "above": null,
-      "below": null
+      "shares": 6400
     },
     "159915": {
       "name": "创业板",
       "type": "holding",
       "cost": 2.246,
-      "shares": 13000,
-      "above": null,
-      "below": null
+      "shares": 13000
     },
     "159941": {
       "name": "纳指ETF",
       "type": "holding",
       "cost": 1.441,
-      "shares": 5300,
-      "above": null,
-      "below": null
+      "shares": 5300
     },
     "159995": {
       "name": "芯片ETF",
       "type": "holding",
       "cost": 2.015,
-      "shares": 600,
-      "above": null,
-      "below": null
+      "shares": 600
     },
     "300376": {
-      "name": "易事特",
-      "above": null,
-      "below": null
+      "name": "易事特"
     },
     "301388": {
-      "name": "欣灵电气",
-      "above": null,
-      "below": null
+      "name": "欣灵电气"
     },
     "511130": {
       "name": "30年国债ETF",
       "type": "holding",
       "cost": 107.281,
-      "shares": 200,
-      "above": null,
-      "below": null
+      "shares": 200
     },
     "512690": {
       "name": "酒ETF",
       "type": "holding",
       "cost": 0.605,
-      "shares": 12000,
-      "above": null,
-      "below": null
+      "shares": 12000
     },
     "512800": {
       "name": "银行ETF",
       "type": "holding",
       "cost": 0.876,
-      "shares": 7600,
-      "above": null,
-      "below": null
+      "shares": 7600
     },
     "512880": {
       "name": "证券ETF",
       "type": "holding",
       "cost": 1.292,
-      "shares": 100,
-      "above": null,
-      "below": null
+      "shares": 100
     },
     "513120": {
       "name": "HK创新药",
       "type": "holding",
       "cost": 1.385,
-      "shares": 2800,
-      "above": null,
-      "below": null
+      "shares": 2800
     },
     "513730": {
       "name": "东南亚科技ETF",
       "type": "holding",
       "cost": 1.452,
-      "shares": 2000,
-      "above": null,
-      "below": null
+      "shares": 2000
     },
     "515100": {
       "name": "红利低波100ETF",
       "type": "holding",
       "cost": 1.48,
-      "shares": 9000,
-      "above": null,
-      "below": null
+      "shares": 9000
     },
     "515450": {
       "name": "红利低波50ETF",
       "type": "holding",
       "cost": 1.445,
-      "shares": 3300,
-      "above": null,
-      "below": null
+      "shares": 3300
     },
     "515880": {
       "name": "通信ETF",
       "type": "holding",
       "cost": 0.426,
-      "shares": 4800,
-      "above": null,
-      "below": null
+      "shares": 4800
     },
     "518880": {
       "name": "黄金ETF",
       "type": "holding",
       "cost": 6.596,
-      "shares": 700,
-      "above": null,
-      "below": null
+      "shares": 700
     },
     "588000": {
       "name": "科创50",
       "type": "holding",
       "cost": 1.348,
-      "shares": 7500,
-      "above": null,
-      "below": null
+      "shares": 7500
     },
     "588170": {
       "name": "科创半导体ETF",
       "type": "holding",
       "cost": 1.577,
-      "shares": 15400,
-      "above": null,
-      "below": null
+      "shares": 15400
     },
     "600016": {
       "name": "民生银行",
       "type": "holding",
       "cost": 4.928,
-      "shares": 2200,
-      "above": null,
-      "below": null
+      "shares": 2200
     },
     "600036": {
       "name": "招商银行",
       "type": "holding",
       "cost": 43.496,
-      "shares": 400,
-      "above": null,
-      "below": null
+      "shares": 400
     },
     "600089": {
-      "name": "特变电工",
-      "above": null,
-      "below": null
+      "name": "特变电工"
     },
     "600268": {
-      "name": "国电南自",
-      "above": null,
-      "below": null
+      "name": "国电南自"
     },
     "600309": {
       "name": "万华化学",
       "type": "holding",
       "cost": 88.078,
-      "shares": 100,
-      "above": null,
-      "below": null
+      "shares": 100
     },
     "600312": {
-      "name": "平高电气",
-      "above": null,
-      "below": null
+      "name": "平高电气"
     },
     "600517": {
-      "name": "国网英大",
-      "above": null,
-      "below": null
+      "name": "国网英大"
     },
     "600550": {
       "name": "保变电气",
       "type": "holding",
       "cost": 16.098,
-      "shares": 200,
-      "above": null,
-      "below": null
+      "shares": 200
     },
     "600673": {
       "name": "东阳光",
-      "above": null,
-      "below": null,
       "type": "holding",
       "cost": 27.715,
       "shares": 600,
@@ -278,119 +206,85 @@
       "name": "中国神华",
       "type": "holding",
       "cost": 38.44,
-      "shares": 300,
-      "above": null,
-      "below": null
+      "shares": 300
     },
     "601138": {
       "name": "工业富联",
       "type": "holding",
       "cost": 65.62,
-      "shares": 800,
-      "above": null,
-      "below": null
+      "shares": 800
     },
     "601166": {
       "name": "兴业银行",
       "type": "holding",
       "cost": 23.167,
-      "shares": 300,
-      "above": null,
-      "below": null
+      "shares": 300
     },
     "601179": {
-      "name": "中国西电",
-      "above": null,
-      "below": null
+      "name": "中国西电"
     },
     "601288": {
       "name": "农业银行",
       "type": "holding",
       "cost": 6.847,
-      "shares": 2700,
-      "above": null,
-      "below": null
+      "shares": 2700
     },
     "601318": {
       "name": "中国平安",
       "type": "holding",
       "cost": 48.252,
-      "shares": 100,
-      "above": null,
-      "below": null
+      "shares": 100
     },
     "601689": {
       "name": "拓普集团",
       "type": "holding",
       "cost": 73.772,
-      "shares": 200,
-      "above": null,
-      "below": null
+      "shares": 200
     },
     "601698": {
       "name": "中国卫通",
       "type": "holding",
       "cost": 40.821,
-      "shares": 100,
-      "above": null,
-      "below": null
+      "shares": 100
     },
     "601899": {
       "name": "紫金矿业",
       "type": "holding",
       "cost": 12.063,
-      "shares": 300,
-      "above": null,
-      "below": null
+      "shares": 300
     },
     "603019": {
       "name": "中科曙光",
       "type": "holding",
       "cost": 91.331,
-      "shares": 200,
-      "above": null,
-      "below": null
+      "shares": 200
     },
     "603063": {
-      "name": "禾望电气",
-      "above": null,
-      "below": null
+      "name": "禾望电气"
     },
     "603533": {
       "name": "掌阅科技",
       "type": "holding",
       "cost": 23.551,
-      "shares": 600,
-      "above": null,
-      "below": null
+      "shares": 600
     },
     "603778": {
       "name": "国晟科技",
       "type": "holding",
       "cost": 22.842,
-      "shares": 100,
-      "above": null,
-      "below": null
+      "shares": 100
     },
     "688676": {
-      "name": "金盘科技",
-      "above": 100,
-      "below": 85
+      "name": "金盘科技"
     },
     "002335": {
-      "name": "科华数据",
-      "above": null,
-      "below": null
+      "name": "科华数据"
     },
     "002121": {
-      "name": "科陆电子",
-      "above": null,
-      "below": null
+      "name": "科陆电子"
     },
     "HK00700": {
       "name": "腾讯控股",
-      "above": null,
-      "below": null,
       "type": "holding",
       "cost": 636.764,
       "shares": 100,
@@ -398,89 +292,67 @@
     },
     "HK09988": {
       "name": "阿里巴巴－Ｗ",
-      "above": 166,
-      "below": 150,
       "type": "holding",
       "cost": 157.447,
       "shares": 400
     },
     "HK01810": {
       "name": "小米集团－Ｗ",
-      "above": null,
-      "below": null,
       "type": "holding",
       "cost": 50.825,
       "shares": 200
     },
     "HK03690": {
       "name": "美团－Ｗ",
-      "above": 97.5,
-      "below": 88.5,
       "type": "holding",
       "cost": 112.448,
       "shares": 1000,
-      "hidden": false
+      "hidden": true
     },
     "HK01211": {
       "name": "比亚迪股份",
-      "above": null,
-      "below": null,
       "type": "holding",
       "cost": 122.658,
       "shares": 1200
     },
     "HK06809": {
       "name": "澜起科技",
-      "above": null,
-      "below": null,
       "type": "holding",
       "cost": 146.1,
       "shares": 100
     },
     "HK01060": {
       "name": "大麦娱乐",
-      "above": null,
-      "below": null,
       "type": "holding",
       "cost": 1.092,
       "shares": 30000
     },
     "HK02359": {
       "name": "药明康德",
-      "above": null,
-      "below": null,
       "type": "holding",
       "cost": 64.305,
       "shares": 300
     },
     "HK06060": {
       "name": "众安在线",
-      "above": null,
-      "below": null,
       "type": "holding",
       "cost": 17.534,
       "shares": 300
     },
     "HK01357": {
       "name": "美图公司",
-      "above": null,
-      "below": null,
       "type": "holding",
       "cost": 9.833,
       "shares": 5500
     },
     "HK00325": {
       "name": "布鲁可",
-      "above": null,
-      "below": null,
       "type": "holding",
       "cost": 118.995,
       "shares": 300
     },
     "HK03896": {
       "name": "金山云",
-      "above": null,
-      "below": null,
       "type": "holding",
       "cost": 7.132,
       "shares": 2000
@@ -489,126 +361,94 @@
       "name": "三花智控",
       "type": "holding",
       "cost": 50.279,
-      "shares": 300,
-      "above": null,
-      "below": null
+      "shares": 300
     },
     "002364": {
       "name": "中恒电气",
       "type": "holding",
       "cost": 30.172,
-      "shares": 100,
-      "above": null,
-      "below": null
+      "shares": 100
     },
     "002085": {
       "name": "万丰奥威",
       "type": "holding",
       "cost": 17.811,
-      "shares": 200,
-      "above": null,
-      "below": null
+      "shares": 200
     },
     "001696": {
       "name": "宗申动力",
       "type": "holding",
       "cost": 22.292,
-      "shares": 400,
-      "above": null,
-      "below": null
+      "shares": 400
     },
     "000063": {
       "name": "中兴通讯",
       "type": "holding",
       "cost": 48.881,
-      "shares": 600,
-      "above": null,
-      "below": null
+      "shares": 600
     },
     "000338": {
       "name": "潍柴动力",
       "type": "holding",
       "cost": 24.552,
-      "shares": 600,
-      "above": null,
-      "below": null
+      "shares": 600
     },
     "002475": {
       "name": "立讯精密",
       "type": "holding",
       "cost": 41.586,
-      "shares": 800,
-      "above": null,
-      "below": null
+      "shares": 800
     },
     "000001": {
       "name": "平安银行",
       "type": "holding",
       "cost": 12.212,
-      "shares": 800,
-      "above": null,
-      "below": null
+      "shares": 800
     },
     "002648": {
       "name": "卫星化学",
       "type": "holding",
       "cost": 22.906,
-      "shares": 800,
-      "above": null,
-      "below": null
+      "shares": 800
     },
     "002920": {
       "name": "德赛西威",
       "type": "holding",
       "cost": 127.38,
-      "shares": 600,
-      "above": null,
-      "below": null
+      "shares": 600
     },
     "002074": {
       "name": "国轩高科",
       "type": "holding",
       "cost": 41.801,
-      "shares": 400,
-      "above": null,
-      "below": null
+      "shares": 400
     },
     "002312": {
       "name": "川发龙蟒",
       "type": "holding",
       "cost": 13.509,
-      "shares": 200,
-      "above": null,
-      "below": null
+      "shares": 200
     },
     "002156": {
       "name": "通富微电",
       "type": "holding",
       "cost": 49.404,
-      "shares": 800,
-      "above": null,
-      "below": null
+      "shares": 800
     },
     "002202": {
       "name": "金风科技",
       "type": "holding",
       "cost": 4.815,
-      "shares": 100,
-      "above": null,
-      "below": null
+      "shares": 100
     },
     "000875": {
       "name": "电投绿能",
       "type": "holding",
       "cost": 7.008,
-      "shares": 800,
-      "above": null,
-      "below": null
+      "shares": 800
     },
     "HK03986": {
       "name": "兆易创新",
-      "above": null,
-      "below": null,
       "type": "holding",
       "cost": 305.999,
       "shares": 100
