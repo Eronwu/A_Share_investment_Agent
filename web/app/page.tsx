@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import CommandPrompt from "./components/CommandPrompt";
 import { useAlerts } from "./hooks/useAlerts";
 import { useCommand } from "./hooks/useCommand";
@@ -140,15 +141,37 @@ function Prompt({ cmd }: { cmd: string }) {
 }
 
 /* ── Main ── */
-export default function Home() {
+export default function Page() {
+  return (
+    <Suspense>
+      <Home />
+    </Suspense>
+  );
+}
+
+function Home() {
   const [services, setServices] = useState<Service[]>([]);
   const [ts, setTs] = useState(0);
   const [tick, setTick] = useState(0);
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<AlertSettings>({});
   const [hkdCnyRate, setHkdCnyRate] = useState<number | null>(null);
-  // tab & section collapse state
-  const [activeTab, setActiveTab] = useState<MarketTab>("A");
+  // tab state: URL ?tab=A|HK, default by time (before 15:00 → A, after → HK)
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  function getDefaultTab(): MarketTab {
+    const param = searchParams.get("tab")?.toUpperCase();
+    if (param === "A" || param === "HK") return param;
+    return new Date().getHours() < 15 ? "A" : "HK";
+  }
+
+  const [activeTab, setActiveTab] = useState<MarketTab>(getDefaultTab);
+
+  function switchTab(tab: MarketTab) {
+    setActiveTab(tab);
+    router.replace(`/?tab=${tab}`, { scroll: false });
+  }
   const [prodStockOpen, setProdStockOpen] = useState(true);
   const [prodETFOpen, setProdETFOpen] = useState(true);
   const [stageStockOpen, setStageStockOpen] = useState(true);
@@ -396,7 +419,7 @@ export default function Home() {
       }}
     >
       <TitleBar />
-      <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabBar activeTab={activeTab} onTabChange={switchTab} />
 
       {/* Terminal body */}
       <div
