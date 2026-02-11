@@ -87,10 +87,12 @@ def load_config() -> dict:
 
 
 def save_config(config: dict):
-    """保存配置到 JSON 文件"""
+    """保存配置到 JSON 文件（原子写入：tmp → rename）"""
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+    tmp = CONFIG_PATH.with_suffix(".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=2)
+    tmp.replace(CONFIG_PATH)
 
 
 def load_alerts() -> dict:
@@ -102,10 +104,12 @@ def load_alerts() -> dict:
 
 
 def save_alerts(alerts: dict):
-    """保存告警配置"""
+    """保存告警配置（原子写入：tmp → rename）"""
     ALERT_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(ALERT_CONFIG_PATH, "w", encoding="utf-8") as f:
+    tmp = ALERT_CONFIG_PATH.with_suffix(".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump({"alerts": alerts}, f, ensure_ascii=False, indent=2)
+    tmp.replace(ALERT_CONFIG_PATH)
 
 
 # ══════════════════════════════════════════

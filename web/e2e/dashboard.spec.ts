@@ -20,7 +20,7 @@ test.describe("Dashboard (首页)", () => {
 
   test("持仓 section 可见且可折叠", async ({ page }) => {
     // 至少有一个 prod section
-    const prodSection = page.locator("text=/prod:(A-share|HK)/").first();
+    const prodSection = page.locator("text=/prod:(stocks|ETF)/").first();
     if (await prodSection.isVisible()) {
       // 检查 PROD 行可见
       await expect(page.locator("text=PROD").first()).toBeVisible();
@@ -34,7 +34,7 @@ test.describe("Dashboard (首页)", () => {
   });
 
   test("自选 section 可见且可折叠", async ({ page }) => {
-    const stageSection = page.locator("text=/stage:(A-share|HK)/").first();
+    const stageSection = page.locator("text=/stage:(stocks|ETF)/").first();
     if (await stageSection.isVisible()) {
       await expect(page.locator("text=DEV").first()).toBeVisible();
 

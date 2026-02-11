@@ -30,9 +30,10 @@ function saveHistory(history: string[]) {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(-MAX_HISTORY)));
 }
 
-function formatList(config: { watchlist: Record<string, Record<string, unknown>>; settings: Record<string, number> }, filter?: string): LogEntry[] {
+function formatList(config: { watchlist: Record<string, Record<string, unknown>>; settings: Record<string, number>; alerts?: Record<string, Record<string, number>> }, filter?: string): LogEntry[] {
   const entries: LogEntry[] = [];
   const t = now();
+  const alertRules = config.alerts || {};
 
   const items = Object.entries(config.watchlist).filter(([, v]) => {
     if (!filter) return true;
@@ -51,11 +52,12 @@ function formatList(config: { watchlist: Record<string, Record<string, unknown>>
   if (prodItems.length > 0 && !filter) {
     entries.push({ time: t, level: "info", source: "config", message: `── PROD (${prodItems.length}) ──` });
     for (const [code, v] of prodItems) {
+      const a = alertRules[code] || {};
       const parts = [`${code} ${v.name}`];
       if (v.cost != null) parts.push(`cost:${v.cost}`);
       if (v.shares != null) parts.push(`shares:${v.shares}`);
-      if (v.above != null) parts.push(`above:${v.above}`);
-      if (v.below != null) parts.push(`below:${v.below}`);
+      if (a.above != null) parts.push(`above:${a.above}`);
+      if (a.below != null) parts.push(`below:${a.below}`);
       entries.push({ time: t, level: "ok", source: "config", message: parts.join(" | ") });
     }
   }
@@ -63,9 +65,10 @@ function formatList(config: { watchlist: Record<string, Record<string, unknown>>
   if (devItems.length > 0 && !filter) {
     entries.push({ time: t, level: "info", source: "config", message: `── DEV (${devItems.length}) ──` });
     for (const [code, v] of devItems) {
+      const a = alertRules[code] || {};
       const parts = [`${code} ${v.name}`];
-      if (v.above != null) parts.push(`above:${v.above}`);
-      if (v.below != null) parts.push(`below:${v.below}`);
+      if (a.above != null) parts.push(`above:${a.above}`);
+      if (a.below != null) parts.push(`below:${a.below}`);
       entries.push({ time: t, level: "ok", source: "config", message: parts.join(" | ") });
     }
   }

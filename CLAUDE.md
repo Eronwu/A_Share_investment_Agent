@@ -78,7 +78,7 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
 **URL routing**: `/?tab=A`（A 股）、`/?tab=HK`（港股）。无参数时按时间自动选：15:00 前默认 A 股，15:00 后默认港股。Tab 切换同步更新 URL，刷新保持状态。
 
-**Data flow**: 三文件分离，`/api/metrics` 负责合并。
+**Data flow**: 四文件分离，`/api/metrics` 负责合并。
 
 **Key hooks**:
 - `useCommand` — parses `svc add|update|rm|hide|unhide|ls|config|help` commands, manages terminal log entries. Returns `addLogs` for external log injection.
@@ -91,8 +91,9 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 | `market_data.json` | Poller (Python) | 纯行情数据 (price/change/vol/amount...) |
 | `monitor_config.json` | UI (/api/config) | 持仓配置 (name/type/cost/shares/hidden) |
 | `alert_config.json` | UI (/api/config) | 告警规则 (above/below，按股票代码索引) |
+| `alert_events.json` | Notifier (Python) | 告警事件流 (message/display 双格式) |
 
-`/api/metrics` 合并三者 + 计算 pnl，任何 UI 操作立即生效，不依赖 poller 周期。
+`/api/metrics` 合并四者 + 计算 pnl，任何 UI 操作立即生效，不依赖 poller 周期。
 
 **`alert_events.json`** — Notifier 写入的告警事件流（运行时数据，不入库）。每条事件含两种格式：`message`（stealth 简短，terminal 通知用）和 `display`（中文详细，web 日志展示用）。同一数据源，两端各取所需，terminal 清掉后可在 web 追溯。
 
