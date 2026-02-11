@@ -76,11 +76,13 @@ All responses follow `ApiResponse<T>` schema with `success`, `message`, `data`, 
 
 Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
+**URL routing**: `/?tab=A`（A 股）、`/?tab=HK`（港股）。无参数时按时间自动选：15:00 前默认 A 股，15:00 后默认港股。Tab 切换同步更新 URL，刷新保持状态。
+
 **Data flow**: 三文件分离，`/api/metrics` 负责合并。
 
 **Key hooks**:
 - `useCommand` — parses `svc add|update|rm|hide|unhide|ls|config|help` commands, manages terminal log entries. Returns `addLogs` for external log injection.
-- `useAlerts` — checks price breach (above/below) and big moves (|change| >= `big_move_pct`), per-stock cooldown via in-memory Map.
+- `useAlerts` — 读取 notifier 写入的 `alert_events.json` 展示在 web 日志区，不做任何告警计算（纯消费者）。用 `display` 字段展示中文详细格式。
 
 **三文件职责分离**:
 
