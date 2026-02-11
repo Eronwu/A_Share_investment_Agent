@@ -258,26 +258,12 @@ class DeltaAlertEngine:
             self._notified[symbol] = {"price": price, "change_pct": change_pct}
             kind = "threshold" if "threshold" in reasons else "big_move"
 
-            # Build message parts (only % — no monetary values)
+            # Ultra-concise: name change% price
             sign = "+" if change_pct >= 0 else ""
-            parts = [f"{name}({symbol}) {sign}{change_pct:.1f}%，{price:.2f}"]
-
-            # Threshold info
+            title = f"{name} {sign}{change_pct:.1f}%"
+            message = f"{price:.2f}"
             if "threshold" in reasons:
-                if above is not None and price >= above:
-                    parts.append(f"破 {above}")
-                if below is not None and price <= below:
-                    parts.append(f"破 {below}")
-
-            # Delta info (if re-trigger)
-            if prev is not None:
-                prev_price = prev["price"]
-                price_delta = (price - prev_price) / prev_price * 100
-                parts.append(f"vs通知 {price_delta:+.1f}%")
-
-            direction = "涨" if change_pct > 0 else "跌"
-            title = f"{name} {direction}{abs(change_pct):.1f}%"
-            message = "，".join(parts)
+                message += " !"
 
             # Stealth line (no monetary values either)
             stealth_extra = f"{change_pct:+.1f}%"
@@ -314,11 +300,11 @@ class DeltaAlertEngine:
                 pct_sign = "+" if portfolio_pct >= 0 else ""
                 alerts.append({
                     "symbol": "",
-                    "title": f"持仓组合 {pct_sign}{portfolio_pct:.1f}%",
-                    "message": f"持仓 {holdings_counted} 只，今日整体 {pct_sign}{portfolio_pct:.2f}%",
+                    "title": f"组合 {pct_sign}{portfolio_pct:.1f}%",
+                    "message": f"{holdings_counted} stocks",
                     "_kind": "portfolio",
                     "_change_pct": portfolio_pct,
-                    "_stealth": f"portfolio: {pct_sign}{portfolio_pct:.1f}% | {holdings_counted} services",
+                    "_stealth": f"portfolio {pct_sign}{portfolio_pct:.1f}%",
                 })
 
         return alerts
