@@ -783,6 +783,9 @@ class TechnicalSignalEngine:
 # 3. macOS 通知
 # ══════════════════════════════════════════
 
+WEB_DASHBOARD_URL = "http://localhost:3120"
+
+
 def notify(title: str, message: str, sound: str = "default", group: str = ""):
     """发送 macOS 通知，按优先级尝试多种方式
 
@@ -798,7 +801,7 @@ def notify(title: str, message: str, sound: str = "default", group: str = ""):
     if not group:
         group = f"stock_{int(time.time() * 1000)}"
 
-    # 方式1: terminal-notifier（独立 App，通知权限独立于 Terminal）
+    # 方式1: terminal-notifier（点击跳转 web dashboard）
     try:
         result = subprocess.run(
             ["which", "terminal-notifier"], capture_output=True, timeout=3,
@@ -806,7 +809,8 @@ def notify(title: str, message: str, sound: str = "default", group: str = ""):
         if result.returncode == 0:
             subprocess.run(
                 ["terminal-notifier", "-title", title, "-message", message,
-                 "-sound", sound, "-group", group],
+                 "-sound", sound, "-group", group,
+                 "-open", WEB_DASHBOARD_URL],
                 capture_output=True, timeout=5,
             )
             logger.info(f"通知已发送(terminal-notifier): [{title}] {message}")

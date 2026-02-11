@@ -92,7 +92,7 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
 `/api/metrics` 合并三者 + 计算 pnl，任何 UI 操作立即生效，不依赖 poller 周期。
 
-**`alert_events.json`** — Notifier 写入的告警事件流（运行时数据，不入库）。Web 只读展示，不做任何告警计算。确保 terminal 弹窗和 web 日志完全一致。
+**`alert_events.json`** — Notifier 写入的告警事件流（运行时数据，不入库）。每条事件含两种格式：`message`（stealth 简短，terminal 通知用）和 `display`（中文详细，web 日志展示用）。同一数据源，两端各取所需，terminal 清掉后可在 web 追溯。
 
 **`monitor_config.json` structure** (不含 above/below):
 ```json

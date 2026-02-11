@@ -400,18 +400,33 @@ def write_alert_events(alerts: list[dict]):
         events = []
 
     # 追加新事件
+    # message: stealth 格式（与 terminal 通知一致）
+    # display: 中文可读格式（web 日志展示用）
     ts = int(time.time() * 1000)
+    t = datetime.now().strftime("%H:%M:%S")
     for a in alerts:
-        if a.get("_kind") == "portfolio":
-            continue  # 组合 P&L 不写入事件文件
+        symbol = a.get("symbol", "")
+        kind = a.get("_kind", "")
+        change_pct = a.get("_change_pct", 0)
+        name = a.get("title", "").split(" ")[0] if a.get("title") else symbol
+
+        # 中文可读格式
+        if kind == "threshold":
+            display = f"{symbol} {name} 触价告警 {a.get('message', '')}"
+        elif kind == "portfolio":
+            display = f"组合盈亏 {change_pct:+.1f}%"
+        else:
+            direction = "涨幅" if change_pct > 0 else "跌幅"
+            display = f"{symbol} {name} {direction} {abs(change_pct):.1f}%"
+
         events.append({
             "ts": ts,
-            "time": datetime.now().strftime("%H:%M:%S"),
-            "symbol": a.get("symbol", ""),
-            "name": a.get("title", ""),
-            "kind": a.get("_kind", ""),
-            "message": a.get("message", ""),
-            "change_pct": a.get("_change_pct", 0),
+            "time": t,
+            "symbol": symbol,
+            "kind": kind,
+            "message": a.get("_stealth", a.get("message", "")),
+            "display": display,
+            "change_pct": change_pct,
         })
 
     # 保留最近 N 条
@@ -449,10 +464,10 @@ def stealth_dispatch(alerts: list[dict], *, sound: str = ""):
         stock_alerts.sort(key=lambda a: priority.get(a.get("_kind", ""), 9))
 
         lines = []
-        for a in stock_alerts[:3]:
+        for a in stock_alerts[:2]:
             lines.append(a.get("_stealth", a["message"]))
-        if len(stock_alerts) > 3:
-            lines.append(f"... and {len(stock_alerts) - 3} more")
+        if len(stock_alerts) > 2:
+            lines.append(f"+{len(stock_alerts) - 2} more")
 
         # Critical if any threshold breach or change > 8%
         has_critical = any(
@@ -462,7 +477,7 @@ def stealth_dispatch(alerts: list[dict], *, sound: str = ""):
 
         notify(
             _stealth_title(is_summary=False),
-            " | ".join(lines),
+            "\n".join(lines),
             sound="default" if has_critical else sound,
         )
         sent += 1

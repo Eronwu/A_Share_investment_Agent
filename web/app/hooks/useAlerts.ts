@@ -12,9 +12,9 @@ interface AlertEvent {
   ts: number;
   time: string;
   symbol: string;
-  name: string;
   kind: string;
-  message: string;
+  message: string;   // stealth 格式（与 terminal 通知一致）
+  display: string;   // 中文可读格式（web 日志展示用）
   change_pct: number;
 }
 
@@ -39,7 +39,7 @@ export function useAlerts(
       time: e.time,
       level: "warn" as const,
       source: "alert",
-      message: `${e.symbol} ${e.name} ${e.message}`,
+      message: e.display || e.message,
     }));
 
     addLogs(entries);
