@@ -111,3 +111,40 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 ### HK Stock Codes
 
 Hong Kong stocks use `HK` prefix (e.g., `HK09988`). The web metrics API strips the prefix for 东方财富 API calls and maps market code `116` for HK stocks, vs `1` (Shanghai) / `0` (Shenzhen) for A-shares. See `emMarket()` and `rawCode()` in `web/app/api/metrics/route.ts`.
+
+### Stock Notifier (`src/tools/stock_notifier.py`)
+
+Lightweight macOS notification daemon. Reads poller output, never fetches data directly.
+
+**Data flow**: `market_data.json` (poller) + `monitor_config.json` (config) → DeltaAlertEngine → stealth_dispatch → terminal-notifier
+
+**启动**: `./start_monitor.sh` 一键启动 Poller + Notifier + Web，或单独运行 `poetry run python src/tools/stock_notifier.py`。修改代码后必须重启进程（kill old pid → restart）。
+
+#### Notification Design Rules
+
+- **通知 = 大事。** 弹窗意味着需要立刻关注，必须精简、低频、不打扰。
+- **变化驱动，非状态驱动。** 使用 `DeltaAlertEngine`：记录每只股票上次通知时的价格，只在价格发生显著变化时再次通知。涨停/跌停通知一次后，价格不变就不再弹。
+- **首次触发**: `|日涨跌幅| >= trigger_pct`（默认 5%）。**再次触发**: 距上次通知价变化 >= `delta_pct`（默认 4%）。
+- **只通知持仓**，自选股大涨大跌不弹窗（除非设了 above/below 阈值）。
+- **合并通知**: 同一轮检测的所有告警合并为 1~2 条 macOS 通知，不逐条弹。
+- **内容极简**: 只显示股票名称 + 涨跌幅% + 现价。不显示盈亏金额、持仓数量等敏感数据。
+- **Stealth 模式**: 通知标题伪装为 CI/监控系统（"CI Pipeline Alert"、"SRE Notification"），同事看到不会察觉是股票。
+- **无声为主**: 只有严重告警（跌幅 > 8% 或触价）才有提示音，其余静默弹窗。
+- **每日重置**: 午夜清除所有 delta 追踪状态，新交易日重新开始。
+
+#### Settings (monitor_config.json → settings)
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `trigger_pct` | 5 | 首次触发阈值（日涨跌幅%） |
+| `delta_pct` | 4 | 再次触发阈值（距上次通知价格变化%） |
+| `portfolio_delta_pct` | 2 | 组合级别 P&L 变化阈值% |
+| `poll_interval` | 30 | Poller 轮询间隔（秒） |
+
+#### Config Write Safety
+
+`/api/config` 和 poller 都使用原子写入（tmp → rename），防止并发读到半截 JSON。修改 config 写入逻辑时必须保持此模式。
+
+#### Hidden List
+
+`hiddenList` 在前端不按 tab 过滤，统一显示所有 hidden 股票（跨 A股/HK tab）。避免用户 hide HK 股后在 A股 tab 看不到。
