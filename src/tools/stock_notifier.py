@@ -31,6 +31,8 @@ logger = setup_logger("stock_notifier")
 # ── Data file paths ──
 MARKET_DATA_PATH = PROJECT_ROOT / "src" / "data" / "market_data.json"
 MONITOR_CONFIG_PATH = PROJECT_ROOT / "src" / "data" / "monitor_config.json"
+ALERT_CONFIG_PATH = PROJECT_ROOT / "src" / "data" / "alert_config.json"
+ALERT_EVENTS_PATH = PROJECT_ROOT / "src" / "data" / "alert_events.json"
 
 # ── Poll intervals ──
 TRADING_CHECK_SEC = 3      # mtime check interval during trading hours
@@ -173,10 +175,21 @@ class DeltaAlertEngine:
 
     def __init__(self, config: dict):
         self.config = config
+        self._alerts: dict = {}
+        self._reload_alerts()
         # {symbol: {"price": float, "change_pct": float}}
         self._notified: dict[str, dict] = {}
         # portfolio: last notified total daily P&L
         self._last_portfolio_pnl: float | None = None
+
+    def _reload_alerts(self):
+        """从 alert_config.json 加载告警规则"""
+        try:
+            with open(ALERT_CONFIG_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self._alerts = data.get("alerts", {})
+        except Exception:
+            self._alerts = {}
 
     def reset(self):
         """Midnight reset — clear all tracking state."""
@@ -189,6 +202,7 @@ class DeltaAlertEngine:
         hkd_cny_rate: float | None,
     ) -> list[dict]:
         """Run all alert checks. Returns list of {title, message, symbol, _kind, _stealth, _change_pct}."""
+        self._reload_alerts()
         config = self.config
         watchlist = config.get("watchlist", {})
         settings = config.get("settings", {})
@@ -230,9 +244,10 @@ class DeltaAlertEngine:
             reasons: list[str] = []
             prev = self._notified.get(symbol)
 
-            # Check threshold breach (above/below) — all stocks
-            above = entry.get("above")
-            below = entry.get("below")
+            # Check threshold breach (above/below) — from alert_config.json
+            alert_entry = self._alerts.get(symbol, {})
+            above = alert_entry.get("above")
+            below = alert_entry.get("below")
             if above is not None and price >= above:
                 reasons.append("threshold")
             if below is not None and price <= below:
@@ -361,6 +376,52 @@ def _stealth_line(name: str, change_pct: float, extra: str = "") -> str:
         return f"{name}: info {change_pct:+.1f}%"
     else:
         return f"{name}: {change_pct:+.1f}%"
+
+
+MAX_ALERT_EVENTS = 200  # 保留最近 200 条事件
+
+
+def write_alert_events(alerts: list[dict]):
+    """将告警事件追加到 alert_events.json，供 web 端读取展示。
+
+    单一数据源：notifier 计算，web 只读。确保 terminal 和 web 告警一致。
+    """
+    if not alerts:
+        return
+
+    # 读已有事件
+    events = []
+    try:
+        if ALERT_EVENTS_PATH.exists():
+            with open(ALERT_EVENTS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            events = data.get("events", [])
+    except Exception:
+        events = []
+
+    # 追加新事件
+    ts = int(time.time() * 1000)
+    for a in alerts:
+        if a.get("_kind") == "portfolio":
+            continue  # 组合 P&L 不写入事件文件
+        events.append({
+            "ts": ts,
+            "time": datetime.now().strftime("%H:%M:%S"),
+            "symbol": a.get("symbol", ""),
+            "name": a.get("title", ""),
+            "kind": a.get("_kind", ""),
+            "message": a.get("message", ""),
+            "change_pct": a.get("_change_pct", 0),
+        })
+
+    # 保留最近 N 条
+    events = events[-MAX_ALERT_EVENTS:]
+
+    # 原子写入
+    tmp = ALERT_EVENTS_PATH.with_suffix(".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump({"events": events, "lastUpdated": ts}, f, ensure_ascii=False, indent=2)
+    tmp.replace(ALERT_EVENTS_PATH)
 
 
 def stealth_dispatch(alerts: list[dict], *, sound: str = ""):
@@ -524,16 +585,21 @@ def _build_close_summary(
             "daily_pnl_cny": daily_pnl_cny,
         })
 
-    # ── Threshold hits ──
+    # ── Threshold hits (from alert_config.json) ──
     threshold_hits: list[str] = []
+    try:
+        with open(ALERT_CONFIG_PATH, "r", encoding="utf-8") as _af:
+            _alert_data = json.load(_af).get("alerts", {})
+    except Exception:
+        _alert_data = {}
     for symbol, quote in quotes.items():
-        entry = watchlist.get(symbol, {})
         price = quote.get("price", 0)
         name = quote.get("name", symbol)
         if price <= 0:
             continue
-        above = entry.get("above")
-        below = entry.get("below")
+        _ae = _alert_data.get(symbol, {})
+        above = _ae.get("above")
+        below = _ae.get("below")
         if above and price >= above:
             threshold_hits.append(f"  {name} 突破上限 {above}（现价 {price:.2f}）")
         if below and price <= below:
@@ -719,6 +785,7 @@ def run():
 
                     if all_alerts:
                         print()
+                        write_alert_events(all_alerts)
                         sent = stealth_dispatch(all_alerts)
                         daily_alerts += sent
                         for a in all_alerts:

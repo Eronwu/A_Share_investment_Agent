@@ -4,17 +4,18 @@ import { join } from "path";
 
 const DATA_PATH = join(process.cwd(), "..", "src", "data", "market_data.json");
 const CONFIG_PATH = join(process.cwd(), "..", "src", "data", "monitor_config.json");
+const ALERT_PATH = join(process.cwd(), "..", "src", "data", "alert_config.json");
+const ALERT_EVENTS_PATH = join(process.cwd(), "..", "src", "data", "alert_events.json");
 
 const EMPTY = { services: [], ts: 0, settings: {} };
 
 /**
  * GET /api/metrics
  *
- * 职责分离:
- * - market_data.json (poller 写): 纯行情数据 (price/change/vol/...)
- * - monitor_config.json (UI 写):  config 字段 (type/cost/shares/hidden/above/below)
- *
- * 本 API 负责合并两者 + 计算 pnl，确保 UI 端操作立即生效。
+ * 三源合并:
+ * - market_data.json  (poller 写): 纯行情数据
+ * - monitor_config.json (UI 写):   持仓配置 (type/cost/shares/hidden)
+ * - alert_config.json   (UI 写):   告警规则 (above/below)
  */
 export async function GET() {
   try {
@@ -29,16 +30,23 @@ export async function GET() {
       const cfg = JSON.parse(cfgRaw);
       watchlist = cfg.watchlist || {};
       settings = cfg.settings || {};
-    } catch {
-      // config 读取失败不影响行情数据
-    }
+    } catch { /* */ }
 
-    // 合并 config 字段到每条 service
+    // 读 alert config
+    let alerts: Record<string, Record<string, number>> = {};
+    try {
+      const alertRaw = readFileSync(ALERT_PATH, "utf-8");
+      const alertCfg = JSON.parse(alertRaw);
+      alerts = alertCfg.alerts || {};
+    } catch { /* */ }
+
+    // 合并到每条 service
     if (Array.isArray(data.services)) {
       data.services = data.services.map((s: Record<string, unknown>) => {
         const id = s.id as string;
         const entry = watchlist[id];
-        if (!entry) return { ...s, type: "watching", hidden: false };
+        const alert = alerts[id];
+        if (!entry) return { ...s, type: "watching", hidden: false, above: alert?.above ?? null, below: alert?.below ?? null };
 
         const price = Number(s.price) || 0;
         const cost = entry.cost != null ? Number(entry.cost) : null;
@@ -46,7 +54,6 @@ export async function GET() {
         const type = (entry.type as string) || "watching";
         const isHolding = type === "holding";
 
-        // 计算 pnl
         let pnl: number | null = null;
         if (isHolding && cost && cost > 0 && price > 0) {
           pnl = Math.round(((price - cost) / cost) * 10000) / 100;
@@ -58,15 +65,23 @@ export async function GET() {
           cost,
           shares,
           pnl,
-          above: entry.above ?? null,
-          below: entry.below ?? null,
+          above: alert?.above ?? null,
+          below: alert?.below ?? null,
           hidden: Boolean(entry.hidden),
         };
       });
     }
 
-    // 覆盖 settings（始终用 config 最新值）
     data.settings = settings;
+
+    // 读 alert events（notifier 写入，web 只读）
+    try {
+      const evRaw = readFileSync(ALERT_EVENTS_PATH, "utf-8");
+      const evData = JSON.parse(evRaw);
+      data.alertEvents = evData.events || [];
+    } catch {
+      data.alertEvents = [];
+    }
 
     return NextResponse.json(data);
   } catch {

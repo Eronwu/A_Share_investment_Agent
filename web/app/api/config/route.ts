@@ -3,11 +3,14 @@ import { readFileSync, writeFileSync, renameSync } from "fs";
 import { join } from "path";
 
 const CONFIG_PATH = join(process.cwd(), "..", "src", "data", "monitor_config.json");
+const ALERT_PATH = join(process.cwd(), "..", "src", "data", "alert_config.json");
 
 import type { WatchEntry, MonitorConfig } from "../../types";
 import { EM_UT } from "../../theme";
 
 const EM_API = "https://push2.eastmoney.com/api/qt/ulist.np/get";
+
+// ── Config (monitor_config.json) ──
 
 function readConfig(): MonitorConfig {
   const raw = readFileSync(CONFIG_PATH, "utf-8");
@@ -19,6 +22,28 @@ function writeConfig(config: MonitorConfig) {
   writeFileSync(tmp, JSON.stringify(config, null, 2) + "\n", "utf-8");
   renameSync(tmp, CONFIG_PATH);
 }
+
+// ── Alerts (alert_config.json) ──
+
+interface AlertEntry { above?: number; below?: number; }
+interface AlertConfig { alerts: Record<string, AlertEntry>; }
+
+function readAlerts(): AlertConfig {
+  try {
+    const raw = readFileSync(ALERT_PATH, "utf-8");
+    return JSON.parse(raw);
+  } catch {
+    return { alerts: {} };
+  }
+}
+
+function writeAlerts(cfg: AlertConfig) {
+  const tmp = ALERT_PATH + ".tmp";
+  writeFileSync(tmp, JSON.stringify(cfg, null, 2) + "\n", "utf-8");
+  renameSync(tmp, ALERT_PATH);
+}
+
+// ── Helpers ──
 
 function emMarket(code: string): string {
   if (code.toUpperCase().startsWith("HK")) return "116";
@@ -46,17 +71,18 @@ async function fetchStockName(code: string): Promise<string> {
   return code;
 }
 
-// GET /api/config — return full config
+// ── GET /api/config — return config + alerts ──
 export async function GET() {
   try {
     const config = readConfig();
-    return NextResponse.json(config);
+    const alertCfg = readAlerts();
+    return NextResponse.json({ ...config, alerts: alertCfg.alerts });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }
 
-// POST /api/config — modify config
+// ── POST /api/config — modify config and/or alerts ──
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -67,7 +93,7 @@ export async function POST(request: Request) {
       case "add": {
         const { code, data } = body as {
           code: string;
-          data?: Partial<WatchEntry>;
+          data?: Partial<WatchEntry> & { above?: number; below?: number };
         };
         if (!code) {
           return NextResponse.json({ success: false, message: "Missing code" }, { status: 400 });
@@ -78,11 +104,7 @@ export async function POST(request: Request) {
           name = await fetchStockName(code);
         }
 
-        const entry: WatchEntry = {
-          name,
-          above: data?.above ?? null,
-          below: data?.below ?? null,
-        };
+        const entry: WatchEntry = { name };
 
         if (data?.type === "holding" || data?.cost != null || data?.shares != null) {
           entry.type = "holding";
@@ -93,12 +115,22 @@ export async function POST(request: Request) {
         config.watchlist[code] = entry;
         writeConfig(config);
 
+        // 告警写到 alert_config
+        if (data?.above != null || data?.below != null) {
+          const alertCfg = readAlerts();
+          const alertEntry: AlertEntry = {};
+          if (data.above != null) alertEntry.above = data.above;
+          if (data.below != null) alertEntry.below = data.below;
+          alertCfg.alerts[code] = alertEntry;
+          writeAlerts(alertCfg);
+        }
+
         const env = entry.type === "holding" ? "PROD" : "DEV";
         const extras: string[] = [];
         if (entry.cost != null) extras.push(`cost:${entry.cost.toFixed(2)}`);
         if (entry.shares != null) extras.push(`shares:${entry.shares}`);
-        if (entry.above != null) extras.push(`above:${entry.above}`);
-        if (entry.below != null) extras.push(`below:${entry.below}`);
+        if (data?.above != null) extras.push(`above:${data.above}`);
+        if (data?.below != null) extras.push(`below:${data.below}`);
         const extStr = extras.length > 0 ? ` | ${extras.join(" ")}` : "";
 
         return NextResponse.json({
@@ -110,7 +142,7 @@ export async function POST(request: Request) {
       case "update": {
         const { code, data } = body as {
           code: string;
-          data?: Partial<WatchEntry>;
+          data?: Partial<WatchEntry> & { above?: number; below?: number };
         };
         if (!code || !config.watchlist[code]) {
           return NextResponse.json(
@@ -123,17 +155,33 @@ export async function POST(request: Request) {
         if (data?.type !== undefined) existing.type = data.type;
         if (data?.cost !== undefined) existing.cost = data.cost;
         if (data?.shares !== undefined) existing.shares = data.shares;
-        if (data?.above !== undefined) existing.above = data.above;
-        if (data?.below !== undefined) existing.below = data.below;
         if (data?.hidden !== undefined) existing.hidden = data.hidden;
 
-        // promote to holding if cost/shares are set
         if ((existing.cost != null || existing.shares != null) && existing.type !== "holding") {
           existing.type = "holding";
         }
 
         config.watchlist[code] = existing;
         writeConfig(config);
+
+        // 告警写到 alert_config
+        if (data?.above !== undefined || data?.below !== undefined) {
+          const alertCfg = readAlerts();
+          if (!alertCfg.alerts[code]) alertCfg.alerts[code] = {};
+          if (data.above !== undefined) {
+            if (data.above === null) delete alertCfg.alerts[code].above;
+            else alertCfg.alerts[code].above = data.above;
+          }
+          if (data.below !== undefined) {
+            if (data.below === null) delete alertCfg.alerts[code].below;
+            else alertCfg.alerts[code].below = data.below;
+          }
+          // 如果告警为空则删除条目
+          if (Object.keys(alertCfg.alerts[code]).length === 0) {
+            delete alertCfg.alerts[code];
+          }
+          writeAlerts(alertCfg);
+        }
 
         const changed: string[] = [];
         if (data?.type !== undefined) changed.push(`type:${data.type}`);
@@ -158,16 +206,19 @@ export async function POST(request: Request) {
 
         const removed: string[] = [];
         const notFound: string[] = [];
+        const alertCfg = readAlerts();
         for (const c of toRemove) {
           if (config.watchlist[c]) {
             removed.push(`${c} (${config.watchlist[c].name})`);
             delete config.watchlist[c];
+            delete alertCfg.alerts[c]; // 同步清理告警
           } else {
             notFound.push(c);
           }
         }
 
         writeConfig(config);
+        writeAlerts(alertCfg);
         let msg = removed.length > 0 ? `Removed ${removed.join(", ")}` : "";
         if (notFound.length > 0) {
           msg += (msg ? "; " : "") + `Not found: ${notFound.join(", ")}`;
@@ -182,7 +233,6 @@ export async function POST(request: Request) {
           return NextResponse.json({ success: false, message: "Missing settings" }, { status: 400 });
         }
 
-        // 白名单 + 范围校验
         const ALLOWED: Record<string, [number, number]> = {
           poll_interval: [5, 300],
           big_move_pct: [0.5, 20],
@@ -193,10 +243,7 @@ export async function POST(request: Request) {
         const applied: string[] = [];
         for (const [key, val] of Object.entries(settings)) {
           const range = ALLOWED[key];
-          if (!range) {
-            rejected.push(`${key} (unknown)`);
-            continue;
-          }
+          if (!range) { rejected.push(`${key} (unknown)`); continue; }
           const n = Number(val);
           if (isNaN(n) || n < range[0] || n > range[1]) {
             rejected.push(`${key}=${val} (must be ${range[0]}-${range[1]})`);

@@ -76,23 +76,45 @@ All responses follow `ApiResponse<T>` schema with `success`, `message`, `data`, 
 
 Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
-**Data flow**: `src/data/monitor_config.json` → `/api/config` (read/write watchlist) and `/api/metrics` (polls 东方财富 API for live prices, enriches with above/below thresholds and settings).
+**Data flow**: 三文件分离，`/api/metrics` 负责合并。
 
 **Key hooks**:
-- `useCommand` — parses `svc add|update|rm|ls|config|help` commands, manages terminal log entries. Returns `addLogs` for external log injection.
+- `useCommand` — parses `svc add|update|rm|hide|unhide|ls|config|help` commands, manages terminal log entries. Returns `addLogs` for external log injection.
 - `useAlerts` — checks price breach (above/below) and big moves (|change| >= `big_move_pct`), per-stock cooldown via in-memory Map.
 
-**`monitor_config.json` structure**:
+**三文件职责分离**:
+
+| 文件 | 写入方 | 内容 |
+|------|--------|------|
+| `market_data.json` | Poller (Python) | 纯行情数据 (price/change/vol/amount...) |
+| `monitor_config.json` | UI (/api/config) | 持仓配置 (name/type/cost/shares/hidden) |
+| `alert_config.json` | UI (/api/config) | 告警规则 (above/below，按股票代码索引) |
+
+`/api/metrics` 合并三者 + 计算 pnl，任何 UI 操作立即生效，不依赖 poller 周期。
+
+**`alert_events.json`** — Notifier 写入的告警事件流（运行时数据，不入库）。Web 只读展示，不做任何告警计算。确保 terminal 弹窗和 web 日志完全一致。
+
+**`monitor_config.json` structure** (不含 above/below):
 ```json
 {
   "watchlist": {
-    "HK09988": { "name": "...", "type": "holding", "cost": 155, "shares": 200, "above": 166, "below": 150 }
+    "HK09988": { "name": "...", "type": "holding", "cost": 155, "shares": 200 }
   },
   "settings": { "poll_interval": 30, "big_move_pct": 3, "cooldown_minutes": 10 }
 }
 ```
 
-`type: "holding"` = production (PROD), otherwise watching (DEV). `poll_interval` controls refresh rate. Interactive commands modify this file via `/api/config` POST.
+**`alert_config.json` structure** (独立告警规则):
+```json
+{
+  "alerts": {
+    "HK09988": { "above": 166, "below": 150 },
+    "688676": { "above": 100, "below": 85 }
+  }
+}
+```
+
+`type: "holding"` = production (PROD), otherwise watching (DEV). `poll_interval` controls refresh rate. Interactive commands modify config via `/api/config` POST.
 
 ### Data Sources & Tools (`src/tools/`)
 
@@ -105,8 +127,10 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
 ### Architecture Rules
 
-- **Poller 是生产者，UI 是消费者，二者无耦合。** Poller (`src/tools/market_data_poller.py`) 只写行情数据到 `market_data.json`（price/change/vol/amount 等）；用户配置（type/cost/shares/hidden/above/below）只存 `monitor_config.json`，由 UI 通过 `/api/config` 读写。`/api/metrics` 负责合并两个 JSON + 计算派生字段（pnl）。任何 UI 端操作立即生效，不依赖 poller 周期。
+- **Poller 是生产者，UI 是消费者，二者无耦合。** Poller (`src/tools/market_data_poller.py`) 只写行情数据到 `market_data.json`（price/change/vol/amount 等）；用户配置（type/cost/shares/hidden）只存 `monitor_config.json`；告警规则（above/below）独立存 `alert_config.json`。`/api/metrics` 负责合并三个 JSON + 计算派生字段（pnl）。任何 UI 端操作立即生效，不依赖 poller 周期。
 - **All market data and FX rate fetching must happen in the Python poller script**, not in Next.js API routes. The web layer (`/api/metrics`) only reads from `market_data.json` written by the poller. This keeps the data pipeline centralized and avoids duplicate API calls from the frontend.
+- **告警规则与持仓配置分离。** `above`/`below` 阈值存在 `alert_config.json`，不存在 `monitor_config.json` 的 watchlist 条目里。所有读写告警的代码（web API、CLI、notifier）统一从 `alert_config.json` 操作。删除股票时同步清理两个文件。
+- **告警计算单一数据源。** Notifier (`stock_notifier.py` DeltaAlertEngine) 是唯一的告警计算引擎，产出写入 `alert_events.json`。Web 前端 (`useAlerts`) 只读取展示，不做任何告警计算。确保 terminal 弹窗和 web 日志完全一致，不重复计算，不重复告警。
 
 ### HK Stock Codes
 

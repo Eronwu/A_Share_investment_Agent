@@ -164,6 +164,7 @@ export default function Home() {
       setTick((t) => t + 1);
       if (data.settings) setSettings(data.settings);
       if (data.hkdCnyRate != null) setHkdCnyRate(data.hkdCnyRate);
+      if (data.alertEvents) setAlertEvents(data.alertEvents);
     } catch {
       /* */
     } finally {
@@ -171,8 +172,9 @@ export default function Home() {
     }
   }, []);
 
+  const [alertEvents, setAlertEvents] = useState<unknown[]>([]);
   const cmd = useCommand(fetchData);
-  useAlerts(services, settings, cmd.addLogs);
+  useAlerts(alertEvents as Parameters<typeof useAlerts>[0], cmd.addLogs);
 
   const pollMs = (settings.poll_interval ?? DEFAULT_POLL_SEC) * 1000;
 

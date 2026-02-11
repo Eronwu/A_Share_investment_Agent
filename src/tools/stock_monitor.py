@@ -54,6 +54,7 @@ logger = setup_logger("stock_monitor")
 
 # ── 配置路径 ──
 CONFIG_PATH = PROJECT_ROOT / "src" / "data" / "monitor_config.json"
+ALERT_CONFIG_PATH = PROJECT_ROOT / "src" / "data" / "alert_config.json"
 
 # ── 默认配置 ──
 DEFAULT_SETTINGS = {
@@ -76,7 +77,7 @@ def load_config() -> dict:
     # 初始化默认配置
     config = {
         "watchlist": {
-            code: {"name": name, "above": None, "below": None}
+            code: {"name": name}
             for code, name in AIDC_WATCHLIST.items()
         },
         "settings": DEFAULT_SETTINGS.copy(),
@@ -90,6 +91,21 @@ def save_config(config: dict):
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=2)
+
+
+def load_alerts() -> dict:
+    """加载告警配置 alert_config.json"""
+    if ALERT_CONFIG_PATH.exists():
+        with open(ALERT_CONFIG_PATH, "r", encoding="utf-8") as f:
+            return json.load(f).get("alerts", {})
+    return {}
+
+
+def save_alerts(alerts: dict):
+    """保存告警配置"""
+    ALERT_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(ALERT_CONFIG_PATH, "w", encoding="utf-8") as f:
+        json.dump({"alerts": alerts}, f, ensure_ascii=False, indent=2)
 
 
 # ══════════════════════════════════════════
@@ -849,8 +865,8 @@ class AlertEngine:
             list of {symbol, name, title, message}
         """
         alerts = []
-        watchlist = self.config["watchlist"]
         big_move_pct = self.config["settings"]["big_move_pct"]
+        alert_rules = load_alerts()
 
         for symbol, quote in quotes.items():
             name = quote["name"]
@@ -860,10 +876,10 @@ class AlertEngine:
             if price <= 0:
                 continue
 
-            watch_entry = watchlist.get(symbol, {})
+            alert_entry = alert_rules.get(symbol, {})
 
             # ── 用户自定义价格上限告警 ──
-            above = watch_entry.get("above")
+            above = alert_entry.get("above")
             if above is not None and price >= above:
                 key = f"{symbol}_above_{above}"
                 if self._is_cooled_down(key):
@@ -876,7 +892,7 @@ class AlertEngine:
                     })
 
             # ── 用户自定义价格下限告警 ──
-            below = watch_entry.get("below")
+            below = alert_entry.get("below")
             if below is not None and price <= below:
                 key = f"{symbol}_below_{below}"
                 if self._is_cooled_down(key):
@@ -1014,15 +1030,11 @@ def cmd_add(args, config: dict):
         quotes = fetch_realtime_sina([symbol])
         name = quotes.get(symbol, {}).get("name", symbol)
         config["watchlist"][symbol] = {
-            "name": name, "above": None, "below": None,
+            "name": name,
             "type": "holding" if args.holding else "watching",
             "cost": None, "shares": None,
         }
 
-    if above is not None:
-        config["watchlist"][symbol]["above"] = above
-    if below is not None:
-        config["watchlist"][symbol]["below"] = below
     if args.holding:
         config["watchlist"][symbol]["type"] = "holding"
     if args.cost is not None:
@@ -1031,15 +1043,28 @@ def cmd_add(args, config: dict):
         config["watchlist"][symbol]["shares"] = args.shares
 
     save_config(config)
+
+    # 告警写到 alert_config.json
+    if above is not None or below is not None:
+        alert_rules = load_alerts()
+        if symbol not in alert_rules:
+            alert_rules[symbol] = {}
+        if above is not None:
+            alert_rules[symbol]["above"] = above
+        if below is not None:
+            alert_rules[symbol]["below"] = below
+        save_alerts(alert_rules)
+
     entry = config["watchlist"][symbol]
+    alert_entry = load_alerts().get(symbol, {})
     tag = "持仓" if entry.get("type") == "holding" else "自选"
     print(f"✅ 已设置 [{tag}] {entry['name']}({symbol}):")
     if entry.get("type") == "holding":
         cost_str = f"{entry['cost']:.2f}" if entry.get("cost") else "未设置"
         shares_str = f"{entry['shares']}" if entry.get("shares") else "未设置"
         print(f"   成本价: {cost_str}  |  持仓量: {shares_str}")
-    print(f"   上限告警: {entry['above'] if entry['above'] is not None else '未设置'}")
-    print(f"   下限告警: {entry['below'] if entry['below'] is not None else '未设置'}")
+    print(f"   上限告警: {alert_entry.get('above', '未设置')}")
+    print(f"   下限告警: {alert_entry.get('below', '未设置')}")
 
 
 def cmd_remove(args, config: dict):
@@ -1049,6 +1074,11 @@ def cmd_remove(args, config: dict):
         name = config["watchlist"][symbol]["name"]
         del config["watchlist"][symbol]
         save_config(config)
+        # 同步清理告警
+        alert_rules = load_alerts()
+        if symbol in alert_rules:
+            del alert_rules[symbol]
+            save_alerts(alert_rules)
         print(f"✅ 已删除 {name}({symbol})")
     else:
         print(f"❌ {symbol} 不在 watchlist 中")
@@ -1058,6 +1088,7 @@ def cmd_list(config: dict):
     """显示当前所有提醒设置，分持仓/自选两组"""
     watchlist = config["watchlist"]
     settings = config["settings"]
+    alert_rules = load_alerts()
 
     print(f"\n📋 全局设置:")
     print(f"   轮询间隔: {settings['poll_interval']}s")
@@ -1077,10 +1108,11 @@ def cmd_list(config: dict):
         print(f"   {'─'*10} {'─'*12} {'─'*8} {'─'*8} {'─'*8} {'─'*8}")
         for symbol, entry in holdings.items():
             name = entry["name"]
+            ae = alert_rules.get(symbol, {})
             cost_str = f"{entry['cost']:.2f}" if entry.get("cost") else "-"
             shares_str = f"{entry['shares']}" if entry.get("shares") else "-"
-            above_str = f"{entry['above']}" if entry.get("above") is not None else "-"
-            below_str = f"{entry['below']}" if entry.get("below") is not None else "-"
+            above_str = f"{ae['above']}" if ae.get("above") is not None else "-"
+            below_str = f"{ae['below']}" if ae.get("below") is not None else "-"
             print(f"   {symbol:<10} {name:<12} {cost_str:>8} {shares_str:>8} {above_str:>8} {below_str:>8}")
         print()
 
@@ -1090,8 +1122,9 @@ def cmd_list(config: dict):
         print(f"   {'─'*10} {'─'*12} {'─'*8} {'─'*8}")
         for symbol, entry in watching.items():
             name = entry["name"]
-            above_str = f"{entry['above']}" if entry.get("above") is not None else "-"
-            below_str = f"{entry['below']}" if entry.get("below") is not None else "-"
+            ae = alert_rules.get(symbol, {})
+            above_str = f"{ae['above']}" if ae.get("above") is not None else "-"
+            below_str = f"{ae['below']}" if ae.get("below") is not None else "-"
             print(f"   {symbol:<10} {name:<12} {above_str:>8} {below_str:>8}")
         print()
 

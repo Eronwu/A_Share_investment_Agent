@@ -6,12 +6,12 @@
     "dev": "next dev -p 3120",
     "build": "next build",
     "start": "next start -p 3120",
-    "test": "lsof -ti:3120 | xargs kill -9 2>/dev/null; npx playwright test",
+    "test": "npx playwright test",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:ui": "npx playwright test --ui",
-    "test:headed": "lsof -ti:3120 | xargs kill -9 2>/dev/null; npx playwright test --headed",
-    "test:all": "vitest run && npm test"
+    "test:headed": "npx playwright test --headed",
+    "test:all": "vitest run && npx playwright test"
   },
   "dependencies": {
     "next": "^15.1.0",

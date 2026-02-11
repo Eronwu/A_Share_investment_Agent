@@ -5,8 +5,6 @@ export interface WatchEntry {
   type?: string;
   cost?: number | null;
   shares?: number | null;
-  above?: number | null;
-  below?: number | null;
   hidden?: boolean;
 }
 

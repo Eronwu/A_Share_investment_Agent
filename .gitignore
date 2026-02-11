@@ -66,6 +66,7 @@ logs/
 src/data/stock_news
 src/data/sentiment_cache.json
 src/data/market_data.json
+src/data/alert_events.json
 
 # docs
 docs/
