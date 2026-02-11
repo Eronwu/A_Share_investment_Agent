@@ -258,38 +258,31 @@ class DeltaAlertEngine:
             self._notified[symbol] = {"price": price, "change_pct": change_pct}
             kind = "threshold" if "threshold" in reasons else "big_move"
 
-            # Build message parts
+            # Build message parts (only % — no monetary values)
             sign = "+" if change_pct >= 0 else ""
-            parts = [f"{name}({symbol}) 今日 {sign}{change_pct:.1f}%，现价 {price:.2f}"]
-
-            # P&L info for holdings
-            pnl_cny = None
-            pnl_sign = ""
-            if has_position:
-                is_hk = is_hk_symbol(symbol)
-                fx = hkd_cny_rate if is_hk else 1.0
-                if fx is not None and fx > 0:
-                    pnl_cny = chg_amt * shares * fx
-                    pnl_sign = "+" if pnl_cny >= 0 else ""
-                    parts.append(f"盈亏 {pnl_sign}{pnl_cny:,.0f} 元")
+            parts = [f"{name}({symbol}) {sign}{change_pct:.1f}%，{price:.2f}"]
 
             # Threshold info
             if "threshold" in reasons:
                 if above is not None and price >= above:
-                    parts.append(f"突破上限 {above}")
+                    parts.append(f"破 {above}")
                 if below is not None and price <= below:
-                    parts.append(f"跌破下限 {below}")
+                    parts.append(f"破 {below}")
 
             # Delta info (if re-trigger)
             if prev is not None:
                 prev_price = prev["price"]
                 price_delta = (price - prev_price) / prev_price * 100
-                d_sign = "+" if price_delta >= 0 else ""
-                parts.append(f"较上次通知 {d_sign}{price_delta:.1f}%")
+                parts.append(f"vs通知 {price_delta:+.1f}%")
 
             direction = "涨" if change_pct > 0 else "跌"
-            title = f"{'📈' if change_pct > 0 else '📉'} {name} {direction}{abs(change_pct):.1f}%"
+            title = f"{name} {direction}{abs(change_pct):.1f}%"
             message = "，".join(parts)
+
+            # Stealth line (no monetary values either)
+            stealth_extra = f"{change_pct:+.1f}%"
+            if "threshold" in reasons:
+                stealth_extra += " threshold"
 
             alerts.append({
                 "symbol": symbol,
@@ -297,11 +290,7 @@ class DeltaAlertEngine:
                 "message": message,
                 "_kind": kind,
                 "_change_pct": change_pct,
-                "_stealth": _stealth_line(symbol, change_pct,
-                    f"{change_pct:+.1f}%" +
-                    (f" (impact: {pnl_sign}{pnl_cny:,.0f})" if pnl_cny is not None else "") +
-                    (" threshold" if "threshold" in reasons else "")
-                ),
+                "_stealth": _stealth_line(symbol, change_pct, stealth_extra),
             })
 
         # ── Portfolio summary ──
@@ -322,16 +311,14 @@ class DeltaAlertEngine:
 
             if should_notify:
                 self._last_portfolio_pnl = total_daily_pnl
-                sign = "+" if total_daily_pnl >= 0 else ""
-                pnl_str = f"{sign}{total_daily_pnl:,.0f}"
                 pct_sign = "+" if portfolio_pct >= 0 else ""
                 alerts.append({
                     "symbol": "",
-                    "title": f"📊 持仓组合 {pct_sign}{portfolio_pct:.1f}% ({pnl_str} 元)",
-                    "message": f"持仓 {holdings_counted} 只，今日整体 {pct_sign}{portfolio_pct:.2f}%，盈亏 {pnl_str} 元",
+                    "title": f"持仓组合 {pct_sign}{portfolio_pct:.1f}%",
+                    "message": f"持仓 {holdings_counted} 只，今日整体 {pct_sign}{portfolio_pct:.2f}%",
                     "_kind": "portfolio",
                     "_change_pct": portfolio_pct,
-                    "_stealth": f"net: {pnl_str} ({pct_sign}{portfolio_pct:.1f}%) | {holdings_counted} services",
+                    "_stealth": f"portfolio: {pct_sign}{portfolio_pct:.1f}% | {holdings_counted} services",
                 })
 
         return alerts
