@@ -45,8 +45,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.tools.api import get_stock_prefix
-from src.tools.market_data_poller import EM_UT
 from src.tools.stock_data_fetcher import AIDC_WATCHLIST
+
+EM_UT = "fa5fd1943c7b386f172d6893dbfba10b"
 from src.utils.logging_config import setup_logger
 
 logger = setup_logger("stock_monitor")

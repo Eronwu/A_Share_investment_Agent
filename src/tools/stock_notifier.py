@@ -23,7 +23,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.tools.stock_monitor import AlertEngine, is_hk_symbol, notify
+from src.tools.stock_monitor import is_hk_symbol, notify
 from src.utils.logging_config import setup_logger
 
 logger = setup_logger("stock_notifier")
@@ -99,12 +99,11 @@ def get_mtime(path: Path) -> float:
 # ══════════════════════════════════════════
 
 def merge_data(market: dict, config: dict) -> dict:
-    """Build AlertEngine-compatible quotes dict from market_data + config.
+    """Build quotes dict from market_data + config.
 
     Returns: {symbol: {name, price, change_pct, chg_amt}} keyed by stock
     id/code.  The ``chg_amt`` field (absolute price change today) is carried
-    through so downstream engines (e.g. PortfolioAlertEngine) can compute
-    daily P&L without re-deriving it.
+    through so DeltaAlertEngine can compute daily P&L.
     """
     watchlist = config.get("watchlist", {})
     services = market.get("services", [])
@@ -140,65 +139,63 @@ def merge_data(market: dict, config: dict) -> dict:
 
 
 # ══════════════════════════════════════════
-# 4. Portfolio / P&L alert engine
+# 4. Delta-based alert engine (变化驱动)
 # ══════════════════════════════════════════
+#
+# 核心逻辑：以价格变化驱动通知，不重复提醒同一状态。
+#
+#   首次触发: |日涨跌幅| >= trigger_pct  →  通知，记住当前价格
+#   再次触发: |当前价 - 上次通知价| / 上次通知价 * 100 >= delta_pct
+#   触价同理: 首次突破通知，之后价格变化 >= delta_pct 才再通知
+#
+# 例: 掌阅涨停 +10% → 通知1次，记住 31.09。
+#     价格不变 → 不再通知。回落到 29.85 (-4%) → 再通知。
+#
+# Settings (均可通过 monitor_config.json 覆盖):
+#   trigger_pct  : 首次触发阈值，|日涨跌幅| 超过此值才通知 (default 5%)
+#   delta_pct    : 再次触发阈值，距上次通知价变化超过此值才通知 (default 4%)
+#   portfolio_delta_pct : 组合 P&L 变化阈值 (default 2%)
 
-# Default thresholds (used when settings keys are absent from config)
-DEFAULT_HOLDING_ALERT_PCT = 5.0   # per-stock daily change % to trigger alert
-DEFAULT_PORTFOLIO_ALERT_PCT = 3.0  # portfolio-level daily change % to trigger
+DEFAULT_TRIGGER_PCT = 5.0         # 首次触发: |日涨跌幅| >= 5%
+DEFAULT_DELTA_PCT = 4.0           # 再次触发: 距上次通知价变化 >= 4%
+DEFAULT_PORTFOLIO_DELTA_PCT = 2.0  # 组合: P&L 变化 >= 2%
 
 
-class PortfolioAlertEngine:
-    """Generates alerts based on holding P&L.
+class DeltaAlertEngine:
+    """变化驱动的告警引擎。
 
-    Two kinds of alert:
-    1. **Individual holding** -- fires when a holding's daily change%
-       exceeds ``holding_alert_pct`` (absolute value).
-    2. **Portfolio summary** -- fires when the total portfolio daily P&L,
-       expressed as a percentage of total market value, exceeds
-       ``portfolio_alert_pct`` (absolute value).
+    替代 AlertEngine + PortfolioAlertEngine，合并同一只股票的
+    big_move / P&L / threshold 为一条通知，避免重复。
 
-    Uses the same ``cooldown_minutes`` as other alert engines, but with
-    distinct cooldown keys so it does not interfere with price/big-move
-    alerts.
+    每只股票追踪 ``last_notified_price``，只在价格发生显著变化时
+    才再次通知。涨停/跌停不会反复弹窗。
     """
 
     def __init__(self, config: dict):
         self.config = config
-        self.cooldowns: dict[str, float] = {}
+        # {symbol: {"price": float, "change_pct": float}}
+        self._notified: dict[str, dict] = {}
+        # portfolio: last notified total daily P&L
+        self._last_portfolio_pnl: float | None = None
 
-    # ── helpers ──
+    def reset(self):
+        """Midnight reset — clear all tracking state."""
+        self._notified.clear()
+        self._last_portfolio_pnl = None
 
-    def _cooldown_sec(self) -> int:
-        return self.config.get("settings", {}).get("cooldown_minutes", 10) * 60
+    def check(
+        self,
+        quotes: dict,
+        hkd_cny_rate: float | None,
+    ) -> list[dict]:
+        """Run all alert checks. Returns list of {title, message, symbol, _kind, _stealth, _change_pct}."""
+        config = self.config
+        watchlist = config.get("watchlist", {})
+        settings = config.get("settings", {})
 
-    def _is_cooled_down(self, key: str) -> bool:
-        last = self.cooldowns.get(key, 0)
-        return (time.time() - last) >= self._cooldown_sec()
-
-    def _trigger(self, key: str):
-        self.cooldowns[key] = time.time()
-
-    # ── main entry ──
-
-    def check(self, quotes: dict, hkd_cny_rate: float | None) -> list[dict]:
-        """Check portfolio-level and per-holding P&L alerts.
-
-        Args:
-            quotes: merged dict from ``merge_data`` -- must include
-                    ``chg_amt`` per symbol.
-            hkd_cny_rate: HKD->CNY conversion rate from market_data.json.
-                          ``None`` means HK P&L cannot be converted; those
-                          holdings are skipped for CNY amounts but still
-                          checked for %-based alerts.
-
-        Returns:
-            list of ``{title, message}`` dicts suitable for ``notify()``.
-        """
-        watchlist = self.config.get("watchlist", {})
-        settings = self.config.get("settings", {})
-        holding_alert_pct = settings.get("holding_alert_pct", DEFAULT_HOLDING_ALERT_PCT)
-        portfolio_alert_pct = settings.get("portfolio_alert_pct", DEFAULT_PORTFOLIO_ALERT_PCT)
+        trigger_pct = settings.get("trigger_pct", DEFAULT_TRIGGER_PCT)
+        delta_pct = settings.get("delta_pct", DEFAULT_DELTA_PCT)
+        portfolio_delta_pct = settings.get("portfolio_delta_pct", DEFAULT_PORTFOLIO_DELTA_PCT)
 
         alerts: list[dict] = []
         total_daily_pnl = 0.0
@@ -207,15 +204,6 @@ class PortfolioAlertEngine:
 
         for symbol, quote in quotes.items():
             entry = watchlist.get(symbol, {})
-
-            # Only care about holdings with cost & shares
-            if entry.get("type") != "holding":
-                continue
-            cost = entry.get("cost")
-            shares = entry.get("shares")
-            if not cost or not shares or cost <= 0 or shares <= 0:
-                continue
-
             price = quote.get("price", 0)
             change_pct = quote.get("change_pct", 0)
             chg_amt = quote.get("chg_amt", 0)
@@ -224,70 +212,127 @@ class PortfolioAlertEngine:
             if price <= 0:
                 continue
 
-            is_hk = is_hk_symbol(symbol)
-            fx = hkd_cny_rate if is_hk else 1.0
+            is_holding = entry.get("type") == "holding"
+            cost = entry.get("cost")
+            shares = entry.get("shares")
+            has_position = is_holding and cost and shares and cost > 0 and shares > 0
 
-            # Daily P&L in native currency: chgAmt * shares
-            daily_pnl_native = chg_amt * shares
+            # ── Accumulate portfolio P&L ──
+            if has_position:
+                is_hk = is_hk_symbol(symbol)
+                fx = hkd_cny_rate if is_hk else 1.0
+                if fx is not None and fx > 0:
+                    total_daily_pnl += chg_amt * shares * fx
+                    total_market_value += price * shares * fx
+                    holdings_counted += 1
 
-            # Convert to CNY
-            if fx is not None and fx > 0:
-                daily_pnl_cny = daily_pnl_native * fx
-                market_value_cny = price * shares * fx
+            # ── Should we notify for this stock? ──
+            reasons: list[str] = []
+            prev = self._notified.get(symbol)
+
+            # Check threshold breach (above/below) — all stocks
+            above = entry.get("above")
+            below = entry.get("below")
+            if above is not None and price >= above:
+                reasons.append("threshold")
+            if below is not None and price <= below:
+                reasons.append("threshold")
+
+            if prev is None:
+                # ── First notification: need |daily change%| >= trigger_pct ──
+                if is_holding and abs(change_pct) >= trigger_pct:
+                    reasons.append("big_move")
+                if not reasons:
+                    continue
             else:
-                # Cannot convert -- skip CNY accumulation but still check %
-                daily_pnl_cny = None
-                market_value_cny = None
+                # ── Re-trigger: need price delta >= delta_pct from last notified ──
+                prev_price = prev["price"]
+                if prev_price > 0:
+                    delta = abs(price - prev_price) / prev_price * 100
+                    if delta >= delta_pct:
+                        reasons.append("big_move")
+                if not reasons:
+                    continue
 
-            # Accumulate for portfolio total (only if we have CNY values)
-            if daily_pnl_cny is not None and market_value_cny is not None:
-                total_daily_pnl += daily_pnl_cny
-                total_market_value += market_value_cny
-                holdings_counted += 1
+            # ── Record and build alert ──
+            self._notified[symbol] = {"price": price, "change_pct": change_pct}
+            kind = "threshold" if "threshold" in reasons else "big_move"
 
-            # ── Per-holding alert (%-based) ──
-            if abs(change_pct) >= holding_alert_pct:
-                key = f"pnl_{symbol}_holding"
-                if self._is_cooled_down(key):
-                    self._trigger(key)
-                    # Format P&L string
-                    if daily_pnl_cny is not None:
-                        pnl_str = f"{'+'if daily_pnl_cny >= 0 else ''}{daily_pnl_cny:,.0f}"
-                        pnl_detail = f"，今日盈亏 {pnl_str} 元"
-                    else:
-                        pnl_detail = ""
-                    direction = "大涨" if change_pct > 0 else "大跌"
-                    sign = "+" if change_pct >= 0 else ""
-                    alerts.append({
-                        "title": f"{'📈' if change_pct > 0 else '📉'} 持仓{direction} {name}",
-                        "message": (
-                            f"{name}({symbol}) 今日 {sign}{change_pct:.1f}%"
-                            f"，现价 {price:.2f}{pnl_detail}"
-                        ),
-                    })
+            # Build message parts
+            sign = "+" if change_pct >= 0 else ""
+            parts = [f"{name}({symbol}) 今日 {sign}{change_pct:.1f}%，现价 {price:.2f}"]
 
-        # ── Portfolio summary alert ──
+            # P&L info for holdings
+            pnl_cny = None
+            pnl_sign = ""
+            if has_position:
+                is_hk = is_hk_symbol(symbol)
+                fx = hkd_cny_rate if is_hk else 1.0
+                if fx is not None and fx > 0:
+                    pnl_cny = chg_amt * shares * fx
+                    pnl_sign = "+" if pnl_cny >= 0 else ""
+                    parts.append(f"盈亏 {pnl_sign}{pnl_cny:,.0f} 元")
+
+            # Threshold info
+            if "threshold" in reasons:
+                if above is not None and price >= above:
+                    parts.append(f"突破上限 {above}")
+                if below is not None and price <= below:
+                    parts.append(f"跌破下限 {below}")
+
+            # Delta info (if re-trigger)
+            if prev is not None:
+                prev_price = prev["price"]
+                price_delta = (price - prev_price) / prev_price * 100
+                d_sign = "+" if price_delta >= 0 else ""
+                parts.append(f"较上次通知 {d_sign}{price_delta:.1f}%")
+
+            direction = "涨" if change_pct > 0 else "跌"
+            title = f"{'📈' if change_pct > 0 else '📉'} {name} {direction}{abs(change_pct):.1f}%"
+            message = "，".join(parts)
+
+            alerts.append({
+                "symbol": symbol,
+                "title": title,
+                "message": message,
+                "_kind": kind,
+                "_change_pct": change_pct,
+                "_stealth": _stealth_line(symbol, change_pct,
+                    f"{change_pct:+.1f}%" +
+                    (f" (impact: {pnl_sign}{pnl_cny:,.0f})" if pnl_cny is not None else "") +
+                    (" threshold" if "threshold" in reasons else "")
+                ),
+            })
+
+        # ── Portfolio summary ──
         if holdings_counted > 0 and total_market_value > 0:
-            portfolio_change_pct = (total_daily_pnl / total_market_value) * 100
-            if abs(portfolio_change_pct) >= portfolio_alert_pct:
-                key = "pnl_portfolio_total"
-                if self._is_cooled_down(key):
-                    self._trigger(key)
-                    sign = "+" if total_daily_pnl >= 0 else ""
-                    pnl_str = f"{sign}{total_daily_pnl:,.0f}"
-                    if total_daily_pnl >= 0:
-                        title = f"📊 今日持仓总盈利 {pnl_str} 元"
-                    else:
-                        title = f"📊 今日持仓总亏损 {pnl_str} 元"
-                    pct_sign = "+" if portfolio_change_pct >= 0 else ""
-                    alerts.append({
-                        "title": title,
-                        "message": (
-                            f"持仓组合 {holdings_counted} 只标的，"
-                            f"今日整体 {pct_sign}{portfolio_change_pct:.2f}%，"
-                            f"盈亏 {pnl_str} 元"
-                        ),
-                    })
+            portfolio_pct = (total_daily_pnl / total_market_value) * 100
+
+            should_notify = False
+            if self._last_portfolio_pnl is None:
+                # First time: only if significant
+                if abs(portfolio_pct) >= DEFAULT_TRIGGER_PCT:
+                    should_notify = True
+            else:
+                # Delta from last notification
+                pnl_delta = abs(total_daily_pnl - self._last_portfolio_pnl)
+                pnl_delta_pct = (pnl_delta / total_market_value) * 100 if total_market_value > 0 else 0
+                if pnl_delta_pct >= portfolio_delta_pct:
+                    should_notify = True
+
+            if should_notify:
+                self._last_portfolio_pnl = total_daily_pnl
+                sign = "+" if total_daily_pnl >= 0 else ""
+                pnl_str = f"{sign}{total_daily_pnl:,.0f}"
+                pct_sign = "+" if portfolio_pct >= 0 else ""
+                alerts.append({
+                    "symbol": "",
+                    "title": f"📊 持仓组合 {pct_sign}{portfolio_pct:.1f}% ({pnl_str} 元)",
+                    "message": f"持仓 {holdings_counted} 只，今日整体 {pct_sign}{portfolio_pct:.2f}%，盈亏 {pnl_str} 元",
+                    "_kind": "portfolio",
+                    "_change_pct": portfolio_pct,
+                    "_stealth": f"net: {pnl_str} ({pct_sign}{portfolio_pct:.1f}%) | {holdings_counted} services",
+                })
 
         return alerts
 
@@ -422,98 +467,7 @@ def stealth_dispatch_open_close(alerts: list[dict]):
 
 
 # ══════════════════════════════════════════
-# 5b. Alert enrichment (stealth + filter)
-# ══════════════════════════════════════════
-
-def _enrich_alerts(
-    raw_alerts: list[dict],
-    quotes: dict,
-    watchlist: dict,
-) -> list[dict]:
-    """Enrich AlertEngine results with stealth metadata & filter.
-
-    Filtering rules (减少打扰):
-    - 大涨大跌(big_move): 只通知持仓，自选股不通知
-    - 触价(above/below): 所有股都通知（用户明确设定了阈值）
-    """
-    enriched = []
-    for a in raw_alerts:
-        symbol = a.get("symbol", "")
-        title = a.get("title", "")
-        entry = watchlist.get(symbol, {})
-        q = quotes.get(symbol, {})
-        change_pct = q.get("change_pct", 0)
-
-        # Classify alert kind
-        if "突破上限" in title or "跌破下限" in title:
-            kind = "threshold"
-        elif "大涨" in title or "大跌" in title:
-            kind = "big_move"
-        else:
-            kind = "other"
-
-        # Filter: big_move only for holdings
-        if kind == "big_move" and entry.get("type") != "holding":
-            continue
-
-        # Build stealth line
-        if kind == "threshold":
-            if "上限" in title:
-                stealth = _stealth_line(symbol, change_pct, "threshold breach (above)")
-            else:
-                stealth = _stealth_line(symbol, change_pct, "threshold breach (below)")
-        else:
-            stealth = _stealth_line(symbol, change_pct)
-
-        a["_stealth"] = stealth
-        a["_kind"] = kind
-        a["_change_pct"] = change_pct
-        enriched.append(a)
-
-    return enriched
-
-
-def _enrich_pnl_alerts(pnl_alerts: list[dict]) -> list[dict]:
-    """Enrich PortfolioAlertEngine results with stealth metadata."""
-    for a in pnl_alerts:
-        title = a.get("title", "")
-        msg = a.get("message", "")
-
-        if "总盈利" in title or "总亏损" in title:
-            # Portfolio summary
-            # Extract net amount from title
-            a["_kind"] = "portfolio"
-            a["_stealth"] = f"net: {title.split('元')[0].split(' ')[-1]} | {msg.split('，')[1] if '，' in msg else msg}"
-        else:
-            # Individual holding P&L
-            a["_kind"] = "pnl"
-            # Parse: "XX(159516) 今日 -6.2%，现价 1.68，今日盈亏 -255 元"
-            # → "SVC-159516: warn -6.2% (impact: -255)"
-            symbol = ""
-            change_pct = 0.0
-            pnl_part = ""
-            if "(" in msg and ")" in msg:
-                symbol = msg.split("(")[1].split(")")[0]
-            if "今日 " in msg:
-                try:
-                    pct_str = msg.split("今日 ")[1].split("%")[0]
-                    change_pct = float(pct_str)
-                except (ValueError, IndexError):
-                    pass
-            if "盈亏" in msg:
-                pnl_part = msg.split("盈亏 ")[1].rstrip(" 元").strip() if "盈亏 " in msg else ""
-
-            if pnl_part:
-                a["_stealth"] = _stealth_line(symbol, change_pct, f"{change_pct:+.1f}% (impact: {pnl_part})")
-            else:
-                a["_stealth"] = _stealth_line(symbol, change_pct)
-            a["_change_pct"] = change_pct
-
-    return pnl_alerts
-
-
-# ══════════════════════════════════════════
-# 5c. Status line
+# 5b. Status line
 # ══════════════════════════════════════════
 
 def print_status(checked: int, alert_count: int, next_sec: int, trading: bool):
@@ -726,13 +680,12 @@ def run():
         if e.get("type") == "holding" and e.get("cost") and e.get("shares")
     )
 
-    print("Stock Notifier started")
+    print("Stock Notifier started (delta mode)")
     print(f"  watchlist : {len(watchlist)} stocks ({sum(1 for s in watchlist if is_hk_symbol(s))} HK)")
     print(f"  holdings  : {num_holdings} with cost/shares (P&L tracking)")
-    print(f"  big_move  : +/-{settings.get('big_move_pct', 3)}%")
-    print(f"  holding   : +/-{settings.get('holding_alert_pct', DEFAULT_HOLDING_ALERT_PCT)}% (per-stock P&L)")
-    print(f"  portfolio : +/-{settings.get('portfolio_alert_pct', DEFAULT_PORTFOLIO_ALERT_PCT)}% (total P&L)")
-    print(f"  cooldown  : {settings.get('cooldown_minutes', 10)} min")
+    print(f"  trigger   : +/-{settings.get('trigger_pct', DEFAULT_TRIGGER_PCT)}% (首次触发)")
+    print(f"  delta     : +/-{settings.get('delta_pct', DEFAULT_DELTA_PCT)}% (再次触发需价格变化)")
+    print(f"  portfolio : +/-{settings.get('portfolio_delta_pct', DEFAULT_PORTFOLIO_DELTA_PCT)}% (组合变化)")
     print(f"  data file : {MARKET_DATA_PATH.name}")
     print(f"  Ctrl+C to stop\n")
 
@@ -741,8 +694,7 @@ def run():
     daily_alerts = 0
     last_alert_date = datetime.now().date()
     last_checked_count = len(watchlist)
-    engine = AlertEngine(config)
-    pnl_engine = PortfolioAlertEngine(config)
+    engine = DeltaAlertEngine(config)
     sent_open_today = False
     sent_close_today = False
     latest_quotes: dict | None = None       # last merged quotes (for close summary)
@@ -758,8 +710,8 @@ def run():
             latest_quotes = None
             latest_hkd_cny_rate = None
             last_alert_date = today
-            # Reload config at day boundary (picks up watchlist changes)
-            # Use engine.config assignment to preserve cooldown state
+            engine.reset()  # clear delta tracking for new day
+            # Reload config at day boundary
             fresh_config = read_json_safe(MONITOR_CONFIG_PATH)
             if fresh_config is not None and "settings" in fresh_config and "watchlist" in fresh_config:
                 config = fresh_config
@@ -767,7 +719,6 @@ def run():
                 settings = config.get("settings", {})
                 has_hk = any(is_hk_symbol(s) for s in watchlist)
                 engine.config = config
-                pnl_engine.config = config
 
         trading = is_any_market_open(has_hk)
         check_interval = TRADING_CHECK_SEC if trading else NON_TRADING_CHECK_SEC
@@ -786,7 +737,6 @@ def run():
                 settings = config.get("settings", {})
                 has_hk = any(is_hk_symbol(s) for s in watchlist)
                 engine.config = config
-                pnl_engine.config = config
 
             market = read_json_safe(MARKET_DATA_PATH)
             if market is not None:
@@ -799,15 +749,8 @@ def run():
                     latest_hkd_cny_rate = market.get("hkdCnyRate")
 
                 if trading and quotes:
-                    # 1) Price threshold + big-move alerts (only holdings)
-                    all_alerts = _enrich_alerts(
-                        engine.check(quotes), quotes, watchlist,
-                    )
-
-                    # 2) Portfolio / P&L alerts
                     hkd_cny_rate = market.get("hkdCnyRate")
-                    pnl_alerts = pnl_engine.check(quotes, hkd_cny_rate)
-                    all_alerts.extend(_enrich_pnl_alerts(pnl_alerts))
+                    all_alerts = engine.check(quotes, hkd_cny_rate)
 
                     if all_alerts:
                         print()
