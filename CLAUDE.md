@@ -147,6 +147,17 @@ Lightweight macOS notification daemon. Reads poller output, never fetches data d
 
 **启动**: `./start_monitor.sh` 一键启动 Poller + Notifier + Web，或单独运行 `poetry run python src/tools/stock_notifier.py`。修改代码后必须重启进程（kill old pid → restart）。
 
+#### Tiered Notification (L1-L4)
+
+分级通知，策略表驱动（`NOTIFY_POLICIES`），由 `star` + `type` + `hidden` 推导级别：
+
+| Level | 匹配规则 | trigger | delta | cooldown | 通知方式 |
+|-------|---------|---------|-------|----------|---------|
+| L1 ★ | `star=true` | 4% | 3% | 5min | 弹窗+声音 |
+| L2 | `holding & !star & !hidden` | 6% | 5% | 15min | 弹窗静默 |
+| L3 | `watching & !star & !hidden` | 仅threshold | 仅threshold | 30min | 仅web日志 |
+| L4 | `hidden` 或不在watchlist | - | - | - | 不通知 |
+
 #### Notification Design Rules
 
 - **通知 = 大事。** 弹窗意味着需要立刻关注，必须精简、低频、不打扰。
@@ -163,8 +174,13 @@ Lightweight macOS notification daemon. Reads poller output, never fetches data d
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `trigger_pct` | 5 | 首次触发阈值（日涨跌幅%） |
-| `delta_pct` | 4 | 再次触发阈值（距上次通知价格变化%） |
+| `l1_trigger_pct` | 4 | L1 首次触发阈值% |
+| `l1_delta_pct` | 3 | L1 再次触发阈值% |
+| `l1_cooldown_min` | 5 | L1 冷却时间（分钟） |
+| `l2_trigger_pct` | 6 | L2 首次触发阈值% |
+| `l2_delta_pct` | 5 | L2 再次触发阈值% |
+| `l2_cooldown_min` | 15 | L2 冷却时间（分钟） |
+| `l3_cooldown_min` | 30 | L3 冷却时间（分钟） |
 | `portfolio_delta_pct` | 2 | 组合级别 P&L 变化阈值% |
 | `poll_interval` | 30 | Poller 轮询间隔（秒） |
 
