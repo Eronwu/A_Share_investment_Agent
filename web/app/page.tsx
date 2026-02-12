@@ -264,46 +264,30 @@ function Home() {
   const hiddenList = applySortList(services.filter((s) => s.hidden), holdSort);
   const hasHold = prodStock.length > 0 || prodETF.length > 0;
 
-  // 全局统计（跨 tab）
-  const allProd = services.filter((s) => s.type === "holding" && !s.hidden);
-  const aCount = allProd.filter((s) => !isHK(s)).length;
-  const hkCount = allProd.filter((s) => isHK(s)).length;
-
   const now = ts
     ? new Date(ts).toLocaleTimeString("zh-CN", { hour12: false })
     : "--:--:--";
   const isStale = ts > 0 && Date.now() - ts > pollMs * 2;
-  const totalAmt = services.reduce((a, s) => a + s.amount, 0);
-  const avgChg =
-    services.length > 0
-      ? services.reduce((a, s) => a + s.change, 0) / services.length
-      : 0;
-  const up = services.filter((s) => s.change > 0).length;
-  const dn = services.filter((s) => s.change < 0).length;
 
   const FALLBACK_HKD_CNY = 0.92;
   const fxRate = hkdCnyRate ?? FALLBACK_HKD_CNY;
 
-  // P&L 汇总包含所有持仓（含 hidden，隐藏不等于不算钱）
-  const allHoldings = services.filter((s) => s.type === "holding");
-  const holdingsWithPnl = allHoldings.filter((s) => s.pnl !== null && s.cost && s.shares);
-  const totalPnlCNY = holdingsWithPnl.reduce((sum, s) => {
-    const raw = (s.price - s.cost!) * s.shares!;
-    return sum + (s.id.startsWith("HK") ? raw * fxRate : raw);
-  }, 0);
-  const todayPnl = holdingsWithPnl.reduce((sum, s) => {
-    const raw = s.chgAmt * s.shares!;
-    return sum + (s.id.startsWith("HK") ? raw * fxRate : raw);
-  }, 0);
-  const totalPosition = holdingsWithPnl.reduce((sum, s) => {
-    const mv = s.price * s.shares!;
-    return sum + (s.id.startsWith("HK") ? mv * fxRate : mv);
-  }, 0);
-  const totalCostBasis = holdingsWithPnl.reduce((sum, s) => {
-    const cb = s.cost! * s.shares!;
-    return sum + (s.id.startsWith("HK") ? cb * fxRate : cb);
-  }, 0);
-  const returnPct = totalCostBasis > 0 ? (totalPnlCNY / totalCostBasis) * 100 : 0;
+  // ── 当前 Tab 统计 ──
+  const tabUp = tabServices.filter((s) => s.change > 0).length;
+  const tabDn = tabServices.filter((s) => s.change < 0).length;
+  const tabAmt = tabServices.reduce((a, s) => a + s.amount, 0);
+  const tabAvgChg = tabServices.length > 0
+    ? tabServices.reduce((a, s) => a + s.change, 0) / tabServices.length : 0;
+  const tabHoldCount = tabServices.filter((s) => s.type === "holding" && !s.hidden).length;
+
+  // ── 当前 Tab P&L ──
+  const tabHoldings = tabServices.filter((s) => s.type === "holding" && s.pnl !== null && s.cost && s.shares);
+  const tabFx = activeTab === "HK" ? fxRate : 1;
+  const tabPnl = tabHoldings.reduce((sum, s) => sum + (s.price - s.cost!) * s.shares! * tabFx, 0);
+  const tabTodayPnl = tabHoldings.reduce((sum, s) => sum + s.chgAmt * s.shares! * tabFx, 0);
+  const tabPosition = tabHoldings.reduce((sum, s) => sum + s.price * s.shares! * tabFx, 0);
+  const tabCostBasis = tabHoldings.reduce((sum, s) => sum + s.cost! * s.shares! * tabFx, 0);
+  const tabReturnPct = tabCostBasis > 0 ? (tabPnl / tabCostBasis) * 100 : 0;
 
   /* ── sort header helpers (per-section) ── */
   const mkArrow = (st: SortState) => (k: SortKey) =>
@@ -469,27 +453,27 @@ function Home() {
           </span>
         </div>
 
-        {/* summary bar */}
+        {/* summary bar — current tab */}
         <div style={{ color: D.comment, marginBottom: 6 }}>
           <span style={{ color: D.fg }}>
-            Nodes: <span style={{ color: D.purple }}>{services.length}</span>
+            Nodes: <span style={{ color: D.purple }}>{tabServices.length}</span>
           </span>
           {"  "}
-          holdings:<span style={{ color: D.orange }}>{allProd.length}</span>
+          holdings:<span style={{ color: D.orange }}>{tabHoldCount}</span>
           {"  "}
-          up:<span style={{ color: D.red }}>{up}</span>
-          {" "}down:<span style={{ color: D.green }}>{dn}</span>
+          up:<span style={{ color: D.red }}>{tabUp}</span>
+          {" "}down:<span style={{ color: D.green }}>{tabDn}</span>
           {"  "}
-          throughput:<span style={{ color: D.fg }}>{fmtAmt(totalAmt)}</span>
+          throughput:<span style={{ color: D.fg }}>{fmtAmt(tabAmt)}</span>
           {"  "}
           avg_delta:
-          <span style={{ color: chgColor(avgChg) }}>
-            {avgChg >= 0 ? "+" : ""}{avgChg.toFixed(2)}%
+          <span style={{ color: chgColor(tabAvgChg) }}>
+            {tabAvgChg >= 0 ? "+" : ""}{tabAvgChg.toFixed(2)}%
           </span>
           {"  "}alerts:<span style={{ color: isStale ? D.red : D.green }}>{isStale ? "stale" : "on"}</span>
         </div>
-        {/* market turnover */}
-        {marketTurnover && (
+        {/* market turnover — A-share tab only */}
+        {activeTab === "A" && marketTurnover && (
           <div style={{ color: D.comment, marginBottom: 6 }}>
             SH:<span style={{ color: D.fg }}>{marketTurnover.shIndex.toFixed(0)}</span>
             <span style={{ color: chgColor(marketTurnover.shPct) }}>{` ${marketTurnover.shPct >= 0 ? "+" : ""}${marketTurnover.shPct.toFixed(2)}%`}</span>
@@ -505,20 +489,20 @@ function Home() {
             })`}</span>
           </div>
         )}
-        {/* portfolio summary (holdings only) */}
-        {hasHold && holdingsWithPnl.length > 0 && (
+        {/* tab portfolio summary */}
+        {tabHoldings.length > 0 && (
           <div style={{ color: D.comment, marginBottom: 6 }}>
-            position:<span style={{ color: D.fg }}>{fmtMoney(totalPosition).replace("+", "")}</span>
+            position:<span style={{ color: D.fg }}>{fmtMoney(tabPosition).replace("+", "")}</span>
             <span style={{ color: D.comment }}>¥</span>
             {"  "}
-            yield:<span style={{ color: chgColor(totalPnlCNY) }}>{fmtMoney(totalPnlCNY)}</span>
+            yield:<span style={{ color: chgColor(tabPnl) }}>{fmtMoney(tabPnl)}</span>
             <span style={{ color: D.comment }}>¥</span>
             {"  "}
-            return:<span style={{ color: chgColor(returnPct) }}>{returnPct >= 0 ? "+" : ""}{returnPct.toFixed(1)}%</span>
+            return:<span style={{ color: chgColor(tabReturnPct) }}>{tabReturnPct >= 0 ? "+" : ""}{tabReturnPct.toFixed(1)}%</span>
             {"  "}
-            today:<span style={{ color: chgColor(todayPnl) }}>{fmtMoney(todayPnl)}</span>
+            today:<span style={{ color: chgColor(tabTodayPnl) }}>{fmtMoney(tabTodayPnl)}</span>
             <span style={{ color: D.comment }}>¥</span>
-            {!hkdCnyRate && (
+            {activeTab === "HK" && !hkdCnyRate && (
               <span style={{ color: D.comment, fontSize: 11 }}> (FX≈{FALLBACK_HKD_CNY})</span>
             )}
           </div>
