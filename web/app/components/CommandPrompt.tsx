@@ -91,7 +91,7 @@ export default function CommandPrompt({ cmd }: CommandPromptProps) {
       {/* Command output logs */}
       {logs.length > 0 && (
         <div style={{ marginBottom: 4 }}>
-          {logs.map((log, i) => (
+          {[...logs].reverse().map((log, i) => (
             <div key={i} style={{ fontSize: 12, color: D.comment }}>
               <span>[{log.time}] </span>
               <span style={{ color: LOG_COLORS[log.level] }}>

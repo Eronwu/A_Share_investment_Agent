@@ -56,7 +56,7 @@ ENV/
 reference/ 
 
 # Documentation
-docs/ 
+#docs/
 structure.drawio
 
 # logs
@@ -68,8 +68,6 @@ src/data/sentiment_cache.json
 src/data/market_data.json
 src/data/alert_events.json
 
-# docs
-docs/
 
 # cache
 cache/
@@ -87,12 +85,14 @@ src/crawler/*.ts
 .poller.pid
 .notifier.pid
 .web.pid
+.l2_daemon.pid
 
 # browser state (runtime)
 browser-state*.json
 
 # macro summary (runtime)
 src/data/macro_summary.json
+src/data/l2_strategy_signals.json
 
 # playwright test results
 web/test-results/
