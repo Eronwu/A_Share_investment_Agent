@@ -156,6 +156,7 @@ export async function POST(request: Request) {
         if (data?.cost !== undefined) existing.cost = data.cost;
         if (data?.shares !== undefined) existing.shares = data.shares;
         if (data?.hidden !== undefined) existing.hidden = data.hidden;
+        if (data?.star !== undefined) existing.star = data.star;
 
         // 自动提升为 holding：仅当用户未显式设置 type 且新增了 cost/shares 时
         if (data?.type === undefined && (data?.cost != null || data?.shares != null)) {
@@ -193,6 +194,7 @@ export async function POST(request: Request) {
         if (data?.above !== undefined) changed.push(`above:${data.above}`);
         if (data?.below !== undefined) changed.push(`below:${data.below}`);
         if (data?.hidden !== undefined) changed.push(`hidden:${data.hidden}`);
+        if (data?.star !== undefined) changed.push(`star:${data.star}`);
 
         return NextResponse.json({
           success: true,
@@ -240,6 +242,13 @@ export async function POST(request: Request) {
           poll_interval: [5, 300],
           big_move_pct: [0.5, 20],
           cooldown_minutes: [1, 120],
+          l1_trigger_pct: [1, 20],
+          l1_delta_pct: [1, 20],
+          l1_cooldown_min: [0, 60],
+          l2_trigger_pct: [1, 20],
+          l2_delta_pct: [1, 20],
+          l2_cooldown_min: [1, 120],
+          l3_cooldown_min: [1, 120],
         };
 
         const rejected: string[] = [];

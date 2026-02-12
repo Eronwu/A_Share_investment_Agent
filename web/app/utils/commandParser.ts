@@ -236,6 +236,26 @@ export function parseCommand(input: string): ParsedCommand {
       return { action: "update", code, data: { hidden: false } };
     }
 
+    case "star": {
+      if (args.length === 0) {
+        return { action: "update", errors: ["Usage: svc star <code>"] };
+      }
+      const code = normalizeCode(args[0]);
+      const codeErr = validateCode(code);
+      if (codeErr) return { action: "update", errors: [codeErr] };
+      return { action: "update", code, data: { star: true } };
+    }
+
+    case "unstar": {
+      if (args.length === 0) {
+        return { action: "update", errors: ["Usage: svc unstar <code>"] };
+      }
+      const code = normalizeCode(args[0]);
+      const codeErr = validateCode(code);
+      if (codeErr) return { action: "update", errors: [codeErr] };
+      return { action: "update", code, data: { star: false } };
+    }
+
     case "help":
     case "h":
     case "?": {
@@ -247,7 +267,7 @@ export function parseCommand(input: string): ParsedCommand {
   }
 }
 
-export const SUBCOMMANDS = ["add", "update", "rm", "ls", "config", "hide", "unhide", "help"];
+export const SUBCOMMANDS = ["add", "update", "rm", "ls", "config", "hide", "unhide", "star", "unstar", "help"];
 
 export function getCompletions(partial: string): string[] {
   const trimmed = partial.trim();

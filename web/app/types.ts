@@ -6,6 +6,7 @@ export interface WatchEntry {
   cost?: number | null;
   shares?: number | null;
   hidden?: boolean;
+  star?: boolean;
 }
 
 export interface MonitorConfig {
@@ -35,6 +36,7 @@ export interface Service {
   above: number | null;
   below: number | null;
   hidden?: boolean;
+  star?: boolean;
   /* Futu L2 enrichment (optional — absent when OpenD offline or A-share no permission) */
   mainNetInflow?: number;
   mainNetInflowPct?: number;

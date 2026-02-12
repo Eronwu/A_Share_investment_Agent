@@ -230,6 +230,31 @@ describe("parseCommand", () => {
     });
   });
 
+  // ── star / unstar ──
+  describe("star / unstar", () => {
+    it("star maps to update with star:true", () => {
+      const r = parseCommand("svc star HK00700");
+      expect(r.action).toBe("update");
+      expect(r.code).toBe("HK00700");
+      expect(r.data).toEqual({ star: true });
+    });
+
+    it("unstar maps to update with star:false", () => {
+      const r = parseCommand("svc unstar 600089");
+      expect(r.action).toBe("update");
+      expect(r.data).toEqual({ star: false });
+    });
+
+    it("requires code", () => {
+      expect(parseCommand("svc star").errors).toBeDefined();
+      expect(parseCommand("svc unstar").errors).toBeDefined();
+    });
+
+    it("rejects invalid code", () => {
+      expect(parseCommand("svc star INVALID").errors?.[0]).toContain("Invalid stock code");
+    });
+  });
+
   // ── code validation edge cases ──
   describe("code validation", () => {
     it("accepts 6-digit A-share codes", () => {

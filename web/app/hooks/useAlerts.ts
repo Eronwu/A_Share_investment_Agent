@@ -13,6 +13,7 @@ interface AlertEvent {
   time: string;
   symbol: string;
   kind: string;
+  level?: number;
   message: string;   // stealth 格式（与 terminal 通知一致）
   display: string;   // 中文可读格式（web 日志展示用）
   change_pct: number;
@@ -45,7 +46,7 @@ export function useAlerts(
       time: e.time,
       level: "warn" as const,
       source: "alert",
-      message: e.display || e.message,
+      message: `[L${e.level ?? 2}] ${e.display || e.message}`,
     }));
 
     // 如果有更多被截断的，加一条提示

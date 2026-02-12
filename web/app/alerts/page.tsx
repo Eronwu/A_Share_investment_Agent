@@ -9,10 +9,17 @@ interface AlertEvent {
   time: string;
   symbol: string;
   kind: string;
+  level?: number;
   message: string;
   display: string;
   change_pct: number;
 }
+
+const LEVEL_COLORS: Record<number, string> = {
+  1: D.yellow,
+  2: D.orange,
+  3: D.comment,
+};
 
 const KIND_LABELS: Record<string, { label: string; color: string }> = {
   big_move: { label: "BIG_MOVE", color: D.orange },
@@ -157,6 +164,9 @@ export default function AlertsPage() {
               }}
             >
               <span style={{ color: D.comment, width: "10ch" }}>[{e.time}]</span>
+              <span style={{ color: LEVEL_COLORS[e.level ?? 2] || D.comment, width: "5ch", fontWeight: 500 }}>
+                {`[L${e.level ?? 2}]`}
+              </span>
               <span style={{ color: kinfo.color, width: "12ch", fontWeight: 500 }}>
                 {kinfo.label.padEnd(11)}
               </span>

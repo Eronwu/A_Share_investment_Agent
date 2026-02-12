@@ -240,8 +240,12 @@ function Home() {
   }
 
   function applySortList(list: Service[], st: SortState): Service[] {
-    if (!st.key) return list.slice().sort((a, b) => b.change - a.change);
+    // star 置顶，然后按排序键
+    const starFirst = (a: Service, b: Service) => (b.star ? 1 : 0) - (a.star ? 1 : 0);
+    if (!st.key) return list.slice().sort((a, b) => starFirst(a, b) || b.change - a.change);
     return list.slice().sort((a, b) => {
+      const sf = starFirst(a, b);
+      if (sf !== 0) return sf;
       const av = derivedVal(a, st.key!);
       const bv = derivedVal(b, st.key!);
       const cmp = av < bv ? -1 : av > bv ? 1 : 0;
@@ -338,7 +342,7 @@ function Home() {
           background: nearAlert ? "#44475a33" : "transparent",
         }}
       >
-        <span style={{ color: D.orange, width: "6ch" }}> PROD</span>
+        <span style={{ color: D.orange, width: "6ch" }}>{s.star ? "★" : " "}PROD</span>
         <span style={{ color: D.cyan, width: "10ch" }}>{pad(s.id, 9)}</span>
         <span style={{ color: D.fg, width: "10ch" }}>{pad(s.name.slice(0, 6), 8)}</span>
         <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
@@ -395,7 +399,7 @@ function Home() {
           borderBottom: `1px solid #191a21`,
         }}
       >
-        <span style={{ color: D.comment, width: "6ch" }}>  DEV</span>
+        <span style={{ color: s.star ? D.yellow : D.comment, width: "6ch" }}>{s.star ? "★" : " "} DEV</span>
         <span style={{ color: D.cyan, width: "10ch" }}>{pad(s.id, 9)}</span>
         <span style={{ color: D.fg, width: "10ch" }}>{pad(s.name.slice(0, 6), 8)}</span>
         <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>

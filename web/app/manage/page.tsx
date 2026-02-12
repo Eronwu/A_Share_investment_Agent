@@ -204,6 +204,7 @@ function StockRow({
   onPromote,
   onRemove,
   onToggleHidden,
+  onToggleStar,
 }: {
   code: string;
   entry: WatchEntry;
@@ -219,6 +220,7 @@ function StockRow({
   onPromote: (code: string) => void;
   onRemove: (code: string, name: string) => void;
   onToggleHidden: (code: string, hidden: boolean) => void;
+  onToggleStar: (code: string, star: boolean) => void;
 }) {
   const isPromoting = promoting === code;
 
@@ -345,6 +347,20 @@ function StockRow({
             ↑ PROD
           </button>
         )}
+        {/* star toggle — available for all stocks */}
+        <span
+          onClick={() => onToggleStar(code, !entry.star)}
+          title={entry.star ? "Remove L1 priority" : "Mark as L1 priority"}
+          style={{
+            cursor: "pointer",
+            fontSize: 14,
+            padding: "0 4px",
+            color: entry.star ? D.yellow : D.comment,
+            userSelect: "none",
+          }}
+        >
+          {entry.star ? "★" : "☆"}
+        </span>
         {isHolding && (
           <span
             onClick={() => onToggleHidden(code, !entry.hidden)}
@@ -544,6 +560,10 @@ export default function ManagePage() {
     }
   }
 
+  async function handleToggleStar(code: string, star: boolean) {
+    await apiPost({ action: "update", code, data: { star } });
+  }
+
   async function handleToggleHidden(code: string, hidden: boolean) {
     await apiPost({ action: "update", code, data: { hidden } });
   }
@@ -708,7 +728,7 @@ export default function ManagePage() {
             promoting={promoting} promoCost={promoCost} promoShares={promoShares}
             setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
             onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
-            onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden}
+            onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar}
           />
         ))}
         {holdings.length === 0 && (
@@ -731,7 +751,7 @@ export default function ManagePage() {
             promoting={promoting} promoCost={promoCost} promoShares={promoShares}
             setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
             onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
-            onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden}
+            onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar}
           />
         ))}
         {watching.length === 0 && (

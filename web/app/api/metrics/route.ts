@@ -68,6 +68,7 @@ export async function GET() {
           above: alert?.above ?? null,
           below: alert?.below ?? null,
           hidden: Boolean(entry.hidden),
+          star: Boolean(entry.star),
         };
       });
     }

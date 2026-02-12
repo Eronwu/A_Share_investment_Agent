@@ -159,9 +159,42 @@ def merge_data(market: dict, config: dict) -> dict:
 #   delta_pct    : 再次触发阈值，距上次通知价变化超过此值才通知 (default 4%)
 #   portfolio_delta_pct : 组合 P&L 变化阈值 (default 2%)
 
-DEFAULT_TRIGGER_PCT = 5.0         # 首次触发: |日涨跌幅| >= 5%
-DEFAULT_DELTA_PCT = 4.0           # 再次触发: 距上次通知价变化 >= 4%
 DEFAULT_PORTFOLIO_DELTA_PCT = 2.0  # 组合: P&L 变化 >= 2%
+
+# ── 分级通知策略表（配置驱动，可扩展） ──
+NOTIFY_POLICIES = {
+    1: {"trigger_pct": 4, "delta_pct": 3, "cooldown_min": 5,
+        "big_move": True, "threshold": True, "dispatch": "sound"},
+    2: {"trigger_pct": 6, "delta_pct": 5, "cooldown_min": 15,
+        "big_move": True, "threshold": True, "dispatch": "silent"},
+    3: {"trigger_pct": None, "delta_pct": None, "cooldown_min": 30,
+        "big_move": False, "threshold": True, "dispatch": "web_only"},
+    4: {"trigger_pct": None, "delta_pct": None, "cooldown_min": None,
+        "big_move": False, "threshold": False, "dispatch": "none"},
+}
+
+
+def resolve_level(entry: dict) -> int:
+    """从 watchlist entry 推导通知级别"""
+    if entry.get("hidden"):
+        return 4
+    if entry.get("star"):
+        return 1
+    if entry.get("type") == "holding":
+        return 2
+    return 3
+
+
+def get_policy(level: int, settings: dict) -> dict:
+    """获取级别策略，合并用户覆盖"""
+    base = dict(NOTIFY_POLICIES.get(level, NOTIFY_POLICIES[4]))
+    # 用户可通过 settings 覆盖: l1_trigger_pct, l2_delta_pct, etc.
+    prefix = f"l{level}_"
+    for key in ("trigger_pct", "delta_pct", "cooldown_min"):
+        override = settings.get(f"{prefix}{key}")
+        if override is not None:
+            base[key] = override
+    return base
 
 
 class DeltaAlertEngine:
@@ -202,14 +235,14 @@ class DeltaAlertEngine:
         quotes: dict,
         hkd_cny_rate: float | None,
     ) -> list[dict]:
-        """Run all alert checks. Returns list of {title, message, symbol, _kind, _stealth, _change_pct}."""
+        """Run all alert checks with tiered notification policies.
+
+        Returns list of alert dicts, each with _level for dispatch routing.
+        """
         self._reload_alerts()
         config = self.config
         watchlist = config.get("watchlist", {})
         settings = config.get("settings", {})
-
-        trigger_pct = settings.get("trigger_pct", DEFAULT_TRIGGER_PCT)
-        delta_pct = settings.get("delta_pct", DEFAULT_DELTA_PCT)
         portfolio_delta_pct = settings.get("portfolio_delta_pct", DEFAULT_PORTFOLIO_DELTA_PCT)
 
         alerts: list[dict] = []
@@ -227,6 +260,14 @@ class DeltaAlertEngine:
             if price <= 0:
                 continue
 
+            # ── Resolve level and policy ──
+            level = resolve_level(entry)
+            policy = get_policy(level, settings)
+
+            if policy["dispatch"] == "none":
+                # L4: still accumulate P&L but skip notification
+                pass
+
             is_holding = entry.get("type") == "holding"
             cost = entry.get("cost")
             shares = entry.get("shares")
@@ -241,37 +282,44 @@ class DeltaAlertEngine:
                     total_market_value += price * shares * fx
                     holdings_counted += 1
 
-            # ── Should we notify for this stock? ──
+            if policy["dispatch"] == "none":
+                continue
+
+            # ── Should we notify? ──
             reasons: list[str] = []
             prev = self._notified.get(symbol)
 
-            # Check threshold breach (above/below) — from alert_config.json
-            alert_entry = self._alerts.get(symbol, {})
-            above = alert_entry.get("above")
-            below = alert_entry.get("below")
+            # Threshold check (above/below)
             threshold_hit = False
-            if above is not None and price >= above:
-                threshold_hit = True
-            if below is not None and price <= below:
-                threshold_hit = True
+            if policy["threshold"]:
+                alert_entry = self._alerts.get(symbol, {})
+                above = alert_entry.get("above")
+                below = alert_entry.get("below")
+                if above is not None and price >= above:
+                    threshold_hit = True
+                if below is not None and price <= below:
+                    threshold_hit = True
+
+            trigger_pct = policy["trigger_pct"]
+            delta_pct = policy["delta_pct"]
 
             if prev is None:
                 # ── First notification ──
                 if threshold_hit:
                     reasons.append("threshold")
-                elif is_holding and abs(change_pct) >= trigger_pct:
+                elif policy["big_move"] and trigger_pct and abs(change_pct) >= trigger_pct:
                     reasons.append("big_move")
                 if not reasons:
                     continue
             else:
-                # ── Re-trigger: need price delta >= delta_pct from last notified ──
+                # ── Re-trigger: price delta >= delta_pct ──
                 prev_price = prev["price"]
-                if prev_price > 0:
+                if prev_price > 0 and delta_pct:
                     delta = abs(price - prev_price) / prev_price * 100
                     if delta >= delta_pct:
                         if threshold_hit:
                             reasons.append("threshold")
-                        elif is_holding:
+                        elif policy["big_move"]:
                             reasons.append("big_move")
                 if not reasons:
                     continue
@@ -280,14 +328,12 @@ class DeltaAlertEngine:
             self._notified[symbol] = {"price": price, "change_pct": change_pct}
             kind = "threshold" if "threshold" in reasons else "big_move"
 
-            # Ultra-concise: name change% price
             sign = "+" if change_pct >= 0 else ""
             title = f"{name} {sign}{change_pct:.1f}%"
             message = f"{price:.2f}"
             if "threshold" in reasons:
                 message += " !"
 
-            # Stealth line (no monetary values either)
             stealth_extra = f"{change_pct:+.1f}%"
             if "threshold" in reasons:
                 stealth_extra += " threshold"
@@ -297,6 +343,7 @@ class DeltaAlertEngine:
                 "title": title,
                 "message": message,
                 "_kind": kind,
+                "_level": level,
                 "_change_pct": change_pct,
                 "_stealth": _stealth_line(name, change_pct, stealth_extra),
             })
@@ -307,11 +354,9 @@ class DeltaAlertEngine:
 
             should_notify = False
             if self._last_portfolio_pnl is None:
-                # First time: only if significant
-                if abs(portfolio_pct) >= DEFAULT_TRIGGER_PCT:
+                if abs(portfolio_pct) >= get_policy(2, settings)["trigger_pct"]:
                     should_notify = True
             else:
-                # Delta from last notification
                 pnl_delta = abs(total_daily_pnl - self._last_portfolio_pnl)
                 pnl_delta_pct = (pnl_delta / total_market_value) * 100 if total_market_value > 0 else 0
                 if pnl_delta_pct >= portfolio_delta_pct:
@@ -325,6 +370,7 @@ class DeltaAlertEngine:
                     "title": f"组合 {pct_sign}{portfolio_pct:.1f}%",
                     "message": f"{holdings_counted} stocks",
                     "_kind": "portfolio",
+                    "_level": 2,
                     "_change_pct": portfolio_pct,
                     "_stealth": f"portfolio {pct_sign}{portfolio_pct:.1f}%",
                 })
@@ -434,6 +480,7 @@ def write_alert_events(alerts: list[dict]):
             "time": t,
             "symbol": symbol,
             "kind": kind,
+            "level": a.get("_level", 2),
             "message": a.get("_stealth", a.get("message", "")),
             "display": display,
             "change_pct": change_pct,
@@ -882,9 +929,17 @@ def run():
 
                     if all_alerts:
                         print()
+                        # 所有告警写入 web 日志
                         write_alert_events(all_alerts)
-                        sent = stealth_dispatch(all_alerts)
-                        daily_alerts += sent
+                        # 按级别分流 macOS 通知
+                        l1_alerts = [a for a in all_alerts if a.get("_level") == 1]
+                        l2_alerts_dispatch = [a for a in all_alerts if a.get("_level") == 2 or a.get("_kind") == "portfolio"]
+                        # L3 = web_only, 已写入 alert_events，不弹窗
+                        if l1_alerts:
+                            stealth_dispatch(l1_alerts, sound="default")
+                        if l2_alerts_dispatch:
+                            stealth_dispatch(l2_alerts_dispatch, sound="")
+                        daily_alerts += len(l1_alerts) + len(l2_alerts_dispatch)
                         for a in all_alerts:
                             logger.info(f"Alert: {a['title']} - {a['message']}")
 
