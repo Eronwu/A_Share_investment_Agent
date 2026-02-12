@@ -24,7 +24,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 EM_UT = "fa5fd1943c7b386f172d6893dbfba10b"
 
 from src.tools.futu_enricher import FutuL2Enricher
-from src.tools.stock_monitor import fetch_realtime_eastmoney, load_config
+from src.tools.stock_monitor import fetch_realtime_eastmoney, fetch_realtime_sina, load_config
 from src.utils.logging_config import setup_logger
 
 logger = setup_logger("market_data_poller")
@@ -34,6 +34,46 @@ _futu_enricher = FutuL2Enricher()
 
 CONFIG_PATH = PROJECT_ROOT / "src" / "data" / "monitor_config.json"
 OUTPUT_PATH = PROJECT_ROOT / "src" / "data" / "market_data.json"
+
+
+def fetch_realtime_with_fallback(symbols: list[str]) -> list[dict]:
+    """优先东方财富，失败回退新浪（价格能刷新，但无量比/换手率）"""
+    stocks = fetch_realtime_eastmoney(symbols)
+    if stocks:
+        return stocks
+
+    logger.warning("东方财富不可达，回退新浪行情")
+    sina_quotes = fetch_realtime_sina(symbols)
+    if not sina_quotes:
+        return []
+
+    # 转换新浪格式 → 东方财富格式
+    results = []
+    for sym in symbols:
+        q = sina_quotes.get(sym)
+        if not q:
+            continue
+        prev = q.get("prev_close", 0)
+        price = q.get("price", 0)
+        pct = q.get("change_pct", 0)
+        chg = price - prev if prev > 0 and price > 0 else 0
+        results.append({
+            "code": sym,
+            "name": q.get("name", ""),
+            "price": price,
+            "pct": pct,
+            "change": round(chg, 3),
+            "volume": q.get("volume", 0),
+            "amount": q.get("amount", 0),
+            "amplitude": round((q.get("high", 0) - q.get("low", 0)) / prev * 100, 2) if prev > 0 else 0,
+            "turnover": 0,     # 新浪无换手率
+            "vol_ratio": 0,    # 新浪无量比
+            "high": q.get("high", 0),
+            "low": q.get("low", 0),
+            "open": q.get("open", 0),
+            "prev_close": prev,
+        })
+    return results
 
 
 def build_services(stocks: list[dict], watchlist: dict) -> list[dict]:
@@ -179,7 +219,7 @@ def poll_once() -> bool:
         logger.warning("watchlist 为空，跳过本轮")
         return False
 
-    stocks = fetch_realtime_eastmoney(symbols)
+    stocks = fetch_realtime_with_fallback(symbols)
 
     # 两市成交额（新浪源，独立于东方财富，不受其故障影响）
     turnover = fetch_market_turnover()

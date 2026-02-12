@@ -26,7 +26,11 @@ export function useAlerts(
   const lastSeenTs = useRef<number>(0);
 
   useEffect(() => {
-    if (!alertEvents || alertEvents.length === 0) return;
+    if (!alertEvents || alertEvents.length === 0) {
+      // 事件被清空（每日重置），重置水位线
+      lastSeenTs.current = 0;
+      return;
+    }
 
     // 只展示比上次更新的事件
     const newEvents = alertEvents.filter((e) => e.ts > lastSeenTs.current);
