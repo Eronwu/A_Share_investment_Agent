@@ -36,14 +36,18 @@ L2 Strategy Engine 基于 Futu OpenD 实时 L2 数据，对 HK 持仓股票进�
 │  └──────────────┬────────────────────────────────────┘  │
 │                 │ raw_signals                            │
 │  ┌──────────────▼────────────────────────────────────┐  │
-│  │ CooldownManager → 去重                            │  │
-│  │ SignalScorer    → 加权复合研判                     │  │
+│  │ VolumeAccelTracker  ← TickImbalanceTracker stats   │  │
+│  │ SessionAccumulator → session snapshot              │  │
+│  │ _evaluate_momentum → momentum_alert (notify=true)  │  │
+│  │ _evaluate_volume_accel → vol_accel (notify=true)   │  │
+│  │ CooldownManager    → 去重                          │  │
+│  │ SignalScorer       → 加权复合研判                   │  │
 │  └──────────────┬────────────────────────────────────┘  │
 │                 │ formatted signals                      │
 │  ┌──────────────▼────────────────────────────────────┐  │
 │  │ format_signal() → dual-format events               │  │
 │  │   notify=false → web 日志                          │  │
-│  │   notify=true  → 弹通知 (composite only)           │  │
+│  │   notify=true  → 弹通知 (composite + momentum)     │  │
 │  └───────────────────────────────────────────────────┘  │
 └──────────────────────┬──────────────────────────────────┘
                        │ write to
@@ -332,6 +336,246 @@ Tick Imbalance 在学术研究中报告 62-68% 的短线预测胜率（来源: E
 
 ---
 
+### 2.6 Session Direction (`SessionAccumulator`)
+
+**中文名**: 开盘至今多空研判
+
+#### Overview
+
+与 5 个 Tracker 的短窗口事件检测不同，`SessionAccumulator` 维护全天累积统计，持续更新直到收盘。它**不触发信号**，只输出当前多空方向判断到 `session` 字段。
+
+#### Accumulation Dimensions
+
+| 维度 | 数据源 | 累积方式 | 方向判断 |
+|------|--------|----------|----------|
+| **Tick 方向** | `_fetch_rt_tickers()` direction | 全天 buy_vol / sell_vol | imbalance = (buy-sell)/(buy+sell), threshold ±0.1 |
+| **大单方向** | `LargeOrderTracker` 识别的大单 | 全天 buy/sell count + amount | \|net_amount\| > 1000万 → 给方向分 |
+| **资金流向** | `_fetch_capital_flow()` INTRADAY | Futu 已是当日累积，直接读 latest | \|mainNetInflowPct\| > 1% → 给方向分 |
+
+#### Minimum-Data Guards
+
+各维度在数据不足时强制 `direction_score = 0`，避免开盘初期低基数噪音：
+
+| 维度 | Guard | Default | Rationale |
+|------|-------|---------|-----------|
+| Tick | `total_vol < MIN_TICK_VOL` | 50,000 股 | 几笔 tick 无统计意义 |
+| 大单 | `count < MIN_LARGE_ORDER_COUNT` | 3 笔 | 1-2 笔大单随机性太大 |
+| 大单 | `abs(net_amount) < MIN_LARGE_ORDER_NET` | 1000万 | 净额不显著 = 方向不明确 |
+| 资金流 | `abs(mainNetInflowPct) < MIN_CAPITAL_FLOW_PCT` | 1.0% | 占比微小 = 无方向意义 |
+
+#### Scoring
+
+三个维度各出一个方向分（+1 bullish / -1 bearish / 0 neutral），加权求和。
+**数据不足时该维度 score = 0，不参与评分。**
+
+```
+tick_direction_score   = 0 if total_vol < 50000
+                         +1 if imbalance > 0.1, -1 if < -0.1, else 0   (weight=2)
+
+large_order_score      = 0 if count < 3 or |net_amount| < 10M
+                         +1 if net_amount > 0, -1 if < 0               (weight=2)
+
+capital_flow_score     = 0 if |mainNetInflowPct| < 1%
+                         +1 if pct > 0, -1 if < 0                      (weight=1)
+
+total = tick * 2 + large_order * 2 + capital * 1
+direction = "bullish" if total > 0, "bearish" if total < 0, "neutral"
+```
+
+Score 范围: -5 到 +5。
+
+#### Output Format
+
+```json
+{
+  "session": {
+    "HK09988": {
+      "direction": "bearish",
+      "score": -3,
+      "tick": {
+        "buy_vol": 1200000,
+        "sell_vol": 1800000,
+        "imbalance": -0.2,
+        "direction_score": -1
+      },
+      "large_order": {
+        "buy_count": 3,
+        "sell_count": 7,
+        "buy_amount": 25000000,
+        "sell_amount": 52000000,
+        "net_amount": -27000000,
+        "direction_score": -1
+      },
+      "capital_flow": {
+        "main_net_inflow": -85000000,
+        "main_net_inflow_pct": -3.2,
+        "direction_score": -1
+      }
+    }
+  }
+}
+```
+
+#### Warmup & Dedup
+
+- Tick 方向累积复用 sequence 水位去重逻辑（首次调用 warmup，跳过存量 tick）
+- 大单累积来自 `LargeOrderTracker` 已识别的信号（cooldown 之前），不重复检测
+- 资金流为 Futu INTRADAY 当日快照，每次覆盖更新
+
+#### Key Differences from Trackers
+
+| | 5 Trackers | SessionAccumulator |
+|---|---|---|
+| 窗口 | 5-30 分钟滑动窗口 | 全天累积（开盘到当前） |
+| 输出 | 触发信号 + 冷却 | 持续更新，无信号触发 |
+| 通知 | 可触发 macOS 通知 | 不触发通知 |
+| 重置 | daily reset | daily reset |
+
+---
+
+### 2.7 Strategy 6: Momentum Alert (`momentum_alert`)
+
+**中文名**: 动量确认
+
+#### Overview
+
+与短窗口事件检测的 5 个 Tracker 不同，`momentum_alert` 是 **session 级别的高置信度信号**。它利用 `SessionAccumulator` 的全天累积数据 + 快照的日涨幅 + 资金流数据，在 5 个条件全部满足时触发 macOS 通知。
+
+仅对 HK 持仓生效。
+
+#### Trigger Conditions (全部满足)
+
+| # | 条件 | 阈值 | 数据源 |
+|---|------|------|--------|
+| 1 | 大单净买笔数 | >= 3 笔 | `SessionAccumulator.large_order.buy_count` |
+| 2 | 大单净买金额 | > 3000万 | `SessionAccumulator.large_order.net_amount` |
+| 3 | 日涨幅 | > 3% | `snapshot.price` vs `snapshot.prevClose` |
+| 4 | Session 方向 | = bullish | `SessionAccumulator.direction` |
+| 5 | 无背离 | 资金净流入 > 0 | `capital_data.mainNetInflow` |
+
+#### Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `large_order_buy_count_min` | 3 | 大单净买最低笔数 |
+| `large_order_net_amount_min` | 30,000,000 | 大单净买最低金额（元） |
+| `daily_change_pct_min` | 3.0 | 日涨幅最低阈值（%） |
+| `cooldown_minutes` | 120 | 同一股票冷却时间（2小时） |
+
+#### Signal Detail
+
+```json
+{
+  "strategy": "momentum_alert",
+  "code": "HK09988",
+  "detail": {
+    "daily_change_pct": 3.5,
+    "large_order_buy_count": 5,
+    "large_order_net_amount": 45000000,
+    "main_net_inflow": 80000000,
+    "session_direction": "bullish",
+    "session_score": 4
+  }
+}
+```
+
+#### Display Format
+
+```
+stealth: "阿里巴巴: momentum confirmed"
+display: "HK09988 阿里巴巴 动量确认: 日涨3.5% | 大单净买入4500万(5笔) | 资金流入 | 无背离"
+```
+
+#### Key Differences
+
+| | 5 Trackers | momentum_alert |
+|---|---|---|
+| 数据窗口 | 5-30 分钟滑动窗口 | Session 全天累积 |
+| 信号频率 | 事件驱动，可频繁触发 | 高置信度，冷却 2 小时 |
+| 通知 | 原始信号不弹通知 | 直接 `notify=true` |
+| 评分参与 | 参与 SignalScorer 复合评分 | 不参与复合评分（独立信号） |
+| 方向 | 各策略独立推断 | 固定 bullish（5 条件全满足） |
+
+---
+
+### 2.8 Strategy 7: Volume Acceleration Alert (`volume_accel_alert`)
+
+**中文名**: 放量加速
+
+#### Overview
+
+与 `momentum_alert` 依赖大单笔数/金额不同，`volume_accel_alert` **不依赖大单**检测，专门捕捉算法拆单型机构拉升。当机构用算法将大额订单拆成大量小单时，大单检测失效，但成交额的阶梯式放量和 tick 方向的持续偏买仍可被捕捉。
+
+仅对 HK 持仓生效。
+
+#### Data Source
+
+复用 `TickImbalanceTracker` 已维护的 5 分钟滑动窗口，通过 `get_current_stats(code)` 方法获取当前窗口的 `(turnover, imbalance)`，零额外 API 开销。
+
+`VolumeAccelTracker` 每 5 分钟采样一次窗口状态（采样间隔 = 窗口长度，消除重叠），记录到 per-stock deque（maxlen=10），检测成交额加速趋势和 tick 方向持续性。仅在连续交易时段采样，午间休市不采样（避免 stale data 导致虚假加速）。
+
+#### Trigger Conditions (全部满足)
+
+| # | 条件 | 默认阈值 | 数据源 |
+|---|------|----------|--------|
+| 1 | 成交额加速 | 当前窗口 >= 前 N 窗口均值 × 1.8 | VolumeAccelTracker |
+| 2 | tick 持续偏买 | 最近 3 个采样 imbalance 全 > 0.35 | VolumeAccelTracker |
+| 3 | 当前窗口成交额 | >= 1000 万 | VolumeAccelTracker |
+| 4 | 日涨幅 | > 3% | snapshot prevClose |
+| 5 | Session 方向 | score > 0 | SessionAccumulator |
+| 6 | 资金净流入 | > 0 | capital_data |
+
+#### Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `accel_ratio` | 1.8 | 成交额加速倍数（当前/前 N 窗口均值） |
+| `imbalance_min` | 0.35 | tick imbalance 最低阈值 |
+| `consecutive_min` | 3 | 连续偏买窗口数 |
+| `min_turnover` | 10,000,000 | 当前窗口最低成交额（过滤低量噪音） |
+| `daily_change_pct_min` | 3.0 | 日涨幅最低阈值（%） |
+| `cooldown_minutes` | 120 | 同一股票冷却时间（2 小时） |
+
+#### Signal Detail
+
+```json
+{
+  "strategy": "volume_accel_alert",
+  "code": "HK03986",
+  "detail": {
+    "daily_change_pct": 20.95,
+    "accel_ratio": 2.1,
+    "curr_turnover": 41270000,
+    "avg_prior_turnover": 19650000,
+    "curr_imbalance": 0.55,
+    "consecutive_above": 3,
+    "main_net_inflow": 179000000,
+    "capital_inflow": true,
+    "session_direction": "bullish",
+    "session_score": 4
+  }
+}
+```
+
+#### Display Format
+
+```
+stealth: "兆易创新: volume acceleration"
+display: "HK03986 兆易创新 放量加速: 日涨20.9% | 成交额加速2.1x(4127万) | tick偏买(imb=+0.55, 连续3窗口) | 资金流入"
+```
+
+#### Key Differences from momentum_alert
+
+| | momentum_alert | volume_accel_alert |
+|---|---|---|
+| 核心依赖 | 大单笔数 + 金额 | 成交额加速 + tick 偏买 |
+| 适用场景 | 传统大单拉升 | 算法拆单型机构拉升 |
+| 采样间隔 | 每次 poll (~3s) | 5 分钟（无重叠） |
+| 数据窗口 | Session 全天累积 | 滑动 10 个采样窗口（50 分钟） |
+| 共同条件 | 日涨幅 + session bullish + 资金流入 | 同左 |
+
+---
+
 ## 3. Composite Scoring (SignalScorer)
 
 ### 3.1 Overview
@@ -402,6 +646,8 @@ Tick Imbalance 在学术研究中报告 62-68% 的短线预测胜率（来源: E
 | `order_book_imbalance` | 20 min |
 | `volume_price_divergence` | 30 min |
 | `tick_imbalance` | 10 min |
+| `momentum_alert` | 120 min |
+| `volume_accel_alert` | 120 min |
 
 ### 4.2 Signal Format
 
@@ -425,7 +671,7 @@ Tick Imbalance 在学术研究中报告 62-68% 的短线预测胜率（来源: E
 |-------|-------|
 | `message` | Stealth 格式，macOS 通知标题（不含敏感信息） |
 | `display` | 中文详细格式，Web Dashboard 日志展示 |
-| `notify` | `true` = 弹通知（仅 composite）, `false` = 仅写 web 日志 |
+| `notify` | `true` = 弹通知（composite + momentum_alert）, `false` = 仅写 web 日志 |
 
 ### 4.3 Display Examples
 
@@ -436,6 +682,8 @@ Tick Imbalance 在学术研究中报告 62-68% 的短线预测胜率（来源: E
 | `order_book_imbalance` | `HK09988 阿里巴巴 盘口异动: 委比 20 → 65 (变化 +45)` |
 | `volume_price_divergence` | `HK09988 阿里巴巴 量价背离: 价格 89.50 (窗口最高) 主力净流入 -250万` |
 | `tick_imbalance` | `HK09988 阿里巴巴 主买主卖失衡: 主买占优 imbalance=+0.523 窗口成交额4500万` |
+| `momentum_alert` | `HK09988 阿里巴巴 动量确认: 日涨3.5% \| 大单净买入4500万(5笔) \| 资金流入 \| 无背离` |
+| `volume_accel_alert` | `HK03986 兆易创新 放量加速: 日涨20.9% \| 成交额加速2.1x(4127万) \| tick偏买(imb=+0.55, 连续3窗口) \| 资金流入` |
 | `composite_bearish` | `HK09988 阿里巴巴 空头信号(分=5): 大单成交 + 主买主卖失衡` |
 
 ### 4.4 File Layout
@@ -491,6 +739,22 @@ src/
       "imbalance_threshold": 0.4,
       "min_turnover": 10000000,
       "cooldown_minutes": 10
+    },
+    "momentum_alert": {
+      "enabled": true,
+      "large_order_buy_count_min": 3,
+      "large_order_net_amount_min": 30000000,
+      "daily_change_pct_min": 3.0,
+      "cooldown_minutes": 120
+    },
+    "volume_accel_alert": {
+      "enabled": true,
+      "accel_ratio": 1.8,
+      "imbalance_min": 0.35,
+      "consecutive_min": 3,
+      "min_turnover": 10000000,
+      "daily_change_pct_min": 3.0,
+      "cooldown_minutes": 120
     }
   },
   "scoring": {

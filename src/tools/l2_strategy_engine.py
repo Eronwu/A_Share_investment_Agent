@@ -1,17 +1,22 @@
 """
 L2 Strategy Engine — 基于 Futu OpenD 实时数据的策略信号检测
 
-5 个检测策略:
+5 个短窗口检测策略:
   1. capital_flow_spike      — 主力资金异动（5分钟窗口，净流入占比跳升）
   2. large_order             — 逐笔大单（单笔成交 >500万，含买卖方向）
   3. order_book_imbalance    — 盘口异动（委比短时剧烈变化）
   4. volume_price_divergence — 量价背离（价格新高 + 主力资金净流出）
   5. tick_imbalance          — 主买主卖失衡（5分钟窗口逐笔方向累积）
 
+2 个 session 级别信号:
+  6. momentum_alert          — 动量确认（持续大单买入 + 价格上涨 + 资金流入 + 无背离）
+  7. volume_accel_alert      — 放量加速（成交额阶梯翻倍 + tick持续偏买，捕捉算法拆单拉升）
+
 复合评分（加权）:
   tick_imbalance=3, large_order=2, volume_price_divergence=2,
   capital_flow_spike=1, order_book_imbalance=1
   加权分 ≥5 且 ≥2 种策略同向 → 复合信号（弹通知）
+  momentum_alert 独立评估，不参与复合评分
 
 设计原则:
   - 复用 futu_enricher.py 的懒连接/降级模式
@@ -377,8 +382,336 @@ class TickImbalanceTracker:
             }
         return None
 
+    def get_current_stats(self, code: str) -> Optional[dict]:
+        """Return current window turnover and imbalance without threshold check.
+
+        Used by VolumeAccelTracker to sample tick stats at ~2min intervals.
+        Reuses the same _history data maintained by update().
+        """
+        now = time.time()
+        q = self._history.get(code)
+        if not q:
+            return None
+
+        # Trim window (same as update)
+        cutoff = now - self.window_sec
+        while q and q[0][0] < cutoff:
+            q.popleft()
+
+        if not q:
+            return None
+
+        buy_vol = 0
+        sell_vol = 0
+        total_turnover = 0.0
+        for _, vol, turnover, direction in q:
+            total_turnover += turnover
+            if "BUY" in direction:
+                buy_vol += vol
+            elif "SELL" in direction:
+                sell_vol += vol
+
+        total_vol = buy_vol + sell_vol
+        if total_vol == 0:
+            return None
+
+        imbalance = (buy_vol - sell_vol) / total_vol
+        return {
+            "turnover": round(total_turnover, 0),
+            "imbalance": round(imbalance, 3),
+        }
+
     def reset(self):
         self._history.clear()
+        self._last_seq.clear()
+        self._warmed_up.clear()
+
+
+# ══════════════════════════════════════════
+# Volume Acceleration Tracker — 放量加速检测
+# ══════════════════════════════════════════
+
+class VolumeAccelTracker:
+    """策略7: 放量加速 — 成交额阶梯式翻倍 + tick 持续偏买
+
+    每 5 分钟采样 TickImbalanceTracker 的窗口统计 (turnover, imbalance),
+    采样间隔 = 窗口长度，消除重叠，确保每次采样是独立的 5 分钟区间。
+    检测:
+      1. 当前窗口成交额 >= 更早 N 窗口均值 × accel_ratio (加速)
+      2. 最近 consecutive_min 个采样 imbalance 全 > imbalance_min (持续偏买)
+      3. 当前窗口成交额 >= min_turnover (绝对量过滤)
+
+    不依赖大单检测，专门捕捉算法拆单型机构拉升。
+    """
+
+    SAMPLE_INTERVAL_SEC = 300  # 5 分钟采样间隔 = TickImbalanceTracker 窗口长度
+
+    def __init__(self, accel_ratio: float = 1.8,
+                 imbalance_min: float = 0.35,
+                 consecutive_min: int = 3,
+                 min_turnover: float = 10_000_000,
+                 lookback: int = 10):
+        self.accel_ratio = accel_ratio
+        self.imbalance_min = imbalance_min
+        self.consecutive_min = consecutive_min
+        self.min_turnover = min_turnover
+        self.lookback = lookback
+        # {code: deque of (timestamp, turnover, imbalance)}
+        self._samples: dict[str, deque] = {}
+        # {code: last_sample_time}
+        self._last_sample_time: dict[str, float] = {}
+
+    def observe(self, code: str, turnover: float, imbalance: float):
+        """Record a sample (called every poll, throttled to ~2min intervals)"""
+        now = time.time()
+        last = self._last_sample_time.get(code, 0)
+        if now - last < self.SAMPLE_INTERVAL_SEC:
+            return
+
+        self._last_sample_time[code] = now
+        if code not in self._samples:
+            self._samples[code] = deque(maxlen=self.lookback)
+        self._samples[code].append((now, turnover, imbalance))
+
+    def evaluate(self, code: str) -> Optional[dict]:
+        """Check conditions 1-3 (acceleration + sustained imbalance + min turnover)
+
+        Returns:
+            dict with accel_ratio, turnover, imbalance details if triggered, else None
+        """
+        samples = self._samples.get(code)
+        # Need at least consecutive_min (for recent) + 1 (for prior baseline)
+        if not samples or len(samples) < self.consecutive_min + 1:
+            return None
+
+        # Current window stats (latest sample)
+        _, curr_turnover, curr_imbalance = samples[-1]
+
+        # Condition 3: minimum turnover
+        if curr_turnover < self.min_turnover:
+            return None
+
+        # Condition 2: sustained imbalance (last N samples all > threshold)
+        recent = list(samples)[-self.consecutive_min:]
+        if not all(imb > self.imbalance_min for _, _, imb in recent):
+            return None
+
+        # Condition 1: acceleration vs earlier samples mean (exclude recent window)
+        prior = list(samples)[:-self.consecutive_min]
+        if not prior:
+            return None
+        avg_turnover = sum(t for _, t, _ in prior) / len(prior)
+        if avg_turnover <= 0:
+            return None
+
+        ratio = curr_turnover / avg_turnover
+        if ratio < self.accel_ratio:
+            return None
+
+        return {
+            "accel_ratio": round(ratio, 2),
+            "curr_turnover": round(curr_turnover, 0),
+            "avg_prior_turnover": round(avg_turnover, 0),
+            "curr_imbalance": round(curr_imbalance, 3),
+            "consecutive_above": self.consecutive_min,
+        }
+
+    def reset(self):
+        self._samples.clear()
+        self._last_sample_time.clear()
+
+
+# ══════════════════════════════════════════
+# Session Accumulator — 开盘至今多空研判
+# ══════════════════════════════════════════
+
+class SessionAccumulator:
+    """全天累积统计 — 从开盘到当前的多空方向
+
+    不触发信号，只维护 per-stock 的全天累积统计。
+    每次 poll_once() 更新，结果写入 session 字段。
+
+    三个累积维度:
+      1. Tick 方向: 全天 buy_vol / sell_vol → imbalance
+      2. 大单方向: 全天大单 buy/sell count + amount → net_amount
+      3. 资金流向: Futu INTRADAY 当日累积快照 → mainNetInflow
+    """
+
+    # Direction thresholds
+    TICK_IMBALANCE_THRESHOLD = 0.1
+    # Minimum data guards — 数据不足时 score=0，避免开盘初期噪音
+    MIN_TICK_VOL = 50_000          # 全天累积最低成交量（股）才给 tick 方向分
+    MIN_LARGE_ORDER_COUNT = 3      # 全天至少 3 笔大单才给大单方向分
+    MIN_LARGE_ORDER_NET = 10_000_000  # 大单净额绝对值 > 1000万 才给方向分
+    MIN_CAPITAL_FLOW_PCT = 1.0     # 资金流净流入占比 > 1% 才给方向分
+    # Weights for composite score
+    TICK_WEIGHT = 2
+    LARGE_ORDER_WEIGHT = 2
+    CAPITAL_FLOW_WEIGHT = 1
+
+    def __init__(self):
+        # tick 方向累积: {code: {buy_vol, sell_vol}}
+        self._tick_totals: dict[str, dict] = {}
+        # 大单方向累积: {code: {buy_count, sell_count, buy_amount, sell_amount}}
+        self._large_order_totals: dict[str, dict] = {}
+        # 资金流（每次取最新快照，Futu INTRADAY 已是当日累积）
+        self._capital_flow: dict[str, dict] = {}
+        # tick sequence 水位（去重）
+        self._last_seq: dict[str, int] = {}
+        self._warmed_up: set[str] = set()
+
+    def feed_ticks(self, code: str, tickers: list[dict]):
+        """累积全天 tick 方向"""
+        if not tickers:
+            return
+
+        # Warmup: first call records seq watermark only (skip stale ticks)
+        if code not in self._warmed_up:
+            max_seq = max(t.get("sequence", 0) for t in tickers)
+            self._last_seq[code] = max_seq
+            self._warmed_up.add(code)
+            return
+
+        if code not in self._tick_totals:
+            self._tick_totals[code] = {"buy_vol": 0, "sell_vol": 0}
+
+        last_seq = self._last_seq.get(code, -1)
+        totals = self._tick_totals[code]
+
+        for tick in tickers:
+            seq = tick.get("sequence", 0)
+            if seq <= last_seq:
+                continue
+            self._last_seq[code] = seq
+
+            vol = int(tick.get("volume", 0))
+            raw_dir = str(tick.get("direction", "")).upper()
+            if "BUY" in raw_dir:
+                totals["buy_vol"] += vol
+            elif "SELL" in raw_dir:
+                totals["sell_vol"] += vol
+
+    def feed_large_order(self, code: str, detail: dict):
+        """累积大单买卖统计（由 poll_once 在 LargeOrderTracker 触发后调用）"""
+        if code not in self._large_order_totals:
+            self._large_order_totals[code] = {
+                "buy_count": 0, "sell_count": 0,
+                "buy_amount": 0.0, "sell_amount": 0.0,
+            }
+
+        totals = self._large_order_totals[code]
+        direction = detail.get("direction", "")
+        amount = float(detail.get("amount", 0))
+
+        if direction == "BUY":
+            totals["buy_count"] += 1
+            totals["buy_amount"] += amount
+        elif direction == "SELL":
+            totals["sell_count"] += 1
+            totals["sell_amount"] += amount
+
+    def update_capital_flow(self, code: str, capital_data: dict):
+        """更新当日资金流快照（Futu INTRADAY 已是当日累积值）"""
+        self._capital_flow[code] = {
+            "main_net_inflow": capital_data.get("mainNetInflow", 0),
+            "main_net_inflow_pct": capital_data.get("mainNetInflowPct", 0),
+        }
+
+    def snapshot(self) -> dict:
+        """返回所有股票的 session summary"""
+        all_codes = set(self._tick_totals) | set(self._large_order_totals) | set(self._capital_flow)
+        result = {}
+
+        for code in all_codes:
+            # ── Tick direction ──
+            tick = self._tick_totals.get(code, {"buy_vol": 0, "sell_vol": 0})
+            buy_vol = tick["buy_vol"]
+            sell_vol = tick["sell_vol"]
+            total_vol = buy_vol + sell_vol
+            tick_imbalance = (buy_vol - sell_vol) / total_vol if total_vol > 0 else 0.0
+
+            # Guard: 成交量不足时不给方向分（开盘初期几笔 tick 无统计意义）
+            if total_vol < self.MIN_TICK_VOL:
+                tick_score = 0
+            elif tick_imbalance > self.TICK_IMBALANCE_THRESHOLD:
+                tick_score = 1
+            elif tick_imbalance < -self.TICK_IMBALANCE_THRESHOLD:
+                tick_score = -1
+            else:
+                tick_score = 0
+
+            # ── Large order direction ──
+            lo = self._large_order_totals.get(code, {
+                "buy_count": 0, "sell_count": 0, "buy_amount": 0.0, "sell_amount": 0.0,
+            })
+            lo_net = lo["buy_amount"] - lo["sell_amount"]
+            lo_count = lo["buy_count"] + lo["sell_count"]
+
+            # Guard: 大单笔数不足 OR 净额不显著时不给方向分
+            if lo_count < self.MIN_LARGE_ORDER_COUNT or abs(lo_net) < self.MIN_LARGE_ORDER_NET:
+                lo_score = 0
+            elif lo_net > 0:
+                lo_score = 1
+            else:
+                lo_score = -1
+
+            # ── Capital flow direction ──
+            cf = self._capital_flow.get(code, {"main_net_inflow": 0, "main_net_inflow_pct": 0})
+            cf_inflow_pct = cf["main_net_inflow_pct"]
+
+            # Guard: 资金流占比不显著时不给方向分
+            if abs(cf_inflow_pct) < self.MIN_CAPITAL_FLOW_PCT:
+                cf_score = 0
+            elif cf_inflow_pct > 0:
+                cf_score = 1
+            else:
+                cf_score = -1
+
+            # ── Composite ──
+            total_score = (
+                tick_score * self.TICK_WEIGHT
+                + lo_score * self.LARGE_ORDER_WEIGHT
+                + cf_score * self.CAPITAL_FLOW_WEIGHT
+            )
+
+            if total_score > 0:
+                direction = "bullish"
+            elif total_score < 0:
+                direction = "bearish"
+            else:
+                direction = "neutral"
+
+            result[code] = {
+                "direction": direction,
+                "score": total_score,
+                "tick": {
+                    "buy_vol": buy_vol,
+                    "sell_vol": sell_vol,
+                    "imbalance": round(tick_imbalance, 3),
+                    "direction_score": tick_score,
+                },
+                "large_order": {
+                    "buy_count": lo["buy_count"],
+                    "sell_count": lo["sell_count"],
+                    "buy_amount": lo["buy_amount"],
+                    "sell_amount": lo["sell_amount"],
+                    "net_amount": lo_net,
+                    "direction_score": lo_score,
+                },
+                "capital_flow": {
+                    "main_net_inflow": cf["main_net_inflow"],
+                    "main_net_inflow_pct": cf["main_net_inflow_pct"],
+                    "direction_score": cf_score,
+                },
+            }
+
+        return result
+
+    def reset(self):
+        """每日重置"""
+        self._tick_totals.clear()
+        self._large_order_totals.clear()
+        self._capital_flow.clear()
         self._last_seq.clear()
         self._warmed_up.clear()
 
@@ -576,6 +909,8 @@ _STRATEGY_NAMES = {
     "tick_imbalance": "主买主卖失衡",
     "composite_bearish": "空头信号",
     "composite_bullish": "多头信号",
+    "momentum_alert": "动量确认",
+    "volume_accel_alert": "放量加速",
 }
 
 # Stealth display (CI/monitoring style)
@@ -587,6 +922,8 @@ _STRATEGY_STEALTH = {
     "tick_imbalance": "tick imbalance",
     "composite_bearish": "bearish composite",
     "composite_bullish": "bullish composite",
+    "momentum_alert": "momentum confirmed",
+    "volume_accel_alert": "volume acceleration",
 }
 
 
@@ -644,6 +981,27 @@ def format_signal(raw: dict, name_map: dict[str, str], *, notify: bool = False) 
         display = (
             f"{code} {stock_name} {cn_name}: "
             f"{side}占优 imbalance={imb:+.3f} 窗口成交额{turnover_wan:.0f}万"
+        )
+    elif strategy == "volume_accel_alert":
+        change_pct = detail.get("daily_change_pct", 0)
+        accel = detail.get("accel_ratio", 0)
+        turnover_wan = detail.get("curr_turnover", 0) / 10000
+        imb = detail.get("curr_imbalance", 0)
+        consec = detail.get("consecutive_above", 0)
+        inflow_label = "资金流入" if detail.get("capital_inflow", False) else "资金流出"
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"日涨{change_pct:.1f}% | 成交额加速{accel:.1f}x({turnover_wan:.0f}万) | "
+            f"tick偏买(imb={imb:+.2f}, 连续{consec}窗口) | {inflow_label}"
+        )
+    elif strategy == "momentum_alert":
+        change_pct = detail.get("daily_change_pct", 0)
+        net_amount_wan = detail.get("large_order_net_amount", 0) / 10000
+        buy_count = detail.get("large_order_buy_count", 0)
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"日涨{change_pct:.1f}% | 大单净买入{net_amount_wan:.0f}万({buy_count}笔) | "
+            f"资金流入 | 无背离"
         )
     elif strategy in ("composite_bearish", "composite_bullish"):
         signals_cn = [_STRATEGY_NAMES.get(s, s) for s in detail.get("signals", [])]
@@ -757,6 +1115,16 @@ class L2StrategyEngine:
             imbalance_threshold=ti_cfg.get("imbalance_threshold", 0.4),
             min_turnover=ti_cfg.get("min_turnover", 10_000_000),
         )
+
+        va_cfg = s.get("volume_accel_alert", {})
+        self._volume_accel = VolumeAccelTracker(
+            accel_ratio=va_cfg.get("accel_ratio", 1.8),
+            imbalance_min=va_cfg.get("imbalance_min", 0.35),
+            consecutive_min=va_cfg.get("consecutive_min", 3),
+            min_turnover=va_cfg.get("min_turnover", 10_000_000),
+        )
+
+        self._session = SessionAccumulator()
 
     # ── Connection management ──
 
@@ -902,6 +1270,9 @@ class L2StrategyEngine:
                 high = row.get("high_price")
                 if high is not None and high > 0:
                     entry["highPrice"] = float(high)
+                prev_close = row.get("prev_close_price")
+                if prev_close is not None and prev_close > 0:
+                    entry["prevClose"] = float(prev_close)
                 if entry:
                     result[code] = entry
         except Exception as e:
@@ -957,16 +1328,151 @@ class L2StrategyEngine:
 
         return result
 
+    # ── Momentum alert ──
+
+    def _evaluate_momentum(self, code: str, session_data: dict,
+                           capital_data: dict, snapshot_data: dict) -> Optional[dict]:
+        """评估单只股票的动量确认信号
+
+        5 个条件全部满足才触发:
+          1. 大单净买笔数 >= large_order_buy_count_min
+          2. 大单净买金额 > large_order_net_amount_min
+          3. 日涨幅 > daily_change_pct_min
+          4. Session direction = bullish
+          5. 资金净流入 > 0 (无背离)
+        """
+        cfg = self._strategies.get("momentum_alert", {})
+        if not cfg.get("enabled", True):
+            return None
+
+        # Session data for this stock
+        sess = session_data.get(code)
+        if not sess:
+            return None
+
+        # Condition 4: session direction must be bullish
+        if sess.get("direction") != "bullish":
+            return None
+
+        # Condition 1 & 2: large order buy count and net amount
+        lo = sess.get("large_order", {})
+        buy_count = lo.get("buy_count", 0)
+        net_amount = lo.get("net_amount", 0)
+
+        min_count = cfg.get("large_order_buy_count_min", 3)
+        min_amount = cfg.get("large_order_net_amount_min", 30_000_000)
+
+        if buy_count < min_count:
+            return None
+        if net_amount <= min_amount:
+            return None
+
+        # Condition 3: daily change pct
+        snap = snapshot_data.get(code, {})
+        price = snap.get("price", 0)
+        prev_close = snap.get("prevClose", 0)
+        if price <= 0 or prev_close <= 0:
+            return None
+
+        daily_change_pct = (price - prev_close) / prev_close * 100
+        min_change = cfg.get("daily_change_pct_min", 3.0)
+        if daily_change_pct <= min_change:
+            return None
+
+        # Condition 5: capital net inflow > 0 (no divergence)
+        cap = capital_data.get(code, {})
+        main_inflow = cap.get("mainNetInflow", 0)
+        if main_inflow <= 0:
+            return None
+
+        return {
+            "strategy": "momentum_alert",
+            "code": code,
+            "detail": {
+                "daily_change_pct": round(daily_change_pct, 2),
+                "large_order_buy_count": buy_count,
+                "large_order_net_amount": round(net_amount, 0),
+                "main_net_inflow": round(main_inflow, 0),
+                "session_direction": "bullish",
+                "session_score": sess.get("score", 0),
+            },
+        }
+
+    # ── Volume acceleration alert ──
+
+    def _evaluate_volume_accel(self, code: str, session_data: dict,
+                               capital_data: dict, snapshot_data: dict) -> Optional[dict]:
+        """评估单只股票的放量加速信号
+
+        6 个条件全部满足才触发:
+          1. 成交额加速 (VolumeAccelTracker conditions 1-3)
+          2. 日涨幅 > daily_change_pct_min
+          3. Session direction = bullish
+          4. 资金净流入 > 0
+        """
+        cfg = self._strategies.get("volume_accel_alert", {})
+        if not cfg.get("enabled", True):
+            return None
+
+        # VolumeAccelTracker conditions (accel + sustained imbalance + min turnover)
+        accel_result = self._volume_accel.evaluate(code)
+        if not accel_result:
+            return None
+
+        # Condition: daily change pct
+        snap = snapshot_data.get(code, {})
+        price = snap.get("price", 0)
+        prev_close = snap.get("prevClose", 0)
+        if price <= 0 or prev_close <= 0:
+            return None
+
+        daily_change_pct = (price - prev_close) / prev_close * 100
+        min_change = cfg.get("daily_change_pct_min", 3.0)
+        if daily_change_pct <= min_change:
+            return None
+
+        # Condition: session score > 0 (relaxed from strict "bullish" —
+        # in algo-splitting scenarios, large_order score is often 0 due to
+        # insufficient large orders, making strict bullish unreachable)
+        sess = session_data.get(code)
+        if not sess or sess.get("score", 0) <= 0:
+            return None
+
+        # Condition: capital net inflow > 0
+        cap = capital_data.get(code, {})
+        main_inflow = cap.get("mainNetInflow", 0)
+        if main_inflow <= 0:
+            return None
+
+        return {
+            "strategy": "volume_accel_alert",
+            "code": code,
+            "detail": {
+                "daily_change_pct": round(daily_change_pct, 2),
+                "accel_ratio": accel_result["accel_ratio"],
+                "curr_turnover": accel_result["curr_turnover"],
+                "avg_prior_turnover": accel_result["avg_prior_turnover"],
+                "curr_imbalance": accel_result["curr_imbalance"],
+                "consecutive_above": accel_result["consecutive_above"],
+                "main_net_inflow": round(main_inflow, 0),
+                "capital_inflow": main_inflow > 0,
+                "session_direction": sess.get("direction", "neutral"),
+                "session_score": sess.get("score", 0),
+            },
+        }
+
     # ── Main detection loop ──
 
-    def poll_once(self) -> list[dict]:
-        """执行一轮检测，返回格式化后的信号列表
+    def poll_once(self) -> tuple[list[dict], dict]:
+        """执行一轮检测，返回格式化后的信号列表 + session 累积快照
 
         Returns:
-            [{"ts", "time", "strategy", "code", "kind", "message", "display", "detail"}, ...]
+            (signals, session_snapshot)
+            signals: [{"ts", "time", "strategy", "code", ...}, ...]
+            session_snapshot: {code: {direction, score, tick, large_order, capital_flow}}
         """
         if not self.connect():
-            return []
+            return [], {}
 
         self._subscribe()
 
@@ -974,13 +1480,19 @@ class L2StrategyEngine:
 
         try:
             # Fetch shared data once (strategies 1,3,4 share capital_flow / snapshot)
+            momentum_enabled = self._strategies.get("momentum_alert", {}).get("enabled", True)
+            vol_accel_enabled = self._strategies.get("volume_accel_alert", {}).get("enabled", True)
             need_capital = (
                 self._strategies.get("capital_flow_spike", {}).get("enabled", True)
                 or self._strategies.get("volume_price_divergence", {}).get("enabled", True)
+                or momentum_enabled
+                or vol_accel_enabled
             )
             need_snapshot = (
                 self._strategies.get("order_book_imbalance", {}).get("enabled", True)
                 or self._strategies.get("volume_price_divergence", {}).get("enabled", True)
+                or momentum_enabled
+                or vol_accel_enabled
             )
 
             capital_data = self._fetch_capital_flow() if need_capital else {}
@@ -998,6 +1510,7 @@ class L2StrategyEngine:
             need_tickers = (
                 self._strategies.get("large_order", {}).get("enabled", True)
                 or self._strategies.get("tick_imbalance", {}).get("enabled", True)
+                or vol_accel_enabled
             )
             ticker_data = self._fetch_rt_tickers() if need_tickers else {}
 
@@ -1035,14 +1548,54 @@ class L2StrategyEngine:
                     if sig:
                         raw_signals.append(sig)
 
+            # ── Feed VolumeAccelTracker from tick imbalance window stats ──
+            # Guard: only during continuous trading to avoid stale data during lunch break
+            if vol_accel_enabled and self._is_continuous_trading():
+                for code in self._hk_holdings:
+                    stats = self._tick_imbalance.get_current_stats(code)
+                    if stats:
+                        self._volume_accel.observe(
+                            code, stats["turnover"], stats["imbalance"]
+                        )
+
+            # ── Session accumulation (always, regardless of cooldown) ──
+            for code, ticks in ticker_data.items():
+                self._session.feed_ticks(code, ticks)
+            for code, data in capital_data.items():
+                self._session.update_capital_flow(code, data)
+
         except Exception as e:
             logger.warning(f"L2 poll error: {e}")
             self.close()
             self._last_fail_time = time.time()
-            return []
+            return [], {}
+
+        # Feed large orders to session accumulator (all, before cooldown filter)
+        for raw in raw_signals:
+            if raw["strategy"] == "large_order":
+                self._session.feed_large_order(raw["code"], raw["detail"])
+
+        # Take session snapshot early — momentum evaluation needs latest state
+        session_snapshot = self._session.snapshot()
+
+        signals = []
+
+        # ── 6. Momentum alert (session-level, not short-window) ──
+        for code in self._hk_holdings:
+            sig = self._evaluate_momentum(code, session_snapshot, capital_data, snapshot_data)
+            if sig and self._cooldown.can_trigger("momentum_alert", code):
+                self._cooldown.record("momentum_alert", code)
+                signals.append(format_signal(sig, self._name_map, notify=True))
+
+        # ── 7. Volume acceleration alert (session-level) ──
+        if vol_accel_enabled:
+            for code in self._hk_holdings:
+                sig = self._evaluate_volume_accel(code, session_snapshot, capital_data, snapshot_data)
+                if sig and self._cooldown.can_trigger("volume_accel_alert", code):
+                    self._cooldown.record("volume_accel_alert", code)
+                    signals.append(format_signal(sig, self._name_map, notify=True))
 
         # Apply cooldowns and format raw signals (notify=false, web only)
-        signals = []
         accepted_raw = []
         for raw in raw_signals:
             strategy = raw["strategy"]
@@ -1059,7 +1612,7 @@ class L2StrategyEngine:
         for comp in composites:
             signals.append(format_signal(comp, self._name_map, notify=True))
 
-        return signals
+        return signals, session_snapshot
 
     def reset_daily(self):
         """每日重置 — 清除所有追踪状态"""
@@ -1068,6 +1621,8 @@ class L2StrategyEngine:
         self._order_book.reset()
         self._divergence.reset()
         self._tick_imbalance.reset()
+        self._volume_accel.reset()
         self._cooldown.reset()
         self._scorer.reset()
+        self._session.reset()
         logger.info("L2 strategy engine daily reset complete")

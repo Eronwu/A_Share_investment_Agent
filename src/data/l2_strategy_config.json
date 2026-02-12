@@ -34,6 +34,24 @@
       "imbalance_threshold": 0.4,
       "min_turnover": 10000000,
       "cooldown_minutes": 10
+    },
+    "momentum_alert": {
+      "enabled": true,
+      "description": "持续大单买入+价格上涨动量确认",
+      "large_order_buy_count_min": 3,
+      "large_order_net_amount_min": 30000000,
+      "daily_change_pct_min": 3.0,
+      "cooldown_minutes": 120
+    },
+    "volume_accel_alert": {
+      "enabled": true,
+      "description": "成交额加速+tick持续偏买(捕捉算法拆单拉升)",
+      "accel_ratio": 1.8,
+      "imbalance_min": 0.35,
+      "consecutive_min": 3,
+      "min_turnover": 10000000,
+      "daily_change_pct_min": 3.0,
+      "cooldown_minutes": 120
     }
   },
   "scoring": {

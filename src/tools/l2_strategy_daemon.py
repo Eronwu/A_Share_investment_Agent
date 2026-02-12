@@ -61,35 +61,37 @@ def load_configs() -> tuple[dict, dict]:
     return monitor, l2_config
 
 
-def write_signals(new_signals: list[dict]):
-    """原子写入信号到 l2_strategy_signals.json"""
-    if not new_signals:
-        return
-
-    # 读已有信号
+def write_signals(new_signals: list[dict], session_snapshot: dict | None = None):
+    """原子写入信号 + session 快照到 l2_strategy_signals.json"""
+    # 读已有数据
     existing = []
+    prev_session = {}
     try:
         if L2_SIGNALS_PATH.exists():
             with open(L2_SIGNALS_PATH, "r", encoding="utf-8") as f:
                 data = json.load(f)
             existing = data.get("signals", [])
+            prev_session = data.get("session", {})
     except Exception:
         existing = []
 
     # 追加新信号
-    existing.extend(new_signals)
+    if new_signals:
+        existing.extend(new_signals)
 
     # 保留最近 N 条
     max_signals = MAX_SIGNALS
     existing = existing[-max_signals:]
 
     ts = int(time.time() * 1000)
+    session = session_snapshot if session_snapshot else prev_session
 
     # 原子写入
     tmp = L2_SIGNALS_PATH.with_suffix(".tmp")
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump({
             "signals": existing,
+            "session": session,
             "lastUpdated": ts,
         }, f, ensure_ascii=False, indent=2)
     tmp.replace(L2_SIGNALS_PATH)
@@ -159,9 +161,9 @@ def run():
         poll_interval = TRADING_POLL_SEC if trading else NON_TRADING_POLL_SEC
 
         if trading:
-            signals = engine.poll_once()
-            if signals:
-                write_signals(signals)
+            signals, session = engine.poll_once()
+            if signals or session:
+                write_signals(signals, session)
                 total_signals += len(signals)
                 for s in signals:
                     logger.info(f"Signal: [{s['strategy']}] {s['display']}")
