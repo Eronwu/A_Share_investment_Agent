@@ -1,11 +1,17 @@
 """
 L2 Strategy Engine — 基于 Futu OpenD 实时数据的策略信号检测
 
-4 个检测策略:
-  1. capital_flow_spike   — 主力资金异动（5分钟窗口，净流入占比跳升）
-  2. large_order          — 逐笔大单（单笔成交 >500万）
-  3. order_book_imbalance — 盘口异动（委比短时剧烈变化）
+5 个检测策略:
+  1. capital_flow_spike      — 主力资金异动（5分钟窗口，净流入占比跳升）
+  2. large_order             — 逐笔大单（单笔成交 >500万，含买卖方向）
+  3. order_book_imbalance    — 盘口异动（委比短时剧烈变化）
   4. volume_price_divergence — 量价背离（价格新高 + 主力资金净流出）
+  5. tick_imbalance          — 主买主卖失衡（5分钟窗口逐笔方向累积）
+
+复合评分（加权）:
+  tick_imbalance=3, large_order=2, volume_price_divergence=2,
+  capital_flow_spike=1, order_book_imbalance=1
+  加权分 ≥5 且 ≥2 种策略同向 → 复合信号（弹通知）
 
 设计原则:
   - 复用 futu_enricher.py 的懒连接/降级模式
@@ -153,6 +159,14 @@ class LargeOrderTracker:
 
             turnover = float(tick.get("turnover", 0))
             if turnover >= self.min_amount:
+                # Map Futu ticker_direction to BUY/SELL/NEUTRAL
+                raw_dir = str(tick.get("direction", "")).upper()
+                if "BUY" in raw_dir:
+                    direction = "BUY"
+                elif "SELL" in raw_dir:
+                    direction = "SELL"
+                else:
+                    direction = "NEUTRAL"
                 signals.append({
                     "strategy": "large_order",
                     "code": code,
@@ -160,6 +174,7 @@ class LargeOrderTracker:
                         "amount": round(turnover, 0),
                         "price": tick.get("price", 0),
                         "volume": tick.get("volume", 0),
+                        "direction": direction,
                     },
                 })
 
@@ -258,6 +273,116 @@ class DivergenceTracker:
         self._price_history.clear()
 
 
+class TickImbalanceTracker:
+    """策略5: 逐笔主动买卖失衡检测
+
+    5 分钟窗口内累积:
+      buy_vol  = sum(vol where direction=BUY)
+      sell_vol = sum(vol where direction=SELL)
+      imbalance = (buy - sell) / (buy + sell)
+
+    |imbalance| > threshold AND window_turnover > min_turnover → 触发
+    """
+
+    def __init__(self, window_minutes: int = 5,
+                 imbalance_threshold: float = 0.4,
+                 min_turnover: float = 10_000_000):
+        self.window_sec = window_minutes * 60
+        self.imbalance_threshold = imbalance_threshold
+        self.min_turnover = min_turnover
+        # {code: deque of (timestamp, volume, turnover, direction)}
+        self._history: dict[str, deque] = {}
+        # {code: last_processed_seq} — avoid reprocessing
+        self._last_seq: dict[str, int] = {}
+        # warmup: first call only records watermark
+        self._warmed_up: set[str] = set()
+
+    def update(self, code: str, tickers: list[dict]) -> Optional[dict]:
+        """Feed ticks and check for imbalance signal.
+
+        Args:
+            code: stock code
+            tickers: list of tick dicts with sequence, volume, turnover, direction
+
+        Returns:
+            Signal dict if imbalance detected, None otherwise
+        """
+        if not tickers:
+            return None
+
+        now = time.time()
+
+        # First call: warmup — record seq watermark only
+        if code not in self._warmed_up:
+            max_seq = max(t.get("sequence", 0) for t in tickers)
+            self._last_seq[code] = max_seq
+            self._warmed_up.add(code)
+            return None
+
+        if code not in self._history:
+            self._history[code] = deque()
+
+        q = self._history[code]
+        last_seq = self._last_seq.get(code, -1)
+
+        # Accumulate new ticks only
+        for tick in tickers:
+            seq = tick.get("sequence", 0)
+            if seq <= last_seq:
+                continue
+            self._last_seq[code] = seq
+            q.append((
+                now,
+                int(tick.get("volume", 0)),
+                float(tick.get("turnover", 0)),
+                str(tick.get("direction", "")).upper(),
+            ))
+
+        # Trim window
+        cutoff = now - self.window_sec
+        while q and q[0][0] < cutoff:
+            q.popleft()
+
+        if not q:
+            return None
+
+        # Calculate imbalance
+        buy_vol = 0
+        sell_vol = 0
+        total_turnover = 0.0
+        for _, vol, turnover, direction in q:
+            total_turnover += turnover
+            if "BUY" in direction:
+                buy_vol += vol
+            elif "SELL" in direction:
+                sell_vol += vol
+
+        total_vol = buy_vol + sell_vol
+        if total_vol == 0 or total_turnover < self.min_turnover:
+            return None
+
+        imbalance = (buy_vol - sell_vol) / total_vol
+
+        if abs(imbalance) >= self.imbalance_threshold:
+            return {
+                "strategy": "tick_imbalance",
+                "code": code,
+                "detail": {
+                    "imbalance": round(imbalance, 3),
+                    "buy_vol": buy_vol,
+                    "sell_vol": sell_vol,
+                    "turnover": round(total_turnover, 0),
+                    "window_sec": self.window_sec,
+                },
+            }
+        return None
+
+    def reset(self):
+        self._history.clear()
+        self._last_seq.clear()
+        self._warmed_up.clear()
+
+
 # ══════════════════════════════════════════
 # Cooldown Manager
 # ══════════════════════════════════════════
@@ -299,7 +424,8 @@ class CooldownManager:
 #   capital_flow_spike:         to > from → bullish, else bearish
 #   order_book_imbalance:       delta > 0 → bullish, else bearish
 #   volume_price_divergence:    always bearish
-#   large_order:                neutral（无法判断买卖方向，不计入评分）
+#   large_order:                BUY→bullish, SELL→bearish, NEUTRAL→neutral
+#   tick_imbalance:             imbalance>0→bullish, <0→bearish
 
 def _infer_direction(raw: dict) -> str:
     """从原始信号推断多空方向"""
@@ -312,26 +438,49 @@ def _infer_direction(raw: dict) -> str:
         return "bullish" if detail.get("to_pct", 0) > detail.get("from_pct", 0) else "bearish"
     elif strategy == "order_book_imbalance":
         return "bullish" if detail.get("delta", 0) > 0 else "bearish"
+    elif strategy == "large_order":
+        d = detail.get("direction", "")
+        if d == "BUY":
+            return "bullish"
+        elif d == "SELL":
+            return "bearish"
+        return "neutral"
+    elif strategy == "tick_imbalance":
+        return "bullish" if detail.get("imbalance", 0) > 0 else "bearish"
     return "neutral"
 
 
+# Fallback weights (overridden by scoring.weights in l2_strategy_config.json)
+SIGNAL_WEIGHTS = {
+    "tick_imbalance": 3,
+    "large_order": 2,
+    "volume_price_divergence": 2,
+    "capital_flow_spike": 1,
+    "order_book_imbalance": 1,
+}
+
+
 class SignalScorer:
-    """复合信号评分器 — 多策略共振才出研判结论
+    """复合信号评分器 — 加权多策略共振研判
 
-    只有同一只股票在 10 分钟窗口内，有 ≥2 种不同策略类型
-    朝同一方向触发时，才产出复合信号（弹通知）。
+    同一只股票在 10 分钟窗口内，加权分 ≥ composite_threshold
+    且 ≥ min_strategy_types 种不同策略类型同向触发 → 产出复合信号。
 
-    例:
-      volume_price_divergence(bearish) + capital_flow_spike(bearish)
-      → composite_bearish "空头信号: 量价背离 + 主力流出"
+    权重:
+      tick_imbalance=3, large_order=2, volume_price_divergence=2,
+      capital_flow_spike=1, order_book_imbalance=1
     """
 
     WINDOW_SEC = 600   # 10 分钟滑动窗口
-    THRESHOLD = 2      # ≥2 种不同策略类型同向
     COOLDOWN_SEC = 3600  # 复合信号冷却 1 小时/股
 
-    def __init__(self):
-        # {code: [(timestamp, strategy, direction)]}
+    def __init__(self, weights: Optional[dict[str, int]] = None,
+                 composite_threshold: int = 5,
+                 min_strategy_types: int = 2):
+        self._weights = weights or SIGNAL_WEIGHTS
+        self._composite_threshold = composite_threshold
+        self._min_strategy_types = min_strategy_types
+        # {code: [(timestamp, strategy, direction, weight)]}
         self._history: dict[str, list] = {}
         # {code: last_composite_timestamp}
         self._last_notify: dict[str, float] = {}
@@ -345,19 +494,20 @@ class SignalScorer:
             direction = _infer_direction(sig)
             if direction == "neutral":
                 continue
+            weight = self._weights.get(strategy, 1)
             if code not in self._history:
                 self._history[code] = []
-            self._history[code].append((now, strategy, direction))
+            self._history[code].append((now, strategy, direction, weight))
 
     def evaluate(self) -> list[dict]:
-        """评估所有股票，返回复合信号（只有达到阈值的才返回）"""
+        """评估所有股票，返回复合信号（加权分达标 + 策略类型数达标）"""
         now = time.time()
         cutoff = now - self.WINDOW_SEC
         composites = []
 
         for code, events in list(self._history.items()):
             # 清理窗口外数据
-            events = [(t, s, d) for t, s, d in events if t >= cutoff]
+            events = [(t, s, d, w) for t, s, d, w in events if t >= cutoff]
             self._history[code] = events
 
             if not events:
@@ -367,33 +517,41 @@ class SignalScorer:
             if now - self._last_notify.get(code, 0) < self.COOLDOWN_SEC:
                 continue
 
-            # 按方向统计不同策略类型
-            bearish_types = set()
-            bullish_types = set()
-            for _, strategy, direction in events:
+            # 按方向统计加权分 + 策略类型
+            bearish_score = 0
+            bullish_score = 0
+            bearish_types: set[str] = set()
+            bullish_types: set[str] = set()
+            for _, strategy, direction, weight in events:
                 if direction == "bearish":
+                    bearish_score += weight
                     bearish_types.add(strategy)
                 elif direction == "bullish":
+                    bullish_score += weight
                     bullish_types.add(strategy)
 
-            if len(bearish_types) >= self.THRESHOLD:
+            if (bearish_score >= self._composite_threshold
+                    and len(bearish_types) >= self._min_strategy_types):
                 composites.append({
                     "strategy": "composite_bearish",
                     "code": code,
                     "detail": {
                         "signals": sorted(bearish_types),
                         "count": len(bearish_types),
+                        "score": bearish_score,
                     },
                 })
                 self._last_notify[code] = now
 
-            elif len(bullish_types) >= self.THRESHOLD:
+            elif (bullish_score >= self._composite_threshold
+                    and len(bullish_types) >= self._min_strategy_types):
                 composites.append({
                     "strategy": "composite_bullish",
                     "code": code,
                     "detail": {
                         "signals": sorted(bullish_types),
                         "count": len(bullish_types),
+                        "score": bullish_score,
                     },
                 })
                 self._last_notify[code] = now
@@ -415,6 +573,7 @@ _STRATEGY_NAMES = {
     "large_order": "大单成交",
     "order_book_imbalance": "盘口异动",
     "volume_price_divergence": "量价背离",
+    "tick_imbalance": "主买主卖失衡",
     "composite_bearish": "空头信号",
     "composite_bullish": "多头信号",
 }
@@ -425,6 +584,7 @@ _STRATEGY_STEALTH = {
     "large_order": "large order detected",
     "order_book_imbalance": "order book shift",
     "volume_price_divergence": "divergence alert",
+    "tick_imbalance": "tick imbalance",
     "composite_bearish": "bearish composite",
     "composite_bullish": "bullish composite",
 }
@@ -458,9 +618,11 @@ def format_signal(raw: dict, name_map: dict[str, str], *, notify: bool = False) 
     elif strategy == "large_order":
         amt = detail.get("amount", 0)
         amt_wan = amt / 10000
+        dir_label = {"BUY": "主买", "SELL": "主卖"}.get(detail.get("direction", ""), "")
+        dir_suffix = f" ({dir_label})" if dir_label else ""
         display = (
             f"{code} {stock_name} {cn_name}: "
-            f"成交 {amt_wan:.0f}万 @ {detail.get('price', 0):.2f}"
+            f"成交 {amt_wan:.0f}万 @ {detail.get('price', 0):.2f}{dir_suffix}"
         )
     elif strategy == "order_book_imbalance":
         display = (
@@ -475,9 +637,18 @@ def format_signal(raw: dict, name_map: dict[str, str], *, notify: bool = False) 
             f"价格 {detail.get('price', 0):.2f} (窗口最高) "
             f"主力净流入 {inflow_wan:.0f}万"
         )
+    elif strategy == "tick_imbalance":
+        imb = detail.get("imbalance", 0)
+        turnover_wan = detail.get("turnover", 0) / 10000
+        side = "主买" if imb > 0 else "主卖"
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"{side}占优 imbalance={imb:+.3f} 窗口成交额{turnover_wan:.0f}万"
+        )
     elif strategy in ("composite_bearish", "composite_bullish"):
         signals_cn = [_STRATEGY_NAMES.get(s, s) for s in detail.get("signals", [])]
-        display = f"{code} {stock_name} {cn_name}: {' + '.join(signals_cn)}"
+        score = detail.get("score", 0)
+        display = f"{code} {stock_name} {cn_name}(分={score}): {' + '.join(signals_cn)}"
     else:
         display = f"{code} {stock_name} {cn_name}"
 
@@ -503,7 +674,7 @@ def format_signal(raw: dict, name_map: dict[str, str], *, notify: bool = False) 
 # ══════════════════════════════════════════
 
 class L2StrategyEngine:
-    """L2 策略引擎 — 管理 Futu 连接、订阅、4 个 Tracker
+    """L2 策略引擎 — 管理 Futu 连接、订阅、5 个 Tracker
 
     用法:
         engine = L2StrategyEngine(config, watchlist)
@@ -547,7 +718,12 @@ class L2StrategyEngine:
         self._cooldown = CooldownManager(cooldowns)
 
         # Composite scorer (决定是否弹通知)
-        self._scorer = SignalScorer()
+        scoring_cfg = strategy_config.get("scoring", {})
+        self._scorer = SignalScorer(
+            weights=scoring_cfg.get("weights"),
+            composite_threshold=scoring_cfg.get("composite_threshold", 5),
+            min_strategy_types=scoring_cfg.get("min_strategy_types", 2),
+        )
 
     def _init_trackers(self):
         """Initialize tracker instances from config"""
@@ -573,6 +749,13 @@ class L2StrategyEngine:
         dv_cfg = s.get("volume_price_divergence", {})
         self._divergence = DivergenceTracker(
             lookback_minutes=dv_cfg.get("lookback_minutes", 30),
+        )
+
+        ti_cfg = s.get("tick_imbalance", {})
+        self._tick_imbalance = TickImbalanceTracker(
+            window_minutes=ti_cfg.get("window_minutes", 5),
+            imbalance_threshold=ti_cfg.get("imbalance_threshold", 0.4),
+            min_turnover=ti_cfg.get("min_turnover", 10_000_000),
         )
 
     # ── Connection management ──
@@ -620,8 +803,12 @@ class L2StrategyEngine:
                 self._subscribed = True
                 return
 
-            # Subscribe TICKER (逐笔成交)
-            if self._strategies.get("large_order", {}).get("enabled", True):
+            # Subscribe TICKER (逐笔成交 — large_order + tick_imbalance 共用)
+            need_ticker = (
+                self._strategies.get("large_order", {}).get("enabled", True)
+                or self._strategies.get("tick_imbalance", {}).get("enabled", True)
+            )
+            if need_ticker:
                 ret, msg = self._ctx.subscribe(codes, [SubType.TICKER])
                 if ret == RET_OK:
                     logger.info(f"Subscribed TICKER for {len(codes)} HK stocks")
@@ -761,6 +948,7 @@ class L2StrategyEngine:
                         "turnover": float(row.get("turnover", 0)),
                         "price": float(row.get("price", 0)),
                         "volume": int(row.get("volume", 0)),
+                        "direction": str(row.get("ticker_direction", "")),
                     })
                 if ticks:
                     result[code] = ticks
@@ -806,9 +994,15 @@ class L2StrategyEngine:
                     if sig:
                         raw_signals.append(sig)
 
+            # Fetch ticker data (shared by large_order + tick_imbalance)
+            need_tickers = (
+                self._strategies.get("large_order", {}).get("enabled", True)
+                or self._strategies.get("tick_imbalance", {}).get("enabled", True)
+            )
+            ticker_data = self._fetch_rt_tickers() if need_tickers else {}
+
             # ── 2. Large order ──
             if self._strategies.get("large_order", {}).get("enabled", True):
-                ticker_data = self._fetch_rt_tickers()
                 for code, ticks in ticker_data.items():
                     sigs = self._large_order.check_tickers(code, ticks)
                     raw_signals.extend(sigs)
@@ -833,6 +1027,13 @@ class L2StrategyEngine:
                         sig = self._divergence.update(code, price, inflow)
                         if sig:
                             raw_signals.append(sig)
+
+            # ── 5. Tick imbalance ──
+            if self._strategies.get("tick_imbalance", {}).get("enabled", True):
+                for code, ticks in ticker_data.items():
+                    sig = self._tick_imbalance.update(code, ticks)
+                    if sig:
+                        raw_signals.append(sig)
 
         except Exception as e:
             logger.warning(f"L2 poll error: {e}")
@@ -866,6 +1067,7 @@ class L2StrategyEngine:
         self._large_order.reset()
         self._order_book.reset()
         self._divergence.reset()
+        self._tick_imbalance.reset()
         self._cooldown.reset()
         self._scorer.reset()
         logger.info("L2 strategy engine daily reset complete")

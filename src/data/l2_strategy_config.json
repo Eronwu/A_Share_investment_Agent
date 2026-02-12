@@ -11,7 +11,7 @@
     },
     "large_order": {
       "enabled": true,
-      "description": "单笔成交金额超阈值",
+      "description": "单笔成交金额超阈值（含买卖方向）",
       "min_amount": 5000000,
       "cooldown_minutes": 10
     },
@@ -26,7 +26,26 @@
       "description": "价格新高但主力资金净流出",
       "lookback_minutes": 30,
       "cooldown_minutes": 30
+    },
+    "tick_imbalance": {
+      "enabled": true,
+      "description": "逐笔主买主卖失衡",
+      "window_minutes": 5,
+      "imbalance_threshold": 0.4,
+      "min_turnover": 10000000,
+      "cooldown_minutes": 10
     }
+  },
+  "scoring": {
+    "weights": {
+      "tick_imbalance": 3,
+      "large_order": 2,
+      "volume_price_divergence": 2,
+      "capital_flow_spike": 1,
+      "order_book_imbalance": 1
+    },
+    "composite_threshold": 5,
+    "min_strategy_types": 2
   },
   "max_signals": 200
 }
