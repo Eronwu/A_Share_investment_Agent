@@ -476,6 +476,7 @@ def check_l2_signals() -> list[dict]:
         display = s.get("display", "")
         message = s.get("message", "")
         code = s.get("code", "")
+        should_notify = s.get("notify", False)
 
         alerts.append({
             "symbol": code,
@@ -484,6 +485,7 @@ def check_l2_signals() -> list[dict]:
             "_kind": "l2_strategy",
             "_change_pct": 0,
             "_stealth": message,
+            "_notify": should_notify,
         })
 
     return alerts
@@ -863,9 +865,14 @@ def run():
                     all_alerts = engine.check(quotes, hkd_cny_rate)
 
                     # ── L2 strategy signals (from daemon) ──
+                    # 原始信号只写 web 日志，复合研判才弹通知
                     l2_alerts = check_l2_signals()
                     if l2_alerts:
-                        all_alerts.extend(l2_alerts)
+                        l2_web_only = [a for a in l2_alerts if not a.get("_notify")]
+                        l2_notify = [a for a in l2_alerts if a.get("_notify")]
+                        if l2_web_only:
+                            write_alert_events(l2_web_only)
+                        all_alerts.extend(l2_notify)
 
                     if all_alerts:
                         print()

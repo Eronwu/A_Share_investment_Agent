@@ -289,6 +289,123 @@ class CooldownManager:
 
 
 # ══════════════════════════════════════════
+# Signal Scorer — 复合研判
+# ══════════════════════════════════════════
+#
+# 原始信号安静积累，只有同一只股票 10 分钟内 ≥2 种不同策略
+# 同向触发时才产出复合信号（notify=true → 弹通知）。
+#
+# 方向推断:
+#   capital_flow_spike:         to > from → bullish, else bearish
+#   order_book_imbalance:       delta > 0 → bullish, else bearish
+#   volume_price_divergence:    always bearish
+#   large_order:                neutral（无法判断买卖方向，不计入评分）
+
+def _infer_direction(raw: dict) -> str:
+    """从原始信号推断多空方向"""
+    strategy = raw["strategy"]
+    detail = raw.get("detail", {})
+
+    if strategy == "volume_price_divergence":
+        return "bearish"
+    elif strategy == "capital_flow_spike":
+        return "bullish" if detail.get("to_pct", 0) > detail.get("from_pct", 0) else "bearish"
+    elif strategy == "order_book_imbalance":
+        return "bullish" if detail.get("delta", 0) > 0 else "bearish"
+    return "neutral"
+
+
+class SignalScorer:
+    """复合信号评分器 — 多策略共振才出研判结论
+
+    只有同一只股票在 10 分钟窗口内，有 ≥2 种不同策略类型
+    朝同一方向触发时，才产出复合信号（弹通知）。
+
+    例:
+      volume_price_divergence(bearish) + capital_flow_spike(bearish)
+      → composite_bearish "空头信号: 量价背离 + 主力流出"
+    """
+
+    WINDOW_SEC = 600   # 10 分钟滑动窗口
+    THRESHOLD = 2      # ≥2 种不同策略类型同向
+    COOLDOWN_SEC = 3600  # 复合信号冷却 1 小时/股
+
+    def __init__(self):
+        # {code: [(timestamp, strategy, direction)]}
+        self._history: dict[str, list] = {}
+        # {code: last_composite_timestamp}
+        self._last_notify: dict[str, float] = {}
+
+    def feed(self, raw_signals: list[dict]):
+        """将本轮原始信号喂入历史缓冲"""
+        now = time.time()
+        for sig in raw_signals:
+            code = sig["code"]
+            strategy = sig["strategy"]
+            direction = _infer_direction(sig)
+            if direction == "neutral":
+                continue
+            if code not in self._history:
+                self._history[code] = []
+            self._history[code].append((now, strategy, direction))
+
+    def evaluate(self) -> list[dict]:
+        """评估所有股票，返回复合信号（只有达到阈值的才返回）"""
+        now = time.time()
+        cutoff = now - self.WINDOW_SEC
+        composites = []
+
+        for code, events in list(self._history.items()):
+            # 清理窗口外数据
+            events = [(t, s, d) for t, s, d in events if t >= cutoff]
+            self._history[code] = events
+
+            if not events:
+                continue
+
+            # 冷却检查
+            if now - self._last_notify.get(code, 0) < self.COOLDOWN_SEC:
+                continue
+
+            # 按方向统计不同策略类型
+            bearish_types = set()
+            bullish_types = set()
+            for _, strategy, direction in events:
+                if direction == "bearish":
+                    bearish_types.add(strategy)
+                elif direction == "bullish":
+                    bullish_types.add(strategy)
+
+            if len(bearish_types) >= self.THRESHOLD:
+                composites.append({
+                    "strategy": "composite_bearish",
+                    "code": code,
+                    "detail": {
+                        "signals": sorted(bearish_types),
+                        "count": len(bearish_types),
+                    },
+                })
+                self._last_notify[code] = now
+
+            elif len(bullish_types) >= self.THRESHOLD:
+                composites.append({
+                    "strategy": "composite_bullish",
+                    "code": code,
+                    "detail": {
+                        "signals": sorted(bullish_types),
+                        "count": len(bullish_types),
+                    },
+                })
+                self._last_notify[code] = now
+
+        return composites
+
+    def reset(self):
+        self._history.clear()
+        self._last_notify.clear()
+
+
+# ══════════════════════════════════════════
 # Signal Formatter
 # ══════════════════════════════════════════
 
@@ -298,6 +415,8 @@ _STRATEGY_NAMES = {
     "large_order": "大单成交",
     "order_book_imbalance": "盘口异动",
     "volume_price_divergence": "量价背离",
+    "composite_bearish": "空头信号",
+    "composite_bullish": "多头信号",
 }
 
 # Stealth display (CI/monitoring style)
@@ -306,15 +425,18 @@ _STRATEGY_STEALTH = {
     "large_order": "large order detected",
     "order_book_imbalance": "order book shift",
     "volume_price_divergence": "divergence alert",
+    "composite_bearish": "bearish composite",
+    "composite_bullish": "bullish composite",
 }
 
 
-def format_signal(raw: dict, name_map: dict[str, str]) -> dict:
+def format_signal(raw: dict, name_map: dict[str, str], *, notify: bool = False) -> dict:
     """将原始信号转换为 dual-format event（message + display）
 
     Args:
         raw: tracker 输出的 {strategy, code, detail}
         name_map: {code: stock_name}
+        notify: True = 弹通知（复合信号），False = 只写 web 日志
 
     Returns:
         完整的信号事件 dict
@@ -353,6 +475,9 @@ def format_signal(raw: dict, name_map: dict[str, str]) -> dict:
             f"价格 {detail.get('price', 0):.2f} (窗口最高) "
             f"主力净流入 {inflow_wan:.0f}万"
         )
+    elif strategy in ("composite_bearish", "composite_bullish"):
+        signals_cn = [_STRATEGY_NAMES.get(s, s) for s in detail.get("signals", [])]
+        display = f"{code} {stock_name} {cn_name}: {' + '.join(signals_cn)}"
     else:
         display = f"{code} {stock_name} {cn_name}"
 
@@ -366,6 +491,7 @@ def format_signal(raw: dict, name_map: dict[str, str]) -> dict:
         "strategy": strategy,
         "code": code,
         "kind": "l2_strategy",
+        "notify": notify,
         "message": message,
         "display": display,
         "detail": detail,
@@ -414,11 +540,14 @@ class L2StrategyEngine:
         # Initialize trackers
         self._init_trackers()
 
-        # Cooldowns
+        # Cooldowns (for raw signal dedup, not for notifications)
         cooldowns = {}
         for name, cfg in self._strategies.items():
             cooldowns[name] = cfg.get("cooldown_minutes", 15)
         self._cooldown = CooldownManager(cooldowns)
+
+        # Composite scorer (决定是否弹通知)
+        self._scorer = SignalScorer()
 
     def _init_trackers(self):
         """Initialize tracker instances from config"""
@@ -711,14 +840,23 @@ class L2StrategyEngine:
             self._last_fail_time = time.time()
             return []
 
-        # Apply cooldowns and format
+        # Apply cooldowns and format raw signals (notify=false, web only)
         signals = []
+        accepted_raw = []
         for raw in raw_signals:
             strategy = raw["strategy"]
             code = raw["code"]
             if self._cooldown.can_trigger(strategy, code):
                 self._cooldown.record(strategy, code)
-                signals.append(format_signal(raw, self._name_map))
+                signals.append(format_signal(raw, self._name_map, notify=False))
+                accepted_raw.append(raw)
+
+        # Feed raw signals to scorer and evaluate composite verdicts
+        if accepted_raw:
+            self._scorer.feed(accepted_raw)
+        composites = self._scorer.evaluate()
+        for comp in composites:
+            signals.append(format_signal(comp, self._name_map, notify=True))
 
         return signals
 
@@ -729,4 +867,5 @@ class L2StrategyEngine:
         self._order_book.reset()
         self._divergence.reset()
         self._cooldown.reset()
+        self._scorer.reset()
         logger.info("L2 strategy engine daily reset complete")
