@@ -352,14 +352,43 @@ function StockRow({
           onClick={() => onToggleStar(code, !entry.star)}
           title={entry.star ? "Remove L1 priority" : "Mark as L1 priority"}
           style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
             cursor: "pointer",
-            fontSize: 14,
-            padding: "0 4px",
-            color: entry.star ? D.yellow : D.comment,
             userSelect: "none",
+            fontFamily: "JetBrains Mono, monospace",
+            fontSize: 10,
+            color: entry.star ? D.yellow : D.comment,
+            padding: "2px 0",
           }}
         >
-          {entry.star ? "★" : "☆"}
+          <span
+            style={{
+              display: "inline-block",
+              width: 28,
+              height: 14,
+              borderRadius: 7,
+              background: entry.star ? D.yellow : D.currentLine,
+              position: "relative",
+              transition: "background 0.2s",
+            }}
+          >
+            <span
+              style={{
+                display: "inline-block",
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: entry.star ? D.bg : D.comment,
+                position: "absolute",
+                top: 2,
+                left: entry.star ? 16 : 2,
+                transition: "left 0.2s",
+              }}
+            />
+          </span>
+          {entry.star ? "★ L1" : "☆"}
         </span>
         {isHolding && (
           <span
