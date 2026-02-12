@@ -498,10 +498,18 @@ export default function ManagePage() {
       const resp = await fetch("/api/config", { cache: "no-store" });
       const data: MonitorConfig = await resp.json();
       setConfig(data);
+      const s = data.settings;
       setSettingsDraft({
-        poll_interval: String(data.settings.poll_interval ?? 30),
-        big_move_pct: String(data.settings.big_move_pct ?? 3),
-        cooldown_minutes: String(data.settings.cooldown_minutes ?? 10),
+        poll_interval: String(s.poll_interval ?? 30),
+        big_move_pct: String(s.big_move_pct ?? 3),
+        cooldown_minutes: String(s.cooldown_minutes ?? 10),
+        l1_trigger_pct: String(s.l1_trigger_pct ?? 4),
+        l1_delta_pct: String(s.l1_delta_pct ?? 3),
+        l1_cooldown_min: String(s.l1_cooldown_min ?? 5),
+        l2_trigger_pct: String(s.l2_trigger_pct ?? 6),
+        l2_delta_pct: String(s.l2_delta_pct ?? 5),
+        l2_cooldown_min: String(s.l2_cooldown_min ?? 15),
+        l3_cooldown_min: String(s.l3_cooldown_min ?? 30),
       });
     } catch {
       showToast("Failed to load config", "err");
@@ -693,7 +701,7 @@ export default function ManagePage() {
         {/* ── settings ── */}
         <SectionHeader># ── settings ──</SectionHeader>
         <div style={{ display: "flex", gap: 16, alignItems: "center", padding: "6px 0", flexWrap: "wrap" }}>
-          {(["poll_interval", "big_move_pct", "cooldown_minutes"] as const).map((key) => (
+          {(["poll_interval"] as const).map((key) => (
             <label key={key} style={{ display: "flex", alignItems: "center", gap: 6, color: D.comment }}>
               <span>{key}:</span>
               <input
@@ -707,6 +715,39 @@ export default function ManagePage() {
           ))}
           <button style={btnStyle} onClick={handleSaveSettings}>
             Save
+          </button>
+        </div>
+
+        {/* ── alert levels ── */}
+        <SectionHeader># ── alert levels ──</SectionHeader>
+        {([
+          { label: "L1 ★ Star", prefix: "l1", keys: ["trigger_pct", "delta_pct", "cooldown_min"], color: D.yellow },
+          { label: "L2 Holding", prefix: "l2", keys: ["trigger_pct", "delta_pct", "cooldown_min"], color: D.orange },
+          { label: "L3 Watching", prefix: "l3", keys: ["cooldown_min"], color: D.comment },
+        ] as const).map((tier) => (
+          <div key={tier.prefix} style={{ display: "flex", gap: 12, alignItems: "center", padding: "4px 0", flexWrap: "wrap" }}>
+            <span style={{ color: tier.color, fontWeight: 700, width: 100 }}>{tier.label}</span>
+            {tier.keys.map((k) => {
+              const fullKey = `${tier.prefix}_${k}`;
+              return (
+                <label key={fullKey} style={{ display: "flex", alignItems: "center", gap: 4, color: D.comment, fontSize: 12 }}>
+                  <span>{k}:</span>
+                  <input
+                    style={{ ...inputStyle, width: 50, fontSize: 12, padding: "2px 4px" }}
+                    type="number"
+                    step="any"
+                    value={settingsDraft[fullKey] ?? ""}
+                    onChange={(e) => setSettingsDraft((prev) => ({ ...prev, [fullKey]: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleSaveSettings(); }}
+                  />
+                </label>
+              );
+            })}
+          </div>
+        ))}
+        <div style={{ padding: "4px 0" }}>
+          <button style={{ ...btnStyle, fontSize: 12, padding: "3px 12px" }} onClick={handleSaveSettings}>
+            Save Levels
           </button>
         </div>
 
