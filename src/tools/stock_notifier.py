@@ -412,7 +412,10 @@ def write_alert_events(alerts: list[dict]):
         name = a.get("title", "").split(" ")[0] if a.get("title") else symbol
 
         # 中文可读格式
-        if kind == "threshold":
+        if kind == "l2_strategy":
+            # L2 信号自带 display（在 message 字段），直接使用
+            display = a.get("message", f"{symbol} L2 signal")
+        elif kind == "threshold":
             display = f"{symbol} {name} 触价告警 {a.get('message', '')}"
         elif kind == "portfolio":
             display = f"组合盈亏 {change_pct:+.1f}%"
@@ -798,9 +801,10 @@ def run():
     latest_hkd_cny_rate: float | None = None
 
     while running:
-        # Reset daily counter at midnight
+        # Reset daily at 08:00 (before market open)
         today = datetime.now().date()
-        if today != last_alert_date:
+        now_hour = datetime.now().hour
+        if today != last_alert_date and now_hour >= 8:
             daily_alerts = 0
             sent_open_today = False
             sent_close_today = False
@@ -808,6 +812,15 @@ def run():
             latest_hkd_cny_rate = None
             last_alert_date = today
             engine.reset()  # clear delta tracking for new day
+            # 清空 alert_events.json（新交易日重新开始）
+            try:
+                tmp = ALERT_EVENTS_PATH.with_suffix(".tmp")
+                with open(tmp, "w", encoding="utf-8") as f:
+                    json.dump({"events": [], "lastUpdated": int(time.time() * 1000)}, f)
+                tmp.replace(ALERT_EVENTS_PATH)
+                logger.info("每日重置: 已清空 alert_events.json")
+            except Exception as e:
+                logger.warning(f"清空 alert_events.json 失败: {e}")
             # Reload config at day boundary
             fresh_config = read_json_safe(MONITOR_CONFIG_PATH)
             if fresh_config is not None and "settings" in fresh_config and "watchlist" in fresh_config:

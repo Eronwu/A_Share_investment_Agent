@@ -118,6 +118,8 @@ class LargeOrderTracker:
         self.min_amount = min_amount
         # {code: last_processed_seq} — 避免重复处理同一笔
         self._last_seq: dict[str, int] = {}
+        # 首次调用只记录水位，不触发信号（跳过启动时的存量 tick）
+        self._warmed_up: set[str] = set()
 
     def check_tickers(self, code: str, tickers: list[dict]) -> list[dict]:
         """检查逐笔成交中是否有大单
@@ -128,8 +130,18 @@ class LargeOrderTracker:
                      每条: {sequence, turnover, volume, price, ...}
 
         Returns:
-            触发的信号列表
+            触发的信号列表（首次调用只 warmup，不触发）
         """
+        if not tickers:
+            return []
+
+        # 首次调用: 只记录最大 seq 水位，跳过存量 tick
+        if code not in self._warmed_up:
+            max_seq = max(t.get("sequence", 0) for t in tickers)
+            self._last_seq[code] = max_seq
+            self._warmed_up.add(code)
+            return []
+
         signals = []
         last_seq = self._last_seq.get(code, -1)
 
@@ -155,6 +167,7 @@ class LargeOrderTracker:
 
     def reset(self):
         self._last_seq.clear()
+        self._warmed_up.clear()
 
 
 class OrderBookTracker:
@@ -222,13 +235,14 @@ class DivergenceTracker:
         while q and q[0][0] < cutoff:
             q.popleft()
 
-        if len(q) < 3:
+        # 至少 10 个采样点（~30 秒）才开始判断，避免刚启动就误报
+        if len(q) < 10:
             return None
 
         max_price = max(p for _, p in q)
 
-        # 当前价 = 窗口最高 AND 主力净流出
-        if price >= max_price and main_net_inflow < 0:
+        # 当前价 = 窗口最高 AND 主力净流出显著（> 100 万）
+        if price >= max_price and main_net_inflow < -1_000_000:
             return {
                 "strategy": "volume_price_divergence",
                 "code": code,
@@ -529,7 +543,12 @@ class L2StrategyEngine:
                 amount = float(latest.get("in_flow", 0) or 0) + float(latest.get("out_flow", 0) or 0)
 
                 main_inflow = super_in + big_in
-                inflow_pct = (main_inflow / amount * 100) if amount != 0 else 0
+                # 成交额太小时占比无意义（开盘初期噪音）
+                MIN_AMOUNT_FOR_PCT = 5_000_000  # 500万
+                if abs(amount) >= MIN_AMOUNT_FOR_PCT:
+                    inflow_pct = (main_inflow / amount * 100)
+                else:
+                    inflow_pct = 0
 
                 result[code] = {
                     "mainNetInflow": round(main_inflow, 2),
@@ -574,8 +593,28 @@ class L2StrategyEngine:
 
         return result
 
+    def _is_continuous_trading(self) -> bool:
+        """判断是否在连续交易时段（排除竞价）
+
+        HK 连续交易: 09:30-12:00, 13:00-16:00
+        A-share 连续交易: 09:30-11:30, 13:00-15:00
+        竞价时段的聚合撮合成交不算大单。
+        """
+        now = datetime.now()
+        t = now.hour * 100 + now.minute
+        # HK continuous
+        if (930 <= t <= 1200) or (1300 <= t <= 1600):
+            return True
+        return False
+
     def _fetch_rt_tickers(self) -> dict[str, list[dict]]:
-        """获取已订阅股票的逐笔成交数据"""
+        """获取已订阅股票的逐笔成交数据
+
+        仅在连续交易时段获取，竞价时段跳过（竞价撮合是聚合成交，不是真正大单）。
+        """
+        if not self._is_continuous_trading():
+            return {}
+
         from futu import RET_OK
 
         result = {}

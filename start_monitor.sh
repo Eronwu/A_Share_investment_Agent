@@ -9,7 +9,7 @@ L2_DAEMON_PID="$DIR/.l2_daemon.pid"
 WEB_PID="$DIR/.web.pid"
 POLLER_LOG="$DIR/logs/poller.log"
 NOTIFIER_LOG="$DIR/logs/notifier.log"
-L2_DAEMON_LOG="$DIR/logs/l2_daemon.log"
+L2_DAEMON_LOG="$DIR/logs/l2_daemon_out.log"
 WEB_LOG="$DIR/logs/web.log"
 
 mkdir -p "$DIR/logs"
