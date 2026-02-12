@@ -249,14 +249,17 @@ class DeltaAlertEngine:
             alert_entry = self._alerts.get(symbol, {})
             above = alert_entry.get("above")
             below = alert_entry.get("below")
+            threshold_hit = False
             if above is not None and price >= above:
-                reasons.append("threshold")
+                threshold_hit = True
             if below is not None and price <= below:
-                reasons.append("threshold")
+                threshold_hit = True
 
             if prev is None:
-                # ── First notification: need |daily change%| >= trigger_pct ──
-                if is_holding and abs(change_pct) >= trigger_pct:
+                # ── First notification ──
+                if threshold_hit:
+                    reasons.append("threshold")
+                elif is_holding and abs(change_pct) >= trigger_pct:
                     reasons.append("big_move")
                 if not reasons:
                     continue
@@ -266,7 +269,10 @@ class DeltaAlertEngine:
                 if prev_price > 0:
                     delta = abs(price - prev_price) / prev_price * 100
                     if delta >= delta_pct:
-                        reasons.append("big_move")
+                        if threshold_hit:
+                            reasons.append("threshold")
+                        elif is_holding:
+                            reasons.append("big_move")
                 if not reasons:
                     continue
 
@@ -500,8 +506,8 @@ def stealth_dispatch(alerts: list[dict], *, sound: str = ""):
 
     Rules:
     - 0 alerts: do nothing
-    - 1~3 alerts: 1 notification, each alert a line
-    - 4+ alerts: 1 notification, top 3 + "and N more"
+    - 1~2 alerts: 1 notification, each alert a line
+    - 3+ alerts: 1 notification, top 2 + "+N more"
     - Portfolio summary is always a separate notification
     - No sound by default (discreet); sound="default" for critical only
     """
@@ -671,9 +677,9 @@ def _build_close_summary(
         _ae = _alert_data.get(symbol, {})
         above = _ae.get("above")
         below = _ae.get("below")
-        if above and price >= above:
+        if above is not None and price >= above:
             threshold_hits.append(f"  {name} 突破上限 {above}（现价 {price:.2f}）")
-        if below and price <= below:
+        if below is not None and price <= below:
             threshold_hits.append(f"  {name} 跌破下限 {below}（现价 {price:.2f}）")
 
     # ── Build message lines ──

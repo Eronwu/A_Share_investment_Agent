@@ -143,7 +143,7 @@ Hong Kong stocks use `HK` prefix (e.g., `HK09988`). The web metrics API strips t
 
 Lightweight macOS notification daemon. Reads poller output, never fetches data directly.
 
-**Data flow**: `market_data.json` (poller) + `monitor_config.json` (config) → DeltaAlertEngine → stealth_dispatch → terminal-notifier
+**Data flow**: `market_data.json` (poller) + `monitor_config.json` (config) + `alert_config.json` (thresholds) → DeltaAlertEngine → stealth_dispatch → terminal-notifier + `alert_events.json` → web
 
 **启动**: `./start_monitor.sh` 一键启动 Poller + Notifier + Web，或单独运行 `poetry run python src/tools/stock_notifier.py`。修改代码后必须重启进程（kill old pid → restart）。
 
@@ -157,7 +157,7 @@ Lightweight macOS notification daemon. Reads poller output, never fetches data d
 - **内容极简**: 只显示股票名称 + 涨跌幅% + 现价。不显示盈亏金额、持仓数量等敏感数据。
 - **Stealth 模式**: 通知标题伪装为 CI/监控系统（"CI Pipeline Alert"、"SRE Notification"），同事看到不会察觉是股票。
 - **无声为主**: 只有严重告警（跌幅 > 8% 或触价）才有提示音，其余静默弹窗。
-- **每日重置**: 午夜清除所有 delta 追踪状态，新交易日重新开始。
+- **每日重置**: 每天 8:00 清除所有 delta 追踪状态 + 清空 `alert_events.json`，新交易日重新开始。
 
 #### Settings (monitor_config.json → settings)
 

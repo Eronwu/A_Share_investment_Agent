@@ -157,8 +157,11 @@ export async function POST(request: Request) {
         if (data?.shares !== undefined) existing.shares = data.shares;
         if (data?.hidden !== undefined) existing.hidden = data.hidden;
 
-        if ((existing.cost != null || existing.shares != null) && existing.type !== "holding") {
-          existing.type = "holding";
+        // 自动提升为 holding：仅当用户未显式设置 type 且新增了 cost/shares 时
+        if (data?.type === undefined && (data?.cost != null || data?.shares != null)) {
+          if ((existing.cost != null || existing.shares != null) && existing.type !== "holding") {
+            existing.type = "holding";
+          }
         }
 
         config.watchlist[code] = existing;
