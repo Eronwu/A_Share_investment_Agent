@@ -76,7 +76,7 @@ do_start() {
   echo ""
   echo "全部后台运行中，可关闭终端。"
   echo "  查看状态: ./start_monitor.sh status"
-  echo "  查看日志: tail -f logs/poller.log logs/notifier.log logs/l2_daemon.log logs/web.log"
+  echo "  查看日志: tail -f logs/poller.log logs/notifier.log logs/l2_daemon_out.log logs/web.log"
   echo "  停止服务: ./start_monitor.sh stop"
 }
 
