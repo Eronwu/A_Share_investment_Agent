@@ -347,49 +347,25 @@ function StockRow({
             ↑ PROD
           </button>
         )}
-        {/* star toggle — available for all stocks */}
-        <span
+        {/* star toggle */}
+        <button
           onClick={() => onToggleStar(code, !entry.star)}
           title={entry.star ? "Remove L1 priority" : "Mark as L1 priority"}
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
+            background: entry.star ? D.yellow : "transparent",
+            border: `1px solid ${entry.star ? D.yellow : D.currentLine}`,
+            color: entry.star ? D.bg : D.comment,
             cursor: "pointer",
-            userSelect: "none",
+            fontSize: 13,
+            fontWeight: 700,
+            padding: "1px 8px",
+            borderRadius: 3,
             fontFamily: "JetBrains Mono, monospace",
-            fontSize: 10,
-            color: entry.star ? D.yellow : D.comment,
-            padding: "2px 0",
+            userSelect: "none",
           }}
         >
-          <span
-            style={{
-              display: "inline-block",
-              width: 28,
-              height: 14,
-              borderRadius: 7,
-              background: entry.star ? D.yellow : D.currentLine,
-              position: "relative",
-              transition: "background 0.2s",
-            }}
-          >
-            <span
-              style={{
-                display: "inline-block",
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                background: entry.star ? D.bg : D.comment,
-                position: "absolute",
-                top: 2,
-                left: entry.star ? 16 : 2,
-                transition: "left 0.2s",
-              }}
-            />
-          </span>
-          {entry.star ? "★ L1" : "☆"}
-        </span>
+          ★
+        </button>
         {isHolding && (
           <span
             onClick={() => onToggleHidden(code, !entry.hidden)}
