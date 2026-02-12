@@ -179,7 +179,7 @@
     },
     "600309": {
       "name": "万华化学",
-      "type": "holding",
+      "type": "watching",
       "cost": 88.078,
       "shares": 100
     },
@@ -359,7 +359,7 @@
     },
     "002050": {
       "name": "三花智控",
-      "type": "holding",
+      "type": "watching",
       "cost": 50.279,
       "shares": 300
     },
@@ -456,7 +456,7 @@
   },
   "settings": {
     "poll_interval": 30,
-    "big_move_pct": 4,
+    "big_move_pct": 5,
     "cooldown_minutes": 10
   }
 }
