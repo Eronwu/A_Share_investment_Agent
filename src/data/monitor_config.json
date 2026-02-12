@@ -5,14 +5,16 @@
       "type": "holding",
       "cost": 0.918,
       "shares": 1300,
-      "hidden": false
+      "hidden": false,
+      "star": false
     },
     "159227": {
       "name": "航空航天ETF",
       "type": "holding",
       "cost": 1.519,
       "shares": 2000,
-      "hidden": false
+      "hidden": false,
+      "star": false
     },
     "159326": {
       "name": "电网设备ETF",
