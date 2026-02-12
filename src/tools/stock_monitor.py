@@ -787,7 +787,7 @@ class TechnicalSignalEngine:
 # 3. macOS 通知
 # ══════════════════════════════════════════
 
-WEB_DASHBOARD_URL = "http://localhost:3120"
+WEB_DASHBOARD_URL = "http://localhost:3120/alerts"
 
 
 def notify(title: str, message: str, sound: str = "default", group: str = ""):
