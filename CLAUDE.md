@@ -78,10 +78,12 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
 **URL routing**: `/?tab=A`（A 股）、`/?tab=HK`（港股）。无参数时按时间自动选：15:00 前默认 A 股，15:00 后默认港股。Tab 切换同步更新 URL，刷新保持状态。
 
+**摘要栏按 tab 独立统计**：Nodes/holdings/up/down/throughput/avg_delta/P&L 全部按当前 tab 计算。A 股 tab 显示两市指数+成交额（SH/SZ/vol），HK tab 显示 FX 汇率。港股 P&L 自动乘汇率转 CNY。
+
 **Data flow**: 四文件分离，`/api/metrics` 负责合并。
 
 **Key hooks**:
-- `useCommand` — parses `svc add|update|rm|hide|unhide|ls|config|help` commands, manages terminal log entries. Returns `addLogs` for external log injection.
+- `useCommand` — parses `svc add|update|rm|hide|unhide|star|unstar|ls|config|help` commands, manages terminal log entries. Returns `addLogs` for external log injection.
 - `useAlerts` — 读取 notifier 写入的 `alert_events.json` 展示在 web 日志区，不做任何告警计算（纯消费者）。用 `display` 字段展示中文详细格式。
 
 **四文件职责分离**:
