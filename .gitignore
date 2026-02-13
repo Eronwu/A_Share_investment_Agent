@@ -97,3 +97,5 @@ src/data/macro_summary.json
 # playwright test results
 web/test-results/
 src/data/monitor_config.json
+web/tsconfig.tsbuildinfo
+.claude/agent-memory/
