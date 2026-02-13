@@ -121,9 +121,12 @@ function TabBar({ activeTab, onTabChange }: { activeTab: MarketTab; onTabChange:
         );
       })}
       <div style={{ flex: 1, background: "#21222c" }} />
-      <div style={{ padding: "5px 12px", color: D.comment, background: "#21222c" }}>
-        +
-      </div>
+      <a href="/alerts" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
+        alerts
+      </a>
+      <a href="/manage" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
+        manage
+      </a>
     </div>
   );
 }
