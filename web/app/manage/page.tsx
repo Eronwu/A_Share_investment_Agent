@@ -750,7 +750,8 @@ export default function ManagePage() {
           <span style={{ color: D.purple }}>{settingsOpen ? "▾" : "▸"}</span>
           {" "}# ── settings ──
         </div>
-        {settingsOpen && <div style={{ display: "flex", gap: 16, alignItems: "center", padding: "6px 0", flexWrap: "wrap" }}>
+        {settingsOpen && (<>
+        <div style={{ display: "flex", gap: 16, alignItems: "center", padding: "6px 0", flexWrap: "wrap" }}>
           {(["poll_interval"] as const).map((key) => (
             <label key={key} style={{ display: "flex", alignItems: "center", gap: 6, color: D.comment }}>
               <span>{key}:</span>
@@ -799,7 +800,8 @@ export default function ManagePage() {
           <button style={{ ...btnStyle, fontSize: 12, padding: "3px 12px" }} onClick={handleSaveSettings}>
             Save Levels
           </button>
-        </div>}
+        </div>
+        </>)}
 
         {/* ── prod:A股个股 ── */}
         {prodStock.length > 0 && (
