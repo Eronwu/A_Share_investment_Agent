@@ -94,4 +94,3 @@ src/data/macro_summary.json
 # playwright test results
 web/test-results/
 web/tsconfig.tsbuildinfo
-src/data/l2_strategy_signals.json
