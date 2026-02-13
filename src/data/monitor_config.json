@@ -321,7 +321,8 @@
       "name": "澜起科技",
       "type": "holding",
       "cost": 146.1,
-      "shares": 100
+      "shares": 100,
+      "star": true
     },
     "HK01060": {
       "name": "大麦娱乐",
@@ -453,7 +454,8 @@
       "name": "兆易创新",
       "type": "holding",
       "cost": 305.999,
-      "shares": 100
+      "shares": 100,
+      "star": true
     }
   },
   "settings": {

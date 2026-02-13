@@ -74,6 +74,29 @@
       "persistence_ratio": 0.80,
       "recent_consistent": 3,
       "cooldown_minutes": 120
+    },
+    "institutional_retail_divergence": {
+      "enabled": true,
+      "description": "散户机构分歧(主力进散户出/主力出散户进)",
+      "institutional_min": 10000000,
+      "retail_min": 5000000,
+      "cooldown_minutes": 30
+    },
+    "large_order_reversal": {
+      "enabled": true,
+      "description": "大单方向翻转(BUY→SELL或反向)",
+      "min_prior_count": 2,
+      "min_recent_count": 3,
+      "min_net_amount": 10000000,
+      "cooldown_minutes": 120
+    },
+    "closing_surge": {
+      "enabled": true,
+      "description": "尾盘信号密度异常(预测次日开盘方向)",
+      "closing_start_time": "15:30",
+      "min_signal_count": 5,
+      "density_ratio": 2.5,
+      "cooldown_minutes": 60
     }
   },
   "scoring": {

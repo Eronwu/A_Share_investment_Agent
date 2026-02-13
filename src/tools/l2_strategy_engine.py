@@ -8,15 +8,20 @@ L2 Strategy Engine — 基于 Futu OpenD 实时数据的策略信号检测
   4. volume_price_divergence — 量价背离（价格新高 + 主力资金净流出）
   5. tick_imbalance          — 主买主卖失衡（5分钟窗口逐笔方向累积）
 
-2 个 session 级别信号:
+5 个 session 级别信号:
   6. momentum_alert          — 动量确认（持续大单买入 + 价格上涨 + 资金流入 + 无背离）
   7. volume_accel_alert      — 放量加速（成交额阶梯翻倍 + tick持续偏买，捕捉算法拆单拉升）
+  8. tick_persistence        — 主买/主卖持续（session 内 tick 方向偏压 ≥80%）
+  9. institutional_retail_divergence — 散户机构分歧（主力进散户出/反向）
+ 10. large_order_reversal    — 大单翻转（prior BUY → recent SELL 或反向）
+ 11. closing_surge           — 尾盘异动（15:30+ 信号密度 ≥2.5x 盘中均值）
 
-复合评分（加权）:
+Bearish mirrors: momentum_sell_alert, volume_accel_sell_alert
+
+复合评分（加权，每策略类型最多贡献 1 次权重）:
   tick_imbalance=3, large_order=2, volume_price_divergence=2,
   capital_flow_spike=1, order_book_imbalance=1
   加权分 ≥5 且 ≥2 种策略同向 → 复合信号（弹通知）
-  momentum_alert 独立评估，不参与复合评分
 
 设计原则:
   - 复用 futu_enricher.py 的懒连接/降级模式
@@ -630,6 +635,59 @@ class TickPersistenceTracker:
 
 
 # ══════════════════════════════════════════
+# Institutional Retail Divergence Tracker
+# ══════════════════════════════════════════
+
+class InstitutionalRetailTracker:
+    """策略: 散户机构分歧 — 主力进散户出 / 主力出散户进
+
+    检测逻辑:
+      Bullish: institutional(super+big) > institutional_min AND retail(sml) < -retail_min
+      Bearish: institutional < -institutional_min AND retail > retail_min
+    """
+
+    def __init__(self, institutional_min: float = 10_000_000,
+                 retail_min: float = 5_000_000):
+        self.institutional_min = institutional_min
+        self.retail_min = retail_min
+
+    def evaluate(self, code: str, capital_data: dict) -> Optional[dict]:
+        """评估单只股票的散户机构分歧"""
+        data = capital_data.get(code)
+        if not data:
+            return None
+
+        institutional = data.get("superNetInflow", 0) + data.get("bigNetInflow", 0)
+        retail = data.get("retailNetInflow", 0)
+
+        if institutional > self.institutional_min and retail < -self.retail_min:
+            return {
+                "strategy": "institutional_retail_divergence",
+                "code": code,
+                "detail": {
+                    "direction": "bullish",
+                    "institutional_net": round(institutional, 0),
+                    "retail_net": round(retail, 0),
+                    "super_net": round(data.get("superNetInflow", 0), 0),
+                    "big_net": round(data.get("bigNetInflow", 0), 0),
+                },
+            }
+        elif institutional < -self.institutional_min and retail > self.retail_min:
+            return {
+                "strategy": "institutional_retail_divergence",
+                "code": code,
+                "detail": {
+                    "direction": "bearish",
+                    "institutional_net": round(institutional, 0),
+                    "retail_net": round(retail, 0),
+                    "super_net": round(data.get("superNetInflow", 0), 0),
+                    "big_net": round(data.get("bigNetInflow", 0), 0),
+                },
+            }
+        return None
+
+
+# ══════════════════════════════════════════
 # Session Accumulator — 开盘至今多空研判
 # ══════════════════════════════════════════
 
@@ -705,11 +763,15 @@ class SessionAccumulator:
             self._large_order_totals[code] = {
                 "buy_count": 0, "sell_count": 0,
                 "buy_amount": 0.0, "sell_amount": 0.0,
+                "orders": [],
             }
 
         totals = self._large_order_totals[code]
         direction = detail.get("direction", "")
         amount = float(detail.get("amount", 0))
+
+        # Track order time series for reversal detection
+        totals["orders"].append((time.time(), direction, amount))
 
         if direction == "BUY":
             totals["buy_count"] += 1
@@ -807,6 +869,7 @@ class SessionAccumulator:
                     "sell_amount": lo["sell_amount"],
                     "net_amount": lo_net,
                     "direction_score": lo_score,
+                    "orders": lo.get("orders", []),
                 },
                 "capital_flow": {
                     "main_net_inflow": cf["main_net_inflow"],
@@ -890,6 +953,8 @@ def _infer_direction(raw: dict) -> str:
         return "neutral"
     elif strategy == "tick_imbalance":
         return "bullish" if detail.get("imbalance", 0) > 0 else "bearish"
+    elif strategy in ("institutional_retail_divergence", "large_order_reversal", "closing_surge"):
+        return detail.get("direction", "neutral")
     return "neutral"
 
 
@@ -960,18 +1025,20 @@ class SignalScorer:
             if now - self._last_notify.get(code, 0) < self.COOLDOWN_SEC:
                 continue
 
-            # 按方向统计加权分 + 策略类型
-            bearish_score = 0
-            bullish_score = 0
+            # 按方向统计加权分 + 策略类型（每策略类型最多贡献 1 次权重）
+            bearish_by_type: dict[str, int] = {}
+            bullish_by_type: dict[str, int] = {}
             bearish_types: set[str] = set()
             bullish_types: set[str] = set()
             for _, strategy, direction, weight in events:
                 if direction == "bearish":
-                    bearish_score += weight
+                    bearish_by_type[strategy] = max(bearish_by_type.get(strategy, 0), weight)
                     bearish_types.add(strategy)
                 elif direction == "bullish":
-                    bullish_score += weight
+                    bullish_by_type[strategy] = max(bullish_by_type.get(strategy, 0), weight)
                     bullish_types.add(strategy)
+            bearish_score = sum(bearish_by_type.values())
+            bullish_score = sum(bullish_by_type.values())
 
             if (bearish_score >= self._composite_threshold
                     and len(bearish_types) >= self._min_strategy_types):
@@ -1024,6 +1091,9 @@ _STRATEGY_NAMES = {
     "momentum_sell_alert": "动量卖出",
     "volume_accel_sell_alert": "放量砸盘",
     "tick_persistence": "主买持续",
+    "institutional_retail_divergence": "散户机构分歧",
+    "large_order_reversal": "大单翻转",
+    "closing_surge": "尾盘异动",
 }
 
 
@@ -1140,6 +1210,31 @@ def format_signal(raw: dict, name_map: dict[str, str], *, notify: bool = False,
             f"tick{dir_label}率{ratio_pct:.0f}%({dominant_count}/{total}窗口) | "
             f"平均imb={avg_imb:.3f}"
         )
+    elif strategy == "institutional_retail_divergence":
+        dir_label = "主力进散户出" if detail.get("direction") == "bullish" else "主力出散户进"
+        inst_wan = detail.get("institutional_net", 0) / 10000
+        retail_wan = detail.get("retail_net", 0) / 10000
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"{dir_label} | 机构净{inst_wan:+.0f}万 散户净{retail_wan:+.0f}万"
+        )
+    elif strategy == "large_order_reversal":
+        dir_label = "翻多" if detail.get("direction") == "bullish" else "翻空"
+        prior_label = detail.get("prior_direction", "")
+        recent_label = detail.get("recent_direction", "")
+        net_wan = detail.get("recent_net_amount", 0) / 10000
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"大单{dir_label}({prior_label}→{recent_label}) | 近期净额{net_wan:+.0f}万"
+        )
+    elif strategy == "closing_surge":
+        dir_label = "偏多" if detail.get("direction") == "bullish" else "偏空"
+        closing_count = detail.get("closing_count", 0)
+        ratio = detail.get("density_ratio", 0)
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"尾盘信号{closing_count}条(密度{ratio:.1f}x) {dir_label}"
+        )
     elif strategy in ("composite_bearish", "composite_bullish"):
         signals_cn = [_STRATEGY_NAMES.get(s, s) for s in detail.get("signals", [])]
         score = detail.get("score", 0)
@@ -1158,6 +1253,9 @@ def format_signal(raw: dict, name_map: dict[str, str], *, notify: bool = False,
         if price > 0 and prev_close > 0:
             chg = (price - prev_close) / prev_close * 100
             ctx_parts.append(f"日{'涨' if chg >= 0 else '跌'}{chg:+.1f}%")
+        vol_ratio = snap.get("volumeRatio", 0)
+        if vol_ratio and vol_ratio > 1.5:
+            ctx_parts.append(f"量比{vol_ratio:.1f}")
         cap = (capital_data or {}).get(code, {})
         inflow = cap.get("mainNetInflow", 0)
         if abs(inflow) >= 1_000_000:  # only show if >= 100万
@@ -1287,7 +1385,16 @@ class L2StrategyEngine:
             recent_consistent=tp_cfg.get("recent_consistent", 3),
         )
 
+        ird_cfg = s.get("institutional_retail_divergence", {})
+        self._inst_retail = InstitutionalRetailTracker(
+            institutional_min=ird_cfg.get("institutional_min", 10_000_000),
+            retail_min=ird_cfg.get("retail_min", 5_000_000),
+        )
+
         self._session = SessionAccumulator()
+
+        # Signal timestamps for closing_surge (code -> [timestamp, ...])
+        self._signal_timestamps: dict[str, list[float]] = {}
 
     # ── Connection management ──
 
@@ -1386,6 +1493,7 @@ class L2StrategyEngine:
                 latest = data.iloc[-1]
                 super_in = float(latest.get("super_in_flow", 0) or 0)
                 big_in = float(latest.get("big_in_flow", 0) or 0)
+                mid_in = float(latest.get("mid_in_flow", 0) or 0)
                 sml_in = float(latest.get("sml_in_flow", 0) or 0)
                 amount = float(latest.get("in_flow", 0) or 0) + float(latest.get("out_flow", 0) or 0)
 
@@ -1401,6 +1509,9 @@ class L2StrategyEngine:
                     "mainNetInflow": round(main_inflow, 2),
                     "mainNetInflowPct": round(inflow_pct, 2),
                     "retailNetInflow": round(sml_in, 2),
+                    "superNetInflow": round(super_in, 2),
+                    "bigNetInflow": round(big_in, 2),
+                    "midNetInflow": round(mid_in, 2),
                 }
             except Exception as e:
                 logger.debug(f"capital_flow({code}) error: {e}")
@@ -1436,6 +1547,18 @@ class L2StrategyEngine:
                 prev_close = row.get("prev_close_price")
                 if prev_close is not None and prev_close > 0:
                     entry["prevClose"] = float(prev_close)
+                volume_ratio = row.get("volume_ratio")
+                if volume_ratio is not None:
+                    entry["volumeRatio"] = round(float(volume_ratio), 2)
+                amplitude = row.get("amplitude")
+                if amplitude is not None:
+                    entry["amplitude"] = round(float(amplitude), 2)
+                avg_price = row.get("avg_price")
+                if avg_price is not None and avg_price > 0:
+                    entry["avgPrice"] = float(avg_price)
+                turnover_rate = row.get("turnover_rate")
+                if turnover_rate is not None:
+                    entry["turnoverRate"] = round(float(turnover_rate), 2)
                 if entry:
                     result[code] = entry
         except Exception as e:
@@ -1731,6 +1854,134 @@ class L2StrategyEngine:
             },
         }
 
+    # ── Large order reversal ──
+
+    def _evaluate_large_order_reversal(self, code: str, session_data: dict) -> Optional[dict]:
+        """检测大单方向翻转: prior 净方向 != recent 净方向 AND |recent 净额| >= min_net_amount"""
+        cfg = self._strategies.get("large_order_reversal", {})
+        if not cfg.get("enabled", True):
+            return None
+
+        sess = session_data.get(code)
+        if not sess:
+            return None
+
+        orders = sess.get("large_order", {}).get("orders", [])
+        min_prior = cfg.get("min_prior_count", 2)
+        min_recent = cfg.get("min_recent_count", 3)
+        min_net_amount = cfg.get("min_net_amount", 10_000_000)
+
+        if len(orders) < min_prior + min_recent:
+            return None
+
+        prior_orders = orders[:len(orders) - min_recent]
+        recent_orders = orders[-min_recent:]
+
+        # Calculate net amounts
+        def net_direction(order_list):
+            net = 0.0
+            for _, direction, amount in order_list:
+                if direction == "BUY":
+                    net += amount
+                elif direction == "SELL":
+                    net -= amount
+            return net
+
+        prior_net = net_direction(prior_orders)
+        recent_net = net_direction(recent_orders)
+
+        # Direction must flip AND recent must be significant
+        if abs(recent_net) < min_net_amount:
+            return None
+
+        prior_dir = "BUY" if prior_net > 0 else "SELL"
+        recent_dir = "BUY" if recent_net > 0 else "SELL"
+
+        if prior_dir == recent_dir:
+            return None
+
+        direction = "bullish" if recent_dir == "BUY" else "bearish"
+
+        return {
+            "strategy": "large_order_reversal",
+            "code": code,
+            "detail": {
+                "direction": direction,
+                "prior_direction": prior_dir,
+                "recent_direction": recent_dir,
+                "prior_net_amount": round(prior_net, 0),
+                "recent_net_amount": round(recent_net, 0),
+                "prior_count": len(prior_orders),
+                "recent_count": len(recent_orders),
+            },
+        }
+
+    # ── Closing surge ──
+
+    def _evaluate_closing_surge(self, code: str) -> Optional[dict]:
+        """尾盘信号密度异常: 最后30分钟信号密度 vs 盘中平均"""
+        cfg = self._strategies.get("closing_surge", {})
+        if not cfg.get("enabled", True):
+            return None
+
+        # Only check after closing_start_time (default 15:30)
+        start_str = cfg.get("closing_start_time", "15:30")
+        start_h, start_m = map(int, start_str.split(":"))
+        now = datetime.now()
+        if now.hour * 100 + now.minute < start_h * 100 + start_m:
+            return None
+
+        timestamps = self._signal_timestamps.get(code, [])
+        if not timestamps:
+            return None
+
+        # Closing window: last 30 minutes
+        closing_cutoff = time.time() - 1800
+        closing_signals = [t for t in timestamps if t >= closing_cutoff]
+        closing_count = len(closing_signals)
+
+        min_signal_count = cfg.get("min_signal_count", 5)
+        if closing_count < min_signal_count:
+            return None
+
+        # Intraday average per 30-min window
+        if len(timestamps) <= closing_count:
+            return None  # All signals are in closing window, no baseline
+
+        total = len(timestamps)
+        first_ts = timestamps[0]
+        elapsed_sec = time.time() - first_ts
+        elapsed_windows = max(elapsed_sec / 1800, 1)
+        intraday_avg = (total - closing_count) / max(elapsed_windows - 1, 1)
+
+        if intraday_avg <= 0:
+            return None
+
+        density_ratio = closing_count / intraday_avg
+        min_ratio = cfg.get("density_ratio", 2.5)
+        if density_ratio < min_ratio:
+            return None
+
+        # Check if closing signals include large_order (from signal_timestamps we only have timestamps,
+        # so we check session accumulator for recent large orders in closing window)
+        # Simplified: just require density + count conditions
+
+        # Direction: use session direction as proxy
+        direction = "neutral"
+        # We'll set this from caller context
+
+        return {
+            "strategy": "closing_surge",
+            "code": code,
+            "detail": {
+                "direction": direction,
+                "closing_count": closing_count,
+                "intraday_avg": round(intraday_avg, 1),
+                "density_ratio": round(density_ratio, 1),
+                "total_signals": total,
+            },
+        }
+
     # ── Main detection loop ──
 
     def poll_once(self) -> tuple[list[dict], dict]:
@@ -1902,6 +2153,43 @@ class L2StrategyEngine:
                     self._cooldown.record("tick_persistence", code)
                     signals.append(format_signal(sig, self._name_map, notify=True, snapshot_data=snapshot_data, capital_data=capital_data))
 
+        # ── 9. Institutional retail divergence ──
+        if self._strategies.get("institutional_retail_divergence", {}).get("enabled", True):
+            for code in self._hk_holdings:
+                sig = self._inst_retail.evaluate(code, capital_data)
+                if sig and self._cooldown.can_trigger("institutional_retail_divergence", code):
+                    self._cooldown.record("institutional_retail_divergence", code)
+                    signals.append(format_signal(sig, self._name_map, notify=False, snapshot_data=snapshot_data, capital_data=capital_data))
+
+        # ── 10. Large order reversal ──
+        if self._strategies.get("large_order_reversal", {}).get("enabled", True):
+            for code in self._hk_holdings:
+                sig = self._evaluate_large_order_reversal(code, session_snapshot)
+                if sig and self._cooldown.can_trigger("large_order_reversal", code):
+                    self._cooldown.record("large_order_reversal", code)
+                    signals.append(format_signal(sig, self._name_map, notify=True, snapshot_data=snapshot_data, capital_data=capital_data))
+
+        # ── Track signal timestamps for closing_surge ──
+        now_ts = time.time()
+        for s in signals:
+            code = s.get("code", "")
+            if code:
+                if code not in self._signal_timestamps:
+                    self._signal_timestamps[code] = []
+                self._signal_timestamps[code].append(now_ts)
+
+        # ── 11. Closing surge ──
+        if self._strategies.get("closing_surge", {}).get("enabled", True):
+            for code in self._hk_holdings:
+                sig = self._evaluate_closing_surge(code)
+                if sig and self._cooldown.can_trigger("closing_surge", code):
+                    # Set direction from session
+                    sess_dir = session_snapshot.get(code, {}).get("direction", "neutral")
+                    if sess_dir != "neutral":
+                        sig["detail"]["direction"] = sess_dir
+                    self._cooldown.record("closing_surge", code)
+                    signals.append(format_signal(sig, self._name_map, notify=True, snapshot_data=snapshot_data, capital_data=capital_data))
+
         # Feed raw signals to scorer and evaluate composite verdicts
         if accepted_raw:
             self._scorer.feed(accepted_raw)
@@ -1931,4 +2219,5 @@ class L2StrategyEngine:
         self._cooldown.reset()
         self._scorer.reset()
         self._session.reset()
+        self._signal_timestamps.clear()
         logger.info("L2 strategy engine daily reset complete")

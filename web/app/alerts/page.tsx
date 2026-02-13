@@ -40,6 +40,12 @@ function getL2Label(e: AlertEvent): { label: string; color: string } | null {
     return { label: "COMPOSITE", color: D.yellow };
   if (d.includes("主买持续") || d.includes("主卖持续"))
     return { label: "PERSIST", color: D.pink };
+  if (d.includes("散户机构"))
+    return { label: "INST_FLOW", color: D.orange };
+  if (d.includes("大单翻转"))
+    return { label: "REVERSAL", color: D.red };
+  if (d.includes("尾盘异动"))
+    return { label: "CLOSING", color: D.yellow };
   return null; // fallback to default L2_SIGNAL
 }
 

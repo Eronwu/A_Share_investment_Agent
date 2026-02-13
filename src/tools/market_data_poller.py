@@ -58,6 +58,9 @@ def fetch_realtime_with_fallback(symbols: list[str]) -> list[dict]:
         if price <= 0:
             continue  # 盘前返回 0，跳过以保留旧数据
         pct = q.get("change_pct", 0)
+        # 港股盘前: price==prevClose 且 pct==0，跳过以保留昨日收盘涨跌
+        if pct == 0 and prev > 0 and abs(price - prev) < 0.001:
+            continue
         chg = price - prev if prev > 0 and price > 0 else 0
         results.append({
             "code": sym,
