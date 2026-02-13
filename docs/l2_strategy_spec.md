@@ -802,15 +802,147 @@ src/
 
 ### 6.2 Optimization Ideas
 
-| Priority | Idea | Expected Impact |
-|----------|------|-----------------|
-| P0 | 每策略权重最多贡献一次（cap per strategy type） | 消除 L2，评分更反映信号多样性 |
-| P1 | Order book 改为滑动窗口均值对比 | 降低 L5 噪音，提升 order_book 权重可信度 |
-| P1 | 加入 VWAP 偏离策略（价格偏离 VWAP > N%） | 新信号源，增强复合研判维度 |
-| P2 | Tick imbalance 动态阈值（根据历史波动率调整） | 适应不同波动率环境 |
-| P2 | 加入成交量加速检测（Volume Acceleration） | 捕捉放量信号 |
-| P3 | Backtest framework for L2 signals | 量化各策略历史胜率 |
-| P3 | 引入 regime filter（趋势/震荡市区分） | 不同市场环境使用不同权重 |
+| Priority | Idea | Expected Impact | Status |
+|----------|------|-----------------|--------|
+| P0 | 每策略权重最多贡献一次（cap per strategy type） | 消除 L2，评分更反映信号多样性 | |
+| P1 | Order book 改为滑动窗口均值对比 | 降低 L5 噪音，提升 order_book 权重可信度 | |
+| P1 | 加入 VWAP 偏离策略（价格偏离 VWAP > N%） | 新信号源，增强复合研判维度 | |
+| P2 | Tick imbalance 动态阈值（根据历史波动率调整） | 适应不同波动率环境 | |
+| ~~P2~~ | ~~加入成交量加速检测（Volume Acceleration）~~ | ~~捕捉放量信号~~ | Done → `volume_accel_alert` |
+| P2 | vol_price_div 动态阈值: `max(-100万, -日均成交额×2%)` | 消除小盘股假背离噪音（美图/布鲁可/众安每天刷5条） | |
+| P3 | Backtest framework for L2 signals | 量化各策略历史胜率 | |
+| P3 | 引入 regime filter（趋势/震荡市区分） | 不同市场环境使用不同权重 | |
+
+### 6.3 Planned Strategies (基于 2025-02-12 信号数据分析)
+
+> 以下 3 个策略由 quant-engineer agent 从当日 200 条信号中发现的模式提出。
+> 按实施优先级排序。
+
+#### Strategy 8: Tick 方向一致性异常 (`tick_persistence`) — P0
+
+**中文名**: 主买持续
+**决策价值**: 捕捉"低涨幅静默吸筹" — 机构不拉升价格但持续买入（`volume_accel_alert` 因日涨幅门槛 3% 会漏掉）
+
+**模式来源**: HK03896 武岳峰 tick 正向率 93%（14/15 窗口偏买，持续 2 小时），日涨仅 0.75%。HK03986 兆易创新 tick 正向率 92% + 盘口 7 次震荡掩护。
+
+**触发条件**:
+```
+session 内已触发的 tick_imbalance 信号数 >= min_tick_signals (8)
+AND 同方向信号占比 >= persistence_ratio (0.80)
+AND 最近 recent_consistent (3) 个 tick 信号与主方向一致
+```
+
+**参数**:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `min_tick_signals` | 8 | 最少 tick 信号数（确保样本量） |
+| `persistence_ratio` | 0.80 | 同方向占比阈值 |
+| `recent_consistent` | 3 | 最近 N 个信号须一致（排除尾部反转） |
+| `cooldown_minutes` | 120 | 冷却 |
+
+**实现要点**:
+- 新增 `TickPersistenceTracker` 类，feed 来自 tick_imbalance 信号（冷却后）
+- 只统计方向，不需要新 API 调用
+- `notify=true`，session 级别高置信度信号
+- 方向 = `dominant_direction`
+
+**Display**: `HK03896 武岳峰 主买持续: tick正向率93%(14/15窗口) | 平均imb=+0.58 | 最近3窗口一致`
+
+**验证数据** (2025-02-12):
+
+| 股票 | tick 信号数 | 正向率 | 最近3一致 | 触发? |
+|------|-----------|--------|----------|-------|
+| HK03896 武岳峰 | 15 | 93% | YES | **YES** |
+| HK03986 兆易创新 | 12 | 92% | YES | **YES** |
+| HK06809 澜起科技 | 7 | 100% | YES | NO (信号数<8) |
+| HK01810 小米 | 10 | 40% | NO | NO |
+| HK01211 比亚迪 | 10 | 60% | NO | NO |
+
+---
+
+#### Strategy 9: 大单方向翻转 (`large_order_reversal`) — P1
+
+**中文名**: 大单翻转
+**决策价值**: 为 `composite_bullish` 提供"修正信号" — 当大单方向在 session 内从持续买入翻转为持续卖出，发出 bearish 警告
+
+**模式来源**: HK09988 阿里巴巴 14:28-14:44 连续 2 笔 BUY（1517万），14:45 触发 composite_bullish。但 14:55 起连续 5 笔 SELL（3343万），方向完全翻转。现有系统无修正机制。
+
+**触发条件**:
+```
+session 内所有 large_order 按时间排序
+prior_orders (前序) 笔数 >= min_prior_count (2)
+AND recent_orders (最近窗口) 笔数 >= min_recent_count (3)
+AND prior 净方向 != recent 净方向 (方向翻转)
+AND |recent 净额| >= min_net_amount (10,000,000)
+```
+
+**参数**:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `min_prior_count` | 2 | 前序最少大单数 |
+| `min_recent_count` | 3 | 最近窗口最少大单数 |
+| `min_net_amount` | 10,000,000 | 最近窗口净额绝对值最低阈值 |
+| `cooldown_minutes` | 120 | 冷却 |
+
+**实现要点**:
+- 复用 `SessionAccumulator` 的 large_order 累积数据，加时间序列排序
+- 翻转方向 = recent 净方向（BUY→SELL = bearish, SELL→BUY = bullish）
+- `notify=true`，高优先级警告信号
+
+**Display**: `HK09988 阿里巴巴 大单翻转: BUY→SELL | 前序2笔净买1517万 → 最近5笔净卖3343万`
+
+**验证数据** (2025-02-12):
+
+| 股票 | Prior | Recent | 翻转? | 触发? |
+|------|-------|--------|-------|-------|
+| HK09988 阿里巴巴 | 2笔BUY 1517万 | 5笔SELL -3343万 | BUY→SELL | **YES** |
+| HK00700 腾讯 | 全天偏BUY | 全天偏BUY | 无翻转 | NO |
+| HK01810 小米 | 交替出现 | 无一致方向 | N/A | NO |
+
+---
+
+#### Strategy 10: 尾盘异动 (`closing_surge`) — P1
+
+**中文名**: 尾盘异动
+**决策价值**: 检测最后 30 分钟信号密度暴增 — 预测次日开盘方向（HK T+0 可当日交易）
+
+**模式来源**: HK00700 腾讯 15:30-16:00 有 12 条信号（盘中每 30min 平均 3.3 条，密度比 3.6x）。HK01357 美图全天安静，15:57 突发 3 信号（大单+tick+composite）。
+
+**触发条件**:
+```
+时间在 closing_start_time (15:30) - 16:00 HKT
+AND 最近 30 分钟该股 raw_signal 数量 >= closing_signal_count_min (5)
+AND 尾盘信号数 / 盘中每 30min 平均信号数 >= closing_density_ratio (2.5)
+AND 尾盘窗口内包含 large_order 信号
+```
+
+**参数**:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `closing_window_minutes` | 30 | 尾盘窗口长度 |
+| `closing_start_time` | "15:30" | 尾盘起始时间 (HKT) |
+| `closing_signal_count_min` | 5 | 尾盘最少信号数 |
+| `closing_density_ratio` | 2.5 | 尾盘/盘中信号密度比 |
+| `cooldown_minutes` | 60 | 冷却 |
+
+**实现要点**:
+- 需要在引擎层面维护 per-stock 信号计数 + 时间分布
+- 方向 = 尾盘 large_order BUY/SELL 比例推断
+- `notify=true`，为次日开盘决策提供参考
+
+**Display**: `HK00700 腾讯 尾盘异动: 信号密度3.6x(12条/30min vs 盘中3.3条) | 大单BUY 5笔 SELL 1笔 → bullish`
+
+**验证数据** (2025-02-12):
+
+| 股票 | 尾盘信号 | 盘中均值 | 密度比 | 含大单 | 触发? |
+|------|---------|---------|--------|--------|-------|
+| HK00700 腾讯 | 12 | 3.3 | 3.6x | YES | **YES** |
+| HK01810 小米 | 9 | 3.0 | 3.0x | YES | **YES** |
+| HK01357 美图 | 4 | 1.0 | 4.0x | YES | NO (信号数<5) |
+| HK03986 兆易 | 5 | 2.8 | 1.8x | YES | NO (密度比<2.5) |
 
 ---
 
