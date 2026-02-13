@@ -522,38 +522,38 @@ function Home() {
 
           const holdHeader = (
             <div style={{ display: "flex", whiteSpace: "pre", color: D.pink, borderBottom: `1px solid ${D.currentLine}`, paddingBottom: 3, marginBottom: 2, fontWeight: 500 }}>
-              <span style={{ width: "6ch" }}> TYPE</span>
-              <span style={hs("10ch", "id")} onClick={() => ht("id")}>CODE{ha("id")}</span>
-              <span style={{ width: "10ch" }}>NAME</span>
-              <span style={hs("10ch", "price", true)} onClick={() => ht("price")}>{pad("PRICE" + ha("price"), 9, true)}</span>
-              <span style={hs("9ch", "change", true)} onClick={() => ht("change")}>{pad("CHG%" + ha("change"), 8, true)}</span>
-              <span style={hs("9ch", "cost", true)} onClick={() => ht("cost")}>{pad("COST" + ha("cost"), 8, true)}</span>
-              <span style={hs("10ch", "pnl", true)} onClick={() => ht("pnl")}>{pad("P&L%" + ha("pnl"), 9, true)}</span>
-              <span style={hs("10ch", "mktVal", true)} onClick={() => ht("mktVal")}>{pad("MKT_VAL" + ha("mktVal"), 9, true)}</span>
-              <span style={hs("10ch", "totalPnl", true)} onClick={() => ht("totalPnl")}>{pad("P&L¥" + ha("totalPnl"), 9, true)}</span>
-              <span style={hs("9ch", "chgAmt", true)} onClick={() => ht("chgAmt")}>{pad("TODAY" + ha("chgAmt"), 8, true)}</span>
-              <span style={hs("7ch", "volRatio", true)} onClick={() => ht("volRatio")}>{pad("VRATIO" + ha("volRatio"), 6, true)}</span>
-              <span style={hs("8ch", "turnover", true)} onClick={() => ht("turnover")}>{pad("TURN%" + ha("turnover"), 7, true)}</span>
-              <span style={hs("9ch", "amount", true)} onClick={() => ht("amount")}>{pad("AMOUNT" + ha("amount"), 8, true)}</span>
-              <span style={hs("9ch", "mainNetInflow" as SortKey, true)} onClick={() => ht("mainNetInflow" as SortKey)}>{pad("FLOW" + ha("mainNetInflow" as SortKey), 8, true)}</span>
-              <span style={hs("7ch", "mainNetInflowPct" as SortKey, true)} onClick={() => ht("mainNetInflowPct" as SortKey)}>{pad("FL%" + ha("mainNetInflowPct" as SortKey), 6, true)}</span>
+              <span style={{ width: "6ch" }}> 类型</span>
+              <span style={hs("10ch", "id")} onClick={() => ht("id")}>代码{ha("id")}</span>
+              <span style={{ width: "10ch" }}>名称</span>
+              <span style={hs("10ch", "price", true)} onClick={() => ht("price")}>{pad("现价" + ha("price"), 9, true)}</span>
+              <span style={hs("9ch", "change", true)} onClick={() => ht("change")}>{pad("涨跌幅" + ha("change"), 8, true)}</span>
+              <span style={hs("9ch", "cost", true)} onClick={() => ht("cost")}>{pad("成本" + ha("cost"), 8, true)}</span>
+              <span style={hs("10ch", "pnl", true)} onClick={() => ht("pnl")}>{pad("盈亏%" + ha("pnl"), 9, true)}</span>
+              <span style={hs("10ch", "mktVal", true)} onClick={() => ht("mktVal")}>{pad("市值" + ha("mktVal"), 9, true)}</span>
+              <span style={hs("10ch", "totalPnl", true)} onClick={() => ht("totalPnl")}>{pad("盈亏额" + ha("totalPnl"), 9, true)}</span>
+              <span style={hs("9ch", "chgAmt", true)} onClick={() => ht("chgAmt")}>{pad("今日" + ha("chgAmt"), 8, true)}</span>
+              <span style={hs("7ch", "volRatio", true)} onClick={() => ht("volRatio")}>{pad("量比" + ha("volRatio"), 6, true)}</span>
+              <span style={hs("8ch", "turnover", true)} onClick={() => ht("turnover")}>{pad("换手%" + ha("turnover"), 7, true)}</span>
+              <span style={hs("9ch", "amount", true)} onClick={() => ht("amount")}>{pad("成交额" + ha("amount"), 8, true)}</span>
+              <span style={hs("9ch", "mainNetInflow" as SortKey, true)} onClick={() => ht("mainNetInflow" as SortKey)}>{pad("主力" + ha("mainNetInflow" as SortKey), 8, true)}</span>
+              <span style={hs("7ch", "mainNetInflowPct" as SortKey, true)} onClick={() => ht("mainNetInflowPct" as SortKey)}>{pad("主力%" + ha("mainNetInflowPct" as SortKey), 6, true)}</span>
             </div>
           );
 
           const watchHeader = (
             <div style={{ display: "flex", whiteSpace: "pre", color: D.pink, borderBottom: `1px solid ${D.currentLine}`, paddingBottom: 3, marginBottom: 2, fontWeight: 500 }}>
-              <span style={{ width: "6ch" }}> TYPE</span>
-              <span style={ws("10ch", "id")} onClick={() => wt("id")}>CODE{wa("id")}</span>
-              <span style={{ width: "10ch" }}>NAME</span>
-              <span style={ws("10ch", "price", true)} onClick={() => wt("price")}>{pad("PRICE" + wa("price"), 9, true)}</span>
-              <span style={ws("9ch", "change", true)} onClick={() => wt("change")}>{pad("CHG%" + wa("change"), 8, true)}</span>
-              <span style={ws("8ch", "chgAmt", true)} onClick={() => wt("chgAmt")}>{pad("CHG" + wa("chgAmt"), 7, true)}</span>
-              <span style={ws("7ch", "volRatio", true)} onClick={() => wt("volRatio")}>{pad("VRATIO" + wa("volRatio"), 6, true)}</span>
-              <span style={ws("8ch", "turnover", true)} onClick={() => wt("turnover")}>{pad("TURN%" + wa("turnover"), 7, true)}</span>
-              <span style={ws("9ch", "amount", true)} onClick={() => wt("amount")}>{pad("AMOUNT" + wa("amount"), 8, true)}</span>
-              <span style={{ width: "13ch", textAlign: "right", color: D.pink }}>{pad("RANGE", 12, true)}</span>
-              <span style={ws("9ch", "mainNetInflow" as SortKey, true)} onClick={() => wt("mainNetInflow" as SortKey)}>{pad("FLOW" + wa("mainNetInflow" as SortKey), 8, true)}</span>
-              <span style={ws("7ch", "mainNetInflowPct" as SortKey, true)} onClick={() => wt("mainNetInflowPct" as SortKey)}>{pad("FL%" + wa("mainNetInflowPct" as SortKey), 6, true)}</span>
+              <span style={{ width: "6ch" }}> 类型</span>
+              <span style={ws("10ch", "id")} onClick={() => wt("id")}>代码{wa("id")}</span>
+              <span style={{ width: "10ch" }}>名称</span>
+              <span style={ws("10ch", "price", true)} onClick={() => wt("price")}>{pad("现价" + wa("price"), 9, true)}</span>
+              <span style={ws("9ch", "change", true)} onClick={() => wt("change")}>{pad("涨跌幅" + wa("change"), 8, true)}</span>
+              <span style={ws("8ch", "chgAmt", true)} onClick={() => wt("chgAmt")}>{pad("涨跌" + wa("chgAmt"), 7, true)}</span>
+              <span style={ws("7ch", "volRatio", true)} onClick={() => wt("volRatio")}>{pad("量比" + wa("volRatio"), 6, true)}</span>
+              <span style={ws("8ch", "turnover", true)} onClick={() => wt("turnover")}>{pad("换手%" + wa("turnover"), 7, true)}</span>
+              <span style={ws("9ch", "amount", true)} onClick={() => wt("amount")}>{pad("成交额" + wa("amount"), 8, true)}</span>
+              <span style={{ width: "13ch", textAlign: "right", color: D.pink }}>{pad("高低", 12, true)}</span>
+              <span style={ws("9ch", "mainNetInflow" as SortKey, true)} onClick={() => wt("mainNetInflow" as SortKey)}>{pad("主力" + wa("mainNetInflow" as SortKey), 8, true)}</span>
+              <span style={ws("7ch", "mainNetInflowPct" as SortKey, true)} onClick={() => wt("mainNetInflowPct" as SortKey)}>{pad("主力%" + wa("mainNetInflowPct" as SortKey), 6, true)}</span>
             </div>
           );
 
