@@ -927,22 +927,17 @@ def run():
                     all_alerts = engine.check(quotes, hkd_cny_rate)
 
                     # ── L2 strategy signals (from daemon) ──
-                    # 原始信号只写 web 日志（L3），复合研判才弹通知（L1/L2）
                     l2_alerts = check_l2_signals()
                     if l2_alerts:
                         for a in l2_alerts:
                             if "_level" not in a:
-                                a["_level"] = 3  # L2 strategy 默认 web_only
-                        l2_web_only = [a for a in l2_alerts if not a.get("_notify")]
-                        l2_notify = [a for a in l2_alerts if a.get("_notify")]
-                        if l2_web_only:
-                            write_alert_events(l2_web_only)
-                        # l2_notify 加入 all_alerts（后面统一写入+分发，不重复写）
-                        all_alerts.extend(l2_notify)
+                                # _notify=True → L2（弹窗），否则 L3（仅 web）
+                                a["_level"] = 2 if a.get("_notify") else 3
+                        all_alerts.extend(l2_alerts)
 
                     if all_alerts:
                         print()
-                        # 所有告警写入 web 日志（l2_web_only 已单独写入，此处只写 all_alerts）
+                        # 统一写入一次（去重在 write_alert_events 内处理）
                         write_alert_events(all_alerts)
                         # 按级别分流 macOS 通知
                         l1_alerts = [a for a in all_alerts if a.get("_level") == 1]
