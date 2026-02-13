@@ -838,16 +838,17 @@ def run():
     print("Stock Notifier started (delta mode)")
     print(f"  watchlist : {len(watchlist)} stocks ({sum(1 for s in watchlist if is_hk_symbol(s))} HK)")
     print(f"  holdings  : {num_holdings} with cost/shares (P&L tracking)")
-    print(f"  trigger   : +/-{settings.get('trigger_pct', DEFAULT_TRIGGER_PCT)}% (首次触发)")
-    print(f"  delta     : +/-{settings.get('delta_pct', DEFAULT_DELTA_PCT)}% (再次触发需价格变化)")
-    print(f"  portfolio : +/-{settings.get('portfolio_delta_pct', DEFAULT_PORTFOLIO_DELTA_PCT)}% (组合变化)")
+    l1 = get_policy(1, settings)
+    print(f"  trigger   : L1 +/-{l1['trigger_pct']}% / L2 +/-{get_policy(2, settings)['trigger_pct']}% (首次触发)")
+    print(f"  delta     : L1 +/-{l1['delta_pct']}% / L2 +/-{get_policy(2, settings)['delta_pct']}% (再次触发)")
+    print(f"  portfolio : +/-{settings.get('portfolio_delta_pct', 2)}% (组合变化)")
     print(f"  data file : {MARKET_DATA_PATH.name}")
     print(f"  Ctrl+C to stop\n")
 
     # ── State ──
     last_mtime = 0.0
     daily_alerts = 0
-    last_alert_date = datetime.now().date()
+    last_alert_date = None  # None = 强制首次检查时执行重置
     last_checked_count = len(watchlist)
     engine = DeltaAlertEngine(config)
     sent_open_today = False
@@ -857,9 +858,10 @@ def run():
 
     while running:
         # Reset daily at 08:00 (before market open)
+        # last_alert_date=None on fresh start → always triggers reset once
         today = datetime.now().date()
         now_hour = datetime.now().hour
-        if today != last_alert_date and now_hour >= 8:
+        if (last_alert_date is None or today != last_alert_date) and now_hour >= 8:
             daily_alerts = 0
             sent_open_today = False
             sent_close_today = False
