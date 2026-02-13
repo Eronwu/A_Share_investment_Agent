@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import CommandPrompt from "./components/CommandPrompt";
 import { useAlerts } from "./hooks/useAlerts";
 import { useCommand } from "./hooks/useCommand";
@@ -121,12 +122,12 @@ function TabBar({ activeTab, onTabChange }: { activeTab: MarketTab; onTabChange:
         );
       })}
       <div style={{ flex: 1, background: "#21222c" }} />
-      <a href="/alerts" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
+      <Link href="/alerts" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
         alerts
-      </a>
-      <a href="/manage" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
+      </Link>
+      <Link href="/manage" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
         manage
-      </a>
+      </Link>
     </div>
   );
 }
