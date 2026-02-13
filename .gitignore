@@ -67,6 +67,7 @@ src/data/stock_news
 src/data/sentiment_cache.json
 src/data/market_data.json
 src/data/alert_events.json
+src/data/archive/
 
 
 # cache
@@ -92,7 +93,6 @@ browser-state*.json
 
 # macro summary (runtime)
 src/data/macro_summary.json
-src/data/l2_strategy_signals.json
 
 # playwright test results
 web/test-results/

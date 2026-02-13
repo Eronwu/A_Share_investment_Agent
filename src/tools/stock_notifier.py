@@ -35,9 +35,51 @@ ALERT_CONFIG_PATH = PROJECT_ROOT / "src" / "data" / "alert_config.json"
 ALERT_EVENTS_PATH = PROJECT_ROOT / "src" / "data" / "alert_events.json"
 L2_SIGNALS_PATH = PROJECT_ROOT / "src" / "data" / "l2_strategy_signals.json"
 
+ARCHIVE_DIR = PROJECT_ROOT / "src" / "data" / "archive"
+
 # ── Poll intervals ──
 TRADING_CHECK_SEC = 3      # mtime check interval during trading hours
 NON_TRADING_CHECK_SEC = 60  # mtime check interval outside trading hours
+
+
+def _archive_and_reset(today):
+    """归档昨日 market_data.json + alert_events.json，然后清空 alert_events。
+
+    归档文件命名: archive/market_data_2026-02-12.json
+    """
+    import shutil
+    yesterday = (today - __import__("datetime").timedelta(days=1)).isoformat()
+    ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
+
+    # 归档 market_data.json
+    try:
+        if MARKET_DATA_PATH.exists():
+            dest = ARCHIVE_DIR / f"market_data_{yesterday}.json"
+            if not dest.exists():
+                shutil.copy2(MARKET_DATA_PATH, dest)
+                logger.info(f"归档: {MARKET_DATA_PATH.name} → archive/{dest.name}")
+    except Exception as e:
+        logger.warning(f"归档 market_data 失败: {e}")
+
+    # 归档 alert_events.json
+    try:
+        if ALERT_EVENTS_PATH.exists():
+            dest = ARCHIVE_DIR / f"alert_events_{yesterday}.json"
+            if not dest.exists():
+                shutil.copy2(ALERT_EVENTS_PATH, dest)
+                logger.info(f"归档: {ALERT_EVENTS_PATH.name} → archive/{dest.name}")
+    except Exception as e:
+        logger.warning(f"归档 alert_events 失败: {e}")
+
+    # 清空 alert_events.json
+    try:
+        tmp = ALERT_EVENTS_PATH.with_suffix(".tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump({"events": [], "lastUpdated": int(time.time() * 1000)}, f)
+        tmp.replace(ALERT_EVENTS_PATH)
+        logger.info("每日重置: 已清空 alert_events.json")
+    except Exception as e:
+        logger.warning(f"清空 alert_events.json 失败: {e}")
 
 
 # ══════════════════════════════════════════
@@ -856,15 +898,8 @@ def run():
             latest_hkd_cny_rate = None
             last_alert_date = today
             engine.reset()  # clear delta tracking for new day
-            # 清空 alert_events.json（新交易日重新开始）
-            try:
-                tmp = ALERT_EVENTS_PATH.with_suffix(".tmp")
-                with open(tmp, "w", encoding="utf-8") as f:
-                    json.dump({"events": [], "lastUpdated": int(time.time() * 1000)}, f)
-                tmp.replace(ALERT_EVENTS_PATH)
-                logger.info("每日重置: 已清空 alert_events.json")
-            except Exception as e:
-                logger.warning(f"清空 alert_events.json 失败: {e}")
+            # 归档昨日数据 + 清空（新交易日重新开始）
+            _archive_and_reset(today)
             # Reload config at day boundary
             fresh_config = read_json_safe(MONITOR_CONFIG_PATH)
             if fresh_config is not None and "settings" in fresh_config and "watchlist" in fresh_config:
