@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import CommandPrompt from "./components/CommandPrompt";
 import { useAlerts } from "./hooks/useAlerts";
@@ -164,7 +164,6 @@ function Home() {
   const [hkdCnyRate, setHkdCnyRate] = useState<number | null>(null);
   // tab state: URL ?tab=A|HK, default by time (before 15:00 → A, after → HK)
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   function getDefaultTab(): MarketTab {
     const param = searchParams.get("tab")?.toUpperCase();
@@ -176,7 +175,7 @@ function Home() {
 
   function switchTab(tab: MarketTab) {
     setActiveTab(tab);
-    router.replace(`/?tab=${tab}`, { scroll: false });
+    window.history.replaceState(null, "", `/?tab=${tab}`);
   }
   const [prodStockOpen, setProdStockOpen] = useState(true);
   const [prodETFOpen, setProdETFOpen] = useState(true);
