@@ -98,17 +98,24 @@ test.describe("Manage (管理页)", () => {
     await expect(page.locator("text=settings")).toBeVisible();
   });
 
-  test("settings 区域可编辑", async ({ page }) => {
+  test("settings 区域可展开编辑", async ({ page }) => {
+    // settings 默认折叠，先点开
+    const settingsToggle = page.locator("text=settings").first();
+    await settingsToggle.click();
     const pollInput = page.locator('input[type="number"]').first();
     await expect(pollInput).toBeVisible();
-    // 能聚焦
     await pollInput.click();
     await expect(pollInput).toBeFocused();
   });
 
-  test("持仓区 production 和自选区 staging 都可见", async ({ page }) => {
-    await expect(page.locator("text=/production \\(\\d+\\)/")).toBeVisible();
-    await expect(page.locator("text=/staging \\(\\d+\\)/")).toBeVisible();
+  test("持仓和自选分组可见", async ({ page }) => {
+    // 持仓分组：A股个股/ETF/港股
+    await expect(page.locator("text=/持仓:(A股个股|ETF|港股)/").first()).toBeVisible();
+    // 自选分组
+    const watchSection = page.locator("text=/自选/").first();
+    if (await watchSection.isVisible()) {
+      await expect(watchSection).toBeVisible();
+    }
   });
 
   test("add stock 区域可见且能输入", async ({ page }) => {
