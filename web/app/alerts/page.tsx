@@ -28,6 +28,19 @@ const KIND_LABELS: Record<string, { label: string; color: string }> = {
   l2_strategy: { label: "L2_SIGNAL", color: D.cyan },
 };
 
+/** Extract strategy sub-type from L2 display text for finer labels */
+function getL2Label(e: AlertEvent): { label: string; color: string } | null {
+  if (e.kind !== "l2_strategy") return null;
+  const d = e.display || "";
+  if (d.includes("动量确认") || d.includes("动量卖出"))
+    return { label: "MOMENTUM", color: D.pink };
+  if (d.includes("放量加速") || d.includes("放量砸盘"))
+    return { label: "VOL_ACCEL", color: D.pink };
+  if (d.includes("多头信号") || d.includes("空头信号"))
+    return { label: "COMPOSITE", color: D.yellow };
+  return null; // fallback to default L2_SIGNAL
+}
+
 function TitleBar() {
   return (
     <div
@@ -111,9 +124,9 @@ export default function AlertsPage() {
           fontSize: 13,
         }}
       >
-        <Link href="/" style={{ color: D.cyan, textDecoration: "none" }}>
+        <a href="/" style={{ color: D.cyan, textDecoration: "none" }}>
           ← monitor
-        </Link>
+        </a>
         <span style={{ color: D.purple, fontWeight: 700 }}>alerts</span>
         <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>
           {sorted.length} events today | auto-refresh 30s
@@ -150,8 +163,10 @@ export default function AlertsPage() {
         )}
 
         {sorted.map((e, i) => {
-          const kinfo = KIND_LABELS[e.kind] || { label: e.kind.toUpperCase(), color: D.comment };
+          const l2Label = getL2Label(e);
+          const kinfo = l2Label || KIND_LABELS[e.kind] || { label: e.kind.toUpperCase(), color: D.comment };
           const chgColor = e.change_pct > 0 ? D.red : e.change_pct < 0 ? D.green : D.comment;
+          const isHighPriority = (e.level ?? 2) <= 1;
 
           return (
             <div
@@ -159,15 +174,17 @@ export default function AlertsPage() {
               style={{
                 display: "flex",
                 whiteSpace: "pre",
-                padding: "2px 0",
+                padding: isHighPriority ? "4px 6px" : "2px 0",
                 borderBottom: "1px solid #191a21",
+                background: isHighPriority ? "#44475a" : "transparent",
+                borderLeft: isHighPriority ? `3px solid ${D.yellow}` : "3px solid transparent",
               }}
             >
               <span style={{ color: D.comment, width: "10ch" }}>[{e.time}]</span>
-              <span style={{ color: LEVEL_COLORS[e.level ?? 2] || D.comment, width: "5ch", fontWeight: 500 }}>
+              <span style={{ color: LEVEL_COLORS[e.level ?? 2] || D.comment, width: "5ch", fontWeight: isHighPriority ? 700 : 500 }}>
                 {`[L${e.level ?? 2}]`}
               </span>
-              <span style={{ color: kinfo.color, width: "12ch", fontWeight: 500 }}>
+              <span style={{ color: kinfo.color, width: "12ch", fontWeight: isHighPriority ? 700 : 500 }}>
                 {kinfo.label.padEnd(11)}
               </span>
               <span style={{ color: D.cyan, width: "10ch" }}>
@@ -176,7 +193,7 @@ export default function AlertsPage() {
               <span style={{ color: chgColor, width: "8ch", textAlign: "right" }}>
                 {e.change_pct ? `${e.change_pct >= 0 ? "+" : ""}${e.change_pct.toFixed(1)}%` : ""}
               </span>
-              <span style={{ color: D.fg, marginLeft: "2ch" }}>
+              <span style={{ color: isHighPriority ? D.yellow : D.fg, marginLeft: "2ch", fontWeight: isHighPriority ? 500 : 400 }}>
                 {e.display || e.message}
               </span>
             </div>

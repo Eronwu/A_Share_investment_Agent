@@ -687,9 +687,9 @@ export default function ManagePage() {
           fontSize: 13,
         }}
       >
-        <Link href="/" style={{ color: D.cyan, textDecoration: "none" }}>
+        <a href="/" style={{ color: D.cyan, textDecoration: "none" }}>
           ← monitor
-        </Link>
+        </a>
         <span style={{ color: D.purple, fontWeight: 700 }}>manage</span>
       </div>
 
