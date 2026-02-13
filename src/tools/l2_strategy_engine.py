@@ -261,8 +261,8 @@ class DivergenceTracker:
 
         max_price = max(p for _, p in q)
 
-        # 当前价 = 窗口最高 AND 主力净流出显著（> 100 万）
-        if price >= max_price and main_net_inflow < -1_000_000:
+        # 当前价 = 窗口最高 AND 主力净流出显著（> 500 万，过滤小盘股噪音）
+        if price >= max_price and main_net_inflow < -5_000_000:
             return {
                 "strategy": "volume_price_divergence",
                 "code": code,
@@ -516,9 +516,117 @@ class VolumeAccelTracker:
             "consecutive_above": self.consecutive_min,
         }
 
+    def evaluate_bearish(self, code: str) -> Optional[dict]:
+        """Check bearish acceleration: turnover accelerating + sustained selling.
+
+        Same as evaluate() but checks imbalance < -imbalance_min (sustained selling).
+        """
+        samples = self._samples.get(code)
+        if not samples or len(samples) < self.consecutive_min + 1:
+            return None
+
+        _, curr_turnover, curr_imbalance = samples[-1]
+
+        if curr_turnover < self.min_turnover:
+            return None
+
+        # Sustained SELLING: all recent imbalance < -threshold
+        recent = list(samples)[-self.consecutive_min:]
+        if not all(imb < -self.imbalance_min for _, _, imb in recent):
+            return None
+
+        prior = list(samples)[:-self.consecutive_min]
+        if not prior:
+            return None
+        avg_turnover = sum(t for _, t, _ in prior) / len(prior)
+        if avg_turnover <= 0:
+            return None
+
+        ratio = curr_turnover / avg_turnover
+        if ratio < self.accel_ratio:
+            return None
+
+        return {
+            "accel_ratio": round(ratio, 2),
+            "curr_turnover": round(curr_turnover, 0),
+            "avg_prior_turnover": round(avg_turnover, 0),
+            "curr_imbalance": round(curr_imbalance, 3),
+            "consecutive_above": self.consecutive_min,
+        }
+
     def reset(self):
         self._samples.clear()
         self._last_sample_time.clear()
+
+
+# ══════════════════════════════════════════
+# Tick Persistence Tracker — 主买/主卖持续
+# ══════════════════════════════════════════
+
+class TickPersistenceTracker:
+    """策略8: Tick方向一致性异常 — 检测 session 内 tick 方向持续偏向一侧
+
+    当某只股票在 session 内累积的 tick_imbalance 信号中，同方向占比
+    >= persistence_ratio，说明有持续性的方向偏压（通常是机构算法
+    在持续执行买入/卖出）。
+
+    捕捉场景: 低涨幅静默吸筹（腾讯: session score=5, 净买入2.18亿, 但日跌-0.7%）
+    """
+
+    def __init__(self, min_tick_signals: int = 8,
+                 persistence_ratio: float = 0.80,
+                 recent_consistent: int = 3):
+        self.min_tick_signals = min_tick_signals
+        self.persistence_ratio = persistence_ratio
+        self.recent_consistent = recent_consistent
+        # {code: [(direction, imbalance, timestamp), ...]}
+        self._tick_history: dict[str, list] = {}
+
+    def feed(self, code: str, imbalance: float):
+        """每次 tick_imbalance 信号触发时调用（冷却后）"""
+        direction = "bullish" if imbalance > 0 else "bearish"
+        if code not in self._tick_history:
+            self._tick_history[code] = []
+        self._tick_history[code].append((direction, imbalance, time.time()))
+
+    def evaluate(self, code: str) -> Optional[dict]:
+        """评估是否满足持续性条件"""
+        history = self._tick_history.get(code, [])
+        if len(history) < self.min_tick_signals:
+            return None
+
+        bullish_count = sum(1 for d, _, _ in history if d == "bullish")
+        bearish_count = len(history) - bullish_count
+
+        dominant = "bullish" if bullish_count >= bearish_count else "bearish"
+        dominant_count = max(bullish_count, bearish_count)
+        ratio = dominant_count / len(history)
+
+        if ratio < self.persistence_ratio:
+            return None
+
+        # 最近 N 个信号须与主方向一致（排除尾部反转）
+        recent = history[-self.recent_consistent:]
+        if not all(d == dominant for d, _, _ in recent):
+            return None
+
+        avg_imb = sum(abs(v) for _, v, _ in history) / len(history)
+
+        return {
+            "strategy": "tick_persistence",
+            "code": code,
+            "detail": {
+                "total_tick_signals": len(history),
+                "dominant_direction": dominant,
+                "dominant_count": dominant_count,
+                "persistence_ratio": round(ratio, 2),
+                "recent_consistent": self.recent_consistent,
+                "avg_imbalance": round(avg_imb, 3),
+            },
+        }
+
+    def reset(self):
+        self._tick_history.clear()
 
 
 # ══════════════════════════════════════════
@@ -656,13 +764,15 @@ class SessionAccumulator:
                 lo_score = -1
 
             # ── Capital flow direction ──
+            # Use absolute inflow value for direction (pct can contradict abs value)
             cf = self._capital_flow.get(code, {"main_net_inflow": 0, "main_net_inflow_pct": 0})
-            cf_inflow_pct = cf["main_net_inflow_pct"]
+            cf_inflow = cf["main_net_inflow"]
 
-            # Guard: 资金流占比不显著时不给方向分
-            if abs(cf_inflow_pct) < self.MIN_CAPITAL_FLOW_PCT:
+            # Guard: 绝对值 < 500万 时不给方向分（过滤噪音）
+            MIN_INFLOW_ABS = 5_000_000
+            if abs(cf_inflow) < MIN_INFLOW_ABS:
                 cf_score = 0
-            elif cf_inflow_pct > 0:
+            elif cf_inflow > 0:
                 cf_score = 1
             else:
                 cf_score = -1
@@ -911,29 +1021,24 @@ _STRATEGY_NAMES = {
     "composite_bullish": "多头信号",
     "momentum_alert": "动量确认",
     "volume_accel_alert": "放量加速",
-}
-
-# Stealth display (CI/monitoring style)
-_STRATEGY_STEALTH = {
-    "capital_flow_spike": "capital flow spike",
-    "large_order": "large order detected",
-    "order_book_imbalance": "order book shift",
-    "volume_price_divergence": "divergence alert",
-    "tick_imbalance": "tick imbalance",
-    "composite_bearish": "bearish composite",
-    "composite_bullish": "bullish composite",
-    "momentum_alert": "momentum confirmed",
-    "volume_accel_alert": "volume acceleration",
+    "momentum_sell_alert": "动量卖出",
+    "volume_accel_sell_alert": "放量砸盘",
+    "tick_persistence": "主买持续",
 }
 
 
-def format_signal(raw: dict, name_map: dict[str, str], *, notify: bool = False) -> dict:
+
+def format_signal(raw: dict, name_map: dict[str, str], *, notify: bool = False,
+                   snapshot_data: dict | None = None,
+                   capital_data: dict | None = None) -> dict:
     """将原始信号转换为 dual-format event（message + display）
 
     Args:
         raw: tracker 输出的 {strategy, code, detail}
         name_map: {code: stock_name}
         notify: True = 弹通知（复合信号），False = 只写 web 日志
+        snapshot_data: {code: {price, prevClose, ...}} for price context (web display only)
+        capital_data: {code: {mainNetInflow, ...}} for capital context (web display only)
 
     Returns:
         完整的信号事件 dict
@@ -1003,6 +1108,38 @@ def format_signal(raw: dict, name_map: dict[str, str], *, notify: bool = False) 
             f"日涨{change_pct:.1f}% | 大单净买入{net_amount_wan:.0f}万({buy_count}笔) | "
             f"资金流入 | 无背离"
         )
+    elif strategy == "momentum_sell_alert":
+        change_pct = detail.get("daily_change_pct", 0)
+        net_amount_wan = abs(detail.get("large_order_net_amount", 0)) / 10000
+        sell_count = detail.get("large_order_sell_count", 0)
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"日跌{change_pct:.1f}% | 大单净卖出{net_amount_wan:.0f}万({sell_count}笔) | "
+            f"资金流出"
+        )
+    elif strategy == "volume_accel_sell_alert":
+        change_pct = detail.get("daily_change_pct", 0)
+        accel = detail.get("accel_ratio", 0)
+        turnover_wan = detail.get("curr_turnover", 0) / 10000
+        imb = detail.get("curr_imbalance", 0)
+        consec = detail.get("consecutive_above", 0)
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"日跌{change_pct:.1f}% | 成交额加速{accel:.1f}x({turnover_wan:.0f}万) | "
+            f"tick偏卖(imb={imb:+.2f}, 连续{consec}窗口) | 资金流出"
+        )
+    elif strategy == "tick_persistence":
+        total = detail.get("total_tick_signals", 0)
+        dominant = detail.get("dominant_direction", "")
+        dominant_count = detail.get("dominant_count", 0)
+        ratio_pct = detail.get("persistence_ratio", 0) * 100
+        avg_imb = detail.get("avg_imbalance", 0)
+        dir_label = "偏买" if dominant == "bullish" else "偏卖"
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"tick{dir_label}率{ratio_pct:.0f}%({dominant_count}/{total}窗口) | "
+            f"平均imb={avg_imb:.3f}"
+        )
     elif strategy in ("composite_bearish", "composite_bullish"):
         signals_cn = [_STRATEGY_NAMES.get(s, s) for s in detail.get("signals", [])]
         score = detail.get("score", 0)
@@ -1010,9 +1147,28 @@ def format_signal(raw: dict, name_map: dict[str, str], *, notify: bool = False) 
     else:
         display = f"{code} {stock_name} {cn_name}"
 
-    # Build message (stealth)
-    stealth_label = _STRATEGY_STEALTH.get(strategy, strategy)
-    message = f"{stock_name}: {stealth_label}"
+    # Append market context to display (web only, not stealth message)
+    if snapshot_data or capital_data:
+        ctx_parts = []
+        snap = (snapshot_data or {}).get(code, {})
+        price = snap.get("price", 0)
+        prev_close = snap.get("prevClose", 0)
+        if price > 0:
+            ctx_parts.append(f"现价{price:.2f}")
+        if price > 0 and prev_close > 0:
+            chg = (price - prev_close) / prev_close * 100
+            ctx_parts.append(f"日{'涨' if chg >= 0 else '跌'}{chg:+.1f}%")
+        cap = (capital_data or {}).get(code, {})
+        inflow = cap.get("mainNetInflow", 0)
+        if abs(inflow) >= 1_000_000:  # only show if >= 100万
+            inflow_wan = inflow / 10000
+            label = "净流入" if inflow > 0 else "净流出"
+            display += f" | {' '.join(ctx_parts)} {label}{abs(inflow_wan):.0f}万" if ctx_parts else ""
+        elif ctx_parts:
+            display += f" | {' '.join(ctx_parts)}"
+
+    # Build message (terminal 简短中文)
+    message = f"{stock_name} {cn_name}"
 
     return {
         "ts": ts,
@@ -1122,6 +1278,13 @@ class L2StrategyEngine:
             imbalance_min=va_cfg.get("imbalance_min", 0.35),
             consecutive_min=va_cfg.get("consecutive_min", 3),
             min_turnover=va_cfg.get("min_turnover", 10_000_000),
+        )
+
+        tp_cfg = s.get("tick_persistence", {})
+        self._tick_persistence = TickPersistenceTracker(
+            min_tick_signals=tp_cfg.get("min_tick_signals", 8),
+            persistence_ratio=tp_cfg.get("persistence_ratio", 0.80),
+            recent_consistent=tp_cfg.get("recent_consistent", 3),
         )
 
         self._session = SessionAccumulator()
@@ -1308,7 +1471,7 @@ class L2StrategyEngine:
         for code in self._hk_holdings:
             futu_code = to_futu_code(code)
             try:
-                ret, data = self._ctx.get_rt_ticker(futu_code, num=50)
+                ret, data = self._ctx.get_rt_ticker(futu_code, num=1000)
                 if ret != RET_OK or data.empty:
                     continue
 
@@ -1398,6 +1561,63 @@ class L2StrategyEngine:
             },
         }
 
+    # ── Momentum sell alert (bearish mirror) ──
+
+    def _evaluate_momentum_sell(self, code: str, session_data: dict,
+                                capital_data: dict, snapshot_data: dict) -> Optional[dict]:
+        """大单持续净卖出 + 日跌幅 + session bearish + 资金流出"""
+        cfg = self._strategies.get("momentum_sell_alert", {})
+        if not cfg.get("enabled", True):
+            return None
+
+        sess = session_data.get(code)
+        if not sess:
+            return None
+
+        if sess.get("direction") != "bearish":
+            return None
+
+        lo = sess.get("large_order", {})
+        sell_count = lo.get("sell_count", 0)
+        net_amount = lo.get("net_amount", 0)  # negative when selling
+
+        min_count = cfg.get("large_order_sell_count_min", 2)
+        min_amount = cfg.get("large_order_net_amount_min", 15_000_000)
+
+        if sell_count < min_count:
+            return None
+        if net_amount >= -min_amount:  # net_amount is negative; need abs > min
+            return None
+
+        snap = snapshot_data.get(code, {})
+        price = snap.get("price", 0)
+        prev_close = snap.get("prevClose", 0)
+        if price <= 0 or prev_close <= 0:
+            return None
+
+        daily_change_pct = (price - prev_close) / prev_close * 100
+        min_change = cfg.get("daily_change_pct_min", 2.0)
+        if daily_change_pct >= -min_change:  # must be falling
+            return None
+
+        cap = capital_data.get(code, {})
+        main_inflow = cap.get("mainNetInflow", 0)
+        if main_inflow >= 0:  # must be outflowing
+            return None
+
+        return {
+            "strategy": "momentum_sell_alert",
+            "code": code,
+            "detail": {
+                "daily_change_pct": round(daily_change_pct, 2),
+                "large_order_sell_count": sell_count,
+                "large_order_net_amount": round(net_amount, 0),
+                "main_net_inflow": round(main_inflow, 0),
+                "session_direction": "bearish",
+                "session_score": sess.get("score", 0),
+            },
+        }
+
     # ── Volume acceleration alert ──
 
     def _evaluate_volume_accel(self, code: str, session_data: dict,
@@ -1456,6 +1676,56 @@ class L2StrategyEngine:
                 "consecutive_above": accel_result["consecutive_above"],
                 "main_net_inflow": round(main_inflow, 0),
                 "capital_inflow": main_inflow > 0,
+                "session_direction": sess.get("direction", "neutral"),
+                "session_score": sess.get("score", 0),
+            },
+        }
+
+    # ── Volume acceleration sell alert (bearish mirror) ──
+
+    def _evaluate_volume_accel_sell(self, code: str, session_data: dict,
+                                    capital_data: dict, snapshot_data: dict) -> Optional[dict]:
+        """放量加速卖出: 成交额加速 + tick 持续偏卖 + 日跌 + 资金流出"""
+        cfg = self._strategies.get("volume_accel_sell_alert", {})
+        if not cfg.get("enabled", True):
+            return None
+
+        accel_result = self._volume_accel.evaluate_bearish(code)
+        if not accel_result:
+            return None
+
+        snap = snapshot_data.get(code, {})
+        price = snap.get("price", 0)
+        prev_close = snap.get("prevClose", 0)
+        if price <= 0 or prev_close <= 0:
+            return None
+
+        daily_change_pct = (price - prev_close) / prev_close * 100
+        min_change = cfg.get("daily_change_pct_min", 2.0)
+        if daily_change_pct >= -min_change:  # must be falling
+            return None
+
+        sess = session_data.get(code)
+        if not sess or sess.get("score", 0) >= 0:  # must be bearish
+            return None
+
+        cap = capital_data.get(code, {})
+        main_inflow = cap.get("mainNetInflow", 0)
+        if main_inflow >= 0:  # must be outflowing
+            return None
+
+        return {
+            "strategy": "volume_accel_sell_alert",
+            "code": code,
+            "detail": {
+                "daily_change_pct": round(daily_change_pct, 2),
+                "accel_ratio": accel_result["accel_ratio"],
+                "curr_turnover": accel_result["curr_turnover"],
+                "avg_prior_turnover": accel_result["avg_prior_turnover"],
+                "curr_imbalance": accel_result["curr_imbalance"],
+                "consecutive_above": accel_result["consecutive_above"],
+                "main_net_inflow": round(main_inflow, 0),
+                "capital_inflow": False,
                 "session_direction": sess.get("direction", "neutral"),
                 "session_score": sess.get("score", 0),
             },
@@ -1585,7 +1855,15 @@ class L2StrategyEngine:
             sig = self._evaluate_momentum(code, session_snapshot, capital_data, snapshot_data)
             if sig and self._cooldown.can_trigger("momentum_alert", code):
                 self._cooldown.record("momentum_alert", code)
-                signals.append(format_signal(sig, self._name_map, notify=True))
+                signals.append(format_signal(sig, self._name_map, notify=True, snapshot_data=snapshot_data, capital_data=capital_data))
+
+        # ── 6b. Momentum sell alert (bearish mirror) ──
+        if self._strategies.get("momentum_sell_alert", {}).get("enabled", True):
+            for code in self._hk_holdings:
+                sig = self._evaluate_momentum_sell(code, session_snapshot, capital_data, snapshot_data)
+                if sig and self._cooldown.can_trigger("momentum_sell_alert", code):
+                    self._cooldown.record("momentum_sell_alert", code)
+                    signals.append(format_signal(sig, self._name_map, notify=True, snapshot_data=snapshot_data, capital_data=capital_data))
 
         # ── 7. Volume acceleration alert (session-level) ──
         if vol_accel_enabled:
@@ -1593,7 +1871,15 @@ class L2StrategyEngine:
                 sig = self._evaluate_volume_accel(code, session_snapshot, capital_data, snapshot_data)
                 if sig and self._cooldown.can_trigger("volume_accel_alert", code):
                     self._cooldown.record("volume_accel_alert", code)
-                    signals.append(format_signal(sig, self._name_map, notify=True))
+                    signals.append(format_signal(sig, self._name_map, notify=True, snapshot_data=snapshot_data, capital_data=capital_data))
+
+        # ── 7b. Volume acceleration sell alert (bearish mirror) ──
+        if self._strategies.get("volume_accel_sell_alert", {}).get("enabled", True):
+            for code in self._hk_holdings:
+                sig = self._evaluate_volume_accel_sell(code, session_snapshot, capital_data, snapshot_data)
+                if sig and self._cooldown.can_trigger("volume_accel_sell_alert", code):
+                    self._cooldown.record("volume_accel_sell_alert", code)
+                    signals.append(format_signal(sig, self._name_map, notify=True, snapshot_data=snapshot_data, capital_data=capital_data))
 
         # Apply cooldowns and format raw signals (notify=false, web only)
         accepted_raw = []
@@ -1602,15 +1888,34 @@ class L2StrategyEngine:
             code = raw["code"]
             if self._cooldown.can_trigger(strategy, code):
                 self._cooldown.record(strategy, code)
-                signals.append(format_signal(raw, self._name_map, notify=False))
+                signals.append(format_signal(raw, self._name_map, notify=False, snapshot_data=snapshot_data, capital_data=capital_data))
                 accepted_raw.append(raw)
+
+        # ── 8. Tick persistence (feed from accepted tick_imbalance signals) ──
+        if self._strategies.get("tick_persistence", {}).get("enabled", True):
+            for raw in accepted_raw:
+                if raw["strategy"] == "tick_imbalance":
+                    self._tick_persistence.feed(raw["code"], raw["detail"]["imbalance"])
+            for code in self._hk_holdings:
+                sig = self._tick_persistence.evaluate(code)
+                if sig and self._cooldown.can_trigger("tick_persistence", code):
+                    self._cooldown.record("tick_persistence", code)
+                    signals.append(format_signal(sig, self._name_map, notify=True, snapshot_data=snapshot_data, capital_data=capital_data))
 
         # Feed raw signals to scorer and evaluate composite verdicts
         if accepted_raw:
             self._scorer.feed(accepted_raw)
         composites = self._scorer.evaluate()
         for comp in composites:
-            signals.append(format_signal(comp, self._name_map, notify=True))
+            # Composite notify logic: only L1 when high-score AND session-aligned
+            comp_score = comp.get("detail", {}).get("score", 0)
+            comp_strategy = comp.get("strategy", "")
+            comp_code = comp.get("code", "")
+            sess_dir = session_snapshot.get(comp_code, {}).get("direction", "neutral")
+            comp_dir = "bullish" if "bullish" in comp_strategy else "bearish"
+            session_aligned = (comp_dir == sess_dir)
+            comp_notify = comp_score >= 7 or (comp_score >= 5 and session_aligned)
+            signals.append(format_signal(comp, self._name_map, notify=comp_notify, snapshot_data=snapshot_data, capital_data=capital_data))
 
         return signals, session_snapshot
 
@@ -1622,6 +1927,7 @@ class L2StrategyEngine:
         self._divergence.reset()
         self._tick_imbalance.reset()
         self._volume_accel.reset()
+        self._tick_persistence.reset()
         self._cooldown.reset()
         self._scorer.reset()
         self._session.reset()
