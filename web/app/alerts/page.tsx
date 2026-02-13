@@ -38,6 +38,8 @@ function getL2Label(e: AlertEvent): { label: string; color: string } | null {
     return { label: "VOL_ACCEL", color: D.pink };
   if (d.includes("多头信号") || d.includes("空头信号"))
     return { label: "COMPOSITE", color: D.yellow };
+  if (d.includes("主买持续") || d.includes("主卖持续"))
+    return { label: "PERSIST", color: D.pink };
   return null; // fallback to default L2_SIGNAL
 }
 

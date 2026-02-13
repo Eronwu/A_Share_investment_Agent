@@ -804,16 +804,155 @@ src/
 
 | Priority | Idea | Expected Impact | Status |
 |----------|------|-----------------|--------|
-| P0 | 每策略权重最多贡献一次（cap per strategy type） | 消除 L2，评分更反映信号多样性 | |
-| P1 | Order book 改为滑动窗口均值对比 | 降低 L5 噪音，提升 order_book 权重可信度 | |
-| P1 | 加入 VWAP 偏离策略（价格偏离 VWAP > N%） | 新信号源，增强复合研判维度 | |
-| P2 | Tick imbalance 动态阈值（根据历史波动率调整） | 适应不同波动率环境 | |
+| ~~P0~~ | ~~每策略权重最多贡献一次（cap per strategy type）~~ | ~~消除 L2，评分更反映信号多样性~~ | Partial → composite session 对齐检查 |
+| ~~P0~~ | ~~composite 降级~~ | ~~21条L1→5条，减少噪音~~ | Done → score≥7 或 session 对齐才 L1 |
 | ~~P2~~ | ~~加入成交量加速检测（Volume Acceleration）~~ | ~~捕捉放量信号~~ | Done → `volume_accel_alert` |
-| P2 | vol_price_div 动态阈值: `max(-100万, -日均成交额×2%)` | 消除小盘股假背离噪音（美图/布鲁可/众安每天刷5条） | |
+| ~~P2~~ | ~~vol_price_div 阈值调高~~ | ~~消除小盘股假背离~~ | Done → -100万→-500万 |
+| P0 | 每策略权重最多贡献一次（cap per strategy type） | 消除同策略重复触发凑分 | |
+| P1 | Order book 改为滑动窗口均值对比 | 降低 L5 噪音，提升 order_book 权重可信度 | |
+| P1 | 加入 VWAP 偏离策略（价格偏离 VWAP > N%） | 新信号源，需 K_5M 或 snapshot avg_price | |
+| P2 | Tick imbalance 动态阈值（根据历史波动率调整） | 适应不同波动率环境 | |
+| P2 | vol_price_div 完全动态阈值: `max(-500万, -日均成交额×2%)` | 进一步优化（需日均成交额历史数据） | |
 | P3 | Backtest framework for L2 signals | 量化各策略历史胜率 | |
 | P3 | 引入 regime filter（趋势/震荡市区分） | 不同市场环境使用不同权重 | |
 
-### 6.3 Planned Strategies (基于 2025-02-12 信号数据分析)
+### 6.3 Planned Strategies
+
+> 基于 2025-02-12/13 信号数据分析 + Futu API 评估。按实施优先级排序。
+
+#### 已完成
+
+| Strategy | 中文名 | 状态 |
+|----------|--------|------|
+| `tick_persistence` | 主买持续 | Done ✅ — 检测 tick 方向一致性 ≥80% |
+| `momentum_sell_alert` | 动量卖出 | Done ✅ — 大单净卖出 + 日跌 + session bearish |
+| `volume_accel_sell_alert` | 放量砸盘 | Done ✅ — 成交额加速 + tick 持续偏卖 |
+
+#### Phase 1: 零成本增强（不需要新 API 订阅）
+
+##### 1a. Snapshot 新增字段提取
+
+**改动**: `_fetch_snapshots()` 中多提取 `volume_ratio`, `amplitude`, `turnover_rate`, `avg_price`。
+
+**用途**:
+- `volume_ratio` > 2 → VolumeAccelTracker 独立确认条件（交易所标准量比）
+- `avg_price` → 增强 volume_price_divergence（价格 > 均价 + 资金流出 → 更精确背离）
+- `amplitude` → session 评分辅助（振幅大+收盘接近最低=出货）
+- `turnover_rate` > 5% → 异动信号
+
+**成本**: 零 API 调用，零订阅位，1 行代码。
+
+##### 1b. `get_capital_distribution()` — 四档资金分布
+
+**新策略**: `institutional_retail_divergence` (散户机构分歧)
+
+**数据**: 超大单/大单/中单/小单 各自的流入/流出金额，分类基于个股历史成交均值（动态）。
+
+**触发条件**:
+```
+(capital_in_super + capital_in_big) 净流入 > 0   — 主力在买
+AND (capital_in_small) 净流出 > 0                 — 散户在卖
+AND |主力净流入| > 阈值
+```
+反向: 主力出 + 散户进 = 出货信号。
+
+**限制**: 30次/30秒，不消耗订阅位。
+
+##### 1c. `large_order_reversal` — 大单翻转
+
+**决策价值**: 为 composite_bullish 提供修正信号 — 大单方向从买→卖翻转时发出 bearish 警告。
+
+**模式来源**: HK09988 阿里巴巴 2025-02-12，前2笔BUY(1517万) → 后5笔SELL(3343万)。
+
+**触发条件**:
+```
+prior_orders 笔数 >= 2 AND recent_orders 笔数 >= 3
+AND prior 净方向 != recent 净方向
+AND |recent 净额| >= 10,000,000
+```
+
+##### 1d. `closing_surge` — 尾盘异动
+
+**决策价值**: 检测最后30分钟信号密度暴增 — 预测次日开盘方向。
+
+**模式来源**: HK00700 腾讯 2025-02-12，尾盘12条/30min vs 盘中3.3条（密度比3.6x）。
+
+**触发条件**:
+```
+时间 15:30-16:00 AND 尾盘信号数 >= 5
+AND 尾盘/盘中信号密度比 >= 2.5
+AND 包含 large_order 信号
+```
+
+##### 1e. 每策略权重 cap
+
+**改动**: `SignalScorer` 中同一策略类型最多贡献 1 次权重。如 2 次 large_order BUY 只算 1 次 weight=2，不累加为 4。
+
+#### Phase 2: 深度盘口（零新订阅位，已订阅未充分利用）
+
+##### 2a. `get_order_book(num=10)` — 10档深度盘口
+
+**替代**: 当前 `OrderBookTracker` 只用 snapshot 的 bidAskRatio（单一数值）。
+
+**新 `OrderBookDepthTracker`**:
+- 加权买卖压力 = `sum(bid_vol / 距离^n)` vs `sum(ask_vol / 距离^n)`
+- 撤单检测 = 某档 volume 连续两次快照下降 >50%
+- 冰山单检测 = 某档 order_count 极少但 volume 极大
+- 压力位检测 = 卖方 >60% 挂单集中在 1 档 → 上方硬阻力
+
+**增强 shake-and-take 模式**: 卖压集中在 1-2 档（恐吓性）+ 下方买盘 order_count 多（机构分散接盘）。
+
+**限制**: 已订阅 ORDER_BOOK 但只用了 snapshot。需要处理 3 秒推送等待机制。
+
+#### Phase 3: 新订阅位（需评估配额）
+
+##### 3a. `get_cur_kline(K_5M)` — 交易所精确5分钟K线
+
+**解决**: VolumeAccelTracker 从 tick 自行聚合的窗口成交额，在活跃股 >1000笔 tick/5min 时被截断低估。
+
+**成本**: +1 订阅位/股。5只HK持仓 = +5位。
+
+**附带**: 可基于 K_5M 实现 VWAP 偏离策略。
+
+##### 3b. `get_broker_queue()` — 经纪席位异动
+
+**新策略**: 监控高盛/摩根/中金等大行在买卖方排列变化。
+
+**限制**: +1 订阅位/股，需 SF 市场权限。需维护 broker_name → 机构类型映射表。
+
+**成本**: +1 订阅位/股。实施复杂度高。
+
+#### Phase 4: 长期架构
+
+##### 4a. Push Handler 重构
+
+替代当前 3 秒 polling 为事件驱动推送。降低延迟到毫秒级，减少 API 调用次数。需要重构 daemon 架构。
+
+##### 4b. Backtest Framework
+
+基于 `request_history_kline()` 构建 L2 信号历史回测。量化各策略胜率和参数敏感度。
+
+##### 4c. Regime Filter
+
+引入大盘指数趋势判断（牛/熊/震荡），不同 regime 使用不同策略权重。
+
+### 6.4 Implementation Phases Summary
+
+```
+Phase 1 (零成本)                    Phase 2 (深度盘口)
+├─ 1a snapshot 新字段 [1h]          ├─ 2a OrderBookDepthTracker [2-3d]
+├─ 1b capital_distribution [1d]     └─ 2b 撤单/冰山单检测 [1-2d]
+├─ 1c large_order_reversal [0.5d]
+├─ 1d closing_surge [0.5d]          Phase 3 (新订阅位)
+└─ 1e 权重 cap [0.5d]               ├─ 3a K_5M + VWAP [1-2d]
+                                     └─ 3b Broker 席位 [2-3d]
+订阅位: +0                           订阅位: +1~2/股
+
+                                     Phase 4 (长期)
+                                     ├─ 4a Push Handler 重构
+                                     ├─ 4b Backtest Framework
+                                     └─ 4c Regime Filter
+```
 
 > 以下 3 个策略由 quant-engineer agent 从当日 200 条信号中发现的模式提出。
 > 按实施优先级排序。

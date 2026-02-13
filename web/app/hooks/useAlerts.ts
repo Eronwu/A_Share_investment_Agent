@@ -44,7 +44,7 @@ export function useAlerts(
     const toShow = newEvents.slice(-MAX_DISPLAY);
     const entries: LogEntry[] = toShow.map((e) => ({
       time: e.time,
-      level: "warn" as const,
+      level: ((e.level ?? 2) <= 1 ? "error" : "warn") as "error" | "warn",
       source: "alert",
       message: `[L${e.level ?? 2}] ${e.display || e.message}`,
     }));

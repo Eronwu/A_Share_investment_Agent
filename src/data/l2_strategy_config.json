@@ -52,6 +52,28 @@
       "min_turnover": 10000000,
       "daily_change_pct_min": 3.0,
       "cooldown_minutes": 120
+    },
+    "momentum_sell_alert": {
+      "enabled": true,
+      "description": "持续大单卖出+价格下跌动量确认(bearish mirror)",
+      "large_order_sell_count_min": 2,
+      "large_order_net_amount_min": 15000000,
+      "daily_change_pct_min": 2.0,
+      "cooldown_minutes": 120
+    },
+    "volume_accel_sell_alert": {
+      "enabled": true,
+      "description": "成交额加速+tick持续偏卖(bearish mirror)",
+      "daily_change_pct_min": 2.0,
+      "cooldown_minutes": 120
+    },
+    "tick_persistence": {
+      "enabled": true,
+      "description": "tick方向一致性异常(捕捉静默吸筹/出货)",
+      "min_tick_signals": 8,
+      "persistence_ratio": 0.80,
+      "recent_consistent": 3,
+      "cooldown_minutes": 120
     }
   },
   "scoring": {
