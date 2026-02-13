@@ -47,7 +47,7 @@ def fetch_realtime_with_fallback(symbols: list[str]) -> list[dict]:
     if not sina_quotes:
         return []
 
-    # 转换新浪格式 → 东方财富格式
+    # 转换新浪格式 → 东方财富格式（跳过 price=0，盘前/停牌）
     results = []
     for sym in symbols:
         q = sina_quotes.get(sym)
@@ -55,6 +55,8 @@ def fetch_realtime_with_fallback(symbols: list[str]) -> list[dict]:
             continue
         prev = q.get("prev_close", 0)
         price = q.get("price", 0)
+        if price <= 0:
+            continue  # 盘前返回 0，跳过以保留旧数据
         pct = q.get("change_pct", 0)
         chg = price - prev if prev > 0 and price > 0 else 0
         results.append({
@@ -257,6 +259,16 @@ def poll_once() -> bool:
     # 有港股持仓时获取汇率
     has_hk = any(s.startswith("HK") for s in symbols)
     hkd_cny_rate = fetch_hkd_cny_rate() if has_hk else None
+
+    # 合并旧数据中缺失的 service（盘前 price=0 被跳过的股票保留昨日收盘价）
+    new_ids = {s["id"] for s in services}
+    try:
+        old_data = json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
+        for old_svc in old_data.get("services", []):
+            if old_svc.get("id") and old_svc["id"] not in new_ids:
+                services.append(old_svc)
+    except Exception:
+        pass
 
     payload = {
         "services": services,
