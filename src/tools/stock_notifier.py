@@ -486,8 +486,15 @@ def write_alert_events(alerts: list[dict]):
             "change_pct": change_pct,
         })
 
-    # 保留最近 N 条
-    events = events[-MAX_ALERT_EVENTS:]
+    # 去重（同一 ts + symbol + message 前30字）
+    seen = set()
+    deduped = []
+    for e in events:
+        key = f"{e['ts']}_{e['symbol']}_{e.get('message','')[:30]}"
+        if key not in seen:
+            seen.add(key)
+            deduped.append(e)
+    events = deduped[-MAX_ALERT_EVENTS:]
 
     # 原子写入
     tmp = ALERT_EVENTS_PATH.with_suffix(".tmp")
