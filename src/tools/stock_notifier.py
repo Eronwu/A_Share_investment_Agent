@@ -392,9 +392,9 @@ class DeltaAlertEngine:
 #   net: -1,765 = 今日盈亏        coverage = 涨跌幅
 #
 
-# 通知标题
-_TITLES_ALERT = ["行情提醒", "盯盘提醒"]
-_TITLES_SUMMARY = ["收盘汇总", "今日小结"]
+# 通知标题（低调，不暴露用途）
+_TITLES_ALERT = ["CI Pipeline Alert", "Deploy Monitor", "SRE Notification", "Build Status"]
+_TITLES_SUMMARY = ["Daily Report", "Sprint Summary"]
 
 
 def _notify_title(is_summary: bool = False) -> str:
@@ -596,9 +596,9 @@ def stealth_dispatch_open_close(alerts: list[dict]):
     for a in alerts:
         title = a.get("title", "")
         if "开盘" in title:
-            notify("开盘提醒", a.get("_stealth", a["message"]), sound="")
+            notify("Sprint Started", a.get("_stealth", a["message"]), sound="")
         elif "收盘" in title:
-            notify("收盘汇总", a.get("_stealth", a["message"]), sound="")
+            notify("Daily Report", a.get("_stealth", a["message"]), sound="")
         else:
             notify(_notify_title(), a.get("_stealth", a["message"]), sound="")
 
@@ -911,9 +911,14 @@ def run():
                     if l2_alerts:
                         for a in l2_alerts:
                             if "_level" not in a:
-                                # _notify=True → L2（弹窗），否则 L3（仅 web）
-                                a["_level"] = 2 if a.get("_notify") else 3
-                        all_alerts.extend(l2_alerts)
+                                # _notify=True → L1（高优先级弹窗+声音），否则 L3（仅 web）
+                                a["_level"] = 1 if a.get("_notify") else 3
+                        l2_web_only = [a for a in l2_alerts if not a.get("_notify")]
+                        l2_notify = [a for a in l2_alerts if a.get("_notify")]
+                        if l2_web_only:
+                            write_alert_events(l2_web_only)
+                        # l2_notify 加入 all_alerts（后面统一写入+分发）
+                        all_alerts.extend(l2_notify)
 
                     if all_alerts:
                         print()
