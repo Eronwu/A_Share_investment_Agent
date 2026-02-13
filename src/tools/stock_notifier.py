@@ -345,7 +345,7 @@ class DeltaAlertEngine:
                 "_kind": kind,
                 "_level": level,
                 "_change_pct": change_pct,
-                "_stealth": _stealth_line(name, change_pct, stealth_extra),
+                "_stealth": _notify_line(name, change_pct, stealth_extra),
             })
 
         # ── Portfolio summary ──
@@ -372,7 +372,7 @@ class DeltaAlertEngine:
                     "_kind": "portfolio",
                     "_level": 2,
                     "_change_pct": portfolio_pct,
-                    "_stealth": f"portfolio {pct_sign}{portfolio_pct:.1f}%",
+                    "_stealth": f"组合 {pct_sign}{portfolio_pct:.1f}%",
                 })
 
         return alerts
@@ -392,43 +392,23 @@ class DeltaAlertEngine:
 #   net: -1,765 = 今日盈亏        coverage = 涨跌幅
 #
 
-# 标题轮换，避免每次都一样（更自然）
-_STEALTH_TITLES_ALERT = [
-    "CI Pipeline Alert",
-    "Deploy Monitor",
-    "SRE Notification",
-    "Build Status",
-]
-
-_STEALTH_TITLES_SUMMARY = [
-    "Daily Standup Notes",
-    "Sprint Report",
-    "Weekly Metrics",
-    "Team Dashboard",
-]
+# 通知标题
+_TITLES_ALERT = ["行情提醒", "盯盘提醒"]
+_TITLES_SUMMARY = ["收盘汇总", "今日小结"]
 
 
-def _stealth_title(is_summary: bool = False) -> str:
-    """Pick a stealth title based on current minute for consistency within a cycle."""
-    titles = _STEALTH_TITLES_SUMMARY if is_summary else _STEALTH_TITLES_ALERT
+def _notify_title(is_summary: bool = False) -> str:
+    titles = _TITLES_SUMMARY if is_summary else _TITLES_ALERT
     idx = datetime.now().minute % len(titles)
     return titles[idx]
 
 
-def _stealth_line(name: str, change_pct: float, extra: str = "") -> str:
-    """Format one stock as a concise monitor line using stock name."""
+def _notify_line(name: str, change_pct: float, extra: str = "") -> str:
+    """Terminal 通知行：简短中文，比 web display 更精简"""
+    sign = "+" if change_pct >= 0 else ""
     if extra:
-        return f"{name}: {extra}"
-    if change_pct <= -7:
-        return f"{name}: crit {change_pct:+.1f}%"
-    elif change_pct <= -4:
-        return f"{name}: warn {change_pct:+.1f}%"
-    elif change_pct >= 7:
-        return f"{name}: ok {change_pct:+.1f}%"
-    elif change_pct >= 4:
-        return f"{name}: info {change_pct:+.1f}%"
-    else:
-        return f"{name}: {change_pct:+.1f}%"
+        return f"{name} {sign}{change_pct:.1f}% {extra}"
+    return f"{name} {sign}{change_pct:.1f}%"
 
 
 MAX_ALERT_EVENTS = 200  # 保留最近 200 条事件
@@ -592,7 +572,7 @@ def stealth_dispatch(alerts: list[dict], *, sound: str = ""):
         )
 
         notify(
-            _stealth_title(is_summary=False),
+            _notify_title(is_summary=False),
             "\n".join(lines),
             sound="default" if has_critical else sound,
         )
@@ -602,7 +582,7 @@ def stealth_dispatch(alerts: list[dict], *, sound: str = ""):
     if portfolio_alerts:
         a = portfolio_alerts[0]
         notify(
-            _stealth_title(is_summary=True),
+            _notify_title(is_summary=True),
             a.get("_stealth", a["message"]),
             sound="",
         )
@@ -616,11 +596,11 @@ def stealth_dispatch_open_close(alerts: list[dict]):
     for a in alerts:
         title = a.get("title", "")
         if "开盘" in title:
-            notify("Sprint Started", a.get("_stealth", f"Standup in 5 min — {a['message']}"), sound="")
+            notify("开盘提醒", a.get("_stealth", a["message"]), sound="")
         elif "收盘" in title:
-            notify("Daily Report", a.get("_stealth", a["message"]), sound="")
+            notify("收盘汇总", a.get("_stealth", a["message"]), sound="")
         else:
-            notify(_stealth_title(), a.get("_stealth", a["message"]), sound="")
+            notify(_notify_title(), a.get("_stealth", a["message"]), sound="")
 
 
 # ══════════════════════════════════════════
@@ -795,7 +775,7 @@ def check_market_open_close(
         alerts.append({
             "title": "开盘",
             "message": f"A股开盘 | 关注: {num_holdings}只持仓, {num_watching}只自选",
-            "_stealth": f"Tracking {num_holdings} prod + {num_watching} staging services",
+            "_stealth": f"持仓{num_holdings}只 自选{num_watching}只",
         })
         sent_open = True
 
