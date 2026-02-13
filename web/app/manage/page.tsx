@@ -490,6 +490,14 @@ export default function ManagePage() {
   // settings draft
   const [settingsDraft, setSettingsDraft] = useState<Record<string, string>>({});
 
+  // search & collapse
+  const [search, setSearch] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [prodStockOpen, setProdStockOpen] = useState(true);
+  const [prodETFOpen, setProdETFOpen] = useState(false);
+  const [prodHKOpen, setProdHKOpen] = useState(true);
+  const [watchOpen, setWatchOpen] = useState(true);
+
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   function showToast(message: string, type: "ok" | "err" = "ok") {
@@ -632,8 +640,21 @@ export default function ManagePage() {
   }
 
   const entries = Object.entries(config.watchlist);
-  const holdings = entries.filter(([, v]) => v.type === "holding");
-  const watching = entries.filter(([, v]) => v.type !== "holding");
+  const isHK = (code: string) => code.startsWith("HK");
+  const isETF = (code: string) => !isHK(code) && /^(51|15|58)\d{4}$/.test(code);
+
+  // 搜索过滤
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? entries.filter(([code, v]) => code.toLowerCase().includes(q) || v.name.toLowerCase().includes(q))
+    : entries;
+
+  // 分组
+  const holdings = filtered.filter(([, v]) => v.type === "holding");
+  const watching = filtered.filter(([, v]) => v.type !== "holding");
+  const prodStock = holdings.filter(([c]) => !isHK(c) && !isETF(c));
+  const prodETF = holdings.filter(([c]) => isETF(c));
+  const prodHK = holdings.filter(([c]) => isHK(c));
 
   const inputStyle: React.CSSProperties = {
     background: D.currentLine,
@@ -691,6 +712,24 @@ export default function ManagePage() {
           ← monitor
         </a>
         <span style={{ color: D.purple, fontWeight: 700 }}>manage</span>
+        <input
+          placeholder="搜索代码或名称..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            marginLeft: "auto",
+            background: D.currentLine,
+            border: `1px solid ${D.comment}`,
+            color: D.fg,
+            fontFamily: "JetBrains Mono, monospace",
+            fontSize: 12,
+            padding: "3px 10px",
+            outline: "none",
+            borderRadius: 3,
+            width: 180,
+          }}
+        />
+        <span style={{ color: D.comment, fontSize: 11 }}>{filtered.length}/{entries.length}</span>
       </div>
 
       {/* scrollable body */}
@@ -703,9 +742,15 @@ export default function ManagePage() {
           lineHeight: 1.7,
         }}
       >
-        {/* ── settings ── */}
-        <SectionHeader># ── settings ──</SectionHeader>
-        <div style={{ display: "flex", gap: 16, alignItems: "center", padding: "6px 0", flexWrap: "wrap" }}>
+        {/* ── settings (默认折叠) ── */}
+        <div
+          style={{ color: D.comment, padding: "10px 0 6px", borderBottom: `1px solid ${D.currentLine}`, marginBottom: 4, fontSize: 13, cursor: "pointer", userSelect: "none" }}
+          onClick={() => setSettingsOpen((v) => !v)}
+        >
+          <span style={{ color: D.purple }}>{settingsOpen ? "▾" : "▸"}</span>
+          {" "}# ── settings ──
+        </div>
+        {settingsOpen && <div style={{ display: "flex", gap: 16, alignItems: "center", padding: "6px 0", flexWrap: "wrap" }}>
           {(["poll_interval"] as const).map((key) => (
             <label key={key} style={{ display: "flex", alignItems: "center", gap: 6, color: D.comment }}>
               <span>{key}:</span>
@@ -754,54 +799,98 @@ export default function ManagePage() {
           <button style={{ ...btnStyle, fontSize: 12, padding: "3px 12px" }} onClick={handleSaveSettings}>
             Save Levels
           </button>
-        </div>
+        </div>}
 
-        {/* ── production ── */}
-        <SectionHeader># ── production ({holdings.length}) ──</SectionHeader>
-        {holdings.length > 0 && (
-          <div style={{ display: "flex", gap: 4, padding: "4px 0", whiteSpace: "nowrap" }}>
-            <ColHeader width="46px">TYPE</ColHeader>
-            <ColHeader width="90px">CODE</ColHeader>
-            <ColHeader width="110px">NAME</ColHeader>
-            <ColHeader width="80px">COST</ColHeader>
-            <ColHeader width="80px">SHARES</ColHeader>
-            <span style={{ width: 30 }} />
-          </div>
+        {/* ── prod:A股个股 ── */}
+        {prodStock.length > 0 && (
+          <>
+            <div
+              style={{ color: D.comment, padding: "10px 0 6px", borderBottom: `1px solid ${D.currentLine}`, marginBottom: 4, fontSize: 13, cursor: "pointer", userSelect: "none" }}
+              onClick={() => setProdStockOpen((v) => !v)}
+            >
+              <span style={{ color: D.purple }}>{prodStockOpen ? "▾" : "▸"}</span>
+              {" "}# ── 持仓:A股个股 ({prodStock.length}) ──
+            </div>
+            {prodStockOpen && prodStock.map(([code, entry]) => (
+              <StockRow
+                key={code} code={code} entry={entry} isHolding
+                promoting={promoting} promoCost={promoCost} promoShares={promoShares}
+                setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
+                onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
+                onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar}
+              />
+            ))}
+          </>
         )}
-        {holdings.map(([code, entry]) => (
-          <StockRow
-            key={code} code={code} entry={entry} isHolding
-            promoting={promoting} promoCost={promoCost} promoShares={promoShares}
-            setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
-            onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
-            onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar}
-          />
-        ))}
+
+        {/* ── prod:ETF ── */}
+        {prodETF.length > 0 && (
+          <>
+            <div
+              style={{ color: D.comment, padding: "10px 0 6px", borderBottom: `1px solid ${D.currentLine}`, marginBottom: 4, fontSize: 13, cursor: "pointer", userSelect: "none" }}
+              onClick={() => setProdETFOpen((v) => !v)}
+            >
+              <span style={{ color: D.purple }}>{prodETFOpen ? "▾" : "▸"}</span>
+              {" "}# ── 持仓:ETF ({prodETF.length}) ──
+            </div>
+            {prodETFOpen && prodETF.map(([code, entry]) => (
+              <StockRow
+                key={code} code={code} entry={entry} isHolding
+                promoting={promoting} promoCost={promoCost} promoShares={promoShares}
+                setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
+                onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
+                onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar}
+              />
+            ))}
+          </>
+        )}
+
+        {/* ── prod:港股 ── */}
+        {prodHK.length > 0 && (
+          <>
+            <div
+              style={{ color: D.comment, padding: "10px 0 6px", borderBottom: `1px solid ${D.currentLine}`, marginBottom: 4, fontSize: 13, cursor: "pointer", userSelect: "none" }}
+              onClick={() => setProdHKOpen((v) => !v)}
+            >
+              <span style={{ color: D.purple }}>{prodHKOpen ? "▾" : "▸"}</span>
+              {" "}# ── 持仓:港股 ({prodHK.length}) ──
+            </div>
+            {prodHKOpen && prodHK.map(([code, entry]) => (
+              <StockRow
+                key={code} code={code} entry={entry} isHolding
+                promoting={promoting} promoCost={promoCost} promoShares={promoShares}
+                setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
+                onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
+                onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar}
+              />
+            ))}
+          </>
+        )}
+
         {holdings.length === 0 && (
-          <div style={{ color: D.comment, padding: "6px 0" }}>No holdings. Add a stock with type &quot;holding&quot; below.</div>
+          <div style={{ color: D.comment, padding: "6px 0" }}>No holdings.</div>
         )}
 
         {/* ── staging ── */}
-        <SectionHeader># ── staging ({watching.length}) ──</SectionHeader>
         {watching.length > 0 && (
-          <div style={{ display: "flex", gap: 4, padding: "4px 0", whiteSpace: "nowrap" }}>
-            <ColHeader width="46px">TYPE</ColHeader>
-            <ColHeader width="90px">CODE</ColHeader>
-            <ColHeader width="110px">NAME</ColHeader>
-            <span style={{ width: 30 }} />
-          </div>
-        )}
-        {watching.map(([code, entry]) => (
-          <StockRow
-            key={code} code={code} entry={entry} isHolding={false}
-            promoting={promoting} promoCost={promoCost} promoShares={promoShares}
-            setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
-            onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
-            onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar}
-          />
-        ))}
-        {watching.length === 0 && (
-          <div style={{ color: D.comment, padding: "6px 0" }}>No watching stocks.</div>
+          <>
+            <div
+              style={{ color: D.comment, padding: "10px 0 6px", borderBottom: `1px solid ${D.currentLine}`, marginBottom: 4, fontSize: 13, cursor: "pointer", userSelect: "none" }}
+              onClick={() => setWatchOpen((v) => !v)}
+            >
+              <span style={{ color: D.purple }}>{watchOpen ? "▾" : "▸"}</span>
+              {" "}# ── 自选 ({watching.length}) ──
+            </div>
+            {watchOpen && watching.map(([code, entry]) => (
+              <StockRow
+                key={code} code={code} entry={entry} isHolding={false}
+                promoting={promoting} promoCost={promoCost} promoShares={promoShares}
+                setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
+                onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
+                onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar}
+              />
+            ))}
+          </>
         )}
 
         {/* ── add stock ── */}
