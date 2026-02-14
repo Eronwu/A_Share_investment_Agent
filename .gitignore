@@ -91,6 +91,10 @@ browser-state*.json
 # macro summary (runtime)
 src/data/macro_summary.json
 
+
+/src/data/archive/
+
 # playwright test results
 web/test-results/
 web/tsconfig.tsbuildinfo
+
