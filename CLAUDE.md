@@ -14,6 +14,8 @@ poetry run python src/main.py --ticker 000000 --summary # with summary report
 poetry run python src/backtester.py --ticker 301157 --start-date 2024-12-11 --end-date 2025-01-07
 poetry run python run_with_backend.py                   # FastAPI on :8000 (Swagger at /docs)
 poetry run python run_with_backend.py --ticker 002848   # API server + immediate analysis
+poetry run python -m src.sim_trading.replay_runner       # sim trading replay (writes to sim_trading.db)
+poetry run pytest src/sim_trading/test_sim_trading.py -v # sim trading tests (54 tests)
 ```
 
 ### Web Dashboard (Next.js)
@@ -90,6 +92,14 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 - `useCommand` — parses `svc add|update|rm|hide|unhide|star|unstar|ls|config|help` commands, manages terminal log entries. Returns `addLogs` for external log injection.
 - `useAlerts` — 读取 notifier 写入的 `alert_events.json` 展示在 web 日志区，不做任何告警计算（纯消费者）。用 `display` 字段展示中文详细格式。
 
+**模拟盘页面 (`/sim`)**:
+- `/api/sim` 读 `sim_trading.db`（better-sqlite3，只读），TS 端计算 Sharpe/MaxDD/归因
+- 摘要栏: 收益率/夏普/胜率/最大回撤/盈亏比/净值/交易笔数/手续费
+- 净值曲线: 内联 SVG 折线图 (760×130)，<2 个数据点时显示文字
+- 模拟持仓: 与主页 `HoldRow` 风格一致 (SIM 类型标签，代码/现价/成本/盈亏%/市值/浮盈/止损/止盈)
+- 交易记录: 可折叠表格，退出原因和策略名中文翻译
+- 归因面板: 按策略 + 按股票，PnL 降序
+
 **管理页面 (`/manage`)**:
 - 列标题行: `type | code | name | cost | shares | ▲ above | ▼ below | ★ | hide`
 - `above`/`below` 告警阈值通过 `EditableCell` 内联编辑，保存到 `alert_config.json`（适用于 holding 和 watching）
@@ -131,6 +141,52 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 ```
 
 `type: "holding"` = production (PROD), otherwise watching (DEV). `poll_interval` controls refresh rate. Interactive commands modify config via `/api/config` POST.
+
+### Simulated Trading (`src/sim_trading/`)
+
+模拟交易系统：消费 L2 信号，生成虚拟交易，计算绩效指标。
+
+**数据流**: `l2_strategy_signals.json` → `signal_archiver` → `sim_trading.db` → `replay_runner` → trades/daily_pnl → `/api/sim` → `/sim` 页面
+
+**模块**:
+
+| 模块 | 职责 |
+|------|------|
+| `signal_archiver.py` | 实时归档 L2 信号 + 30s 价格快照到 SQLite |
+| `signal_mapper.py` | 4 层信号规则引擎 (Tier1 独立→Tier2 增强→Tier3 纠偏→Tier4 仅日志) |
+| `position_manager.py` | 虚拟持仓管理 (lot-size 对齐, SL/TP/max-hold 退出) |
+| `simulation_engine.py` | HK 交易成本 (佣金+印花税+交易费+结算费) + 流动性滑点 |
+| `trade_analyzer.py` | 绩效分析: 胜率/Sharpe/最大回撤/Calmar/归因 |
+| `replay_runner.py` | 历史回放入口 |
+
+**信号规则 (`src/data/signal_rules.json`)**:
+- `tiers.1_independent`: 14 种独立信号 → BUY/SELL 决策 (composite_bullish, momentum_alert, MACD 金叉等)
+- `tiers.2_enhance`: tick_persistence (+0.15 boost), large_order (+0.10 boost)
+- `tiers.3_correction`: 6 种纠偏信号 (large_order_reversal→SELL, volume_price_divergence→TIGHTEN_SL)
+- `tiers.4_log_only`: 11 种仅记录信号 (tick_imbalance, order_book_imbalance 等)
+- `risk_control`: min_confidence=0.60, max_single_stock=25%, max_total_invested=80%, 同股同日多空冲突取消
+- `cost_model`: HK 市场费率 (佣金 0.03% min 3 HKD, 印花税 0.13%, 交易费 0.00565%, 结算费 0.002%)
+- `lot_sizes`: 每只 HK 股的每手股数
+
+**运行回放**:
+```bash
+poetry run python -m src.sim_trading.replay_runner                    # 默认 v1_baseline
+poetry run python -m src.sim_trading.replay_runner --version v2_test  # 指定参数版本
+```
+
+**测试**: `poetry run pytest src/sim_trading/test_sim_trading.py -v` (54 tests)
+
+**SQLite 数据库 (`src/data/sim_trading.db`)**:
+- `signals`: 归档的 L2 信号 (strategy, code, direction, price_at_signal)
+- `price_snapshots`: 30s 粒度价格快照
+- `trades`: 已平仓交易 (entry/exit price, pnl, exit_reason, entry strategy)
+- `daily_pnl`: 每日权益快照 (equity, cash, invested, positions_json)
+- `param_versions`: 参数版本配置
+
+**Web 页面 (`/sim`)**:
+- `/api/sim` 路由: 用 `better-sqlite3` 读 SQLite，TS 端计算 summary/归因
+- 页面布局: 摘要栏(收益率/夏普/胜率/回撤/盈亏比) → 净值曲线(SVG) → 模拟持仓(与主页 HoldRow 风格一致) → 交易记录 → 策略归因 + 股票归因
+- 全中文标签，Dracula 终端风格
 
 ### Data Sources & Tools (`src/tools/`)
 
