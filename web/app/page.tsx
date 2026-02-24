@@ -162,6 +162,7 @@ function Home() {
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<AlertSettings>({});
   const [hkdCnyRate, setHkdCnyRate] = useState<number | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   // tab state: URL ?tab=A|HK, default by time (before 15:00 → A, after → HK)
   const searchParams = useSearchParams();
 
@@ -187,15 +188,22 @@ function Home() {
     try {
       const resp = await fetch("/api/metrics", { cache: "no-store" });
       const data = await resp.json();
-      setServices(data.services || []);
-      setTs(data.ts || Date.now());
+      if (data.error) {
+        setFetchError(data.error);
+        // preserve old services/ts — don't overwrite with empty
+      } else {
+        setFetchError(null);
+        setServices(data.services || []);
+        setTs(data.ts || Date.now());
+        if (data.settings) setSettings(data.settings);
+        if (data.hkdCnyRate != null) setHkdCnyRate(data.hkdCnyRate);
+        if (data.alertEvents) setAlertEvents(data.alertEvents);
+        if (data.marketTurnover) setMarketTurnover(data.marketTurnover);
+      }
       setTick((t) => t + 1);
-      if (data.settings) setSettings(data.settings);
-      if (data.hkdCnyRate != null) setHkdCnyRate(data.hkdCnyRate);
-      if (data.alertEvents) setAlertEvents(data.alertEvents);
-      if (data.marketTurnover) setMarketTurnover(data.marketTurnover);
-    } catch {
-      /* */
+    } catch (e) {
+      setFetchError(`network error: ${e}`);
+      // preserve old data
     } finally {
       setLoading(false);
     }
@@ -270,7 +278,7 @@ function Home() {
   const now = ts
     ? new Date(ts).toLocaleTimeString("zh-CN", { hour12: false })
     : "--:--:--";
-  const isStale = ts > 0 && Date.now() - ts > pollMs * 2;
+  const isStale = (ts > 0 && Date.now() - ts > pollMs * 3) || fetchError !== null;
 
   const FALLBACK_HKD_CNY = 0.92;
   const fxRate = hkdCnyRate ?? FALLBACK_HKD_CNY;
@@ -311,9 +319,10 @@ function Home() {
   function HoldRow({ s }: { s: Service }) {
     const sign = s.change > 0 ? "+" : "";
     const pnlPctStr = s.pnl !== null ? `${s.pnl >= 0 ? "+" : ""}${s.pnl.toFixed(1)}%` : "-";
-    const mktVal = s.shares != null ? s.price * s.shares : null;
-    const totalPnlRaw = s.cost != null && s.shares != null ? (s.price - s.cost) * s.shares : null;
-    const dayPnl = s.shares != null ? s.chgAmt * s.shares : null;
+    const rowFx = s.id.startsWith("HK") ? fxRate : 1;
+    const mktVal = s.shares != null ? s.price * s.shares * rowFx : null;
+    const totalPnlRaw = s.cost != null && s.cost > 0 && s.shares != null ? (s.price - s.cost) * s.shares * rowFx : null;
+    const dayPnl = s.shares != null ? s.chgAmt * s.shares * rowFx : null;
     // Near alert threshold indicator
     const nearAlert =
       (s.above && s.price > 0 && (s.above - s.price) / s.price < 0.03) ||
@@ -445,6 +454,14 @@ function Home() {
         <Prompt cmd={`watch -n ${pollMs / 1000} ./svc-monitor --format table`} />
         <div style={{ height: 8 }} />
 
+        {loading && (
+          <div style={{ color: D.comment, padding: "16px 0" }}>
+            <span style={{ color: D.green }}>info</span> Loading metrics
+            <span style={{ animation: "blink 1s step-end infinite" }}>...</span>
+          </div>
+        )}
+
+        {!loading && (<>
         {/* watch header */}
         <div style={{ color: D.comment, marginBottom: 6 }}>
           <span>Every {pollMs / 1000}.0s: svc-monitor --format table</span>
@@ -456,6 +473,18 @@ function Home() {
           </span>
         </div>
 
+        {/* error banner */}
+        {fetchError && (
+          <div style={{ color: D.red, marginBottom: 6, fontWeight: 500 }}>
+            [ERROR] metrics fetch failed: {fetchError}
+            {ts > 0 && (
+              <span style={{ color: D.comment, fontWeight: 400 }}>
+                {" "}— showing stale data (last update: {new Date(ts).toLocaleTimeString("zh-CN", { hour12: false })})
+              </span>
+            )}
+          </div>
+        )}
+
         {/* summary bar — current tab */}
         <div style={{ color: D.comment, marginBottom: 6 }}>
           <span style={{ color: D.fg }}>
@@ -463,6 +492,9 @@ function Home() {
           </span>
           {"  "}
           holdings:<span style={{ color: D.orange }}>{tabHoldCount}</span>
+          {tabHoldings.length > tabHoldCount && (
+            <span style={{ color: D.comment, fontSize: 11 }}>(+{tabHoldings.length - tabHoldCount} hidden)</span>
+          )}
           {"  "}
           up:<span style={{ color: D.red }}>{tabUp}</span>
           {" "}down:<span style={{ color: D.green }}>{tabDn}</span>
@@ -506,7 +538,7 @@ function Home() {
             today:<span style={{ color: chgColor(tabTodayPnl) }}>{fmtMoney(tabTodayPnl)}</span>
             <span style={{ color: D.comment }}>¥</span>
             {activeTab === "HK" && !hkdCnyRate && (
-              <span style={{ color: D.comment, fontSize: 11 }}> (FX≈{FALLBACK_HKD_CNY})</span>
+              <span style={{ color: D.yellow, fontSize: 11, fontWeight: 500 }}> [WARN FX unavailable, fallback≈{FALLBACK_HKD_CNY}]</span>
             )}
           </div>
         )}
@@ -642,6 +674,8 @@ function Home() {
           [{now}] <span style={{ color: D.green }}>info</span> scheduler: next poll in{" "}
           {pollMs / 1000}s
         </div>
+
+        </>)}
 
         {/* interactive command prompt */}
         <div style={{ height: 10 }} />

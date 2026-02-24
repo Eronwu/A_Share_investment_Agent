@@ -40,6 +40,11 @@ export async function GET() {
       alerts = alertCfg.alerts || {};
     } catch { /* */ }
 
+    // 校验 services 是数组
+    if (!Array.isArray(data.services)) {
+      return NextResponse.json({ ...EMPTY, error: "invalid data: services is not an array" });
+    }
+
     // 合并到每条 service
     if (Array.isArray(data.services)) {
       data.services = data.services.map((s: Record<string, unknown>) => {
@@ -85,7 +90,7 @@ export async function GET() {
     }
 
     return NextResponse.json(data);
-  } catch {
-    return NextResponse.json(EMPTY);
+  } catch (e) {
+    return NextResponse.json({ ...EMPTY, error: String(e) });
   }
 }

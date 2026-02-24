@@ -193,6 +193,8 @@ function StockRow({
   code,
   entry,
   isHolding,
+  above,
+  below,
   promoting,
   promoCost,
   promoShares,
@@ -209,6 +211,8 @@ function StockRow({
   code: string;
   entry: WatchEntry;
   isHolding: boolean;
+  above?: number;
+  below?: number;
   promoting: string | null;
   promoCost: string;
   promoShares: string;
@@ -323,7 +327,7 @@ function StockRow({
                 borderRadius: 3,
                 fontFamily: "JetBrains Mono, monospace",
               }}
-              onClick={() => onUpdateType(code, "holding")}
+              onClick={() => { if (confirm(`Demote ${code} to watching?`)) onUpdateType(code, "holding"); }}
               title="Demote to watching"
             >
               ↓ DEV
@@ -347,6 +351,23 @@ function StockRow({
             ↑ PROD
           </button>
         )}
+        {/* alert thresholds */}
+        <span style={{ color: D.comment, fontSize: 11, paddingLeft: 4 }}>▲</span>
+        <EditableCell
+          value={above}
+          onSave={(v) => onUpdateField(code, "above", v)}
+          width="60px"
+          placeholder="-"
+          isNumber
+        />
+        <span style={{ color: D.comment, fontSize: 11 }}>▼</span>
+        <EditableCell
+          value={below}
+          onSave={(v) => onUpdateField(code, "below", v)}
+          width="60px"
+          placeholder="-"
+          isNumber
+        />
         {/* star toggle */}
         <button
           onClick={() => onToggleStar(code, !entry.star)}
@@ -366,8 +387,8 @@ function StockRow({
         >
           ★
         </button>
-        {isHolding && (
-          <span
+        {/* hide toggle — available for all types (CLI `svc hide` supports any) */}
+        <span
             onClick={() => onToggleHidden(code, !entry.hidden)}
             title={entry.hidden ? "Unhide (show on dashboard)" : "Hide (out of sight)"}
             style={{
@@ -410,7 +431,6 @@ function StockRow({
             </span>
             {entry.hidden ? "hidden" : "hide"}
           </span>
-        )}
         <button style={deleteBtn} onClick={() => onRemove(code, entry.name)} title="Remove">
           ×
         </button>
@@ -453,8 +473,10 @@ function StockRow({
             />
           </label>
           <button
-            style={{ ...promoteBtn, background: D.orange, color: D.bg }}
+            style={{ ...promoteBtn, background: promoCost && promoShares ? D.orange : D.comment, color: D.bg }}
             onClick={() => onPromote(code)}
+            disabled={!promoCost || !promoShares}
+            title={!promoCost || !promoShares ? "Fill cost and shares first" : "Promote to holding"}
           >
             Confirm
           </button>
@@ -480,6 +502,9 @@ export default function ManagePage() {
   const [promoting, setPromoting] = useState<string | null>(null);
   const [promoCost, setPromoCost] = useState("");
   const [promoShares, setPromoShares] = useState("");
+
+  // alert rules from alert_config.json
+  const [alertRules, setAlertRules] = useState<Record<string, { above?: number; below?: number }>>({});
 
   // add form state
   const [addCode, setAddCode] = useState("");
@@ -509,8 +534,9 @@ export default function ManagePage() {
   const fetchConfig = useCallback(async () => {
     try {
       const resp = await fetch("/api/config", { cache: "no-store" });
-      const data: MonitorConfig = await resp.json();
-      setConfig(data);
+      const data = await resp.json();
+      setAlertRules(data.alerts || {});
+      setConfig(data as MonitorConfig);
       const s = data.settings;
       setSettingsDraft({
         poll_interval: String(s.poll_interval ?? 30),
@@ -803,6 +829,20 @@ export default function ManagePage() {
         </div>
         </>)}
 
+        {/* column legend */}
+        <div style={{ display: "flex", gap: 4, padding: "4px 0 2px", color: D.comment, fontSize: 11, borderBottom: `1px solid ${D.currentLine}` }}>
+          <span style={{ width: 50 }}>type</span>
+          <span style={{ width: 90 }}>code</span>
+          <span style={{ width: 110 }}>name</span>
+          <span style={{ width: 80 }}>cost</span>
+          <span style={{ width: 80 }}>shares</span>
+          <span style={{ width: 60 }}></span>
+          <span style={{ width: 75, color: D.orange }}>▲ above</span>
+          <span style={{ width: 75, color: D.cyan }}>▼ below</span>
+          <span style={{ width: 30 }}>★</span>
+          <span style={{ width: 40 }}>hide</span>
+        </div>
+
         {/* ── prod:A股个股 ── */}
         {prodStock.length > 0 && (
           <>
@@ -816,6 +856,7 @@ export default function ManagePage() {
             {prodStockOpen && prodStock.map(([code, entry]) => (
               <StockRow
                 key={code} code={code} entry={entry} isHolding
+                above={alertRules[code]?.above} below={alertRules[code]?.below}
                 promoting={promoting} promoCost={promoCost} promoShares={promoShares}
                 setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
                 onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
@@ -838,6 +879,7 @@ export default function ManagePage() {
             {prodETFOpen && prodETF.map(([code, entry]) => (
               <StockRow
                 key={code} code={code} entry={entry} isHolding
+                above={alertRules[code]?.above} below={alertRules[code]?.below}
                 promoting={promoting} promoCost={promoCost} promoShares={promoShares}
                 setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
                 onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
@@ -860,6 +902,7 @@ export default function ManagePage() {
             {prodHKOpen && prodHK.map(([code, entry]) => (
               <StockRow
                 key={code} code={code} entry={entry} isHolding
+                above={alertRules[code]?.above} below={alertRules[code]?.below}
                 promoting={promoting} promoCost={promoCost} promoShares={promoShares}
                 setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
                 onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
@@ -886,6 +929,7 @@ export default function ManagePage() {
             {watchOpen && watching.map(([code, entry]) => (
               <StockRow
                 key={code} code={code} entry={entry} isHolding={false}
+                above={alertRules[code]?.above} below={alertRules[code]?.below}
                 promoting={promoting} promoCost={promoCost} promoShares={promoShares}
                 setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
                 onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}

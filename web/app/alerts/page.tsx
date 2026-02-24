@@ -84,14 +84,20 @@ function TitleBar() {
 export default function AlertsPage() {
   const [events, setEvents] = useState<AlertEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchEvents = useCallback(async () => {
     try {
       const resp = await fetch("/api/metrics", { cache: "no-store" });
       const data = await resp.json();
-      setEvents(data.alertEvents || []);
-    } catch {
-      /* */
+      if (data.error) {
+        setFetchError(data.error);
+      } else {
+        setFetchError(null);
+        setEvents(data.alertEvents || []);
+      }
+    } catch (e) {
+      setFetchError(`network error: ${e}`);
     } finally {
       setLoading(false);
     }
@@ -160,11 +166,17 @@ export default function AlertsPage() {
           <span style={{ color: D.fg }}>cat alert_events.log | sort -r</span>
         </div>
 
+        {fetchError && (
+          <div style={{ color: D.red, marginBottom: 8, fontWeight: 500 }}>
+            [ERROR] alert events fetch failed: {fetchError}
+          </div>
+        )}
+
         {loading && (
           <div style={{ color: D.comment }}>Loading...</div>
         )}
 
-        {!loading && sorted.length === 0 && (
+        {!loading && !fetchError && sorted.length === 0 && (
           <div style={{ color: D.comment, padding: "16px 0" }}>
             # No alert events today. Events reset daily at 08:00.
           </div>

@@ -78,13 +78,24 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
 **URL routing**: `/?tab=A`（A 股）、`/?tab=HK`（港股）。无参数时按时间自动选：15:00 前默认 A 股，15:00 后默认港股。Tab 切换同步更新 URL，刷新保持状态。
 
-**摘要栏按 tab 独立统计**：Nodes/holdings/up/down/throughput/avg_delta/P&L 全部按当前 tab 计算。A 股 tab 显示两市指数+成交额（SH/SZ/vol），HK tab 显示 FX 汇率。港股 P&L 自动乘汇率转 CNY。
+**摘要栏按 tab 独立统计**：Nodes/holdings(+N hidden)/up/down/throughput/avg_delta/P&L 全部按当前 tab 计算。A 股 tab 显示两市指数+成交额（SH/SZ/vol），HK tab 显示 FX 汇率。港股 P&L（行级和汇总级）自动乘汇率转 CNY。当 FX 不可用时显示黄色 `[WARN FX unavailable]` banner。
+
+**错误处理**: Dashboard 和 Alerts 页面都有 `fetchError` state。API 返回 `{ error: "..." }` 时保留旧数据、显示红色 `[ERROR]` banner、触发 STALE 标记。`/api/metrics` catch 块返回 `{ ...EMPTY, error: String(e) }`，并校验 `services` 必须是数组。
+
+**Loading 状态**: Dashboard 首次加载时显示 `info Loading metrics...`（终端风格），不渲染空表格。
 
 **Data flow**: 四文件分离，`/api/metrics` 负责合并。
 
 **Key hooks**:
 - `useCommand` — parses `svc add|update|rm|hide|unhide|star|unstar|ls|config|help` commands, manages terminal log entries. Returns `addLogs` for external log injection.
 - `useAlerts` — 读取 notifier 写入的 `alert_events.json` 展示在 web 日志区，不做任何告警计算（纯消费者）。用 `display` 字段展示中文详细格式。
+
+**管理页面 (`/manage`)**:
+- 列标题行: `type | code | name | cost | shares | ▲ above | ▼ below | ★ | hide`
+- `above`/`below` 告警阈值通过 `EditableCell` 内联编辑，保存到 `alert_config.json`（适用于 holding 和 watching）
+- `hide` 开关对 holding 和 watching 类型都可用（与 CLI `svc hide` 一致）
+- Promote (watching→holding) 必须填写 cost 和 shares 才能 Confirm
+- Demote (holding→watching) 有 `confirm()` 确认弹窗
 
 **四文件职责分离**:
 
@@ -141,6 +152,10 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
 Hong Kong stocks use `HK` prefix (e.g., `HK09988`). The web metrics API strips the prefix for 东方财富 API calls and maps market code `116` for HK stocks, vs `1` (Shanghai) / `0` (Shenzhen) for A-shares. See `emMarket()` and `rawCode()` in `web/app/api/metrics/route.ts`.
 
+**HK P&L FX 转换**: 行级和汇总级都乘 `fxRate`（来自 poller 的 `hkdCnyRate`，fallback 0.92）。`HoldRow` 中 `rowFx = s.id.startsWith("HK") ? fxRate : 1` 应用于 `mktVal`、`totalPnlRaw`、`dayPnl`。百分比字段（`pnl%`、`change%`）不转换。
+
+**P&L 守护**: 前端 `totalPnlRaw` 计算需要 `s.cost > 0`（不仅 `!= null`），与 API 端 `pnl` 计算的守护条件一致。cost=0 的 holding 显示 `-` 而非无意义大数。
+
 ### Stock Notifier (`src/tools/stock_notifier.py`)
 
 Lightweight macOS notification daemon. Reads poller output, never fetches data directly.
@@ -189,6 +204,14 @@ Lightweight macOS notification daemon. Reads poller output, never fetches data d
 #### Config Write Safety
 
 `/api/config` 和 poller 都使用原子写入（tmp → rename），防止并发读到半截 JSON。修改 config 写入逻辑时必须保持此模式。
+
+#### Playwright Testing
+
+UI 修改后使用 `/playwright-test` skill 验证。脚本存放在 `web/screenshots/`，截图输出到子目录。关键测试模式：
+- **Visual**: 截图对比（loading 态、错误态、正常态）
+- **EditableCell CRUD**: 点击→输入→Enter→reload 验证持久化
+- **Data consistency**: summary 汇总 vs 行级求和（tolerance ~500 for 万-level rounding）
+- **Route intercept**: `page.route()` 模拟 API 失败/延迟，验证 error banner 和 loading 状态
 
 #### Hidden List
 
