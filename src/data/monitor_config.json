@@ -2,7 +2,7 @@
   "watchlist": {
     "159206": {
       "name": "卫星ETF",
-      "type": "holding",
+      "type": "watching",
       "cost": 0.918,
       "shares": 1300,
       "hidden": false,
@@ -193,7 +193,7 @@
     },
     "600550": {
       "name": "保变电气",
-      "type": "holding",
+      "type": "watching",
       "cost": 16.098,
       "shares": 200
     },
@@ -257,7 +257,7 @@
     },
     "603019": {
       "name": "中科曙光",
-      "type": "holding",
+      "type": "watching",
       "cost": 91.331,
       "shares": 200
     },
@@ -266,7 +266,7 @@
     },
     "603533": {
       "name": "掌阅科技",
-      "type": "holding",
+      "type": "watching",
       "cost": 23.551,
       "shares": 600
     },
@@ -320,7 +320,7 @@
     "HK06809": {
       "name": "澜起科技",
       "type": "holding",
-      "cost": 146.1,
+      "cost": 109.9,
       "shares": 100,
       "star": true
     },
@@ -368,7 +368,7 @@
     },
     "002364": {
       "name": "中恒电气",
-      "type": "holding",
+      "type": "watching",
       "cost": 30.172,
       "shares": 100
     },
@@ -410,7 +410,7 @@
     },
     "002648": {
       "name": "卫星化学",
-      "type": "holding",
+      "type": "watching",
       "cost": 22.906,
       "shares": 800
     },
@@ -436,11 +436,11 @@
       "name": "通富微电",
       "type": "holding",
       "cost": 49.404,
-      "shares": 800
+      "shares": 400
     },
     "002202": {
       "name": "金风科技",
-      "type": "holding",
+      "type": "watching",
       "cost": 4.815,
       "shares": 100
     },
@@ -452,15 +452,35 @@
     },
     "HK03986": {
       "name": "兆易创新",
-      "type": "holding",
+      "type": "watching",
       "cost": 305.999,
       "shares": 100,
       "star": true
+    },
+    "HK02590": {
+      "name": "极智嘉-W",
+      "type": "holding",
+      "cost": 26.267,
+      "shares": 2200,
+      "star": true
+    },
+    "HK07709": {
+      "name": "XL二南方海力士",
+      "type": "holding",
+      "cost": 24.565,
+      "shares": 1100
     }
   },
   "settings": {
     "poll_interval": 30,
     "big_move_pct": 5,
-    "cooldown_minutes": 10
+    "cooldown_minutes": 10,
+    "l1_trigger_pct": 4,
+    "l1_delta_pct": 3,
+    "l1_cooldown_min": 5,
+    "l2_trigger_pct": 6,
+    "l2_delta_pct": 5,
+    "l2_cooldown_min": 15,
+    "l3_cooldown_min": 30
   }
 }

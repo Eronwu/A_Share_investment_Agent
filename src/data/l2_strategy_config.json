@@ -110,5 +110,28 @@
     "composite_threshold": 5,
     "min_strategy_types": 2
   },
-  "max_signals": 200
+  "max_signals": 200,
+  "daily_indicators": {
+    "enabled": true,
+    "description": "日K线技术指标(RSI/MACD/均线/布林带/ADX/量价/K线/支撑阻力/RS)",
+    "rsi_period": 14,
+    "rsi_overbought": 70,
+    "rsi_oversold": 30,
+    "rsi_extreme_overbought": 90,
+    "rsi_extreme_oversold": 20,
+    "rsi_extreme_consecutive_days": 2,
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "divergence_lookback": 20,
+    "ma_periods": [5, 10, 20, 60],
+    "bollinger_period": 20,
+    "bollinger_std": 2,
+    "adx_period": 14,
+    "adx_trend_threshold": 25,
+    "volume_breakout_ratio": 1.5,
+    "relative_strength_threshold": 15,
+    "refresh_minutes": 30,
+    "cooldown_minutes": 480
+  }
 }

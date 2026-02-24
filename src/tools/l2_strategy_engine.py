@@ -35,6 +35,9 @@ from collections import deque
 from datetime import datetime
 from typing import Optional
 
+import numpy as np
+import pandas as pd
+
 from src.utils.logging_config import setup_logger
 
 logger = setup_logger("l2_strategy")
@@ -1094,6 +1097,37 @@ _STRATEGY_NAMES = {
     "institutional_retail_divergence": "散户机构分歧",
     "large_order_reversal": "大单翻转",
     "closing_surge": "尾盘异动",
+    # Daily indicator strategies
+    "rsi_overbought": "RSI超买",
+    "rsi_oversold": "RSI超卖",
+    "rsi_extreme_overbought": "RSI严重超买",
+    "rsi_extreme_oversold": "RSI严重超卖",
+    "macd_golden_cross": "MACD金叉",
+    "macd_death_cross": "MACD死叉",
+    "macd_top_divergence": "MACD顶背离",
+    "macd_bottom_divergence": "MACD底背离",
+    "ma_bullish_align": "均线多头排列",
+    "ma_bearish_align": "均线空头排列",
+    "bollinger_squeeze_breakout": "布林带突破",
+    "adx_trend_start": "趋势启动",
+    "volume_breakout": "放量突破",
+    "volume_divergence_top": "缩量创高",
+    "engulfing_pattern": "吞没形态",
+    "morning_evening_star": "晨暮星",
+    "breakout_pullback": "突破回踩",
+    "support_breakdown": "破位下跌",
+    "relative_strength": "相对强弱",
+}
+
+# Daily strategies that trigger macOS notifications (L1)
+DAILY_NOTIFY_STRATEGIES = {
+    "macd_golden_cross", "macd_death_cross",
+    "macd_top_divergence", "macd_bottom_divergence",
+    "ma_bullish_align", "ma_bearish_align",
+    "bollinger_squeeze_breakout",
+    "volume_breakout", "morning_evening_star",
+    "breakout_pullback", "support_breakdown",
+    "rsi_extreme_overbought", "rsi_extreme_oversold",
 }
 
 
@@ -1239,6 +1273,93 @@ def format_signal(raw: dict, name_map: dict[str, str], *, notify: bool = False,
         signals_cn = [_STRATEGY_NAMES.get(s, s) for s in detail.get("signals", [])]
         score = detail.get("score", 0)
         display = f"{code} {stock_name} {cn_name}(分={score}): {' + '.join(signals_cn)}"
+    # ── Daily indicator strategies ──
+    elif strategy == "rsi_overbought":
+        display = f"{code} {stock_name} {cn_name}: RSI={detail.get('rsi', 0):.1f} (前日{detail.get('prev_rsi', 0):.1f}) 突破{detail.get('threshold', 70)}"
+    elif strategy == "rsi_oversold":
+        display = f"{code} {stock_name} {cn_name}: RSI={detail.get('rsi', 0):.1f} (前日{detail.get('prev_rsi', 0):.1f}) 跌破{detail.get('threshold', 30)}"
+    elif strategy == "rsi_extreme_overbought":
+        days = detail.get("consecutive_days", 1)
+        day_label = f"连续{days}日" if days >= 2 else ""
+        display = f"{code} {stock_name} {cn_name}: {day_label}RSI={detail.get('rsi', 0):.1f} >{detail.get('threshold', 90)}"
+    elif strategy == "rsi_extreme_oversold":
+        days = detail.get("consecutive_days", 1)
+        day_label = f"连续{days}日" if days >= 2 else ""
+        display = f"{code} {stock_name} {cn_name}: {day_label}RSI={detail.get('rsi', 0):.1f} <{detail.get('threshold', 20)}"
+    elif strategy == "macd_golden_cross":
+        display = f"{code} {stock_name} {cn_name}: DIF={detail.get('dif', 0):.4f} DEA={detail.get('dea', 0):.4f}"
+    elif strategy == "macd_death_cross":
+        display = f"{code} {stock_name} {cn_name}: DIF={detail.get('dif', 0):.4f} DEA={detail.get('dea', 0):.4f}"
+    elif strategy == "macd_top_divergence":
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"价格{detail.get('price', 0):.2f}>{detail.get('prior_high', 0):.2f} "
+            f"但DIF{detail.get('dif', 0):.4f}<{detail.get('prior_dif', 0):.4f}"
+        )
+    elif strategy == "macd_bottom_divergence":
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"价格{detail.get('price', 0):.2f}<{detail.get('prior_low', 0):.2f} "
+            f"但DIF{detail.get('dif', 0):.4f}>{detail.get('prior_dif', 0):.4f}"
+        )
+    elif strategy in ("ma_bullish_align", "ma_bearish_align"):
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"MA5={detail.get('ma5', 0):.2f} MA10={detail.get('ma10', 0):.2f} "
+            f"MA20={detail.get('ma20', 0):.2f} MA60={detail.get('ma60', 0):.2f} "
+            f"斜率{detail.get('ma20_slope_pct', 0):+.2f}%"
+        )
+    elif strategy == "bollinger_squeeze_breakout":
+        dir_cn = "上破" if detail.get("direction") == "bullish" else "下破"
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"{dir_cn} 带宽{detail.get('bandwidth', 0):.2f}%(60日最窄{detail.get('min_bandwidth_60', 0):.2f}%) "
+            f"量比{detail.get('volume_ratio', 0):.1f}"
+        )
+    elif strategy == "adx_trend_start":
+        dir_cn = "多头" if detail.get("direction") == "bullish" else "空头"
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"ADX={detail.get('adx', 0):.1f}(前日{detail.get('prev_adx', 0):.1f}) {dir_cn}趋势"
+        )
+    elif strategy == "volume_breakout":
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"收盘{detail.get('close', 0):.2f}>前高{detail.get('prev_high', 0):.2f} "
+            f"量比MA20={detail.get('vol_ratio', 0):.1f}x"
+        )
+    elif strategy == "volume_divergence_top":
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"价格新高{detail.get('close', 0):.2f} 但成交量萎缩至前高量{detail.get('vol_shrink_ratio', 0):.0%}"
+        )
+    elif strategy == "engulfing_pattern":
+        dir_cn = "看涨" if detail.get("direction") == "bullish" else "看跌"
+        display = f"{code} {stock_name} {dir_cn}{cn_name}"
+    elif strategy == "morning_evening_star":
+        pattern = detail.get("pattern", "")
+        pattern_cn = "晨星" if pattern == "morning_star" else "暮星"
+        display = f"{code} {stock_name} {pattern_cn}形态"
+    elif strategy == "breakout_pullback":
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"回踩支撑{detail.get('support_level', 0):.2f} 现价{detail.get('close', 0):.2f} "
+            f"缩量{detail.get('vol_shrink', 0):.2f}x"
+        )
+    elif strategy == "support_breakdown":
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"跌破{detail.get('support_level', 0):.2f} 现价{detail.get('close', 0):.2f} "
+            f"放量{detail.get('vol_ratio', 0):.1f}x"
+        )
+    elif strategy == "relative_strength":
+        dir_cn = "强于" if detail.get("direction") == "bullish" else "弱于"
+        display = (
+            f"{code} {stock_name} {cn_name}: "
+            f"60日{dir_cn}恒指 个股{detail.get('stock_return_60d', 0):+.1f}% "
+            f"恒指{detail.get('index_return_60d', 0):+.1f}% "
+            f"超额{detail.get('excess_return', 0):+.1f}%"
+        )
     else:
         display = f"{code} {stock_name} {cn_name}"
 
@@ -1279,6 +1400,816 @@ def format_signal(raw: dict, name_map: dict[str, str], *, notify: bool = False,
         "display": display,
         "detail": detail,
     }
+
+
+# ══════════════════════════════════════════
+# Daily Indicator Tracker — 日K线技术指标
+# ══════════════════════════════════════════
+
+def _calc_rsi(series: pd.Series, period: int = 14) -> pd.Series:
+    """RSI 计算 — 处理 avg_loss=0 (全涨→100) 和 avg_gain=0 (全跌→0)"""
+    delta = series.diff()
+    gain = delta.clip(lower=0)
+    loss = (-delta).clip(lower=0)
+    avg_gain = gain.ewm(alpha=1 / period, min_periods=period, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1 / period, min_periods=period, adjust=False).mean()
+    rs = avg_gain / avg_loss.replace(0, np.nan)
+    rsi = 100 - (100 / (1 + rs))
+    # avg_loss=0 → RSI=100 (all gains); avg_gain=0 → RSI=0 (all losses)
+    rsi = rsi.fillna(100)
+    rsi = rsi.where(avg_gain > 0, 0)
+    return rsi
+
+
+def _calc_macd(series: pd.Series, fast: int = 12, slow: int = 26,
+               signal: int = 9) -> dict:
+    """MACD 计算 (复用 stock_data_fetcher 逻辑)"""
+    ema_fast = series.ewm(span=fast, adjust=False).mean()
+    ema_slow = series.ewm(span=slow, adjust=False).mean()
+    dif = ema_fast - ema_slow
+    dea = dif.ewm(span=signal, adjust=False).mean()
+    hist = (dif - dea) * 2
+    return {"dif": dif, "dea": dea, "hist": hist}
+
+
+def _calc_adx(high: pd.Series, low: pd.Series, close: pd.Series,
+              period: int = 14) -> pd.Series:
+    """Average Directional Index"""
+    tr = pd.concat([
+        high - low,
+        (high - close.shift()).abs(),
+        (low - close.shift()).abs(),
+    ], axis=1).max(axis=1)
+    plus_dm = (high - high.shift()).clip(lower=0).where(
+        high - high.shift() > low.shift() - low, 0)
+    minus_dm = (low.shift() - low).clip(lower=0).where(
+        low.shift() - low > high - high.shift(), 0)
+    atr = tr.ewm(span=period, adjust=False).mean()
+    plus_di = 100 * (plus_dm.ewm(span=period, adjust=False).mean() / atr)
+    minus_di = 100 * (minus_dm.ewm(span=period, adjust=False).mean() / atr)
+    di_sum = plus_di + minus_di
+    dx = 100 * (plus_di - minus_di).abs() / di_sum.replace(0, np.nan)
+    dx = dx.fillna(0)
+    adx = dx.ewm(span=period, adjust=False).mean()
+    return adx
+
+
+class DailyIndicatorTracker:
+    """日K线技术指标追踪器
+
+    - Futu request_history_kline(K_DAY) 获取 120 天日K (够算 MA60 + lookback)
+    - 缓存 K 线, 每 30 分钟刷新 (盘中当日 K 线更新)
+    - 计算所有指标, 检测状态变化触发信号
+    """
+
+    def __init__(self, config: dict):
+        self._cfg = config
+        self._refresh_sec = config.get("refresh_minutes", 30) * 60
+        # {code: last_refresh_timestamp}
+        self._last_refresh: dict[str, float] = {}
+        # {code: DataFrame of kline}
+        self._kline_cache: dict[str, pd.DataFrame] = {}
+        # {code: dict of computed indicators}
+        self._ind: dict[str, dict] = {}
+        # Index kline cache (for relative strength)
+        self._index_kline: Optional[pd.DataFrame] = None
+        self._index_last_refresh: float = 0
+        # {code: set of strategy names already triggered today}
+        self._triggered_today: dict[str, set] = {}
+
+    def update(self, code: str, ctx) -> list:
+        """刷新 + 检测, 返回 0~N 个信号"""
+        if not self._should_refresh(code):
+            return []
+
+        kline = self._fetch_kline(code, ctx)
+        if kline is None or len(kline) < 60:
+            return []
+
+        self._kline_cache[code] = kline
+        self._last_refresh[code] = time.time()
+        self._compute_all(code, kline)
+        return self._check_all_signals(code)
+
+    def _should_refresh(self, code: str) -> bool:
+        last = self._last_refresh.get(code, 0)
+        return time.time() - last >= self._refresh_sec
+
+    def _fetch_kline(self, code: str, ctx) -> Optional[pd.DataFrame]:
+        """Fetch 120-day daily kline from Futu"""
+        try:
+            from futu import RET_OK, KLType, AuType
+            ret, data, _ = ctx.request_history_kline(
+                to_futu_code(code), ktype=KLType.K_DAY,
+                autype=AuType.QFQ, max_count=120)
+            if ret == RET_OK and data is not None and not data.empty:
+                return data
+        except Exception as e:
+            logger.debug(f"daily kline fetch({code}) error: {e}")
+        return None
+
+    def _fetch_index_kline(self, ctx) -> Optional[pd.DataFrame]:
+        """Fetch HSI index kline for relative strength"""
+        now = time.time()
+        if self._index_kline is not None and now - self._index_last_refresh < self._refresh_sec:
+            return self._index_kline
+        try:
+            from futu import RET_OK, KLType, AuType
+            ret, data, _ = ctx.request_history_kline(
+                "HK.800000", ktype=KLType.K_DAY,
+                autype=AuType.QFQ, max_count=120)
+            if ret == RET_OK and data is not None and not data.empty:
+                self._index_kline = data
+                self._index_last_refresh = now
+                return data
+        except Exception as e:
+            logger.debug(f"index kline fetch error: {e}")
+        return None
+
+    def _compute_all(self, code: str, kline: pd.DataFrame):
+        """计算所有技术指标并缓存"""
+        close = kline["close"].astype(float)
+        high = kline["high"].astype(float)
+        low = kline["low"].astype(float)
+        volume = kline["volume"].astype(float)
+
+        cfg = self._cfg
+
+        # RSI
+        rsi = _calc_rsi(close, cfg.get("rsi_period", 14))
+
+        # MACD
+        macd = _calc_macd(close, cfg.get("macd_fast", 12),
+                          cfg.get("macd_slow", 26), cfg.get("macd_signal", 9))
+
+        # Moving averages
+        ma_periods = cfg.get("ma_periods", [5, 10, 20, 60])
+        mas = {}
+        for p in ma_periods:
+            mas[f"ma{p}"] = close.rolling(p).mean()
+
+        # Bollinger Bands
+        bb_period = cfg.get("bollinger_period", 20)
+        bb_std = cfg.get("bollinger_std", 2)
+        bb_mid = close.rolling(bb_period).mean()
+        bb_rolling_std = close.rolling(bb_period).std()
+        bb_upper = bb_mid + bb_std * bb_rolling_std
+        bb_lower = bb_mid - bb_std * bb_rolling_std
+        bb_width = (bb_upper - bb_lower) / bb_mid * 100  # 百分比带宽
+
+        # ADX
+        adx = _calc_adx(high, low, close, cfg.get("adx_period", 14))
+
+        # Volume MA
+        vol_ma20 = volume.rolling(20).mean()
+
+        self._ind[code] = {
+            "close": close,
+            "high": high,
+            "low": low,
+            "volume": volume,
+            "rsi": rsi,
+            "macd_dif": macd["dif"],
+            "macd_dea": macd["dea"],
+            "macd_hist": macd["hist"],
+            "mas": mas,
+            "bb_upper": bb_upper,
+            "bb_lower": bb_lower,
+            "bb_width": bb_width,
+            "adx": adx,
+            "vol_ma20": vol_ma20,
+        }
+
+    def _check_all_signals(self, code: str) -> list:
+        """运行所有策略检测"""
+        signals = []
+        signals.extend(self._check_rsi(code))
+        signals.extend(self._check_macd_cross(code))
+        signals.extend(self._check_macd_divergence(code))
+        signals.extend(self._check_ma_alignment(code))
+        signals.extend(self._check_bollinger(code))
+        signals.extend(self._check_adx(code))
+        signals.extend(self._check_volume_patterns(code))
+        signals.extend(self._check_kline_patterns(code))
+        signals.extend(self._check_support_resistance(code))
+        signals.extend(self._check_relative_strength(code))
+        return signals
+
+    def _already_triggered(self, code: str, strategy: str) -> bool:
+        """日内去重: 同一策略同一股票每天只触发一次"""
+        return strategy in self._triggered_today.get(code, set())
+
+    def _mark_triggered(self, code: str, strategy: str):
+        if code not in self._triggered_today:
+            self._triggered_today[code] = set()
+        self._triggered_today[code].add(strategy)
+
+    def _make_signal(self, code: str, strategy: str, detail: dict) -> Optional[dict]:
+        """构造信号 dict，自动去重"""
+        if self._already_triggered(code, strategy):
+            return None
+        self._mark_triggered(code, strategy)
+        return {"strategy": strategy, "code": code, "detail": detail}
+
+    # ── Batch 1: RSI ──
+
+    def _check_rsi(self, code: str) -> list:
+        ind = self._ind.get(code)
+        if not ind:
+            return []
+        rsi = ind["rsi"]
+        if len(rsi) < 3:
+            return []
+
+        signals = []
+        curr = rsi.iloc[-1]
+        prev = rsi.iloc[-2]
+        if pd.isna(curr) or pd.isna(prev):
+            return []
+        ob = self._cfg.get("rsi_overbought", 70)
+        os_val = self._cfg.get("rsi_oversold", 30)
+        extreme_ob = self._cfg.get("rsi_extreme_overbought", 90)
+        extreme_os = self._cfg.get("rsi_extreme_oversold", 20)
+        extreme_days = self._cfg.get("rsi_extreme_consecutive_days", 2)
+
+        # ── Extreme overbought (RSI > 90) — 优先于普通超买 ──
+        if curr > extreme_ob:
+            # Count consecutive days above extreme threshold
+            consec = 0
+            for i in range(1, min(len(rsi), 10)):
+                v = rsi.iloc[-i]
+                if pd.isna(v) or float(v) <= extreme_ob:
+                    break
+                consec += 1
+            sig = self._make_signal(code, "rsi_extreme_overbought", {
+                "rsi": round(float(curr), 1),
+                "prev_rsi": round(float(prev), 1),
+                "threshold": extreme_ob,
+                "consecutive_days": consec,
+            })
+            if sig:
+                signals.append(sig)
+        # ── Normal overbought crossing (RSI crosses above 70) ──
+        elif curr > ob and prev <= ob:
+            sig = self._make_signal(code, "rsi_overbought", {
+                "rsi": round(float(curr), 1),
+                "prev_rsi": round(float(prev), 1),
+                "threshold": ob,
+            })
+            if sig:
+                signals.append(sig)
+
+        # ── Extreme oversold (RSI < 20) — 优先于普通超卖 ──
+        if curr < extreme_os:
+            consec = 0
+            for i in range(1, min(len(rsi), 10)):
+                v = rsi.iloc[-i]
+                if pd.isna(v) or float(v) >= extreme_os:
+                    break
+                consec += 1
+            sig = self._make_signal(code, "rsi_extreme_oversold", {
+                "rsi": round(float(curr), 1),
+                "prev_rsi": round(float(prev), 1),
+                "threshold": extreme_os,
+                "consecutive_days": consec,
+            })
+            if sig:
+                signals.append(sig)
+        # ── Normal oversold crossing (RSI crosses below 30) ──
+        elif curr < os_val and prev >= os_val:
+            sig = self._make_signal(code, "rsi_oversold", {
+                "rsi": round(float(curr), 1),
+                "prev_rsi": round(float(prev), 1),
+                "threshold": os_val,
+            })
+            if sig:
+                signals.append(sig)
+
+        return signals
+
+    # ── Batch 1: MACD Cross ──
+
+    def _check_macd_cross(self, code: str) -> list:
+        ind = self._ind.get(code)
+        if not ind:
+            return []
+        hist = ind["macd_hist"]
+        if len(hist) < 3:
+            return []
+
+        signals = []
+        curr_hist = hist.iloc[-1]
+        prev_hist = hist.iloc[-2]
+        if pd.isna(curr_hist) or pd.isna(prev_hist):
+            return []
+        curr_dif = float(ind["macd_dif"].iloc[-1])
+        curr_dea = float(ind["macd_dea"].iloc[-1])
+
+        # Golden cross: hist turns positive
+        if curr_hist > 0 and prev_hist <= 0:
+            sig = self._make_signal(code, "macd_golden_cross", {
+                "hist": round(float(curr_hist), 4),
+                "prev_hist": round(float(prev_hist), 4),
+                "dif": round(curr_dif, 4),
+                "dea": round(curr_dea, 4),
+            })
+            if sig:
+                signals.append(sig)
+
+        # Death cross: hist turns negative
+        if curr_hist < 0 and prev_hist >= 0:
+            sig = self._make_signal(code, "macd_death_cross", {
+                "hist": round(float(curr_hist), 4),
+                "prev_hist": round(float(prev_hist), 4),
+                "dif": round(curr_dif, 4),
+                "dea": round(curr_dea, 4),
+            })
+            if sig:
+                signals.append(sig)
+
+        return signals
+
+    # ── Batch 1: MACD Divergence ──
+
+    def _check_macd_divergence(self, code: str) -> list:
+        ind = self._ind.get(code)
+        if not ind:
+            return []
+
+        lookback = self._cfg.get("divergence_lookback", 20)
+        close = ind["close"]
+        dif = ind["macd_dif"]
+
+        if len(close) < lookback + 5:
+            return []
+
+        signals = []
+        recent_close = close.iloc[-lookback:]
+        recent_dif = dif.iloc[-lookback:]
+        prior_close = close.iloc[-lookback * 2:-lookback] if len(close) >= lookback * 2 else close.iloc[:-lookback]
+        prior_dif = dif.iloc[-lookback * 2:-lookback] if len(dif) >= lookback * 2 else dif.iloc[:-lookback]
+
+        if len(prior_close) < 5:
+            return []
+
+        curr_price = float(recent_close.iloc[-1])
+        prior_high = float(prior_close.max())
+        curr_dif = float(recent_dif.iloc[-1])
+        prior_dif_at_high = float(prior_dif.loc[prior_close.idxmax()])
+
+        # Top divergence: price new high + DIF not new high
+        if curr_price > prior_high and curr_dif < prior_dif_at_high:
+            sig = self._make_signal(code, "macd_top_divergence", {
+                "price": round(curr_price, 2),
+                "prior_high": round(prior_high, 2),
+                "dif": round(curr_dif, 4),
+                "prior_dif": round(prior_dif_at_high, 4),
+                "lookback": lookback,
+            })
+            if sig:
+                signals.append(sig)
+
+        # Bottom divergence: price new low + DIF not new low
+        prior_low = float(prior_close.min())
+        prior_dif_at_low = float(prior_dif.loc[prior_close.idxmin()])
+
+        if curr_price < prior_low and curr_dif > prior_dif_at_low:
+            sig = self._make_signal(code, "macd_bottom_divergence", {
+                "price": round(curr_price, 2),
+                "prior_low": round(prior_low, 2),
+                "dif": round(curr_dif, 4),
+                "prior_dif": round(prior_dif_at_low, 4),
+                "lookback": lookback,
+            })
+            if sig:
+                signals.append(sig)
+
+        return signals
+
+    # ── Batch 2: MA Alignment ──
+
+    def _check_ma_alignment(self, code: str) -> list:
+        ind = self._ind.get(code)
+        if not ind:
+            return []
+
+        mas = ind["mas"]
+        required = ["ma5", "ma10", "ma20", "ma60"]
+        for k in required:
+            if k not in mas or len(mas[k]) < 5:
+                return []
+
+        signals = []
+        ma5 = float(mas["ma5"].iloc[-1])
+        ma10 = float(mas["ma10"].iloc[-1])
+        ma20 = float(mas["ma20"].iloc[-1])
+        ma60 = float(mas["ma60"].iloc[-1])
+
+        # MA20 slope (last 5 days)
+        ma20_now = float(mas["ma20"].iloc[-1])
+        ma20_5ago = float(mas["ma20"].iloc[-5])
+        ma20_slope = (ma20_now - ma20_5ago) / ma20_5ago * 100 if ma20_5ago > 0 else 0
+
+        # Bullish alignment
+        if ma5 > ma10 > ma20 > ma60 and ma20_slope > 0:
+            sig = self._make_signal(code, "ma_bullish_align", {
+                "ma5": round(ma5, 2), "ma10": round(ma10, 2),
+                "ma20": round(ma20, 2), "ma60": round(ma60, 2),
+                "ma20_slope_pct": round(ma20_slope, 2),
+            })
+            if sig:
+                signals.append(sig)
+
+        # Bearish alignment
+        if ma5 < ma10 < ma20 < ma60 and ma20_slope < 0:
+            sig = self._make_signal(code, "ma_bearish_align", {
+                "ma5": round(ma5, 2), "ma10": round(ma10, 2),
+                "ma20": round(ma20, 2), "ma60": round(ma60, 2),
+                "ma20_slope_pct": round(ma20_slope, 2),
+            })
+            if sig:
+                signals.append(sig)
+
+        return signals
+
+    # ── Batch 2: Bollinger Squeeze Breakout ──
+
+    def _check_bollinger(self, code: str) -> list:
+        ind = self._ind.get(code)
+        if not ind:
+            return []
+
+        bb_width = ind["bb_width"]
+        bb_upper = ind["bb_upper"]
+        bb_lower = ind["bb_lower"]
+        close = ind["close"]
+        volume = ind["volume"]
+        vol_ma20 = ind["vol_ma20"]
+
+        if len(bb_width) < 60:
+            return []
+
+        signals = []
+        curr_width = float(bb_width.iloc[-1])
+        min_width_60 = float(bb_width.iloc[-60:].min())
+        curr_close = float(close.iloc[-1])
+        curr_upper = float(bb_upper.iloc[-1])
+        curr_lower = float(bb_lower.iloc[-1])
+        curr_vol = float(volume.iloc[-1])
+        curr_vol_ma = float(vol_ma20.iloc[-1])
+
+        # Squeeze: current width near 60-day minimum
+        is_squeeze = curr_width <= min_width_60 * 1.1  # within 10% of minimum
+
+        if is_squeeze and curr_vol_ma > 0:
+            vol_ratio = curr_vol / curr_vol_ma
+            # Breakout upper with volume
+            if curr_close > curr_upper and vol_ratio > 1.2:
+                sig = self._make_signal(code, "bollinger_squeeze_breakout", {
+                    "direction": "bullish",
+                    "close": round(curr_close, 2),
+                    "upper": round(curr_upper, 2),
+                    "bandwidth": round(curr_width, 2),
+                    "min_bandwidth_60": round(min_width_60, 2),
+                    "volume_ratio": round(vol_ratio, 2),
+                })
+                if sig:
+                    signals.append(sig)
+            # Breakdown lower with volume
+            elif curr_close < curr_lower and vol_ratio > 1.2:
+                sig = self._make_signal(code, "bollinger_squeeze_breakout", {
+                    "direction": "bearish",
+                    "close": round(curr_close, 2),
+                    "lower": round(curr_lower, 2),
+                    "bandwidth": round(curr_width, 2),
+                    "min_bandwidth_60": round(min_width_60, 2),
+                    "volume_ratio": round(vol_ratio, 2),
+                })
+                if sig:
+                    signals.append(sig)
+
+        return signals
+
+    # ── Batch 2: ADX Trend Start ──
+
+    def _check_adx(self, code: str) -> list:
+        ind = self._ind.get(code)
+        if not ind:
+            return []
+
+        adx = ind["adx"]
+        if len(adx) < 5:
+            return []
+
+        signals = []
+        curr_adx = adx.iloc[-1]
+        prev_adx = adx.iloc[-2]
+        if pd.isna(curr_adx) or pd.isna(prev_adx):
+            return []
+        curr_adx = float(curr_adx)
+        prev_adx = float(prev_adx)
+        threshold = self._cfg.get("adx_trend_threshold", 25)
+
+        # ADX crosses above threshold (relaxed: prev just needs to be <= threshold)
+        if curr_adx > threshold and prev_adx <= threshold:
+            # Direction inferred from MA alignment
+            mas = ind.get("mas", {})
+            ma5 = float(mas.get("ma5", pd.Series([0])).iloc[-1])
+            ma20 = float(mas.get("ma20", pd.Series([0])).iloc[-1])
+            direction = "bullish" if ma5 > ma20 else "bearish"
+
+            sig = self._make_signal(code, "adx_trend_start", {
+                "adx": round(curr_adx, 1),
+                "prev_adx": round(prev_adx, 1),
+                "direction": direction,
+                "threshold": threshold,
+            })
+            if sig:
+                signals.append(sig)
+
+        return signals
+
+    # ── Batch 3: Volume Patterns ──
+
+    def _check_volume_patterns(self, code: str) -> list:
+        ind = self._ind.get(code)
+        if not ind:
+            return []
+
+        close = ind["close"]
+        high = ind["high"]
+        volume = ind["volume"]
+        vol_ma20 = ind["vol_ma20"]
+
+        if len(close) < 25:
+            return []
+
+        signals = []
+        curr_close = float(close.iloc[-1])
+        curr_vol = float(volume.iloc[-1])
+        curr_vol_ma = float(vol_ma20.iloc[-1])
+        vol_ratio = self._cfg.get("volume_breakout_ratio", 1.5)
+
+        # Find previous high (excluding last bar)
+        prev_high = float(high.iloc[:-1].max())
+        prev_high_idx = int(high.iloc[:-1].values.argmax())
+        prev_high_vol = float(volume.iloc[prev_high_idx])
+
+        # volume_breakout: close > prev high + volume > MA20 * ratio
+        if curr_close > prev_high and curr_vol_ma > 0 and curr_vol > curr_vol_ma * vol_ratio:
+            sig = self._make_signal(code, "volume_breakout", {
+                "close": round(curr_close, 2),
+                "prev_high": round(prev_high, 2),
+                "volume": round(curr_vol, 0),
+                "vol_ma20": round(curr_vol_ma, 0),
+                "vol_ratio": round(curr_vol / curr_vol_ma, 2),
+            })
+            if sig:
+                signals.append(sig)
+
+        # volume_divergence_top: new high + volume < prev_high_volume * 0.7
+        if curr_close > prev_high and prev_high_vol > 0 and curr_vol < prev_high_vol * 0.7:
+            sig = self._make_signal(code, "volume_divergence_top", {
+                "close": round(curr_close, 2),
+                "prev_high": round(prev_high, 2),
+                "volume": round(curr_vol, 0),
+                "prev_high_volume": round(prev_high_vol, 0),
+                "vol_shrink_ratio": round(curr_vol / prev_high_vol, 2),
+            })
+            if sig:
+                signals.append(sig)
+
+        return signals
+
+    # ── Batch 3: K-line Patterns ──
+
+    def _check_kline_patterns(self, code: str) -> list:
+        ind = self._ind.get(code)
+        if not ind:
+            return []
+
+        close = ind["close"]
+        kline = self._kline_cache.get(code)
+        if kline is None or len(kline) < 4:
+            return []
+
+        signals = []
+        open_prices = kline["open"].astype(float)
+
+        # Need at least 3 bars for morning/evening star
+        c0 = float(close.iloc[-3])   # 3 days ago
+        o0 = float(open_prices.iloc[-3])
+        c1 = float(close.iloc[-2])   # 2 days ago (middle)
+        o1 = float(open_prices.iloc[-2])
+        c2 = float(close.iloc[-1])   # today
+        o2 = float(open_prices.iloc[-1])
+
+        body0 = c0 - o0
+        body1 = c1 - o1
+        body2 = c2 - o2
+
+        # ── Engulfing pattern (last 2 bars) ──
+        prev_c = float(close.iloc[-2])
+        prev_o = float(open_prices.iloc[-2])
+        curr_c = float(close.iloc[-1])
+        curr_o = float(open_prices.iloc[-1])
+        prev_body = prev_c - prev_o
+        curr_body = curr_c - curr_o
+
+        # Bullish engulfing: prev bearish + curr bullish engulfs prev body
+        if prev_body < 0 and curr_body > 0 and curr_o <= prev_c and curr_c >= prev_o:
+            sig = self._make_signal(code, "engulfing_pattern", {
+                "direction": "bullish",
+                "prev_open": round(prev_o, 2), "prev_close": round(prev_c, 2),
+                "curr_open": round(curr_o, 2), "curr_close": round(curr_c, 2),
+            })
+            if sig:
+                signals.append(sig)
+
+        # Bearish engulfing: prev bullish + curr bearish engulfs prev body
+        if prev_body > 0 and curr_body < 0 and curr_o >= prev_c and curr_c <= prev_o:
+            sig = self._make_signal(code, "engulfing_pattern", {
+                "direction": "bearish",
+                "prev_open": round(prev_o, 2), "prev_close": round(prev_c, 2),
+                "curr_open": round(curr_o, 2), "curr_close": round(curr_c, 2),
+            })
+            if sig:
+                signals.append(sig)
+
+        # ── Morning / Evening Star (3-bar pattern) ──
+        avg_body = (close - open_prices).abs().iloc[-20:].mean()
+        if avg_body == 0:
+            avg_body = 1  # avoid division by zero
+
+        is_doji = abs(body1) < avg_body * 0.3  # middle bar is doji/small body
+
+        # Morning star: big bearish + doji + big bullish
+        if body0 < -avg_body * 0.8 and is_doji and body2 > avg_body * 0.8:
+            sig = self._make_signal(code, "morning_evening_star", {
+                "direction": "bullish",
+                "pattern": "morning_star",
+                "day1_body": round(body0, 2),
+                "day2_body": round(body1, 2),
+                "day3_body": round(body2, 2),
+            })
+            if sig:
+                signals.append(sig)
+
+        # Evening star: big bullish + doji + big bearish
+        if body0 > avg_body * 0.8 and is_doji and body2 < -avg_body * 0.8:
+            sig = self._make_signal(code, "morning_evening_star", {
+                "direction": "bearish",
+                "pattern": "evening_star",
+                "day1_body": round(body0, 2),
+                "day2_body": round(body1, 2),
+                "day3_body": round(body2, 2),
+            })
+            if sig:
+                signals.append(sig)
+
+        return signals
+
+    # ── Batch 4: Support / Resistance ──
+
+    def _check_support_resistance(self, code: str) -> list:
+        ind = self._ind.get(code)
+        if not ind:
+            return []
+
+        close = ind["close"]
+        high = ind["high"]
+        low = ind["low"]
+        volume = ind["volume"]
+        vol_ma20 = ind["vol_ma20"]
+        mas = ind.get("mas", {})
+
+        if len(close) < 30:
+            return []
+
+        signals = []
+        curr_close = float(close.iloc[-1])
+        prev_close = float(close.iloc[-2])
+        curr_vol = float(volume.iloc[-1])
+        curr_vol_ma = float(vol_ma20.iloc[-1]) if vol_ma20 is not None else 0
+
+        # ── breakout_pullback: 突破回踩 ──
+        # Find recent breakout: was there a bar in last 10 days that broke prev high with volume?
+        prev_high_20 = float(high.iloc[-30:-10].max()) if len(high) >= 30 else float(high.iloc[:-10].max())
+
+        # Check last 10 days for breakout
+        breakout_idx = None
+        for i in range(-10, -1):
+            bar_vol_ma = float(vol_ma20.iloc[i]) if not pd.isna(vol_ma20.iloc[i]) else curr_vol_ma
+            if float(close.iloc[i]) > prev_high_20 and float(volume.iloc[i]) > bar_vol_ma * 1.3:
+                breakout_idx = i
+                break
+
+        if breakout_idx is not None:
+            # Current bar is pullback: volume < MA20 (shrinking) and close > old resistance (support)
+            breakout_level = prev_high_20
+            if (curr_vol < curr_vol_ma and curr_close > breakout_level * 0.98
+                    and curr_close < float(close.iloc[breakout_idx]) * 1.02):
+                sig = self._make_signal(code, "breakout_pullback", {
+                    "close": round(curr_close, 2),
+                    "support_level": round(breakout_level, 2),
+                    "breakout_close": round(float(close.iloc[breakout_idx]), 2),
+                    "vol_shrink": round(curr_vol / curr_vol_ma, 2) if curr_vol_ma > 0 else 0,
+                })
+                if sig:
+                    signals.append(sig)
+
+        # ── support_breakdown: 破位下跌 ──
+        # Key support: 前低 or MA60
+        prev_low_20 = float(low.iloc[-30:-3].min()) if len(low) >= 30 else float(low.iloc[:-3].min())
+        ma60_val = float(mas.get("ma60", pd.Series([0])).iloc[-1])
+        support_level = max(prev_low_20, ma60_val) if ma60_val > 0 else prev_low_20
+
+        # Breakdown: close < support + volume > MA20
+        if (curr_close < support_level and prev_close >= support_level
+                and curr_vol_ma > 0 and curr_vol > curr_vol_ma):
+            sig = self._make_signal(code, "support_breakdown", {
+                "close": round(curr_close, 2),
+                "support_level": round(support_level, 2),
+                "prev_low_20": round(prev_low_20, 2),
+                "ma60": round(ma60_val, 2),
+                "vol_ratio": round(curr_vol / curr_vol_ma, 2),
+            })
+            if sig:
+                signals.append(sig)
+
+        return signals
+
+    # ── Batch 4: Relative Strength ──
+
+    def _check_relative_strength(self, code: str) -> list:
+        """个股60日涨幅 vs 恒指60日涨幅"""
+        ind = self._ind.get(code)
+        if not ind:
+            return []
+
+        close = ind["close"]
+        if len(close) < 60:
+            return []
+
+        # Stock 60-day return
+        curr_price = float(close.iloc[-1])
+        price_60ago = float(close.iloc[-60])
+        if price_60ago <= 0:
+            return []
+        stock_return = (curr_price - price_60ago) / price_60ago * 100
+
+        # Index 60-day return (use cached index kline)
+        if self._index_kline is None or len(self._index_kline) < 60:
+            return []
+
+        idx_close = self._index_kline["close"].astype(float)
+        idx_curr = float(idx_close.iloc[-1])
+        idx_60ago = float(idx_close.iloc[-60])
+        if idx_60ago <= 0:
+            return []
+        idx_return = (idx_curr - idx_60ago) / idx_60ago * 100
+
+        excess_return = stock_return - idx_return
+
+        signals = []
+        rs_threshold = self._cfg.get("relative_strength_threshold", 15)
+        # Strong: excess return top 20% proxy
+        if excess_return > rs_threshold:
+            sig = self._make_signal(code, "relative_strength", {
+                "direction": "bullish",
+                "stock_return_60d": round(stock_return, 1),
+                "index_return_60d": round(idx_return, 1),
+                "excess_return": round(excess_return, 1),
+            })
+            if sig:
+                signals.append(sig)
+
+        # Weak: bottom 20% proxy
+        if excess_return < -rs_threshold:
+            sig = self._make_signal(code, "relative_strength", {
+                "direction": "bearish",
+                "stock_return_60d": round(stock_return, 1),
+                "index_return_60d": round(idx_return, 1),
+                "excess_return": round(excess_return, 1),
+            })
+            if sig:
+                signals.append(sig)
+
+        return signals
+
+    def update_index(self, ctx):
+        """Refresh index kline (call once per poll cycle, not per stock)"""
+        self._fetch_index_kline(ctx)
+
+    def reset(self):
+        """每日重置"""
+        self._last_refresh.clear()
+        self._kline_cache.clear()
+        self._ind.clear()
+        self._index_kline = None
+        self._index_last_refresh = 0
+        self._triggered_today.clear()
+        logger.info("DailyIndicatorTracker daily reset complete")
 
 
 # ══════════════════════════════════════════
@@ -1327,6 +2258,11 @@ class L2StrategyEngine:
         cooldowns = {}
         for name, cfg in self._strategies.items():
             cooldowns[name] = cfg.get("cooldown_minutes", 15)
+        # Daily indicator strategies use longer cooldown (default 480 min = 8h, effectively once/day)
+        daily_cooldown = strategy_config.get("daily_indicators", {}).get("cooldown_minutes", 480)
+        for s in DAILY_NOTIFY_STRATEGIES | {"rsi_overbought", "rsi_oversold", "adx_trend_start",
+                "volume_divergence_top", "engulfing_pattern", "relative_strength"}:
+            cooldowns[s] = daily_cooldown
         self._cooldown = CooldownManager(cooldowns)
 
         # Composite scorer (决定是否弹通知)
@@ -1392,6 +2328,10 @@ class L2StrategyEngine:
         )
 
         self._session = SessionAccumulator()
+
+        # Daily indicator tracker
+        daily_cfg = self._config.get("daily_indicators", {})
+        self._daily_indicators = DailyIndicatorTracker(daily_cfg)
 
         # Signal timestamps for closing_surge (code -> [timestamp, ...])
         self._signal_timestamps: dict[str, list[float]] = {}
@@ -2190,6 +3130,25 @@ class L2StrategyEngine:
                     self._cooldown.record("closing_surge", code)
                     signals.append(format_signal(sig, self._name_map, notify=True, snapshot_data=snapshot_data, capital_data=capital_data))
 
+        # ── 12. Daily indicator signals (refresh every 30min) ──
+        daily_cfg = self._config.get("daily_indicators", {})
+        if daily_cfg.get("enabled", True) and self._ctx is not None:
+            try:
+                self._daily_indicators.update_index(self._ctx)
+                for code in self._hk_holdings:
+                    signals_daily = self._daily_indicators.update(code, self._ctx)
+                    for sig in signals_daily:
+                        strategy = sig["strategy"]
+                        if self._cooldown.can_trigger(strategy, code):
+                            self._cooldown.record(strategy, code)
+                            notify = strategy in DAILY_NOTIFY_STRATEGIES
+                            signals.append(format_signal(
+                                sig, self._name_map, notify=notify,
+                                snapshot_data=snapshot_data,
+                                capital_data=capital_data))
+            except Exception as e:
+                logger.warning(f"Daily indicator error: {e}")
+
         # Feed raw signals to scorer and evaluate composite verdicts
         if accepted_raw:
             self._scorer.feed(accepted_raw)
@@ -2219,5 +3178,6 @@ class L2StrategyEngine:
         self._cooldown.reset()
         self._scorer.reset()
         self._session.reset()
+        self._daily_indicators.reset()
         self._signal_timestamps.clear()
         logger.info("L2 strategy engine daily reset complete")

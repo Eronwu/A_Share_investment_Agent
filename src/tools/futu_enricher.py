@@ -145,9 +145,9 @@ class FutuL2Enricher:
         snapshot_data = self._fetch_snapshot_extra(codes)
 
         # ── 2. Capital flow (mainNetInflow, retailNetInflow) ──
-        # 限频: 每 30 秒最多 30 次，只对有权限的港股请求（A 股无权限也会浪费配额）
-        hk_codes = [c for c in codes if c.startswith("HK")]
-        capital_data = self._fetch_capital_flow(hk_codes)
+        # 从 l2_strategy_daemon 的 session 产出读取，避免与 daemon 竞争
+        # Futu get_capital_flow 的 30次/30s 限频（daemon 每 3s poll 已占满配额）
+        capital_data = self._read_capital_from_l2_signals()
 
         # ── 3. 组装结果，计算 mainNetInflowPct ──
         amount_map = {s["id"]: s.get("amount", 0) for s in services}
@@ -214,33 +214,28 @@ class FutuL2Enricher:
 
         return result
 
-    def _fetch_capital_flow(self, codes: list[str]) -> dict[str, dict]:
-        """获取每只股票的最新资金流向，提取主力/散户净流入"""
-        from futu import RET_OK, PeriodType
+    def _read_capital_from_l2_signals(self) -> dict[str, dict]:
+        """从 l2_strategy_daemon 的 session 产出读取主力资金数据
 
+        l2_strategy_signals.json 的 session[code].capital_flow 包含:
+          main_net_inflow, main_net_inflow_pct, direction_score
+        daemon 每 3s 更新一次，数据比 poller 自己调 API 更实时。
+        """
+        import json
+        from pathlib import Path
+
+        L2_SIGNALS_PATH = Path(__file__).parent.parent / "data" / "l2_strategy_signals.json"
         result = {}
-        for code in codes:
-            futu_code = to_futu_code(code)
-            try:
-                ret, data = self._ctx.get_capital_flow(
-                    futu_code, period_type=PeriodType.INTRADAY
-                )
-                if ret != RET_OK:
-                    continue
-                if data.empty:
-                    continue
-
-                # 取最新一条
-                latest = data.iloc[-1]
-                super_in = float(latest.get("super_in_flow", 0) or 0)
-                big_in = float(latest.get("big_in_flow", 0) or 0)
-                sml_in = float(latest.get("sml_in_flow", 0) or 0)
-
-                result[code] = {
-                    "mainNetInflow": round(super_in + big_in, 2),
-                    "retailNetInflow": round(sml_in, 2),
-                }
-            except Exception as e:
-                logger.debug(f"capital_flow({code}) 失败: {e}")
-
+        try:
+            data = json.loads(L2_SIGNALS_PATH.read_text(encoding="utf-8"))
+            session = data.get("session", {})
+            for code, info in session.items():
+                cf = info.get("capital_flow")
+                if cf and cf.get("main_net_inflow") is not None:
+                    result[code] = {
+                        "mainNetInflow": cf["main_net_inflow"],
+                        "retailNetInflow": 0,  # session 不拆分散户，用 0 占位
+                    }
+        except Exception as e:
+            logger.debug(f"读取 l2_strategy_signals.json 失败: {e}")
         return result

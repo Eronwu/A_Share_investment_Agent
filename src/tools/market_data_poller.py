@@ -47,7 +47,7 @@ def fetch_realtime_with_fallback(symbols: list[str]) -> list[dict]:
     if not sina_quotes:
         return []
 
-    # 转换新浪格式 → 东方财富格式（跳过 price=0，盘前/停牌）
+    # 转换新浪格式 → 东方财富格式
     results = []
     for sym in symbols:
         q = sina_quotes.get(sym)
@@ -55,11 +55,14 @@ def fetch_realtime_with_fallback(symbols: list[str]) -> list[dict]:
             continue
         prev = q.get("prev_close", 0)
         price = q.get("price", 0)
-        if price <= 0:
-            continue  # 盘前返回 0，跳过以保留旧数据
+        if price <= 0 and prev > 0:
+            price = prev  # 停牌：用昨收价填充，涨跌=0
+        elif price <= 0:
+            continue  # 无任何价格数据，跳过
         pct = q.get("change_pct", 0)
         # 港股盘前: price==prevClose 且 pct==0，跳过以保留昨日收盘涨跌
-        if pct == 0 and prev > 0 and abs(price - prev) < 0.001:
+        # 仅限港股；A 股 price==prevClose 可能是停牌，应保留
+        if pct == 0 and prev > 0 and abs(price - prev) < 0.001 and sym.startswith("HK"):
             continue
         chg = price - prev if prev > 0 and price > 0 else 0
         results.append({
@@ -91,12 +94,17 @@ def build_services(stocks: list[dict], watchlist: dict) -> list[dict]:
     services = []
     for s in stocks:
         code = s.get("code", "")
+        price = s.get("price", 0)
+        prev = s.get("prev_close", 0)
+        # 停牌股: price=0 但有昨收，用昨收价填充，涨跌=0
+        if (not price or price <= 0) and prev > 0:
+            price = prev
         services.append({
             "id": code,
             "name": s.get("name", ""),
-            "price": s.get("price", 0),
-            "change": s.get("pct", 0),
-            "chgAmt": s.get("change", 0),
+            "price": price,
+            "change": s.get("pct", 0) if price != prev else 0,
+            "chgAmt": s.get("change", 0) if price != prev else 0,
             "vol": s.get("volume", 0),
             "amount": s.get("amount", 0),
             "amp": s.get("amplitude", 0),
