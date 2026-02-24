@@ -39,12 +39,32 @@ def _infer_direction(signal: dict) -> str:
     strategy = signal.get("strategy", "")
     detail = signal.get("detail", {})
 
+    # --- explicit direction strategies ---
     if "bearish" in strategy or "sell" in strategy:
         return "bearish"
     if "bullish" in strategy or strategy in ("momentum_alert", "volume_accel_alert"):
         return "bullish"
 
-    # tick_imbalance / tick_persistence
+    # --- daily-K strategies with inherent direction ---
+    _BULLISH_STRATEGIES = {
+        "macd_golden_cross", "ma_bullish_align", "volume_breakout",
+        "breakout_pullback", "macd_bottom_divergence",
+    }
+    _BEARISH_STRATEGIES = {
+        "macd_death_cross", "ma_bearish_align", "macd_top_divergence",
+        "support_breakdown", "rsi_extreme_overbought", "volume_divergence_top",
+    }
+    if strategy in _BULLISH_STRATEGIES:
+        return "bullish"
+    if strategy in _BEARISH_STRATEGIES:
+        return "bearish"
+
+    # --- detail.direction field (used by engulfing, adx_trend_start, etc.) ---
+    direction = detail.get("direction", "")
+    if direction in ("bullish", "bearish"):
+        return direction
+
+    # --- tick_imbalance / tick_persistence ---
     imb = detail.get("imbalance", detail.get("curr_imbalance", 0))
     if imb > 0:
         return "bullish"
@@ -55,12 +75,22 @@ def _infer_direction(signal: dict) -> str:
     if dom:
         return dom
 
-    # large_order
-    direction = detail.get("direction", "")
+    # --- large_order BUY/SELL ---
     if direction == "BUY":
         return "bullish"
     if direction == "SELL":
         return "bearish"
+
+    # --- volume_price_divergence: negative inflow = bearish ---
+    if strategy == "volume_price_divergence":
+        inflow = detail.get("main_net_inflow", 0)
+        return "bearish" if inflow < 0 else "bullish"
+
+    # --- rsi extremes ---
+    if strategy == "rsi_overbought":
+        return "bearish"
+    if strategy == "rsi_oversold":
+        return "bearish"  # oversold is a condition, direction depends on context
 
     return "neutral"
 

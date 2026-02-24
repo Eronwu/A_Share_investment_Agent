@@ -128,6 +128,9 @@ function TabBar({ activeTab, onTabChange }: { activeTab: MarketTab; onTabChange:
       <Link href="/manage" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
         manage
       </Link>
+      <Link href="/sim" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
+        sim
+      </Link>
     </div>
   );
 }
@@ -226,8 +229,8 @@ function Home() {
     return () => clearInterval(timer);
   }, [fetchData, pollMs]);
 
-  // 持仓和自选独立排序状态，支持虚拟字段 mktVal / totalPnl
-  type SortKey = keyof Service | "mktVal" | "totalPnl";
+  // 持仓和自选独立排序状态，支持虚拟字段 mktVal / totalPnl / dayPnl
+  type SortKey = keyof Service | "mktVal" | "totalPnl" | "dayPnl";
   type SortState = { key: SortKey | null; asc: boolean };
   const [holdSort, setHoldSort] = useState<SortState>({ key: null, asc: false });
   const [watchSort, setWatchSort] = useState<SortState>({ key: null, asc: false });
@@ -247,6 +250,7 @@ function Home() {
   function derivedVal(s: Service, key: SortKey): number {
     if (key === "mktVal") return s.shares != null ? s.price * s.shares : -Infinity;
     if (key === "totalPnl") return s.cost != null && s.shares != null ? (s.price - s.cost) * s.shares : -Infinity;
+    if (key === "dayPnl") return s.shares != null ? s.chgAmt * s.shares : -Infinity;
     return (s[key as keyof Service] as number) ?? -Infinity;
   }
 
@@ -563,7 +567,7 @@ function Home() {
               <span style={hs("10ch", "pnl", true)} onClick={() => ht("pnl")}>{pad("盈亏%" + ha("pnl"), 9, true)}</span>
               <span style={hs("10ch", "mktVal", true)} onClick={() => ht("mktVal")}>{pad("市值" + ha("mktVal"), 9, true)}</span>
               <span style={hs("10ch", "totalPnl", true)} onClick={() => ht("totalPnl")}>{pad("盈亏额" + ha("totalPnl"), 9, true)}</span>
-              <span style={hs("9ch", "chgAmt", true)} onClick={() => ht("chgAmt")}>{pad("今日" + ha("chgAmt"), 8, true)}</span>
+              <span style={hs("9ch", "dayPnl", true)} onClick={() => ht("dayPnl")}>{pad("今日" + ha("dayPnl"), 8, true)}</span>
               <span style={hs("7ch", "volRatio", true)} onClick={() => ht("volRatio")}>{pad("量比" + ha("volRatio"), 6, true)}</span>
               <span style={hs("8ch", "turnover", true)} onClick={() => ht("turnover")}>{pad("换手%" + ha("turnover"), 7, true)}</span>
               <span style={hs("9ch", "amount", true)} onClick={() => ht("amount")}>{pad("成交额" + ha("amount"), 8, true)}</span>

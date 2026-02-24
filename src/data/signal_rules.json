@@ -1,0 +1,70 @@
+{
+  "initial_capital": 1000000,
+  "currency": "HKD",
+  "tiers": {
+    "1_independent": {
+      "momentum_alert":             { "action": "BUY",  "confidence": 0.70, "position_pct": 0.20, "stop_atr": 2.0, "max_hold_days": 5 },
+      "volume_accel_alert":         { "action": "BUY",  "confidence": 0.65, "position_pct": 0.15, "stop_atr": 2.5, "max_hold_days": 3 },
+      "composite_bullish":          { "action": "BUY",  "confidence": 0.60, "position_pct": 0.10, "stop_atr": 2.0, "max_hold_days": 3 },
+      "momentum_sell_alert":        { "action": "SELL", "confidence": 0.70, "sell_pct": 1.0 },
+      "volume_accel_sell_alert":    { "action": "SELL", "confidence": 0.65, "sell_pct": 1.0 },
+      "composite_bearish":          { "action": "SELL", "confidence": 0.60, "sell_pct": 0.50 },
+      "macd_golden_cross":          { "action": "BUY",  "confidence": 0.55, "position_pct": 0.10, "stop_atr": 2.0, "max_hold_days": 5 },
+      "macd_death_cross":           { "action": "SELL", "confidence": 0.55, "sell_pct": 0.50 },
+      "ma_bullish_align":           { "action": "BUY",  "confidence": 0.50, "position_pct": 0.10, "stop_atr": 2.5, "max_hold_days": 5 },
+      "ma_bearish_align":           { "action": "SELL", "confidence": 0.50, "sell_pct": 0.50 },
+      "bollinger_squeeze_breakout": { "action": "DIRECTION", "confidence": 0.55, "position_pct": 0.10, "stop_atr": 2.0, "max_hold_days": 3 },
+      "volume_breakout":            { "action": "BUY",  "confidence": 0.55, "position_pct": 0.10, "stop_atr": 2.0, "max_hold_days": 3 },
+      "morning_evening_star":       { "action": "DIRECTION", "confidence": 0.55, "position_pct": 0.10, "stop_atr": 2.0, "max_hold_days": 3 },
+      "breakout_pullback":          { "action": "BUY",  "confidence": 0.55, "position_pct": 0.10, "stop_atr": 2.0, "max_hold_days": 5 }
+    },
+    "2_enhance": {
+      "tick_persistence":   { "confidence_boost": 0.15 },
+      "large_order":        { "confidence_boost": 0.10, "min_amount": 10000000 }
+    },
+    "3_correction": {
+      "large_order_reversal":     { "action": "SELL",           "sell_pct": 0.50 },
+      "volume_price_divergence":  { "action": "TIGHTEN_SL",     "stop_atr": 1.0 },
+      "closing_surge":            { "action": "SELL_NEXT_OPEN",  "sell_pct": 1.0, "direction_filter": "bearish" },
+      "support_breakdown":        { "action": "SELL",            "sell_pct": 1.0 },
+      "rsi_extreme_overbought":   { "action": "SELL",            "sell_pct": 0.50, "min_consecutive": 2 },
+      "macd_top_divergence":      { "action": "TIGHTEN_SL",      "stop_atr": 1.0 }
+    },
+    "4_log_only": [
+      "tick_imbalance", "capital_flow_spike", "order_book_imbalance",
+      "institutional_retail_divergence", "rsi_overbought", "rsi_oversold",
+      "adx_trend_start", "volume_divergence_top", "engulfing_pattern",
+      "relative_strength", "rsi_extreme_oversold"
+    ]
+  },
+  "risk_control": {
+    "min_confidence": 0.60,
+    "max_single_stock_pct": 0.25,
+    "max_total_invested_pct": 0.80,
+    "no_trade_open_minutes": 15,
+    "no_new_position_close_minutes": 30,
+    "max_signals_per_stock_per_session": 3,
+    "min_signal_interval_minutes": 15
+  },
+  "cost_model": {
+    "commission_rate": 0.0003,
+    "commission_min": 3.0,
+    "stamp_duty_rate": 0.0013,
+    "exchange_fee_rate": 0.0000565,
+    "settlement_fee_rate": 0.00002,
+    "settlement_min": 2.0,
+    "settlement_max": 100.0
+  },
+  "slippage": {
+    "10e8": 0.0005,
+    "1e8":  0.0010,
+    "1e7":  0.0020,
+    "default": 0.0050
+  },
+  "lot_sizes": {
+    "HK00700": 100, "HK09988": 100, "HK01810": 200,
+    "HK01211": 500, "HK06809": 100, "HK01060": 10000,
+    "HK02359": 500, "HK06060": 1000, "HK01357": 2000,
+    "HK00325": 100, "HK03896": 2000, "HK03986": 100
+  }
+}
