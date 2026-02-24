@@ -45,11 +45,13 @@ def _read_json(path: Path) -> dict | None:
         return None
 
 
-def _detect_market(watchlist: dict) -> str:
-    """Detect primary market from watchlist composition."""
+def _detect_market(signals: list[dict], watchlist: dict) -> str:
+    """Detect primary market from signal source, fallback to watchlist."""
+    if signals:
+        hk_sigs = sum(1 for s in signals if s.get("code", "").startswith("HK"))
+        return "HK" if hk_sigs > len(signals) // 2 else "A"
     hk_count = sum(1 for k in watchlist if k.startswith("HK"))
-    a_count = len(watchlist) - hk_count
-    return "HK" if hk_count >= a_count else "A"
+    return "HK" if hk_count >= len(watchlist) - hk_count else "A"
 
 
 def _aggregate_signals(signals: list[dict]) -> dict:
@@ -129,7 +131,7 @@ def _build_per_stock(
         signal_count = sig.get("count", 0)
         alert_count = alrt.get("count", 0)
 
-        if signal_count == 0 and alert_count == 0 and price == 0:
+        if signal_count == 0 and alert_count == 0:
             continue
 
         # Determine direction from signals
@@ -251,14 +253,29 @@ def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]
     """Construct messages for LLM daily report generation."""
     system = """你是一位资深量化工程师，专注 A 股和港股。根据今日 L2 策略信号和告警数据，生成简洁的持仓信号日报。
 
-格式要求：
-1. **市场整体评估**（2-3句）：今日多空氛围、信号分布、异常情况
-2. **重点关注**（2-3只）：信号最密集或方向最明确的标的，说明理由
-3. **逐股一句话**：每只有信号的标的一句话总结（格式：代码 名称 — 总结）
-4. **操作建议**（2-3条）：基于信号给出具体可操作建议，包含风控提醒
+格式要求（严格遵守，不要偏离）：
 
-风格：专业简洁，避免废话。使用量化术语（多空、主力、资金流向）。
-输出纯 Markdown，不要代码块包裹。"""
+## 市场整体评估
+（2-3句：今日多空氛围、信号分布、异常情况）
+
+## 重点关注
+1. 代码 名称
+   - 理由：...
+（选2-3只信号最密集或方向最明确的标的）
+
+## 逐股一句话
+- 代码 名称 — 总结
+（每只有信号的标的一句话）
+
+## 操作建议
+1. ...
+（2-3条具体可操作建议，包含风控提醒）
+
+规则：
+- 标题用 ## 不用 ###，标题上不要加 **加粗**
+- 正文中股票名称可以用 **加粗**
+- 风格专业简洁，使用量化术语（多空、主力、资金流向）
+- 输出纯 Markdown，不要代码块包裹"""
 
     # Build data section
     holdings = [ps for ps in per_stock if ps["type"] == "holding"]
@@ -338,7 +355,7 @@ def generate_daily_summary(date_str: str | None = None) -> dict | None:
         if s.get("notify") and s.get("display"):
             l1_displays.append(s["display"])
 
-    market = _detect_market(watchlist)
+    market = _detect_market(signals, watchlist)
 
     # ── Call LLM ──
     from dotenv import load_dotenv
