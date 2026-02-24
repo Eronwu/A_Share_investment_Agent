@@ -96,5 +96,6 @@ src/data/macro_summary.json
 
 # playwright test results
 web/test-results/
+web/screenshots/*.png
 web/tsconfig.tsbuildinfo
 
