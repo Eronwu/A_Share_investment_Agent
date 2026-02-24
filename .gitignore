@@ -94,8 +94,14 @@ src/data/macro_summary.json
 
 /src/data/archive/
 
-# playwright test results
+# playwright test results & screenshots
 web/test-results/
 web/screenshots/*.png
+web/screenshots/final/
+web/screenshots/hk-sort/
+web/screenshots/review/
+web/screenshots/sort-all/
+web/screenshots/sort/
+web/screenshots/verify/
 web/tsconfig.tsbuildinfo
 
