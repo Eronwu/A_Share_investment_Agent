@@ -131,6 +131,16 @@ def run():
     # ── Initialize engine ──
     engine = L2StrategyEngine(l2_config, watchlist)
 
+    # ── Initialize signal archiver (sim trading data collection) ──
+    try:
+        from src.sim_trading.signal_archiver import SignalArchiver
+        archiver = SignalArchiver()
+        archiver_enabled = True
+    except Exception as e:
+        archiver = None
+        archiver_enabled = False
+        logger.warning(f"Signal archiver not available: {e}")
+
     # ── Startup banner ──
     print("L2 Strategy Daemon started")
     print(f"  HK holdings : {len(hk_holdings)} stocks")
@@ -138,6 +148,7 @@ def run():
     enabled = [k for k, v in strategies.items() if v.get("enabled", True)]
     print(f"  strategies  : {', '.join(enabled)}")
     print(f"  signals file: {L2_SIGNALS_PATH.name}")
+    print(f"  archiver    : {'enabled' if archiver_enabled else 'disabled'}")
     print(f"  Ctrl+C to stop\n")
 
     # ── State ──
@@ -167,6 +178,14 @@ def run():
                 total_signals += len(signals)
                 for s in signals:
                     logger.info(f"Signal: [{s['strategy']}] {s['display']}")
+
+            # Archive signals + price snapshots to SQLite
+            if archiver_enabled and archiver:
+                try:
+                    archiver.archive_signals()
+                    archiver.sample_prices()
+                except Exception:
+                    pass  # archiver failure should not affect daemon
 
             # Status line
             now = datetime.now().strftime("%H:%M:%S")
