@@ -69,6 +69,30 @@ interface PositionSnap {
   hold_days_target: number;
 }
 
+interface LivePosition {
+  code: string;
+  entry_price: number;
+  quantity: number;
+  current_price: number;
+  entry_date: string;
+  stop_loss: number;
+  take_profit: number | null;
+  max_hold_days: number;
+  entry_strategy: string;
+  confidence: number;
+  unrealized_pnl: number;
+  pnl_pct: number;
+  last_updated: number;
+}
+
+interface LiveData {
+  positions: LivePosition[];
+  trades: Trade[];
+  n_positions: number;
+  total_unrealized: number;
+  total_market_value: number;
+}
+
 interface SimData {
   summary: Summary;
   trades: Trade[];
@@ -76,6 +100,7 @@ interface SimData {
   per_strategy: Record<string, Attribution>;
   per_stock: Record<string, Attribution>;
   positions: Record<string, Record<string, PositionSnap>>;
+  live: LiveData;
   error?: string;
 }
 
@@ -159,7 +184,23 @@ function TitleBar() {
   );
 }
 
-function NavBar({ data }: { data: SimData | null }) {
+function NavBar({
+  data, tab, setTab,
+}: {
+  data: SimData | null;
+  tab: "live" | "history";
+  setTab: (t: "live" | "history") => void;
+}) {
+  const hasLive = data?.live && data.live.n_positions > 0;
+  const tabStyle = (t: "live" | "history") => ({
+    color: tab === t ? D.cyan : D.comment,
+    cursor: "pointer" as const,
+    userSelect: "none" as const,
+    fontWeight: tab === t ? 700 : 400,
+    borderBottom: tab === t ? `2px solid ${D.cyan}` : "2px solid transparent",
+    paddingBottom: 2,
+  });
+
   return (
     <div
       style={{
@@ -178,10 +219,24 @@ function NavBar({ data }: { data: SimData | null }) {
       <Link href="/alerts" style={{ color: D.comment, textDecoration: "none" }}>
         告警
       </Link>
-      <span style={{ color: D.purple, fontWeight: 700 }}>模拟盘</span>
-      {data?.summary && (
+      <span style={{ color: D.currentLine }}>|</span>
+      <span style={tabStyle("live")} onClick={() => setTab("live")}>
+        实时持仓{hasLive ? ` (${data!.live.n_positions})` : ""}
+      </span>
+      <span style={tabStyle("history")} onClick={() => setTab("history")}>
+        历史回测
+      </span>
+      {tab === "history" && data?.summary && (
         <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>
-          {data.summary.total_trades} 笔交易 | {data.summary.trading_days} 交易日 | v1_baseline
+          {data.summary.total_trades} 笔交易 | {data.summary.trading_days} 交易日
+        </span>
+      )}
+      {tab === "live" && data?.live && (
+        <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>
+          市值 {numFmt(data.live.total_market_value)} |{" "}
+          <span style={{ color: pnlColor(data.live.total_unrealized) }}>
+            浮盈 {data.live.total_unrealized >= 0 ? "+" : ""}{numFmt(data.live.total_unrealized)}
+          </span>
         </span>
       )}
     </div>
@@ -636,6 +691,116 @@ function PositionsTable({
   );
 }
 
+function LivePanel({ live }: { live: LiveData }) {
+  const [posOpen, setPosOpen] = useState(true);
+  const [tradesOpen, setTradesOpen] = useState(true);
+
+  if (live.n_positions === 0 && live.trades.length === 0) {
+    return (
+      <div style={{ color: D.comment, padding: "8px 0" }}>
+        <span style={{ color: D.yellow }}>info</span> 实时引擎运行中，暂无持仓和交易。等待信号触发...
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* 实时持仓 */}
+      {live.positions.length > 0 && (
+        <div style={{ padding: "4px 0" }}>
+          <div
+            style={{ color: D.comment, padding: "4px 0 2px", cursor: "pointer", userSelect: "none" }}
+            onClick={() => setPosOpen((v) => !v)}
+          >
+            <span style={{ color: D.purple }}>{posOpen ? "▾" : "▸"}</span> # ──
+            实时持仓 ({live.positions.length}只 | 市值 {numFmt(live.total_market_value)} |{" "}
+            <span style={{ color: pnlColor(live.total_unrealized) }}>
+              浮盈 {live.total_unrealized >= 0 ? "+" : ""}{numFmt(live.total_unrealized)}
+            </span>
+            ) ──
+          </div>
+          {posOpen && (
+            <>
+              <div
+                style={{
+                  display: "flex", whiteSpace: "pre", color: D.pink,
+                  borderBottom: `1px solid ${D.currentLine}`,
+                  paddingBottom: 3, marginBottom: 2, fontWeight: 500,
+                }}
+              >
+                <span style={{ width: "6ch" }}> 类型</span>
+                <span style={{ width: "10ch" }}>代码</span>
+                <span style={{ width: "10ch", textAlign: "right" }}>   现价</span>
+                <span style={{ width: "9ch", textAlign: "right" }}>  成本</span>
+                <span style={{ width: "10ch", textAlign: "right" }}>  盈亏%</span>
+                <span style={{ width: "10ch", textAlign: "right" }}>   市值</span>
+                <span style={{ width: "10ch", textAlign: "right" }}>  浮盈</span>
+                <span style={{ width: "9ch", textAlign: "right" }}>  止损</span>
+                <span style={{ width: "9ch", textAlign: "right" }}>  止盈</span>
+                <span style={{ width: "14ch", paddingLeft: "2ch" }}>入场策略</span>
+              </div>
+              {live.positions.map((p) => {
+                const mktVal = p.current_price * p.quantity;
+                const c = pnlColor(p.unrealized_pnl);
+                return (
+                  <div
+                    key={p.code}
+                    style={{
+                      display: "flex", whiteSpace: "pre", padding: "1px 0",
+                      borderBottom: "1px solid #191a21",
+                    }}
+                  >
+                    <span style={{ color: D.orange, width: "6ch" }}> SIM</span>
+                    <span style={{ color: D.cyan, width: "10ch" }}>{p.code}</span>
+                    <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
+                      {p.current_price.toFixed(2)}
+                    </span>
+                    <span style={{ color: D.comment, width: "9ch", textAlign: "right" }}>
+                      {p.entry_price.toFixed(2)}
+                    </span>
+                    <span style={{ color: c, width: "10ch", textAlign: "right", fontWeight: 500 }}>
+                      {p.pnl_pct >= 0 ? "+" : ""}{(p.pnl_pct * 100).toFixed(1)}%
+                    </span>
+                    <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
+                      {numFmt(mktVal)}
+                    </span>
+                    <span style={{ color: c, width: "10ch", textAlign: "right", fontWeight: 500 }}>
+                      {p.unrealized_pnl >= 0 ? "+" : ""}{numFmt(p.unrealized_pnl)}
+                    </span>
+                    <span style={{ color: D.orange, width: "9ch", textAlign: "right" }}>
+                      {p.stop_loss.toFixed(2)}
+                    </span>
+                    <span style={{ color: D.green, width: "9ch", textAlign: "right" }}>
+                      {p.take_profit ? p.take_profit.toFixed(2) : "-"}
+                    </span>
+                    <span style={{ color: D.comment, width: "14ch", paddingLeft: "2ch" }}>
+                      {strategyCN(p.entry_strategy)}
+                    </span>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* 实时交易记录 */}
+      {live.trades.length > 0 && (
+        <div style={{ padding: "4px 0" }}>
+          <div
+            style={{ color: D.comment, padding: "4px 0 2px", cursor: "pointer", userSelect: "none" }}
+            onClick={() => setTradesOpen((v) => !v)}
+          >
+            <span style={{ color: D.purple }}>{tradesOpen ? "▾" : "▸"}</span> # ──
+            实时交易 ({live.trades.length}笔) ──
+          </div>
+          {tradesOpen && <TradesTable trades={live.trades} />}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BlinkCursor() {
   return (
     <div style={{ paddingTop: 16 }}>
@@ -661,6 +826,7 @@ export default function SimPage() {
   const [data, setData] = useState<SimData | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
+  const [tab, setTab] = useState<"live" | "history">("live");
 
   const fetchData = useCallback(async () => {
     try {
@@ -681,9 +847,13 @@ export default function SimPage() {
 
   useEffect(() => {
     fetchData();
-    const iv = setInterval(fetchData, 30_000);
+    // Live tab: 5s refresh; History tab: 30s refresh
+    const ms = tab === "live" ? 5_000 : 30_000;
+    const iv = setInterval(fetchData, ms);
     return () => clearInterval(iv);
-  }, [fetchData]);
+  }, [fetchData, tab]);
+
+  const hasLive = data?.live && (data.live.n_positions > 0 || data.live.trades.length > 0);
 
   return (
     <div
@@ -695,10 +865,10 @@ export default function SimPage() {
       }}
     >
       <TitleBar />
-      <NavBar data={data} />
+      <NavBar data={data} tab={tab} setTab={setTab} />
 
       <div style={{ flex: 1, overflow: "auto", padding: "8px 16px 24px" }}>
-        <Prompt cmd="cat sim_report.log" />
+        <Prompt cmd={tab === "live" ? "tail -f live_positions.log" : "cat sim_report.log"} />
 
         {/* 加载中 */}
         {loading && (
@@ -720,47 +890,62 @@ export default function SimPage() {
           </div>
         )}
 
-        {/* 空状态 */}
-        {!loading && data && data.summary.total_trades === 0 && (
-          <div style={{ color: D.comment, padding: "16px 0" }}>
-            <span style={{ color: D.yellow }}>warn</span> 暂无交易记录。请先运行{" "}
-            <span style={{ color: D.green }}>
-              poetry run python -m src.sim_trading.replay_runner
-            </span>{" "}
-            生成回测数据。
-          </div>
+        {/* ── 实时 tab ── */}
+        {tab === "live" && !loading && data && (
+          <>
+            {hasLive ? (
+              <LivePanel live={data.live} />
+            ) : (
+              <div style={{ color: D.comment, padding: "16px 0" }}>
+                <span style={{ color: D.yellow }}>info</span> 实时引擎未检测到持仓或交易。
+                确保 L2 daemon 正在运行且已启用 sim engine。
+              </div>
+            )}
+          </>
         )}
 
-        {/* 主体内容 */}
-        {data && data.summary.total_trades > 0 && (
+        {/* ── 历史 tab ── */}
+        {tab === "history" && !loading && data && (
           <>
-            <SummaryBar s={data.summary} />
-            <EquityCurve
-              data={data.daily_pnl}
-              initialCapital={data.summary.initial_capital}
-            />
-            {data.positions && Object.keys(data.positions).length > 0 && (
-              <PositionsTable positions={data.positions} />
+            {data.summary.total_trades === 0 ? (
+              <div style={{ color: D.comment, padding: "16px 0" }}>
+                <span style={{ color: D.yellow }}>warn</span> 暂无交易记录。请先运行{" "}
+                <span style={{ color: D.green }}>
+                  poetry run python -m src.sim_trading.replay_runner
+                </span>{" "}
+                生成回测数据。
+              </div>
+            ) : (
+              <>
+                <SummaryBar s={data.summary} />
+                <EquityCurve
+                  data={data.daily_pnl}
+                  initialCapital={data.summary.initial_capital}
+                />
+                {data.positions && Object.keys(data.positions).length > 0 && (
+                  <PositionsTable positions={data.positions} />
+                )}
+                <TradesTable trades={data.trades} />
+                <div
+                  style={{
+                    display: "flex", gap: 24,
+                    flexWrap: "wrap", marginTop: 8,
+                  }}
+                >
+                  <AttributionPanel
+                    title="按策略归因"
+                    data={data.per_strategy}
+                    nameWidth="16ch"
+                    isStrategy
+                  />
+                  <AttributionPanel
+                    title="按股票归因"
+                    data={data.per_stock}
+                    nameWidth="12ch"
+                  />
+                </div>
+              </>
             )}
-            <TradesTable trades={data.trades} />
-            <div
-              style={{
-                display: "flex", gap: 24,
-                flexWrap: "wrap", marginTop: 8,
-              }}
-            >
-              <AttributionPanel
-                title="按策略归因"
-                data={data.per_strategy}
-                nameWidth="16ch"
-                isStrategy
-              />
-              <AttributionPanel
-                title="按股票归因"
-                data={data.per_stock}
-                nameWidth="12ch"
-              />
-            </div>
           </>
         )}
 

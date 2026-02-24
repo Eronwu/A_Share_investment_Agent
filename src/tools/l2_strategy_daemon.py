@@ -141,6 +141,18 @@ def run():
         archiver_enabled = False
         logger.warning(f"Signal archiver not available: {e}")
 
+    # ── Initialize real-time sim engine ──
+    try:
+        from src.sim_trading.realtime_engine import RealtimeSimEngine
+        rt_rules_path = PROJECT_ROOT / "src" / "data" / "signal_rules.json"
+        rt_rules = json.loads(rt_rules_path.read_text(encoding="utf-8"))
+        rt_engine = RealtimeSimEngine(rt_rules)
+        rt_enabled = True
+    except Exception as e:
+        rt_engine = None
+        rt_enabled = False
+        logger.warning(f"RT sim engine not available: {e}")
+
     # ── Startup banner ──
     print("L2 Strategy Daemon started")
     print(f"  HK holdings : {len(hk_holdings)} stocks")
@@ -149,6 +161,7 @@ def run():
     print(f"  strategies  : {', '.join(enabled)}")
     print(f"  signals file: {L2_SIGNALS_PATH.name}")
     print(f"  archiver    : {'enabled' if archiver_enabled else 'disabled'}")
+    print(f"  sim engine  : {'enabled' if rt_enabled else 'disabled'}")
     print(f"  Ctrl+C to stop\n")
 
     # ── State ──
@@ -162,6 +175,8 @@ def run():
             last_date = today
             total_signals = 0
             engine.reset_daily()
+            if rt_enabled and rt_engine:
+                rt_engine.daily_reset()
             # Reload config
             monitor_config, l2_config = load_configs()
             watchlist = monitor_config.get("watchlist", {})
@@ -187,10 +202,18 @@ def run():
                 except Exception:
                     pass  # archiver failure should not affect daemon
 
+            # Real-time sim engine tick (after archiver so signals are in DB)
+            if rt_enabled and rt_engine:
+                try:
+                    rt_engine.tick()
+                except Exception:
+                    pass  # sim engine failure should not affect daemon
+
             # Status line
+            rt_pos = len(rt_engine._pos_mgr.positions) if rt_enabled and rt_engine else 0
             now = datetime.now().strftime("%H:%M:%S")
             print(
-                f"\r\033[K[{now}] L2 daemon | signals: {total_signals} | next: {poll_interval}s",
+                f"\r\033[K[{now}] L2 daemon | signals: {total_signals} | sim: {rt_pos} pos | next: {poll_interval}s",
                 end="", flush=True,
             )
         else:

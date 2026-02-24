@@ -211,6 +211,27 @@ export async function GET() {
       )
       .get() as { config_json: string } | undefined;
 
+    // Live state (real-time positions from RT engine)
+    let livePositions: Record<string, unknown>[] = [];
+    let liveTrades: TradeRow[] = [];
+    try {
+      livePositions = db
+        .prepare("SELECT * FROM live_state ORDER BY code")
+        .all() as Record<string, unknown>[];
+    } catch { /* table may not exist yet */ }
+
+    try {
+      liveTrades = db
+        .prepare(
+          `SELECT trade_id, code, direction, entry_price, exit_price,
+                  quantity, pnl, pnl_pct, hold_days, exit_reason, notes,
+                  confidence, entry_date, exit_date, commission
+           FROM trades WHERE param_version = 'live'
+           ORDER BY id DESC LIMIT 100`,
+        )
+        .all() as TradeRow[];
+    } catch { /* */ }
+
     db.close();
 
     const initialCapital = paramRow
@@ -234,6 +255,14 @@ export async function GET() {
     // Strip positions_json from daily_pnl response (sent separately)
     const dailyPnlClean = dailyPnl.map(({ positions_json: _, ...rest }) => rest);
 
+    // Live summary
+    const totalUnrealized = livePositions.reduce(
+      (sum, p) => sum + (Number(p.unrealized_pnl) || 0), 0,
+    );
+    const totalMktVal = livePositions.reduce(
+      (sum, p) => sum + (Number(p.current_price) || 0) * (Number(p.quantity) || 0), 0,
+    );
+
     return NextResponse.json({
       summary,
       trades,
@@ -241,10 +270,17 @@ export async function GET() {
       per_strategy: perStrategy,
       per_stock: perStock,
       positions: dailyPositions,
+      live: {
+        positions: livePositions,
+        trades: liveTrades,
+        n_positions: livePositions.length,
+        total_unrealized: round(totalUnrealized, 2),
+        total_market_value: round(totalMktVal, 2),
+      },
     });
   } catch (e) {
     return NextResponse.json(
-      { error: String(e), summary: null, trades: [], daily_pnl: [], per_strategy: {}, per_stock: {}, positions: {} },
+      { error: String(e), summary: null, trades: [], daily_pnl: [], per_strategy: {}, per_stock: {}, positions: {}, live: { positions: [], trades: [], n_positions: 0, total_unrealized: 0, total_market_value: 0 } },
       { status: 500 },
     );
   }

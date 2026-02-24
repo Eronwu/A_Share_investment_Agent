@@ -102,6 +102,25 @@ CREATE TABLE IF NOT EXISTS param_versions (
     is_active INTEGER DEFAULT 0
 );
 
+-- 实时持仓状态 (RT engine UPSERT, web API 只读)
+CREATE TABLE IF NOT EXISTS live_state (
+    code TEXT PRIMARY KEY,
+    entry_price REAL,
+    quantity INTEGER,
+    current_price REAL,
+    entry_time INTEGER,
+    entry_date TEXT,
+    stop_loss REAL,
+    take_profit REAL,
+    max_hold_days INTEGER,
+    entry_strategy TEXT,
+    confidence REAL,
+    trigger_signals TEXT,
+    unrealized_pnl REAL,
+    pnl_pct REAL,
+    last_updated INTEGER
+);
+
 -- 优化运行记录
 CREATE TABLE IF NOT EXISTS optimization_runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
