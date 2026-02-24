@@ -882,6 +882,7 @@ def run():
     engine = DeltaAlertEngine(config)
     sent_open_today = False
     sent_close_today = False
+    sent_summary_today = False
     latest_quotes: dict | None = None       # last merged quotes (for close summary)
     latest_hkd_cny_rate: float | None = None
 
@@ -894,6 +895,7 @@ def run():
             daily_alerts = 0
             sent_open_today = False
             sent_close_today = False
+            sent_summary_today = False
             latest_quotes = None
             latest_hkd_cny_rate = None
             last_alert_date = today
@@ -992,6 +994,20 @@ def run():
             daily_alerts += len(oc_alerts)
             for a in oc_alerts:
                 logger.info(f"Alert: {a['title']} - {a['message']}")
+
+        # ── Daily summary generation (16:05-16:15 after HK close) ──
+        if not sent_summary_today:
+            now_t = datetime.now()
+            hhmm = now_t.hour * 100 + now_t.minute
+            if now_t.weekday() < 5 and 1605 <= hhmm <= 1615:
+                sent_summary_today = True
+                logger.info("Triggering daily summary generation...")
+                try:
+                    from src.tools.daily_summary_generator import generate_daily_summary
+                    generate_daily_summary()
+                    notify("Daily Report", "Signal digest ready", sound="")
+                except Exception as e:
+                    logger.error(f"Daily summary generation failed: {e}")
 
         # Sleep in small increments for responsive shutdown
         slept = 0.0

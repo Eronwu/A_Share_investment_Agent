@@ -1,0 +1,740 @@
+{
+  "date": "2026-02-24",
+  "generatedAt": 1771929310411,
+  "market": "A",
+  "stats": {
+    "totalSignals": 200,
+    "totalAlerts": 200,
+    "l1Count": 47,
+    "bullish": 11,
+    "bearish": 3,
+    "stockCount": 81,
+    "upCount": 41,
+    "downCount": 38
+  },
+  "perStock": [
+    {
+      "code": "HK00700",
+      "name": "腾讯控股",
+      "change": -3.35,
+      "signalCount": 35,
+      "direction": "多空交织",
+      "keySignals": [
+        "大单成交x8",
+        "主买卖失衡x7",
+        "散户机构分歧x4",
+        "量价背离x4",
+        "动量卖出x2"
+      ]
+    },
+    {
+      "code": "HK09988",
+      "name": "阿里巴巴－Ｗ",
+      "change": -2.76,
+      "signalCount": 35,
+      "direction": "偏多",
+      "keySignals": [
+        "大单成交x8",
+        "主买卖失衡x7",
+        "多头信号x4",
+        "量价背离x4",
+        "大单翻转x3"
+      ]
+    },
+    {
+      "code": "HK01060",
+      "name": "大麦娱乐",
+      "change": -6.74,
+      "signalCount": 22,
+      "direction": "偏多",
+      "keySignals": [
+        "大单成交x3",
+        "主买卖失衡x3",
+        "量价背离x2",
+        "RSI超买x2",
+        "MACD顶背离x2"
+      ]
+    },
+    {
+      "code": "HK01810",
+      "name": "小米集团－Ｗ",
+      "change": -2.24,
+      "signalCount": 22,
+      "direction": "偏空",
+      "keySignals": [
+        "主买卖失衡x8",
+        "大单成交x7",
+        "空头信号x2",
+        "大单翻转x2",
+        "散户机构分歧"
+      ]
+    },
+    {
+      "code": "HK01211",
+      "name": "比亚迪股份",
+      "change": -0.75,
+      "signalCount": 16,
+      "direction": "偏多",
+      "keySignals": [
+        "主买卖失衡x6",
+        "大单成交x3",
+        "散户机构分歧x2",
+        "多头信号x2",
+        "相对强弱x2"
+      ]
+    },
+    {
+      "code": "HK02359",
+      "name": "药明康德",
+      "change": -4.4,
+      "signalCount": 13,
+      "direction": "中性",
+      "keySignals": [
+        "散户机构分歧x4",
+        "均线多排x2",
+        "吞没形态x2",
+        "相对强弱x2",
+        "资金异动"
+      ]
+    },
+    {
+      "code": "HK06809",
+      "name": "澜起科技",
+      "change": 4.92,
+      "signalCount": 12,
+      "direction": "中性",
+      "keySignals": [
+        "盘口失衡x4",
+        "散户机构分歧x4",
+        "量价背离x3",
+        "主买卖失衡"
+      ]
+    },
+    {
+      "code": "HK01357",
+      "name": "美图公司",
+      "change": -7.59,
+      "signalCount": 10,
+      "direction": "偏多",
+      "keySignals": [
+        "主买卖失衡x6",
+        "相对强弱x2",
+        "大单成交",
+        "多头信号"
+      ]
+    },
+    {
+      "code": "HK06060",
+      "name": "众安在线",
+      "change": -2.16,
+      "signalCount": 8,
+      "direction": "中性",
+      "keySignals": [
+        "盘口失衡x3",
+        "MACD金叉x2",
+        "相对强弱x2",
+        "主买卖失衡"
+      ]
+    },
+    {
+      "code": "HK00325",
+      "name": "布鲁可",
+      "change": -3.88,
+      "signalCount": 7,
+      "direction": "中性",
+      "keySignals": [
+        "MACD底背离x2",
+        "均线空排x2",
+        "相对强弱x2",
+        "资金异动"
+      ]
+    },
+    {
+      "code": "HK07709",
+      "name": "XL二南方海力士",
+      "change": 9.83,
+      "signalCount": 6,
+      "direction": "中性",
+      "keySignals": [
+        "RSI超买",
+        "均线多排",
+        "趋势启动",
+        "相对强弱",
+        "主买卖失衡",
+        "大幅异动"
+      ]
+    },
+    {
+      "code": "HK03896",
+      "name": "金山云",
+      "change": -5.14,
+      "signalCount": 5,
+      "direction": "偏多",
+      "keySignals": [
+        "主买卖失衡x2",
+        "大单成交",
+        "多头信号",
+        "散户机构分歧"
+      ]
+    },
+    {
+      "code": "HK02590",
+      "name": "极智嘉-W",
+      "change": -3.77,
+      "signalCount": 2,
+      "direction": "中性",
+      "keySignals": [
+        "MACD金叉",
+        "相对强弱"
+      ]
+    },
+    {
+      "code": "000001",
+      "name": "平安银行",
+      "change": 0,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "000063",
+      "name": "中兴通讯",
+      "change": 1.64,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "000338",
+      "name": "潍柴动力",
+      "change": 8.62,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "000875",
+      "name": "电投绿能",
+      "change": 7.31,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "001696",
+      "name": "宗申动力",
+      "change": 3.51,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "002074",
+      "name": "国轩高科",
+      "change": 2.11,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "002085",
+      "name": "万丰奥威",
+      "change": 1.79,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "002156",
+      "name": "通富微电",
+      "change": 1.34,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "002312",
+      "name": "川发龙蟒",
+      "change": 10.0,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "002475",
+      "name": "立讯精密",
+      "change": -0.33,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "002920",
+      "name": "德赛西威",
+      "change": 1.51,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "159227",
+      "name": "航空航天ETF",
+      "change": 0.54,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "159326",
+      "name": "电网设备ETF",
+      "change": 4.37,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "159516",
+      "name": "半导设备",
+      "change": 0.6,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "159691",
+      "name": "港股红利ETF",
+      "change": 2.18,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "159736",
+      "name": "饮食ETF",
+      "change": -0.73,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "159755",
+      "name": "电池ETF",
+      "change": 0.64,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "159819",
+      "name": "AI智能",
+      "change": -0.06,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "159851",
+      "name": "金科ETF",
+      "change": -1.19,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "159852",
+      "name": "软件ETF",
+      "change": -2.92,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "159915",
+      "name": "创业板",
+      "change": 0.92,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "159941",
+      "name": "纳指ETF",
+      "change": -0.81,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "159995",
+      "name": "芯片ETF",
+      "change": 0.36,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "511130",
+      "name": "30年国债ETF",
+      "change": -0.02,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "512800",
+      "name": "银行ETF",
+      "change": -0.64,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "512880",
+      "name": "证券ETF",
+      "change": -0.93,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "513120",
+      "name": "HK创新药",
+      "change": -0.62,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "513730",
+      "name": "东南亚科技ETF",
+      "change": -0.23,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "515100",
+      "name": "红利低波100ETF",
+      "change": -0.75,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "515450",
+      "name": "红利低波50ETF",
+      "change": -0.77,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "515880",
+      "name": "通信ETF",
+      "change": -1.97,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "518880",
+      "name": "黄金ETF",
+      "change": -1.35,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "588000",
+      "name": "科创50",
+      "change": -0.71,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "588170",
+      "name": "科创半导体ETF",
+      "change": 1.19,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "600016",
+      "name": "民生银行",
+      "change": -0.76,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "600036",
+      "name": "招商银行",
+      "change": 0.59,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "600673",
+      "name": "东阳光",
+      "change": 0,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "601088",
+      "name": "中国神华",
+      "change": 2.58,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "601138",
+      "name": "工业富联",
+      "change": 1.15,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "601166",
+      "name": "兴业银行",
+      "change": -0.76,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "601288",
+      "name": "农业银行",
+      "change": -0.46,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "601318",
+      "name": "中国平安",
+      "change": -1.21,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "601689",
+      "name": "拓普集团",
+      "change": -2.26,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "601698",
+      "name": "中国卫通",
+      "change": 1.02,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "601899",
+      "name": "紫金矿业",
+      "change": 4.08,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "603778",
+      "name": "国晟科技",
+      "change": 8.62,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "HK03690",
+      "name": "美团－Ｗ",
+      "change": -4.24,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "HK03986",
+      "name": "兆易创新",
+      "change": 11.91,
+      "signalCount": 7,
+      "direction": "中性",
+      "keySignals": [
+        "主买卖失衡x4",
+        "盘口失衡x3"
+      ]
+    },
+    {
+      "code": "002050",
+      "name": "三花智控",
+      "change": -1.4,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "002121",
+      "name": "科陆电子",
+      "change": 7.27,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "002202",
+      "name": "金风科技",
+      "change": 4.74,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "002335",
+      "name": "科华数据",
+      "change": -3.61,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "002364",
+      "name": "中恒电气",
+      "change": 2.55,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "002648",
+      "name": "卫星化学",
+      "change": 4.0,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "159206",
+      "name": "卫星ETF",
+      "change": -0.67,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "300376",
+      "name": "易事特",
+      "change": 0.74,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "301388",
+      "name": "欣灵电气",
+      "change": 4.9,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "600089",
+      "name": "特变电工",
+      "change": 3.93,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "600268",
+      "name": "国电南自",
+      "change": 3.26,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "600309",
+      "name": "万华化学",
+      "change": 2.7,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "600312",
+      "name": "平高电气",
+      "change": 4.61,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "600517",
+      "name": "国网英大",
+      "change": 3.45,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "600550",
+      "name": "保变电气",
+      "change": 10.01,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "601179",
+      "name": "中国西电",
+      "change": 6.0,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "603019",
+      "name": "中科曙光",
+      "change": -0.22,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "603063",
+      "name": "禾望电气",
+      "change": 1.09,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "603533",
+      "name": "掌阅科技",
+      "change": -9.99,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    },
+    {
+      "code": "688676",
+      "name": "金盘科技",
+      "change": 4.74,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": []
+    }
+  ],
+  "report": "## 今日持仓信号日报\n\n### **市场整体评估**\n今日市场整体偏空，多头信号数量显著多于空头信号，但多数标的呈现多空交织状态。资金流向显示主力资金流出明显，个股分化加剧，AI和半导体板块相对强势。\n\n### **重点关注**\n1. **HK00700 腾讯控股**  \n   - 理由：多空信号交织，大单成交频繁，主力资金流出明显，短期内可能面临较大波动，建议谨慎操作。\n   \n2. **HK09988 阿里巴巴－Ｗ**  \n   - 理由：偏多信号占优，但大单翻转显示主力资金态度转变，需关注后续资金流向变化。\n\n3. **HK07709 XL二南方海力士**  \n   - 理由：均线多头排列，RSI超买，趋势强劲，但需警惕短期回调风险。\n\n### **逐股一句话**\n- **HK00700 腾讯控股** — 多空交织，大单频繁，主力资金流出明显。\n- **HK09988 阿里巴巴－Ｗ** — 偏多信号占优，大单翻转需警惕。\n- **HK01060 大麦娱乐** — 偏多信号，量价背离明显，警惕回调。\n- **HK01810 小米集团－Ｗ** — 偏空信号，主力资金流出，谨慎观望。\n- **HK01211 比亚迪股份** — 偏多信号，主力资金分歧，观望为主。\n- **HK02359 药明康德** — 中性信号，均线多头排列，但日跌较大。\n- **HK06809 澜起科技** — 中性信号，盘口失衡明显，观望为主。\n- **HK01357 美图公司** — 偏多信号，主力资金流入，但日跌较大。\n- **HK06060 众安在线** — 中性信号，MACD金叉，量比1.6，观望。\n- **HK00325 布鲁可** — 中性信号，MACD底背离，均线空头排列。\n- **HK07709 XL二南方海力士** — 中性信号，均线多头排列，RSI超买。\n- **HK03896 金山云** — 偏多信号，主力资金流入，观望为主。\n- **HK02590 极智嘉-W** — 中性信号，MACD金叉，量比4.9，观望。\n\n### **操作建议**\n1. **控制仓位**：市场多空交织，波动较大，建议控制仓位，谨慎操作。\n2. **关注资金流向**：重点关注主力资金流入的标的，如阿里巴巴和小米，择机介入。\n3. **规避高风险标的**：对于多空信号交织且主力资金流出的标的，如腾讯控股，建议规避或轻仓操作。\n\n### **自选标的**\n- **HK03986 兆易创新** — 强势上涨，主力资金流入明显，可继续持有，但需警惕回调风险。"
+}

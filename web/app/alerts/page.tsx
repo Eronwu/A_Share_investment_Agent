@@ -15,6 +15,31 @@ interface AlertEvent {
   change_pct: number;
 }
 
+interface DailySummary {
+  date: string;
+  generatedAt: number;
+  market: string;
+  stats: {
+    totalSignals: number;
+    totalAlerts: number;
+    l1Count: number;
+    bullish: number;
+    bearish: number;
+    stockCount: number;
+    upCount: number;
+    downCount: number;
+  };
+  perStock: {
+    code: string;
+    name: string;
+    change: number;
+    signalCount: number;
+    direction: string;
+    keySignals: string[];
+  }[];
+  report: string;
+}
+
 const LEVEL_COLORS: Record<number, string> = {
   1: D.yellow,
   2: D.orange,
@@ -22,10 +47,10 @@ const LEVEL_COLORS: Record<number, string> = {
 };
 
 const KIND_LABELS: Record<string, { label: string; color: string }> = {
-  big_move: { label: "BIG_MOVE", color: D.orange },
-  threshold: { label: "THRESHOLD", color: D.red },
-  portfolio: { label: "PORTFOLIO", color: D.purple },
-  l2_strategy: { label: "L2_SIGNAL", color: D.cyan },
+  big_move: { label: "大幅异动", color: D.orange },
+  threshold: { label: "触价告警", color: D.red },
+  portfolio: { label: "组合变动", color: D.purple },
+  l2_strategy: { label: "L2信号", color: D.cyan },
 };
 
 /** Extract strategy sub-type from L2 display text for finer labels */
@@ -33,20 +58,128 @@ function getL2Label(e: AlertEvent): { label: string; color: string } | null {
   if (e.kind !== "l2_strategy") return null;
   const d = e.display || "";
   if (d.includes("动量确认") || d.includes("动量卖出"))
-    return { label: "MOMENTUM", color: D.pink };
+    return { label: "动量追踪", color: D.pink };
   if (d.includes("放量加速") || d.includes("放量砸盘"))
-    return { label: "VOL_ACCEL", color: D.pink };
+    return { label: "放量异动", color: D.pink };
   if (d.includes("多头信号") || d.includes("空头信号"))
-    return { label: "COMPOSITE", color: D.yellow };
+    return { label: "多空研判", color: D.yellow };
   if (d.includes("主买持续") || d.includes("主卖持续"))
-    return { label: "PERSIST", color: D.pink };
+    return { label: "主力持续", color: D.pink };
   if (d.includes("散户机构"))
-    return { label: "INST_FLOW", color: D.orange };
+    return { label: "机构散户", color: D.orange };
   if (d.includes("大单翻转"))
-    return { label: "REVERSAL", color: D.red };
+    return { label: "大单翻转", color: D.red };
   if (d.includes("尾盘异动"))
-    return { label: "CLOSING", color: D.yellow };
+    return { label: "尾盘异动", color: D.yellow };
+  if (d.includes("RSI"))
+    return { label: "RSI超买卖", color: D.orange };
+  if (d.includes("MACD"))
+    return { label: "MACD交叉", color: D.green };
+  if (d.includes("均线"))
+    return { label: "均线信号", color: D.cyan };
+  if (d.includes("布林"))
+    return { label: "布林突破", color: D.purple };
+  if (d.includes("ADX") || d.includes("趋势启动"))
+    return { label: "趋势启动", color: D.comment };
+  if (d.includes("放量突破") || d.includes("缩量"))
+    return { label: "量价配合", color: D.orange };
+  if (d.includes("吞没") || d.includes("星"))
+    return { label: "K线形态", color: D.yellow };
+  if (d.includes("突破回踩") || d.includes("破位"))
+    return { label: "关键位置", color: D.red };
+  if (d.includes("相对强弱"))
+    return { label: "相对强弱", color: D.cyan };
   return null; // fallback to default L2_SIGNAL
+}
+
+/** Strip **bold** markers from heading text (headings are already styled bold) */
+function stripBold(s: string): string {
+  return s.replace(/\*\*([^*]+)\*\*/g, "$1");
+}
+
+/** Render markdown report in terminal style */
+function TerminalMarkdown({ text }: { text: string }) {
+  const lines = text.split("\n");
+  return (
+    <>
+      {lines.map((line, i) => {
+        const trimmed = line.trimStart();
+        // H3 (must check before H2 — "###" starts with "##")
+        if (trimmed.startsWith("### ")) {
+          return (
+            <div key={i} style={{ color: D.cyan, fontWeight: 600, marginTop: 6, marginBottom: 2 }}>
+              {stripBold(trimmed.slice(4))}
+            </div>
+          );
+        }
+        // H2
+        if (trimmed.startsWith("## ")) {
+          return (
+            <div key={i} style={{ color: D.purple, fontWeight: 700, marginTop: 8, marginBottom: 2 }}>
+              {stripBold(trimmed.slice(3))}
+            </div>
+          );
+        }
+        // H1
+        if (trimmed.startsWith("# ")) {
+          return (
+            <div key={i} style={{ color: D.yellow, fontWeight: 700, marginTop: i > 0 ? 8 : 0, marginBottom: 4 }}>
+              {stripBold(trimmed.slice(2))}
+            </div>
+          );
+        }
+        // Bullet
+        if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+          const content = trimmed.slice(2);
+          return (
+            <div key={i} style={{ color: D.fg, paddingLeft: 16 }}>
+              <span style={{ color: D.comment }}>  - </span>
+              <MarkdownInline text={content} />
+            </div>
+          );
+        }
+        // Numbered list
+        const numMatch = trimmed.match(/^(\d+)\.\s(.+)/);
+        if (numMatch) {
+          return (
+            <div key={i} style={{ color: D.fg, paddingLeft: 16 }}>
+              <span style={{ color: D.comment }}>  {numMatch[1]}. </span>
+              <MarkdownInline text={numMatch[2]} />
+            </div>
+          );
+        }
+        // Empty line
+        if (!trimmed) {
+          return <div key={i} style={{ height: 6 }} />;
+        }
+        // Regular text
+        return (
+          <div key={i} style={{ color: D.fg }}>
+            <MarkdownInline text={trimmed} />
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/** Render inline markdown: **bold** */
+function MarkdownInline({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return (
+            <span key={i} style={{ color: D.orange, fontWeight: 600 }}>
+              {part.slice(2, -2)}
+            </span>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
 }
 
 function TitleBar() {
@@ -85,32 +218,48 @@ export default function AlertsPage() {
   const [events, setEvents] = useState<AlertEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<DailySummary | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(true);
 
-  const fetchEvents = useCallback(async () => {
-    try {
-      const resp = await fetch("/api/metrics", { cache: "no-store" });
-      const data = await resp.json();
+  const fetchData = useCallback(async () => {
+    // Fetch events and summary in parallel
+    const [eventsRes, summaryRes] = await Promise.allSettled([
+      fetch("/api/metrics", { cache: "no-store" }).then((r) => r.json()),
+      fetch("/api/summary", { cache: "no-store" }).then((r) => r.json()),
+    ]);
+
+    // Handle events
+    if (eventsRes.status === "fulfilled") {
+      const data = eventsRes.value;
       if (data.error) {
         setFetchError(data.error);
       } else {
         setFetchError(null);
         setEvents(data.alertEvents || []);
       }
-    } catch (e) {
-      setFetchError(`network error: ${e}`);
-    } finally {
-      setLoading(false);
+    } else {
+      setFetchError(`network error: ${eventsRes.reason}`);
     }
+
+    // Handle summary
+    if (summaryRes.status === "fulfilled") {
+      const sData = summaryRes.value;
+      setSummary(sData.data || null);
+    }
+
+    setLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchEvents();
-    const timer = setInterval(fetchEvents, 30_000);
+    fetchData();
+    const timer = setInterval(fetchData, 30_000);
     return () => clearInterval(timer);
-  }, [fetchEvents]);
+  }, [fetchData]);
 
   // 按时间倒序（最新在前）
   const sorted = [...events].reverse();
+
+  const st = summary?.stats;
 
   return (
     <div
@@ -166,6 +315,65 @@ export default function AlertsPage() {
           <span style={{ color: D.fg }}>cat alert_events.log | sort -r</span>
         </div>
 
+        {/* ── Daily Summary Card ── */}
+        {summary && (
+          <div
+            style={{
+              border: `1px solid ${D.purple}44`,
+              borderRadius: 4,
+              marginBottom: 12,
+              background: "#21222c",
+            }}
+          >
+            {/* Header row — always visible */}
+            <div
+              onClick={() => setSummaryOpen(!summaryOpen)}
+              style={{
+                padding: "6px 12px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                userSelect: "none",
+                borderBottom: summaryOpen ? `1px solid ${D.purple}33` : "none",
+              }}
+            >
+              <span style={{ color: D.purple, fontSize: 11, width: "2ch" }}>
+                {summaryOpen ? "\u25be" : "\u25b8"}
+              </span>
+              <span style={{ color: D.purple, fontWeight: 700 }}>
+                # ── 信号日报 {summary.date}
+              </span>
+              {st && (
+                <span style={{ color: D.comment, fontSize: 11 }}>
+                  ({st.totalSignals} signals)
+                </span>
+              )}
+              {/* Stats chips */}
+              {st && (
+                <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>
+                  L1:{st.l1Count}
+                  {" | "}
+                  <span style={{ color: D.green }}>bull:{st.bullish}</span>
+                  {" "}
+                  <span style={{ color: D.red }}>bear:{st.bearish}</span>
+                  {" | "}
+                  <span style={{ color: D.green }}>up:{st.upCount}</span>
+                  {" "}
+                  <span style={{ color: D.red }}>down:{st.downCount}</span>
+                </span>
+              )}
+            </div>
+
+            {/* Collapsible report content */}
+            {summaryOpen && (
+              <div style={{ padding: "8px 12px 12px", lineHeight: 1.7 }}>
+                <TerminalMarkdown text={summary.report} />
+              </div>
+            )}
+          </div>
+        )}
+
         {fetchError && (
           <div style={{ color: D.red, marginBottom: 8, fontWeight: 500 }}>
             [ERROR] alert events fetch failed: {fetchError}
@@ -176,7 +384,7 @@ export default function AlertsPage() {
           <div style={{ color: D.comment }}>Loading...</div>
         )}
 
-        {!loading && !fetchError && sorted.length === 0 && (
+        {!loading && !fetchError && sorted.length === 0 && !summary && (
           <div style={{ color: D.comment, padding: "16px 0" }}>
             # No alert events today. Events reset daily at 08:00.
           </div>
