@@ -260,12 +260,8 @@ function Home() {
   }
 
   function applySortList(list: Service[], st: SortState): Service[] {
-    // star 置顶，然后按排序键
-    const starFirst = (a: Service, b: Service) => (b.star ? 1 : 0) - (a.star ? 1 : 0);
-    if (!st.key) return list.slice().sort((a, b) => starFirst(a, b) || b.change - a.change);
+    if (!st.key) return list.slice().sort((a, b) => b.change - a.change);
     return list.slice().sort((a, b) => {
-      const sf = starFirst(a, b);
-      if (sf !== 0) return sf;
       const av = derivedVal(a, st.key!);
       const bv = derivedVal(b, st.key!);
       const cmp = av < bv ? -1 : av > bv ? 1 : 0;
