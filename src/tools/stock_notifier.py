@@ -16,7 +16,7 @@ import json
 import signal
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 # ── Project root & import path ──
@@ -32,7 +32,6 @@ logger = setup_logger("stock_notifier")
 MARKET_DATA_PATH = PROJECT_ROOT / "src" / "data" / "market_data.json"
 MONITOR_CONFIG_PATH = PROJECT_ROOT / "src" / "data" / "monitor_config.json"
 ALERT_CONFIG_PATH = PROJECT_ROOT / "src" / "data" / "alert_config.json"
-ALERT_EVENTS_PATH = PROJECT_ROOT / "src" / "data" / "alert_events.json"
 L2_SIGNALS_PATH = PROJECT_ROOT / "src" / "data" / "l2_strategy_signals.json"
 
 ARCHIVE_DIR = PROJECT_ROOT / "src" / "data" / "archive"
@@ -43,12 +42,13 @@ NON_TRADING_CHECK_SEC = 60  # mtime check interval outside trading hours
 
 
 def _archive_and_reset(today):
-    """归档昨日 market_data.json + alert_events.json，然后清空 alert_events。
+    """归档昨日 market_data.json + 清理 30 天前 alert_events。
 
     归档文件命名: archive/market_data_2026-02-12.json
+    alert_events 已迁移到 SQLite，不再需要 JSON 归档/清空。
     """
     import shutil
-    yesterday = (today - __import__("datetime").timedelta(days=1)).isoformat()
+    yesterday = (today - timedelta(days=1)).isoformat()
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
 
     # 归档 market_data.json
@@ -61,25 +61,21 @@ def _archive_and_reset(today):
     except Exception as e:
         logger.warning(f"归档 market_data 失败: {e}")
 
-    # 归档 alert_events.json
+    # 清理 30 天前的 alert_events（SQLite）
+    conn = None
     try:
-        if ALERT_EVENTS_PATH.exists():
-            dest = ARCHIVE_DIR / f"alert_events_{yesterday}.json"
-            if not dest.exists():
-                shutil.copy2(ALERT_EVENTS_PATH, dest)
-                logger.info(f"归档: {ALERT_EVENTS_PATH.name} → archive/{dest.name}")
+        from src.sim_trading.db import get_connection
+        cutoff = (today - timedelta(days=30)).isoformat()
+        conn = get_connection()
+        deleted = conn.execute("DELETE FROM alert_events WHERE date < ?", (cutoff,)).rowcount
+        conn.commit()
+        if deleted:
+            logger.info(f"清理 alert_events: 删除 {deleted} 条 30 天前记录")
     except Exception as e:
-        logger.warning(f"归档 alert_events 失败: {e}")
-
-    # 清空 alert_events.json
-    try:
-        tmp = ALERT_EVENTS_PATH.with_suffix(".tmp")
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump({"events": [], "lastUpdated": int(time.time() * 1000)}, f)
-        tmp.replace(ALERT_EVENTS_PATH)
-        logger.info("每日重置: 已清空 alert_events.json")
-    except Exception as e:
-        logger.warning(f"清空 alert_events.json 失败: {e}")
+        logger.warning(f"清理 alert_events 失败: {e}")
+    finally:
+        if conn:
+            conn.close()
 
 
 # ══════════════════════════════════════════
@@ -453,33 +449,23 @@ def _notify_line(name: str, change_pct: float, extra: str = "") -> str:
     return f"{name} {sign}{change_pct:.1f}%"
 
 
-MAX_ALERT_EVENTS = 200  # 保留最近 200 条事件
-
-
 def write_alert_events(alerts: list[dict]):
-    """将告警事件追加到 alert_events.json，供 web 端读取展示。
+    """将告警事件写入 SQLite alert_events 表，供 web 端读取展示。
 
     单一数据源：notifier 计算，web 只读。确保 terminal 和 web 告警一致。
+    INSERT OR IGNORE 利用 UNIQUE(ts, symbol, message) 零成本去重。
     """
     if not alerts:
         return
 
-    # 读已有事件
-    events = []
-    try:
-        if ALERT_EVENTS_PATH.exists():
-            with open(ALERT_EVENTS_PATH, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            events = data.get("events", [])
-    except Exception:
-        events = []
+    from src.sim_trading.db import get_connection
 
-    # 追加新事件
-    # message: stealth 格式（与 terminal 通知一致）
-    # display: 中文可读格式（web 日志展示用）
-    ts = int(time.time() * 1000)
+    ts_base = int(time.time() * 1000)
     t = datetime.now().strftime("%H:%M:%S")
-    for a in alerts:
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    rows = []
+    for i, a in enumerate(alerts):
         symbol = a.get("symbol", "")
         kind = a.get("_kind", "")
         change_pct = a.get("_change_pct", 0)
@@ -487,7 +473,6 @@ def write_alert_events(alerts: list[dict]):
 
         # 中文可读格式
         if kind == "l2_strategy":
-            # L2 信号自带 display（在 message 字段），直接使用
             display = a.get("message", f"{symbol} L2 signal")
         elif kind == "threshold":
             display = f"{symbol} {name} 触价告警 {a.get('message', '')}"
@@ -497,32 +482,25 @@ def write_alert_events(alerts: list[dict]):
             direction = "涨幅" if change_pct > 0 else "跌幅"
             display = f"{symbol} {name} {direction} {abs(change_pct):.1f}%"
 
-        events.append({
-            "ts": ts,
-            "time": t,
-            "symbol": symbol,
-            "kind": kind,
-            "level": a.get("_level", 2),
-            "message": a.get("_stealth", a.get("message", "")),
-            "display": display,
-            "change_pct": change_pct,
-        })
+        message = a.get("_stealth", a.get("message", ""))
+        rows.append((ts_base + i, today, t, symbol, kind, a.get("_level", 2),
+                      message, display, change_pct))
 
-    # 去重（同一 ts + symbol + message 前30字）
-    seen = set()
-    deduped = []
-    for e in events:
-        key = f"{e['ts']}_{e['symbol']}_{e.get('message','')[:30]}"
-        if key not in seen:
-            seen.add(key)
-            deduped.append(e)
-    events = deduped[-MAX_ALERT_EVENTS:]
-
-    # 原子写入
-    tmp = ALERT_EVENTS_PATH.with_suffix(".tmp")
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump({"events": events, "lastUpdated": ts}, f, ensure_ascii=False, indent=2)
-    tmp.replace(ALERT_EVENTS_PATH)
+    conn = None
+    try:
+        conn = get_connection()
+        conn.executemany(
+            "INSERT OR IGNORE INTO alert_events "
+            "(ts, date, time, symbol, kind, level, message, display, change_pct) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            rows,
+        )
+        conn.commit()
+    except Exception as e:
+        logger.warning(f"写入 alert_events 到 SQLite 失败: {e}")
+    finally:
+        if conn:
+            conn.close()
 
 
 # ══════════════════════════════════════════
@@ -874,10 +852,17 @@ def run():
     print(f"  data file : {MARKET_DATA_PATH.name}")
     print(f"  Ctrl+C to stop\n")
 
+    # ── Ensure alert_events table exists ──
+    from src.sim_trading.db import init_db
+    init_db()
+
     # ── State ──
     last_mtime = 0.0
     daily_alerts = 0
-    last_alert_date = None  # None = 强制首次检查时执行重置
+    # 如果当前已过 08:00，说明今天的重置已经（或应该已经）执行过，
+    # 不需要再次触发每日重置（避免重启进程丢失当日 delta 追踪状态）。
+    _now = datetime.now()
+    last_alert_date = _now.date() if _now.hour >= 8 else None
     last_checked_count = len(watchlist)
     engine = DeltaAlertEngine(config)
     sent_open_today = False

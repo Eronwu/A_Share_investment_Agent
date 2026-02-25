@@ -134,6 +134,23 @@ CREATE TABLE IF NOT EXISTS optimization_runs (
     test_period TEXT,
     status TEXT
 );
+
+-- 告警事件 (从 alert_events.json 迁移到 SQLite)
+CREATE TABLE IF NOT EXISTS alert_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    time TEXT NOT NULL,
+    symbol TEXT NOT NULL DEFAULT '',
+    kind TEXT NOT NULL DEFAULT '',
+    level INTEGER NOT NULL DEFAULT 2,
+    message TEXT NOT NULL DEFAULT '',
+    display TEXT NOT NULL DEFAULT '',
+    change_pct REAL NOT NULL DEFAULT 0,
+    UNIQUE(ts, symbol, message)
+);
+CREATE INDEX IF NOT EXISTS idx_alert_events_date ON alert_events(date);
+CREATE INDEX IF NOT EXISTS idx_alert_events_date_ts ON alert_events(date, ts);
 """
 
 

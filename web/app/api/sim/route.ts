@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import Database from "better-sqlite3";
 import { join } from "path";
 
-const DB_PATH = join(process.cwd(), "..", "src", "data", "sim_trading.db");
+import { readFileSync } from "fs";
+import { SIM_DB_PATH } from "../../lib/db";
+
+const MARKET_DATA_PATH = join(process.cwd(), "..", "src", "data", "market_data.json");
+const CONFIG_PATH = join(process.cwd(), "..", "src", "data", "monitor_config.json");
 
 export const dynamic = "force-dynamic";
 
@@ -186,14 +190,14 @@ function round(n: number, d: number): number {
 
 export async function GET() {
   try {
-    const db = new Database(DB_PATH, { readonly: true });
+    const db = new Database(SIM_DB_PATH, { readonly: true });
 
     const trades = db
       .prepare(
         `SELECT trade_id, code, direction, entry_price, exit_price,
                 quantity, pnl, pnl_pct, hold_days, exit_reason, notes,
                 confidence, entry_date, exit_date, commission
-         FROM trades ORDER BY id`,
+         FROM trades WHERE param_version != 'live' ORDER BY id`,
       )
       .all() as TradeRow[];
 
@@ -225,7 +229,7 @@ export async function GET() {
         .prepare(
           `SELECT trade_id, code, direction, entry_price, exit_price,
                   quantity, pnl, pnl_pct, hold_days, exit_reason, notes,
-                  confidence, entry_date, exit_date, commission
+                  confidence, entry_date, exit_date, entry_time, exit_time, commission
            FROM trades WHERE param_version = 'live'
            ORDER BY id DESC LIMIT 100`,
         )
@@ -233,6 +237,42 @@ export async function GET() {
     } catch { /* */ }
 
     db.close();
+
+    // Enrich live positions with name + change% from market_data + config
+    let marketLookup: Record<string, { name: string; change: number; chgAmt: number }> = {};
+    try {
+      const md = JSON.parse(readFileSync(MARKET_DATA_PATH, "utf-8"));
+      const cfg = JSON.parse(readFileSync(CONFIG_PATH, "utf-8"));
+      const wl = cfg.watchlist || {};
+      for (const svc of md.services || []) {
+        const id = svc.id as string;
+        marketLookup[id] = {
+          name: (wl[id]?.name as string) || (svc.name as string) || id,
+          change: Number(svc.change) || 0,
+          chgAmt: Number(svc.chgAmt) || 0,
+        };
+      }
+    } catch { /* market data unavailable — positions still work without names */ }
+
+    for (const p of livePositions) {
+      const code = p.code as string;
+      const info = marketLookup[code];
+      if (info) {
+        p.name = info.name;
+        p.change = info.change;
+        p.chgAmt = info.chgAmt;
+      } else {
+        p.name = code;
+        p.change = 0;
+        p.chgAmt = 0;
+      }
+    }
+
+    // Enrich trades with stock names
+    const enrichedLiveTrades = liveTrades.map((t) => ({
+      ...t,
+      name: marketLookup[t.code]?.name || t.code,
+    }));
 
     const initialCapital = paramRow
       ? (JSON.parse(paramRow.config_json).initial_capital ?? 1_000_000)
@@ -255,13 +295,32 @@ export async function GET() {
     // Strip positions_json from daily_pnl response (sent separately)
     const dailyPnlClean = dailyPnl.map(({ positions_json: _, ...rest }) => rest);
 
-    // Live summary
+    // Live summary — computed from live positions + live trades
     const totalUnrealized = livePositions.reduce(
       (sum, p) => sum + (Number(p.unrealized_pnl) || 0), 0,
     );
     const totalMktVal = livePositions.reduce(
       (sum, p) => sum + (Number(p.current_price) || 0) * (Number(p.quantity) || 0), 0,
     );
+    const totalCostBasis = livePositions.reduce(
+      (sum, p) => sum + (Number(p.entry_price) || 0) * (Number(p.quantity) || 0), 0,
+    );
+
+    // Realized P&L from live closed trades
+    const realizedPnl = liveTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+    const liveCommission = liveTrades.reduce((sum, t) => sum + (t.commission || 0), 0);
+    const liveWins = liveTrades.filter(t => t.pnl > 0);
+    const liveLosses = liveTrades.filter(t => t.pnl <= 0);
+    const liveWinRate = liveTrades.length > 0 ? liveWins.length / liveTrades.length : 0;
+    const liveProfitFactor = liveLosses.length > 0 && liveLosses.reduce((s, t) => s + t.pnl, 0) !== 0
+      ? Math.abs(liveWins.reduce((s, t) => s + t.pnl, 0) / liveLosses.reduce((s, t) => s + t.pnl, 0))
+      : (liveWins.length > 0 ? Infinity : 0);
+
+    // Total P&L = realized (closed trades) + unrealized (open positions)
+    const totalPnl = realizedPnl + totalUnrealized;
+    const totalReturn = initialCapital > 0 ? totalPnl / initialCapital : 0;
+    const currentEquity = initialCapital + totalPnl;
+    const cashAvailable = initialCapital - totalCostBasis + realizedPnl - liveCommission;
 
     return NextResponse.json({
       summary,
@@ -272,15 +331,25 @@ export async function GET() {
       positions: dailyPositions,
       live: {
         positions: livePositions,
-        trades: liveTrades,
+        trades: enrichedLiveTrades,
         n_positions: livePositions.length,
         total_unrealized: round(totalUnrealized, 2),
         total_market_value: round(totalMktVal, 2),
+        realized_pnl: round(realizedPnl, 2),
+        total_pnl: round(totalPnl, 2),
+        total_return: round(totalReturn, 4),
+        current_equity: round(currentEquity, 2),
+        cash: round(cashAvailable, 2),
+        initial_capital: initialCapital,
+        total_trades: liveTrades.length,
+        win_rate: round(liveWinRate, 4),
+        profit_factor: liveProfitFactor === Infinity ? "inf" : round(liveProfitFactor, 2),
+        total_commission: round(liveCommission, 2),
       },
     });
   } catch (e) {
     return NextResponse.json(
-      { error: String(e), summary: null, trades: [], daily_pnl: [], per_strategy: {}, per_stock: {}, positions: {}, live: { positions: [], trades: [], n_positions: 0, total_unrealized: 0, total_market_value: 0 } },
+      { error: String(e), summary: null, trades: [], daily_pnl: [], per_strategy: {}, per_stock: {}, positions: {}, live: { positions: [], trades: [], n_positions: 0, total_unrealized: 0, total_market_value: 0, realized_pnl: 0, total_pnl: 0, total_return: 0, current_equity: 0, cash: 0, initial_capital: 0, total_trades: 0, win_rate: 0, profit_factor: 0, total_commission: 0 } },
       { status: 500 },
     );
   }

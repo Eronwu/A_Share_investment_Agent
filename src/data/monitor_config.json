@@ -1,13 +1,5 @@
 {
   "watchlist": {
-    "159206": {
-      "name": "卫星ETF",
-      "type": "watching",
-      "cost": 0.918,
-      "shares": 1300,
-      "hidden": false,
-      "star": false
-    },
     "159227": {
       "name": "航空航天ETF",
       "type": "holding",

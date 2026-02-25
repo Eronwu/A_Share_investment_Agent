@@ -292,7 +292,10 @@ export default function AlertsPage() {
         <a href="/" style={{ color: D.cyan, textDecoration: "none" }}>
           ← monitor
         </a>
+        <span style={{ color: D.comment }}>|</span>
         <span style={{ color: D.purple, fontWeight: 700 }}>alerts</span>
+        <a href="/sim" style={{ color: D.comment, textDecoration: "none" }}>sim</a>
+        <a href="/manage" style={{ color: D.comment, textDecoration: "none" }}>manage</a>
         <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>
           {sorted.length} events today | auto-refresh 30s
         </span>
@@ -310,7 +313,7 @@ export default function AlertsPage() {
         {/* prompt */}
         <div style={{ marginBottom: 8 }}>
           <span style={{ color: D.green }}>➜ </span>
-          <span style={{ color: D.cyan }}>~/projects/monitor</span>
+          <span style={{ color: D.cyan }}>~/projects/alerts</span>
           <span style={{ color: D.purple }}> git:(</span>
           <span style={{ color: D.red }}>main</span>
           <span style={{ color: D.purple }}>) </span>
@@ -434,7 +437,7 @@ export default function AlertsPage() {
         <div style={{ height: 16 }} />
         <div>
           <span style={{ color: D.green }}>➜ </span>
-          <span style={{ color: D.cyan }}>~/projects/monitor</span>
+          <span style={{ color: D.cyan }}>~/projects/alerts</span>
           <span style={{ color: D.purple }}> git:(</span>
           <span style={{ color: D.red }}>main</span>
           <span style={{ color: D.purple }}>) </span>

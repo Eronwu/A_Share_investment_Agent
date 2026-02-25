@@ -3,9 +3,8 @@
 import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import CommandPrompt from "./components/CommandPrompt";
 import { useAlerts } from "./hooks/useAlerts";
-import { useCommand } from "./hooks/useCommand";
+import { useLogEntries } from "./hooks/useCommand";
 
 import type { Service, AlertSettings } from "./types";
 
@@ -125,11 +124,11 @@ function TabBar({ activeTab, onTabChange }: { activeTab: MarketTab; onTabChange:
       <Link href="/alerts" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
         alerts
       </Link>
-      <Link href="/manage" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
-        manage
-      </Link>
       <Link href="/sim" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
         sim
+      </Link>
+      <Link href="/manage" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
+        manage
       </Link>
     </div>
   );
@@ -218,13 +217,13 @@ function Home() {
     shIndex: number; szIndex: number; shPct: number; szPct: number;
     verdict: string;
   } | null>(null);
-  const cmd = useCommand(fetchData);
+  const { logs, addLogs } = useLogEntries();
   // Filter alerts by active market tab (HK symbols start with "HK", rest are A-share)
   // Portfolio-level alerts (empty symbol) show in both tabs
   const tabAlertEvents = (alertEvents as Parameters<typeof useAlerts>[0]).filter(
     (e) => !e.symbol || (activeTab === "HK" ? e.symbol.startsWith("HK") : !e.symbol.startsWith("HK"))
   );
-  useAlerts(tabAlertEvents, cmd.addLogs, activeTab);
+  useAlerts(tabAlertEvents, addLogs, activeTab);
 
   const pollMs = (settings.poll_interval ?? DEFAULT_POLL_SEC) * 1000;
 
@@ -682,9 +681,33 @@ function Home() {
 
         </>)}
 
-        {/* interactive command prompt */}
-        <div style={{ height: 10 }} />
-        <CommandPrompt cmd={cmd} />
+        {/* alert log tail */}
+        {logs.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            {[...logs].reverse().slice(0, 8).reverse().map((log, i) => (
+              <div key={i} style={{ fontSize: 12, color: D.comment }}>
+                <span>[{log.time}] </span>
+                <span style={{ color: log.level === "error" ? D.red : log.level === "warn" ? D.yellow : D.green }}>
+                  {log.level.padEnd(5)}
+                </span>
+                <span> {log.source}: </span>
+                <span style={{ color: log.level === "error" ? D.red : log.level === "warn" ? D.orange : D.comment }}>
+                  {log.message}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* static prompt */}
+        <div style={{ marginTop: 6 }}>
+          <span style={{ color: D.green }}>➜ </span>
+          <span style={{ color: D.cyan }}>~/projects/monitor</span>
+          <span style={{ color: D.purple }}> git:(</span>
+          <span style={{ color: D.red }}>main</span>
+          <span style={{ color: D.purple }}>)</span>
+          <span style={{ display: "inline-block", width: 8, height: 15, background: D.fg, animation: "blink 1s step-end infinite", verticalAlign: "middle", marginLeft: 4 }} />
+        </div>
       </div>
 
       <style>{`

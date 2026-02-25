@@ -737,6 +737,9 @@ export default function ManagePage() {
         <a href="/" style={{ color: D.cyan, textDecoration: "none" }}>
           ← monitor
         </a>
+        <span style={{ color: D.comment }}>|</span>
+        <a href="/alerts" style={{ color: D.comment, textDecoration: "none" }}>alerts</a>
+        <a href="/sim" style={{ color: D.comment, textDecoration: "none" }}>sim</a>
         <span style={{ color: D.purple, fontWeight: 700 }}>manage</span>
         <input
           placeholder="搜索代码或名称..."

@@ -1,2818 +1,392 @@
 {
   "signals": [
     {
-      "ts": 1771914756304,
-      "time": "14:32:36",
-      "strategy": "composite_bearish",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "小米集团－Ｗ 空头信号",
-      "display": "HK01810 小米集团－Ｗ 空头信号(分=5): 大单成交 + 主买主卖失衡 | 现价35.50 日跌-2.9% 净流入5132万",
-      "detail": {
-        "signals": [
-          "large_order",
-          "tick_imbalance"
-        ],
-        "count": 2,
-        "score": 5
-      }
-    },
-    {
-      "ts": 1771914781992,
-      "time": "14:33:01",
-      "strategy": "large_order",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 大单成交",
-      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 733万 @ 147.80 (主买) | 现价147.80 日跌-2.9% 净流出102025万",
-      "detail": {
-        "amount": 7330880.0,
-        "price": 147.8,
-        "volume": 49600,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771914781992,
-      "time": "14:33:01",
-      "strategy": "composite_bullish",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ 多头信号",
-      "display": "HK09988 阿里巴巴－Ｗ 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价147.80 日跌-2.9% 净流出102025万",
-      "detail": {
-        "signals": [
-          "large_order",
-          "tick_imbalance"
-        ],
-        "count": 2,
-        "score": 5
-      }
-    },
-    {
-      "ts": 1771914811459,
-      "time": "14:33:31",
-      "strategy": "volume_price_divergence",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 量价背离",
-      "display": "HK01060 大麦娱乐 量价背离: 价格 0.81 (窗口最高) 主力净流入 -2333万 | 现价0.81 日跌-9.0% 量比4.4 净流出2333万",
-      "detail": {
-        "price": 0.81,
-        "window_high": 0.81,
-        "main_net_inflow": -23328700.0
-      }
-    },
-    {
-      "ts": 1771914936536,
-      "time": "14:35:36",
-      "strategy": "large_order",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 大单成交",
-      "display": "HK01060 大麦娱乐 大单成交: 成交 584万 @ 0.81 (主买) | 现价0.81 日跌-9.0% 量比4.4 净流出2333万",
-      "detail": {
-        "amount": 5840100.0,
-        "price": 0.81,
-        "volume": 7210000,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771914936536,
-      "time": "14:35:36",
-      "strategy": "volume_price_divergence",
-      "code": "HK06809",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "澜起科技 量价背离",
-      "display": "HK06809 澜起科技 量价背离: 价格 208.80 (窗口最高) 主力净流入 -2801万 | 现价208.80 日涨+5.9% 净流出2801万",
-      "detail": {
-        "price": 208.8,
-        "window_high": 208.8,
-        "main_net_inflow": -28012270.0
-      }
-    },
-    {
-      "ts": 1771914970104,
-      "time": "14:36:10",
-      "strategy": "tick_imbalance",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 主买主卖失衡",
-      "display": "HK01060 大麦娱乐 主买主卖失衡: 主买占优 imbalance=+0.500 窗口成交额1022万 | 现价0.81 日跌-9.0% 量比4.5",
-      "detail": {
-        "imbalance": 0.5,
-        "buy_vol": 9170000,
-        "sell_vol": 3060000,
-        "turnover": 10215400.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771914970104,
-      "time": "14:36:10",
-      "strategy": "composite_bullish",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "大麦娱乐 多头信号",
-      "display": "HK01060 大麦娱乐 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价0.81 日跌-9.0% 量比4.5",
-      "detail": {
-        "signals": [
-          "large_order",
-          "tick_imbalance"
-        ],
-        "count": 2,
-        "score": 5
-      }
-    },
-    {
-      "ts": 1771914974313,
-      "time": "14:36:14",
-      "strategy": "order_book_imbalance",
-      "code": "HK03986",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "兆易创新 盘口异动",
-      "display": "HK03986 兆易创新 盘口异动: 委比 -63 → -12 (变化 +52) | 现价428.00 日涨+10.8% 量比1.5 净流入7193万",
-      "detail": {
-        "prev_ratio": -63.16,
-        "curr_ratio": -11.63,
-        "delta": 51.53
-      }
-    },
-    {
-      "ts": 1771914974313,
-      "time": "14:36:14",
-      "strategy": "tick_imbalance",
-      "code": "HK03896",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "金山云 主买主卖失衡",
-      "display": "HK03896 金山云 主买主卖失衡: 主买占优 imbalance=+0.740 窗口成交额1080万 | 现价6.80 日跌-5.6% 量比1.6 净流出11742万",
-      "detail": {
-        "imbalance": 0.74,
-        "buy_vol": 1260000,
-        "sell_vol": 188000,
-        "turnover": 10800600.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771915007126,
-      "time": "14:36:47",
-      "strategy": "order_book_imbalance",
-      "code": "HK06809",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "澜起科技 盘口异动",
-      "display": "HK06809 澜起科技 盘口异动: 委比 -90 → -37 (变化 +54) | 现价208.00 日涨+5.5% 净流出2801万",
-      "detail": {
-        "prev_ratio": -90.28,
-        "curr_ratio": -36.59,
-        "delta": 53.69
-      }
-    },
-    {
-      "ts": 1771915074585,
-      "time": "14:37:54",
-      "strategy": "tick_imbalance",
-      "code": "HK03986",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "兆易创新 主买主卖失衡",
-      "display": "HK03986 兆易创新 主买主卖失衡: 主买占优 imbalance=+0.419 窗口成交额1313万 | 现价423.60 日涨+9.7% 量比1.5",
-      "detail": {
-        "imbalance": 0.419,
-        "buy_vol": 19300,
-        "sell_vol": 7900,
-        "turnover": 13131520.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771915103836,
-      "time": "14:38:23",
-      "strategy": "momentum_sell_alert",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "腾讯控股 动量卖出",
-      "display": "HK00700 腾讯控股 动量卖出: 日跌-3.4% | 大单净卖出3755万(8笔) | 资金流出 | 现价519.50 日跌-3.4% 净流出122781万",
-      "detail": {
-        "daily_change_pct": -3.44,
-        "large_order_sell_count": 8,
-        "large_order_net_amount": -37554850.0,
-        "main_net_inflow": -1227809850.0,
-        "session_direction": "bearish",
-        "session_score": -3
-      }
-    },
-    {
-      "ts": 1771915133213,
-      "time": "14:38:53",
-      "strategy": "momentum_sell_alert",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ 动量卖出",
-      "display": "HK09988 阿里巴巴－Ｗ 动量卖出: 日跌-3.0% | 大单净卖出2665万(3笔) | 资金流出 | 现价147.70 日跌-3.0% 净流出103043万",
-      "detail": {
-        "daily_change_pct": -2.96,
-        "large_order_sell_count": 3,
-        "large_order_net_amount": -26654890.0,
-        "main_net_inflow": -1030432240.0,
-        "session_direction": "bearish",
-        "session_score": -3
-      }
-    },
-    {
-      "ts": 1771915140310,
-      "time": "14:39:00",
-      "strategy": "tick_imbalance",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 主买主卖失衡",
-      "display": "HK01211 比亚迪股份 主买主卖失衡: 主卖占优 imbalance=-0.411 窗口成交额1126万 | 现价99.15 日跌-0.9%",
-      "detail": {
-        "imbalance": -0.411,
-        "buy_vol": 31200,
-        "sell_vol": 74800,
-        "turnover": 11260620.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771915261089,
-      "time": "14:41:01",
-      "strategy": "large_order",
-      "code": "HK03896",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "金山云 大单成交",
-      "display": "HK03896 金山云 大单成交: 成交 601万 @ 6.80 (主买) | 现价6.82 日跌-5.3% 量比1.6 净流出11397万",
-      "detail": {
-        "amount": 6011200.0,
-        "price": 6.8,
-        "volume": 884000,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771915261089,
-      "time": "14:41:01",
-      "strategy": "tick_imbalance",
-      "code": "HK01357",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "美图公司 主买主卖失衡",
-      "display": "HK01357 美图公司 主买主卖失衡: 主买占优 imbalance=+0.742 窗口成交额2429万 | 现价5.67 日跌-8.4% 量比2.9 净流入181万",
-      "detail": {
-        "imbalance": 0.742,
-        "buy_vol": 3646500,
-        "sell_vol": 540500,
-        "turnover": 24289250.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771915261089,
-      "time": "14:41:01",
-      "strategy": "composite_bullish",
-      "code": "HK03896",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "金山云 多头信号",
-      "display": "HK03896 金山云 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价6.82 日跌-5.3% 量比1.6 净流出11397万",
-      "detail": {
-        "signals": [
-          "large_order",
-          "tick_imbalance"
-        ],
-        "count": 2,
-        "score": 5
-      }
-    },
-    {
-      "ts": 1771915330873,
-      "time": "14:42:10",
-      "strategy": "large_order",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 大单成交",
-      "display": "HK00700 腾讯控股 大单成交: 成交 4634万 @ 519.50 (主卖) | 现价520.00 日跌-3.3% 净流出124210万",
-      "detail": {
-        "amount": 46339400.0,
-        "price": 519.5,
-        "volume": 89200,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1771915330873,
-      "time": "14:42:10",
-      "strategy": "tick_imbalance",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 主买主卖失衡",
-      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主卖占优 imbalance=-0.408 窗口成交额8680万 | 现价147.60 日跌-3.0% 净流出106237万",
-      "detail": {
-        "imbalance": -0.408,
-        "buy_vol": 158000,
-        "sell_vol": 376100,
-        "turnover": 86803565.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771915437178,
-      "time": "14:43:57",
-      "strategy": "tick_imbalance",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 主买主卖失衡",
-      "display": "HK01810 小米集团－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.471 窗口成交额4855万 | 现价35.58 日跌-2.7% 净流入4627万",
-      "detail": {
-        "imbalance": 0.471,
-        "buy_vol": 984800,
-        "sell_vol": 353800,
-        "turnover": 48547163.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771915525780,
-      "time": "14:45:25",
-      "strategy": "order_book_imbalance",
-      "code": "HK06060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "众安在线 盘口异动",
-      "display": "HK06060 众安在线 盘口异动: 委比 -40 → 7 (变化 +47) | 现价16.29 日跌-2.3% 量比1.6 净流入125万",
-      "detail": {
-        "prev_ratio": -39.53,
-        "curr_ratio": 7.13,
-        "delta": 46.66
-      }
-    },
-    {
-      "ts": 1771915566177,
-      "time": "14:46:06",
-      "strategy": "tick_imbalance",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 主买主卖失衡",
-      "display": "HK00700 腾讯控股 主买主卖失衡: 主卖占优 imbalance=-0.592 窗口成交额14523万 | 现价519.50 日跌-3.4%",
-      "detail": {
-        "imbalance": -0.592,
-        "buy_vol": 54200,
-        "sell_vol": 211400,
-        "turnover": 145225778.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771915577250,
-      "time": "14:46:17",
-      "strategy": "large_order",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 大单成交",
-      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 716万 @ 147.70 (主卖) | 现价147.70 日跌-3.0%",
-      "detail": {
-        "amount": 7163450.0,
-        "price": 147.7,
-        "volume": 48500,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1771915618267,
-      "time": "14:46:58",
-      "strategy": "capital_flow_spike",
-      "code": "HK02359",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "药明康德 主力资金异动",
-      "display": "HK02359 药明康德 主力资金异动: 净流入占比 0.0% → 199.0% | 现价121.00 日跌-4.9% 净流入997万",
-      "detail": {
-        "from_pct": 0,
-        "to_pct": 199.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771915681133,
-      "time": "14:48:01",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK02359",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "药明康德 散户机构分歧",
-      "display": "HK02359 药明康德 散户机构分歧: 主力进散户出 | 机构净+1136万 散户净-859万 | 现价121.20 日跌-4.8% 净流入1136万",
-      "detail": {
-        "direction": "bullish",
-        "institutional_net": 11363400.0,
-        "retail_net": -8594760.0,
-        "super_net": 5494720.0,
-        "big_net": 5868680.0
-      }
-    },
-    {
-      "ts": 1771915751863,
-      "time": "14:49:11",
-      "strategy": "large_order",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 大单成交",
-      "display": "HK01810 小米集团－Ｗ 大单成交: 成交 1376万 @ 35.56 (主买) | 现价35.54 日跌-2.8% 净流入4627万",
-      "detail": {
-        "amount": 13761720.0,
-        "price": 35.56,
-        "volume": 387000,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771915751863,
-      "time": "14:49:11",
-      "strategy": "large_order_reversal",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "小米集团－Ｗ 大单翻转",
-      "display": "HK01810 小米集团－Ｗ 大单翻转: 大单翻多(SELL→BUY) | 近期净额+1247万 | 现价35.54 日跌-2.8% 净流入4627万",
-      "detail": {
-        "direction": "bullish",
-        "prior_direction": "SELL",
-        "recent_direction": "BUY",
-        "prior_net_amount": -7521948.0,
-        "recent_net_amount": 12474448.0,
-        "prior_count": 3,
-        "recent_count": 3
-      }
-    },
-    {
-      "ts": 1771915948438,
-      "time": "14:52:28",
-      "strategy": "large_order",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 大单成交",
-      "display": "HK00700 腾讯控股 大单成交: 成交 1041万 @ 520.50 (主买) | 现价520.50 日跌-3.3% 净流出117771万",
-      "detail": {
-        "amount": 10410000.0,
-        "price": 520.5,
-        "volume": 20000,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771916022168,
-      "time": "14:53:42",
-      "strategy": "tick_imbalance",
-      "code": "HK03986",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "兆易创新 主买主卖失衡",
-      "display": "HK03986 兆易创新 主买主卖失衡: 主买占优 imbalance=+0.860 窗口成交额1017万 | 现价428.00 日涨+10.8%",
-      "detail": {
-        "imbalance": 0.86,
-        "buy_vol": 17300,
-        "sell_vol": 1300,
-        "turnover": 10167752.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771916043911,
-      "time": "14:54:03",
-      "strategy": "tick_imbalance",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 主买主卖失衡",
-      "display": "HK01211 比亚迪股份 主买主卖失衡: 主卖占优 imbalance=-0.420 窗口成交额1117万 | 现价99.00 日跌-1.1%",
-      "detail": {
-        "imbalance": -0.42,
-        "buy_vol": 28300,
-        "sell_vol": 69300,
-        "turnover": 11169916.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771916081390,
-      "time": "14:54:41",
-      "strategy": "capital_flow_spike",
-      "code": "HK00325",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "布鲁可 主力资金异动",
-      "display": "HK00325 布鲁可 主力资金异动: 净流入占比 0.0% → 27.4% | 现价66.50 日跌-4.4% 量比5.6 净流出138万",
-      "detail": {
-        "from_pct": 0,
-        "to_pct": 27.42,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771916201632,
-      "time": "14:56:41",
-      "strategy": "order_book_imbalance",
-      "code": "HK03986",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "兆易创新 盘口异动",
-      "display": "HK03986 兆易创新 盘口异动: 委比 -74 → -21 (变化 +53) | 现价428.00 日涨+10.8%",
-      "detail": {
-        "prev_ratio": -74.05,
-        "curr_ratio": -20.93,
-        "delta": 53.12
-      }
-    },
-    {
-      "ts": 1771916205549,
-      "time": "14:56:45",
-      "strategy": "tick_imbalance",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 主买主卖失衡",
-      "display": "HK01810 小米集团－Ｗ 主买主卖失衡: 主卖占优 imbalance=-0.634 窗口成交额5344万 | 现价35.50 日跌-2.9% 净流入4473万",
-      "detail": {
-        "imbalance": -0.634,
-        "buy_vol": 260000,
-        "sell_vol": 1159200,
-        "turnover": 53442212.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771916297106,
-      "time": "14:58:17",
-      "strategy": "large_order",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 大单成交",
-      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 1617万 @ 147.80 (主买) | 现价147.80 日跌-2.9%",
-      "detail": {
-        "amount": 16169320.0,
-        "price": 147.8,
-        "volume": 109400,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771916478465,
-      "time": "15:01:18",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 散户机构分歧",
-      "display": "HK00700 腾讯控股 散户机构分歧: 主力出散户进 | 机构净-122898万 散户净+42596万 | 现价519.50 日跌-3.4% 净流出122898万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -1228981450.0,
-        "retail_net": 425960500.0,
-        "super_net": -754213500.0,
-        "big_net": -474767950.0
-      }
-    },
-    {
-      "ts": 1771916489461,
-      "time": "15:01:29",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 散户机构分歧",
-      "display": "HK01810 小米集团－Ｗ 散户机构分歧: 主力进散户出 | 机构净+4882万 散户净-6104万 | 现价35.50 日跌-2.9% 净流入4882万",
-      "detail": {
-        "direction": "bullish",
-        "institutional_net": 48821864.0,
-        "retail_net": -61044468.0,
-        "super_net": 66326212.0,
-        "big_net": -17504348.0
-      }
-    },
-    {
-      "ts": 1771916489461,
-      "time": "15:01:29",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 散户机构分歧",
-      "display": "HK01211 比亚迪股份 散户机构分歧: 主力进散户出 | 机构净+1324万 散户净-5039万 | 现价99.00 日跌-1.1% 净流入1324万",
-      "detail": {
-        "direction": "bullish",
-        "institutional_net": 13239040.0,
-        "retail_net": -50385680.0,
-        "super_net": 0.0,
-        "big_net": 13239040.0
-      }
-    },
-    {
-      "ts": 1771916489461,
-      "time": "15:01:29",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK06809",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "澜起科技 散户机构分歧",
-      "display": "HK06809 澜起科技 散户机构分歧: 主力出散户进 | 机构净-2801万 散户净+4286万 | 现价206.80 日涨+4.9% 净流出2801万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -28012270.0,
-        "retail_net": 42863380.0,
-        "super_net": -11326900.0,
-        "big_net": -16685370.0
-      }
-    },
-    {
-      "ts": 1771916500683,
-      "time": "15:01:40",
-      "strategy": "order_book_imbalance",
-      "code": "HK06809",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "澜起科技 盘口异动",
-      "display": "HK06809 澜起科技 盘口异动: 委比 22 → -24 (变化 -45) | 现价207.00 日涨+5.0% 净流出2801万",
-      "detail": {
-        "prev_ratio": 21.59,
-        "curr_ratio": -23.74,
-        "delta": -45.33
-      }
-    },
-    {
-      "ts": 1771916567023,
-      "time": "15:02:47",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK03896",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "金山云 散户机构分歧",
-      "display": "HK03896 金山云 散户机构分歧: 主力出散户进 | 机构净-11014万 散户净+7622万 | 现价6.79 日跌-5.7% 量比1.6 净流出11014万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -110142380.0,
-        "retail_net": 76223380.0,
-        "super_net": -59871540.0,
-        "big_net": -50270840.0
-      }
-    },
-    {
-      "ts": 1771916577926,
-      "time": "15:02:57",
-      "strategy": "tick_imbalance",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 主买主卖失衡",
-      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.425 窗口成交额8928万 | 现价147.80 日跌-2.9% 净流出106826万",
-      "detail": {
-        "imbalance": 0.425,
-        "buy_vol": 404600,
-        "sell_vol": 163400,
-        "turnover": 89276737.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771916585384,
-      "time": "15:03:05",
-      "strategy": "large_order",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 大单成交",
-      "display": "HK00700 腾讯控股 大单成交: 成交 816万 @ 520.00 (主买) | 现价520.00 日跌-3.3% 净流出122898万",
-      "detail": {
-        "amount": 8164000.0,
-        "price": 520.0,
-        "volume": 15700,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771916585384,
-      "time": "15:03:05",
+      "ts": 1771995729868,
+      "time": "13:02:09",
       "strategy": "volume_price_divergence",
       "code": "HK09988",
       "kind": "l2_strategy",
       "notify": false,
       "message": "阿里巴巴－Ｗ 量价背离",
-      "display": "HK09988 阿里巴巴－Ｗ 量价背离: 价格 147.90 (窗口最高) 主力净流入 -106826万 | 现价147.90 日跌-2.8% 净流出106826万",
+      "display": "HK09988 阿里巴巴－Ｗ 量价背离: 价格 149.20 (窗口最高) 主力净流入 -6287万 | 现价149.20 日涨+0.8% 净流出6287万",
       "detail": {
-        "price": 147.9,
-        "window_high": 147.9,
-        "main_net_inflow": -1068261640.0
+        "price": 149.2,
+        "window_high": 149.2,
+        "main_net_inflow": -62874090.0
       }
     },
     {
-      "ts": 1771916610969,
-      "time": "15:03:30",
+      "ts": 1771995793625,
+      "time": "13:03:13",
       "strategy": "volume_price_divergence",
-      "code": "HK00700",
+      "code": "HK02590",
       "kind": "l2_strategy",
       "notify": false,
-      "message": "腾讯控股 量价背离",
-      "display": "HK00700 腾讯控股 量价背离: 价格 520.50 (窗口最高) 主力净流入 -120173万 | 现价520.50 日跌-3.3% 净流出120173万",
+      "message": "极智嘉-W 量价背离",
+      "display": "HK02590 极智嘉-W 量价背离: 价格 25.18 (窗口最高) 主力净流入 -1211万 | 现价25.18 日跌-3.4% 净流出1211万",
       "detail": {
-        "price": 520.5,
-        "window_high": 520.5,
-        "main_net_inflow": -1201733450.0
+        "price": 25.18,
+        "window_high": 25.18,
+        "main_net_inflow": -12106412.0
       }
     },
     {
-      "ts": 1771916618424,
-      "time": "15:03:38",
-      "strategy": "volume_price_divergence",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 量价背离",
-      "display": "HK01060 大麦娱乐 量价背离: 价格 0.82 (窗口最高) 主力净流入 -1397万 | 现价0.82 日跌-7.9% 量比4.2 净流出1397万",
-      "detail": {
-        "price": 0.82,
-        "window_high": 0.82,
-        "main_net_inflow": -13965100.0
-      }
-    },
-    {
-      "ts": 1771916625391,
-      "time": "15:03:45",
-      "strategy": "large_order_reversal",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ 大单翻转",
-      "display": "HK09988 阿里巴巴－Ｗ 大单翻转: 大单翻多(SELL→BUY) | 近期净额+1597万 | 现价147.90 日跌-2.8%",
-      "detail": {
-        "direction": "bullish",
-        "prior_direction": "SELL",
-        "recent_direction": "BUY",
-        "prior_net_amount": -61642900.0,
-        "recent_net_amount": 15967400.0,
-        "prior_count": 12,
-        "recent_count": 3
-      }
-    },
-    {
-      "ts": 1771916636828,
-      "time": "15:03:56",
-      "strategy": "tick_imbalance",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 主买主卖失衡",
-      "display": "HK00700 腾讯控股 主买主卖失衡: 主买占优 imbalance=+0.421 窗口成交额13723万 | 现价520.50 日跌-3.3% 净流出120173万",
-      "detail": {
-        "imbalance": 0.421,
-        "buy_vol": 177100,
-        "sell_vol": 72200,
-        "turnover": 137225145.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771916670192,
-      "time": "15:04:30",
-      "strategy": "capital_flow_spike",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 主力资金异动",
-      "display": "HK01810 小米集团－Ｗ 主力资金异动: 净流入占比 -267.0% → 1186.7% | 现价35.56 日跌-2.7% 净流入6001万",
-      "detail": {
-        "from_pct": -267.04,
-        "to_pct": 1186.73,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771916724837,
-      "time": "15:05:24",
-      "strategy": "large_order",
-      "code": "HK01357",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "美图公司 大单成交",
-      "display": "HK01357 美图公司 大单成交: 成交 726万 @ 5.67 (主买) | 现价5.70 日跌-7.9% 量比2.8",
-      "detail": {
-        "amount": 7257600.0,
-        "price": 5.67,
-        "volume": 1280000,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771916724837,
-      "time": "15:05:24",
-      "strategy": "tick_imbalance",
-      "code": "HK01357",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "美图公司 主买主卖失衡",
-      "display": "HK01357 美图公司 主买主卖失衡: 主买占优 imbalance=+0.788 窗口成交额1918万 | 现价5.70 日跌-7.9% 量比2.8",
-      "detail": {
-        "imbalance": 0.788,
-        "buy_vol": 2984000,
-        "sell_vol": 353000,
-        "turnover": 19177755.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771916724837,
-      "time": "15:05:24",
-      "strategy": "composite_bullish",
-      "code": "HK01357",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "美图公司 多头信号",
-      "display": "HK01357 美图公司 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价5.70 日跌-7.9% 量比2.8",
-      "detail": {
-        "signals": [
-          "large_order",
-          "tick_imbalance"
-        ],
-        "count": 2,
-        "score": 5
-      }
-    },
-    {
-      "ts": 1771916761692,
-      "time": "15:06:01",
-      "strategy": "tick_imbalance",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 主买主卖失衡",
-      "display": "HK01211 比亚迪股份 主买主卖失衡: 主买占优 imbalance=+0.412 窗口成交额1817万 | 现价99.15 日跌-0.9%",
-      "detail": {
-        "imbalance": 0.412,
-        "buy_vol": 124500,
-        "sell_vol": 51900,
-        "turnover": 18168798.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771916807240,
-      "time": "15:06:47",
-      "strategy": "tick_imbalance",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 主买主卖失衡",
-      "display": "HK01810 小米集团－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.633 窗口成交额5708万 | 现价35.58 日跌-2.7%",
-      "detail": {
-        "imbalance": 0.633,
-        "buy_vol": 1220400,
-        "sell_vol": 274600,
-        "turnover": 57081447.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771916870567,
-      "time": "15:07:50",
-      "strategy": "large_order",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 大单成交",
-      "display": "HK01810 小米集团－Ｗ 大单成交: 成交 688万 @ 35.58 (主卖) | 现价35.58 日跌-2.7%",
-      "detail": {
-        "amount": 6881172.0,
-        "price": 35.58,
-        "volume": 193400,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1771916983924,
-      "time": "15:09:43",
-      "strategy": "large_order",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 大单成交",
-      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 884万 @ 148.10 (主买) | 现价148.10 日跌-2.7%",
-      "detail": {
-        "amount": 8841570.0,
-        "price": 148.1,
-        "volume": 59700,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771917113013,
-      "time": "15:11:53",
-      "strategy": "tick_imbalance",
-      "code": "HK03986",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "兆易创新 主买主卖失衡",
-      "display": "HK03986 兆易创新 主买主卖失衡: 主买占优 imbalance=+0.854 窗口成交额1710万 | 现价430.40 日涨+11.4% 净流入7285万",
-      "detail": {
-        "imbalance": 0.854,
-        "buy_vol": 33000,
-        "sell_vol": 2600,
-        "turnover": 17100570.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771917190050,
-      "time": "15:13:10",
-      "strategy": "tick_imbalance",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 主买主卖失衡",
-      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.443 窗口成交额8442万 | 现价148.30 日跌-2.6%",
-      "detail": {
-        "imbalance": 0.443,
-        "buy_vol": 399900,
-        "sell_vol": 154500,
-        "turnover": 84424781.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771917200574,
-      "time": "15:13:20",
-      "strategy": "large_order",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 大单成交",
-      "display": "HK00700 腾讯控股 大单成交: 成交 526万 @ 520.50 (主卖) | 现价521.00 日跌-3.2%",
-      "detail": {
-        "amount": 5257050.0,
-        "price": 520.5,
-        "volume": 10100,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1771917238515,
-      "time": "15:13:58",
-      "strategy": "tick_imbalance",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 主买主卖失衡",
-      "display": "HK00700 腾讯控股 主买主卖失衡: 主买占优 imbalance=+0.486 窗口成交额10305万 | 现价520.50 日跌-3.3% 净流出122522万",
-      "detail": {
-        "imbalance": 0.486,
-        "buy_vol": 139500,
-        "sell_vol": 48300,
-        "turnover": 103045982.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771917410738,
-      "time": "15:16:50",
-      "strategy": "tick_imbalance",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 主买主卖失衡",
-      "display": "HK01810 小米集团－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.542 窗口成交额4438万 | 现价35.68 日跌-2.4%",
-      "detail": {
-        "imbalance": 0.542,
-        "buy_vol": 870400,
-        "sell_vol": 258800,
-        "turnover": 44375684.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771917483379,
-      "time": "15:18:03",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK02359",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "药明康德 散户机构分歧",
-      "display": "HK02359 药明康德 散户机构分歧: 主力进散户出 | 机构净+1588万 散户净-893万 | 现价121.40 日跌-4.6% 净流入1588万",
-      "detail": {
-        "direction": "bullish",
-        "institutional_net": 15878640.0,
-        "retail_net": -8927410.0,
-        "super_net": 5494720.0,
-        "big_net": 10383920.0
-      }
-    },
-    {
-      "ts": 1771917537070,
-      "time": "15:18:57",
-      "strategy": "tick_imbalance",
-      "code": "HK01357",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "美图公司 主买主卖失衡",
-      "display": "HK01357 美图公司 主买主卖失衡: 主买占优 imbalance=+0.631 窗口成交额1036万 | 现价5.70 日跌-7.9% 量比2.8",
-      "detail": {
-        "imbalance": 0.631,
-        "buy_vol": 1323000,
-        "sell_vol": 299500,
-        "turnover": 10363722.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771917567042,
-      "time": "15:19:27",
-      "strategy": "large_order",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 大单成交",
-      "display": "HK01810 小米集团－Ｗ 大单成交: 成交 792万 @ 35.64 (主卖) | 现价35.64 日跌-2.5%",
-      "detail": {
-        "amount": 7919208.0,
-        "price": 35.64,
-        "volume": 222200,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1771917593540,
-      "time": "15:19:53",
-      "strategy": "large_order",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 大单成交",
-      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 960万 @ 148.10 (主卖) | 现价148.10 日跌-2.7%",
-      "detail": {
-        "amount": 9596880.0,
-        "price": 148.1,
-        "volume": 64800,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1771917783505,
-      "time": "15:23:03",
-      "strategy": "order_book_imbalance",
-      "code": "HK03986",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "兆易创新 盘口异动",
-      "display": "HK03986 兆易创新 盘口异动: 委比 -6 → -46 (变化 -40) | 现价429.40 日涨+11.2%",
-      "detail": {
-        "prev_ratio": -5.88,
-        "curr_ratio": -46.15,
-        "delta": -40.27
-      }
-    },
-    {
-      "ts": 1771917820608,
-      "time": "15:23:40",
-      "strategy": "large_order",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 大单成交",
-      "display": "HK01060 大麦娱乐 大单成交: 成交 1082万 @ 0.82 (主买) | 现价0.82 日跌-7.9% 量比3.9",
-      "detail": {
-        "amount": 10824000.0,
-        "price": 0.82,
-        "volume": 13200000,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771917820608,
-      "time": "15:23:40",
-      "strategy": "tick_imbalance",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 主买主卖失衡",
-      "display": "HK01060 大麦娱乐 主买主卖失衡: 主买占优 imbalance=+0.834 窗口成交额1395万 | 现价0.82 日跌-7.9% 量比3.9",
-      "detail": {
-        "imbalance": 0.834,
-        "buy_vol": 14610000,
-        "sell_vol": 1320000,
-        "turnover": 13946100.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771917859538,
-      "time": "15:24:19",
-      "strategy": "tick_imbalance",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 主买主卖失衡",
-      "display": "HK01211 比亚迪股份 主买主卖失衡: 主买占优 imbalance=+0.513 窗口成交额1178万 | 现价99.20 日跌-0.9% 净流入1405万",
-      "detail": {
-        "imbalance": 0.513,
-        "buy_vol": 85700,
-        "sell_vol": 27600,
-        "turnover": 11780569.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771917948568,
-      "time": "15:25:48",
-      "strategy": "tick_imbalance",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 主买主卖失衡",
-      "display": "HK00700 腾讯控股 主买主卖失衡: 主买占优 imbalance=+0.486 窗口成交额9982万 | 现价521.00 日跌-3.2% 净流出120512万",
-      "detail": {
-        "imbalance": 0.486,
-        "buy_vol": 112100,
-        "sell_vol": 38800,
-        "turnover": 99818735.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771917964029,
-      "time": "15:26:04",
-      "strategy": "large_order",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 大单成交",
-      "display": "HK00700 腾讯控股 大单成交: 成交 510万 @ 520.50 (主卖) | 现价520.50 日跌-3.3%",
-      "detail": {
-        "amount": 5100900.0,
-        "price": 520.5,
-        "volume": 9800,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1771917964029,
-      "time": "15:26:04",
-      "strategy": "large_order",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 大单成交",
-      "display": "HK01211 比亚迪股份 大单成交: 成交 836万 @ 99.30 (主买) | 现价99.30 日跌-0.8%",
-      "detail": {
-        "amount": 8361060.0,
-        "price": 99.3,
-        "volume": 84200,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771917964029,
-      "time": "15:26:04",
-      "strategy": "composite_bullish",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 多头信号",
-      "display": "HK01211 比亚迪股份 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价99.30 日跌-0.8%",
-      "detail": {
-        "signals": [
-          "large_order",
-          "tick_imbalance"
-        ],
-        "count": 2,
-        "score": 5
-      }
-    },
-    {
-      "ts": 1771918098771,
-      "time": "15:28:18",
+      "ts": 1771995823787,
+      "time": "13:03:43",
       "strategy": "tick_imbalance",
       "code": "HK06809",
       "kind": "l2_strategy",
       "notify": false,
       "message": "澜起科技 主买主卖失衡",
-      "display": "HK06809 澜起科技 主买主卖失衡: 主卖占优 imbalance=-0.400 窗口成交额2931万 | 现价206.20 日涨+4.6%",
+      "display": "HK06809 澜起科技 主买主卖失衡: 主卖占优 imbalance=-0.869 窗口成交额1026万 | 现价192.50 日跌-6.9% 净流出3159万",
       "detail": {
-        "imbalance": -0.4,
-        "buy_vol": 31500,
-        "sell_vol": 73500,
-        "turnover": 29310740.0,
+        "imbalance": -0.869,
+        "buy_vol": 3400,
+        "sell_vol": 48400,
+        "turnover": 10257670.0,
         "window_sec": 300
       }
     },
     {
-      "ts": 1771918109987,
-      "time": "15:28:29",
-      "strategy": "tick_imbalance",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 主买主卖失衡",
-      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.447 窗口成交额9727万 | 现价148.10 日跌-2.7% 净流出107488万",
-      "detail": {
-        "imbalance": 0.447,
-        "buy_vol": 450600,
-        "sell_vol": 172000,
-        "turnover": 97269926.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771918129554,
-      "time": "15:28:49",
-      "strategy": "tick_imbalance",
-      "code": "HK03986",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "兆易创新 主买主卖失衡",
-      "display": "HK03986 兆易创新 主买主卖失衡: 主买占优 imbalance=+0.661 窗口成交额1123万 | 现价434.00 日涨+12.4%",
-      "detail": {
-        "imbalance": 0.661,
-        "buy_vol": 20100,
-        "sell_vol": 4100,
-        "turnover": 11226150.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771918149641,
-      "time": "15:29:09",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 散户机构分歧",
-      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力出散户进 | 机构净-107488万 散户净+523万 | 现价148.10 日跌-2.7% 净流出107488万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -1074881660.0,
-        "retail_net": 5229440.0,
-        "super_net": -596421090.0,
-        "big_net": -478460570.0
-      }
-    },
-    {
-      "ts": 1771918175647,
-      "time": "15:29:35",
-      "strategy": "tick_imbalance",
-      "code": "HK01357",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "美图公司 主买主卖失衡",
-      "display": "HK01357 美图公司 主买主卖失衡: 主买占优 imbalance=+0.710 窗口成交额1045万 | 现价5.70 日跌-7.9% 量比2.8 净流入3261万",
-      "detail": {
-        "imbalance": 0.71,
-        "buy_vol": 1513500,
-        "sell_vol": 256500,
-        "turnover": 10448383.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771918190844,
-      "time": "15:29:50",
-      "strategy": "order_book_imbalance",
+      "ts": 1771995823834,
+      "time": "13:03:43",
+      "strategy": "composite_bearish",
       "code": "HK06809",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "澜起科技 盘口异动",
-      "display": "HK06809 澜起科技 盘口异动: 委比 -3 → -44 (变化 -41) | 现价206.20 日涨+4.6%",
-      "detail": {
-        "prev_ratio": -3.34,
-        "curr_ratio": -44.08,
-        "delta": -40.74
-      }
-    },
-    {
-      "ts": 1771918194346,
-      "time": "15:29:54",
-      "strategy": "large_order",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 大单成交",
-      "display": "HK01810 小米集团－Ｗ 大单成交: 成交 705万 @ 35.76 (主卖) | 现价35.78 日跌-2.1%",
-      "detail": {
-        "amount": 7051872.0,
-        "price": 35.76,
-        "volume": 197200,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1771918288713,
-      "time": "15:31:28",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 散户机构分歧",
-      "display": "HK00700 腾讯控股 散户机构分歧: 主力出散户进 | 机构净-116574万 散户净+54795万 | 现价521.00 日跌-3.2% 净流出116574万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -1165740900.0,
-        "retail_net": 547946500.0,
-        "super_net": -717791250.0,
-        "big_net": -447949650.0
-      }
-    },
-    {
-      "ts": 1771918296152,
-      "time": "15:31:36",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 散户机构分歧",
-      "display": "HK01211 比亚迪股份 散户机构分歧: 主力进散户出 | 机构净+1401万 散户净-3958万 | 现价99.50 日跌-0.6% 净流入1401万",
-      "detail": {
-        "direction": "bullish",
-        "institutional_net": 14009940.0,
-        "retail_net": -39579770.0,
-        "super_net": 8361060.0,
-        "big_net": 5648880.0
-      }
-    },
-    {
-      "ts": 1771918296152,
-      "time": "15:31:36",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK06809",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "澜起科技 散户机构分歧",
-      "display": "HK06809 澜起科技 散户机构分歧: 主力出散户进 | 机构净-3490万 散户净+4258万 | 现价205.80 日涨+4.4% 净流出3490万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -34900570.0,
-        "retail_net": 42575780.0,
-        "super_net": -11326900.0,
-        "big_net": -23573670.0
-      }
-    },
-    {
-      "ts": 1771918360407,
-      "time": "15:32:40",
-      "strategy": "tick_imbalance",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 主买主卖失衡",
-      "display": "HK01810 小米集团－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.403 窗口成交额7019万 | 现价35.84 日跌-2.0% 净流入4451万",
-      "detail": {
-        "imbalance": 0.403,
-        "buy_vol": 1281800,
-        "sell_vol": 546000,
-        "turnover": 70188880.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771918462777,
-      "time": "15:34:22",
-      "strategy": "large_order",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 大单成交",
-      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 1627万 @ 148.20 (主买) | 现价148.30 日跌-2.6% 净流出108316万",
-      "detail": {
-        "amount": 16272360.0,
-        "price": 148.2,
-        "volume": 109800,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771918462777,
-      "time": "15:34:22",
-      "strategy": "composite_bullish",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 多头信号",
-      "display": "HK09988 阿里巴巴－Ｗ 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价148.30 日跌-2.6% 净流出108316万",
-      "detail": {
-        "signals": [
-          "large_order",
-          "tick_imbalance"
-        ],
-        "count": 2,
-        "score": 5
-      }
-    },
-    {
-      "ts": 1771918473749,
-      "time": "15:34:33",
-      "strategy": "volume_price_divergence",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 量价背离",
-      "display": "HK09988 阿里巴巴－Ｗ 量价背离: 价格 148.40 (窗口最高) 主力净流入 -106689万 | 现价148.40 日跌-2.5% 净流出106689万",
-      "detail": {
-        "price": 148.4,
-        "window_high": 148.4,
-        "main_net_inflow": -1066888090.0
-      }
-    },
-    {
-      "ts": 1771918534819,
-      "time": "15:35:34",
-      "strategy": "volume_price_divergence",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 量价背离",
-      "display": "HK00700 腾讯控股 量价背离: 价格 521.50 (窗口最高) 主力净流入 -116340万 | 现价521.50 日跌-3.1% 净流出116340万",
-      "detail": {
-        "price": 521.5,
-        "window_high": 521.5,
-        "main_net_inflow": -1163396400.0
-      }
-    },
-    {
-      "ts": 1771918602799,
-      "time": "15:36:42",
-      "strategy": "tick_imbalance",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 主买主卖失衡",
-      "display": "HK01211 比亚迪股份 主买主卖失衡: 主卖占优 imbalance=-0.401 窗口成交额3384万 | 现价99.40 日跌-0.7% 净流入1083万",
-      "detail": {
-        "imbalance": -0.401,
-        "buy_vol": 94300,
-        "sell_vol": 220800,
-        "turnover": 33838227.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771918628631,
-      "time": "15:37:08",
-      "strategy": "tick_imbalance",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 主买主卖失衡",
-      "display": "HK00700 腾讯控股 主买主卖失衡: 主买占优 imbalance=+0.428 窗口成交额10382万 | 现价521.50 日跌-3.1% 净流出115298万",
-      "detail": {
-        "imbalance": 0.428,
-        "buy_vol": 122200,
-        "sell_vol": 48900,
-        "turnover": 103819997.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771918678436,
-      "time": "15:37:58",
-      "strategy": "large_order",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 大单成交",
-      "display": "HK00700 腾讯控股 大单成交: 成交 1043万 @ 521.50 (主买) | 现价521.50 日跌-3.1% 净流出115298万",
-      "detail": {
-        "amount": 10430000.0,
-        "price": 521.5,
-        "volume": 20000,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771918678436,
-      "time": "15:37:58",
-      "strategy": "composite_bullish",
-      "code": "HK00700",
       "kind": "l2_strategy",
       "notify": true,
-      "message": "腾讯控股 多头信号",
-      "display": "HK00700 腾讯控股 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价521.50 日跌-3.1% 净流出115298万",
+      "message": "澜起科技 空头信号",
+      "display": "HK06809 澜起科技 空头信号(分=5): 主买主卖失衡 + 量价背离 | 现价192.50 日跌-6.9% 净流出3159万",
       "detail": {
         "signals": [
-          "large_order",
-          "tick_imbalance"
+          "tick_imbalance",
+          "volume_price_divergence"
         ],
         "count": 2,
         "score": 5
       }
     },
     {
-      "ts": 1771918814173,
-      "time": "15:40:14",
-      "strategy": "tick_imbalance",
-      "code": "HK09988",
+      "ts": 1771995884411,
+      "time": "13:04:44",
+      "strategy": "volume_price_divergence",
+      "code": "HK06060",
       "kind": "l2_strategy",
       "notify": false,
-      "message": "阿里巴巴－Ｗ 主买主卖失衡",
-      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.635 窗口成交额10740万 | 现价148.30 日跌-2.6% 净流出108425万",
+      "message": "众安在线 量价背离",
+      "display": "HK06060 众安在线 量价背离: 价格 15.95 (窗口最高) 主力净流入 -755万 | 现价15.95 日跌-2.3% 量比1.7 净流出755万",
       "detail": {
-        "imbalance": 0.635,
-        "buy_vol": 551000,
-        "sell_vol": 123100,
-        "turnover": 107401530.0,
-        "window_sec": 300
+        "price": 15.95,
+        "window_high": 15.95,
+        "main_net_inflow": -7551910.0
       }
     },
     {
-      "ts": 1771918962234,
-      "time": "15:42:42",
-      "strategy": "tick_imbalance",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 主买主卖失衡",
-      "display": "HK01810 小米集团－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.497 窗口成交额6406万 | 现价35.78 日跌-2.1% 净流入2539万",
-      "detail": {
-        "imbalance": 0.497,
-        "buy_vol": 1222400,
-        "sell_vol": 411200,
-        "turnover": 64055961.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771919022726,
-      "time": "15:43:42",
-      "strategy": "large_order",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 大单成交",
-      "display": "HK01810 小米集团－Ｗ 大单成交: 成交 675万 @ 35.76 (主卖) | 现价35.76 日跌-2.2% 净流入2539万",
-      "detail": {
-        "amount": 6751488.0,
-        "price": 35.76,
-        "volume": 188800,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1771919039314,
-      "time": "15:43:59",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 散户机构分歧",
-      "display": "HK00700 腾讯控股 散户机构分歧: 主力出散户进 | 机构净-118976万 散户净+64124万 | 现价521.00 日跌-3.2% 净流出118976万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -1189757600.0,
-        "retail_net": 641240650.0,
-        "super_net": -730347350.0,
-        "big_net": -459410250.0
-      }
-    },
-    {
-      "ts": 1771919039314,
-      "time": "15:43:59",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 散户机构分歧",
-      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力出散户进 | 机构净-111078万 散户净+12708万 | 现价148.00 日跌-2.8% 净流出111078万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -1110778060.0,
-        "retail_net": 127080060.0,
-        "super_net": -602034120.0,
-        "big_net": -508743940.0
-      }
-    },
-    {
-      "ts": 1771919039314,
-      "time": "15:43:59",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK06809",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "澜起科技 散户机构分歧",
-      "display": "HK06809 澜起科技 散户机构分歧: 主力出散户进 | 机构净-3490万 散户净+4400万 | 现价207.20 日涨+5.1% 净流出3490万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -34900570.0,
-        "retail_net": 44002860.0,
-        "super_net": -11326900.0,
-        "big_net": -23573670.0
-      }
-    },
-    {
-      "ts": 1771919039314,
-      "time": "15:43:59",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK02359",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "药明康德 散户机构分歧",
-      "display": "HK02359 药明康德 散户机构分歧: 主力进散户出 | 机构净+1418万 散户净-905万 | 现价121.80 日跌-4.3% 净流入1418万",
-      "detail": {
-        "direction": "bullish",
-        "institutional_net": 14183920.0,
-        "retail_net": -9045020.0,
-        "super_net": 5494720.0,
-        "big_net": 8689200.0
-      }
-    },
-    {
-      "ts": 1771919039445,
-      "time": "15:43:59",
+      "ts": 1771995939413,
+      "time": "13:05:39",
       "strategy": "ma_bullish_align",
       "code": "HK00700",
       "kind": "l2_strategy",
       "notify": true,
       "message": "腾讯控股 均线多头排列",
-      "display": "HK00700 腾讯控股 均线多头排列: MA5=582.90 MA10=573.10 MA20=560.55 MA60=525.67 斜率+2.57% | 现价521.00 日跌-3.2% 净流出118976万",
+      "display": "HK00700 腾讯控股 均线多头排列: MA5=589.50 MA10=576.45 MA20=563.88 MA60=527.04 斜率+2.53% | 现价526.00 日涨+1.2%",
       "detail": {
-        "ma5": 582.9,
-        "ma10": 573.1,
-        "ma20": 560.55,
-        "ma60": 525.67,
-        "ma20_slope_pct": 2.57
+        "ma5": 589.5,
+        "ma10": 576.45,
+        "ma20": 563.88,
+        "ma60": 527.04,
+        "ma20_slope_pct": 2.53
       }
     },
     {
-      "ts": 1771919039445,
-      "time": "15:43:59",
-      "strategy": "engulfing_pattern",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 吞没形态",
-      "display": "HK00700 腾讯控股 看跌吞没形态 | 现价521.00 日跌-3.2% 净流出118976万",
-      "detail": {
-        "direction": "bearish",
-        "prev_open": 587.0,
-        "prev_close": 592.0,
-        "curr_open": 594.0,
-        "curr_close": 587.0
-      }
-    },
-    {
-      "ts": 1771919039445,
-      "time": "15:43:59",
+      "ts": 1771995939413,
+      "time": "13:05:39",
       "strategy": "breakout_pullback",
       "code": "HK00700",
       "kind": "l2_strategy",
       "notify": true,
       "message": "腾讯控股 突破回踩",
-      "display": "HK00700 腾讯控股 突破回踩: 回踩支撑560.00 现价587.00 缩量0.83x | 现价521.00 日跌-3.2% 净流出118976万",
+      "display": "HK00700 腾讯控股 突破回踩: 回踩支撑560.00 现价592.50 缩量0.77x | 现价526.00 日涨+1.2%",
       "detail": {
-        "close": 587.0,
+        "close": 592.5,
         "support_level": 560.0,
         "breakout_close": 586.0,
-        "vol_shrink": 0.83
+        "vol_shrink": 0.77
       }
     },
     {
-      "ts": 1771919039506,
-      "time": "15:43:59",
-      "strategy": "macd_death_cross",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ MACD死叉",
-      "display": "HK09988 阿里巴巴－Ｗ MACD死叉: DIF=1.5329 DEA=1.5444 | 现价148.00 日跌-2.8% 净流出111078万",
-      "detail": {
-        "hist": -0.0231,
-        "prev_hist": 0.2087,
-        "dif": 1.5329,
-        "dea": 1.5444
-      }
-    },
-    {
-      "ts": 1771919039506,
-      "time": "15:43:59",
+      "ts": 1771995939490,
+      "time": "13:05:39",
       "strategy": "ma_bullish_align",
       "code": "HK09988",
       "kind": "l2_strategy",
       "notify": true,
       "message": "阿里巴巴－Ｗ 均线多头排列",
-      "display": "HK09988 阿里巴巴－Ｗ 均线多头排列: MA5=119.76 MA10=118.55 MA20=118.49 MA60=114.12 斜率+0.95% | 现价148.00 日跌-2.8% 净流出111078万",
+      "display": "HK09988 阿里巴巴－Ｗ 均线多头排列: MA5=120.10 MA10=118.78 MA20=118.51 MA60=114.18 斜率+0.53% | 现价149.10 日涨+0.7%",
       "detail": {
-        "ma5": 119.76,
-        "ma10": 118.55,
-        "ma20": 118.49,
-        "ma60": 114.12,
-        "ma20_slope_pct": 0.95
+        "ma5": 120.1,
+        "ma10": 118.78,
+        "ma20": 118.51,
+        "ma60": 114.18,
+        "ma20_slope_pct": 0.53
       }
     },
     {
-      "ts": 1771919039638,
-      "time": "15:43:59",
+      "ts": 1771995939556,
+      "time": "13:05:39",
+      "strategy": "engulfing_pattern",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 吞没形态",
+      "display": "HK01810 小米集团－Ｗ 看跌吞没形态 | 现价35.62 日跌-0.3%",
+      "detail": {
+        "direction": "bearish",
+        "prev_open": 52.75,
+        "prev_close": 53.05,
+        "curr_open": 53.5,
+        "curr_close": 52.4
+      }
+    },
+    {
+      "ts": 1771995939619,
+      "time": "13:05:39",
+      "strategy": "macd_golden_cross",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "比亚迪股份 MACD金叉",
+      "display": "HK01211 比亚迪股份 MACD金叉: DIF=-3.2864 DEA=-3.3849 | 现价98.70 日跌-0.7%",
+      "detail": {
+        "hist": 0.1972,
+        "prev_hist": -0.1624,
+        "dif": -3.2864,
+        "dea": -3.3849
+      }
+    },
+    {
+      "ts": 1771995939619,
+      "time": "13:05:39",
       "strategy": "relative_strength",
       "code": "HK01211",
       "kind": "l2_strategy",
       "notify": false,
       "message": "比亚迪股份 相对强弱",
-      "display": "HK01211 比亚迪股份 相对强弱: 60日弱于恒指 个股-19.0% 恒指+8.1% 超额-27.1% | 现价99.50 日跌-0.6%",
+      "display": "HK01211 比亚迪股份 相对强弱: 60日弱于恒指 个股-17.4% 恒指+7.4% 超额-24.8% | 现价98.70 日跌-0.7%",
       "detail": {
         "direction": "bearish",
-        "stock_return_60d": -19.0,
-        "index_return_60d": 8.1,
-        "excess_return": -27.1
+        "stock_return_60d": -17.4,
+        "index_return_60d": 7.4,
+        "excess_return": -24.8
       }
     },
     {
-      "ts": 1771919039742,
-      "time": "15:43:59",
-      "strategy": "rsi_overbought",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 RSI超买",
-      "display": "HK01060 大麦娱乐 RSI超买: RSI=72.5 (前日63.9) 突破70 | 现价0.83 日跌-6.7% 量比3.8 净流出314万",
-      "detail": {
-        "rsi": 72.5,
-        "prev_rsi": 63.9,
-        "threshold": 70
-      }
-    },
-    {
-      "ts": 1771919039742,
-      "time": "15:43:59",
+      "ts": 1771995939725,
+      "time": "13:05:39",
       "strategy": "macd_top_divergence",
       "code": "HK01060",
       "kind": "l2_strategy",
       "notify": true,
       "message": "大麦娱乐 MACD顶背离",
-      "display": "HK01060 大麦娱乐 MACD顶背离: 价格1.35>1.27 但DIF0.0536<0.0770 | 现价0.83 日跌-6.7% 量比3.8 净流出314万",
+      "display": "HK01060 大麦娱乐 MACD顶背离: 价格1.29>1.27 但DIF0.0571<0.0770 | 现价0.83 日涨+0.0%",
       "detail": {
-        "price": 1.35,
+        "price": 1.29,
         "prior_high": 1.27,
-        "dif": 0.0536,
+        "dif": 0.0571,
         "prior_dif": 0.077,
         "lookback": 20
       }
     },
     {
-      "ts": 1771919039742,
-      "time": "15:43:59",
+      "ts": 1771995939725,
+      "time": "13:05:39",
       "strategy": "ma_bullish_align",
       "code": "HK01060",
       "kind": "l2_strategy",
       "notify": true,
       "message": "大麦娱乐 均线多头排列",
-      "display": "HK01060 大麦娱乐 均线多头排列: MA5=1.23 MA10=1.19 MA20=1.16 MA60=1.03 斜率+0.78% | 现价0.83 日跌-6.7% 量比3.8 净流出314万",
+      "display": "HK01060 大麦娱乐 均线多头排列: MA5=1.26 MA10=1.20 MA20=1.17 MA60=1.04 斜率+0.60% | 现价0.83 日涨+0.0%",
       "detail": {
-        "ma5": 1.23,
-        "ma10": 1.19,
-        "ma20": 1.16,
-        "ma60": 1.03,
-        "ma20_slope_pct": 0.78
+        "ma5": 1.26,
+        "ma10": 1.2,
+        "ma20": 1.17,
+        "ma60": 1.04,
+        "ma20_slope_pct": 0.6
       }
     },
     {
-      "ts": 1771919039742,
-      "time": "15:43:59",
-      "strategy": "adx_trend_start",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 趋势启动",
-      "display": "HK01060 大麦娱乐 趋势启动: ADX=27.1(前日21.7) 多头趋势 | 现价0.83 日跌-6.7% 量比3.8 净流出314万",
-      "detail": {
-        "adx": 27.1,
-        "prev_adx": 21.7,
-        "direction": "bullish",
-        "threshold": 25
-      }
-    },
-    {
-      "ts": 1771919039742,
-      "time": "15:43:59",
-      "strategy": "volume_breakout",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "大麦娱乐 放量突破",
-      "display": "HK01060 大麦娱乐 放量突破: 收盘1.35>前高1.30 量比MA20=1.6x | 现价0.83 日跌-6.7% 量比3.8 净流出314万",
-      "detail": {
-        "close": 1.35,
-        "prev_high": 1.3,
-        "volume": 558217841.0,
-        "vol_ma20": 340589028.0,
-        "vol_ratio": 1.64
-      }
-    },
-    {
-      "ts": 1771919039742,
-      "time": "15:43:59",
-      "strategy": "relative_strength",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 相对强弱",
-      "display": "HK01060 大麦娱乐 相对强弱: 60日强于恒指 个股+77.6% 恒指+8.1% 超额+69.5% | 现价0.83 日跌-6.7% 量比3.8 净流出314万",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 77.6,
-        "index_return_60d": 8.1,
-        "excess_return": 69.5
-      }
-    },
-    {
-      "ts": 1771919039804,
-      "time": "15:43:59",
-      "strategy": "ma_bullish_align",
-      "code": "HK02359",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "药明康德 均线多头排列",
-      "display": "HK02359 药明康德 均线多头排列: MA5=105.18 MA10=103.26 MA20=102.02 MA60=85.37 斜率+3.23% | 现价121.80 日跌-4.3% 净流入1418万",
-      "detail": {
-        "ma5": 105.18,
-        "ma10": 103.26,
-        "ma20": 102.02,
-        "ma60": 85.37,
-        "ma20_slope_pct": 3.23
-      }
-    },
-    {
-      "ts": 1771919039804,
-      "time": "15:43:59",
-      "strategy": "engulfing_pattern",
-      "code": "HK02359",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "药明康德 吞没形态",
-      "display": "HK02359 药明康德 看跌吞没形态 | 现价121.80 日跌-4.3% 净流入1418万",
-      "detail": {
-        "direction": "bearish",
-        "prev_open": 106.62,
-        "prev_close": 107.22,
-        "curr_open": 107.42,
-        "curr_close": 106.12
-      }
-    },
-    {
-      "ts": 1771919039804,
-      "time": "15:43:59",
-      "strategy": "relative_strength",
-      "code": "HK02359",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "药明康德 相对强弱",
-      "display": "HK02359 药明康德 相对强弱: 60日强于恒指 个股+62.6% 恒指+8.1% 超额+54.5% | 现价121.80 日跌-4.3% 净流入1418万",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 62.6,
-        "index_return_60d": 8.1,
-        "excess_return": 54.5
-      }
-    },
-    {
-      "ts": 1771919039865,
-      "time": "15:43:59",
-      "strategy": "macd_golden_cross",
-      "code": "HK06060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "众安在线 MACD金叉",
-      "display": "HK06060 众安在线 MACD金叉: DIF=-0.0334 DEA=-0.0351 | 现价16.24 日跌-2.6% 量比1.6",
-      "detail": {
-        "hist": 0.0034,
-        "prev_hist": -0.2008,
-        "dif": -0.0334,
-        "dea": -0.0351
-      }
-    },
-    {
-      "ts": 1771919039865,
-      "time": "15:43:59",
-      "strategy": "relative_strength",
-      "code": "HK06060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "众安在线 相对强弱",
-      "display": "HK06060 众安在线 相对强弱: 60日强于恒指 个股+40.6% 恒指+8.1% 超额+32.4% | 现价16.24 日跌-2.6% 量比1.6",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 40.6,
-        "index_return_60d": 8.1,
-        "excess_return": 32.4
-      }
-    },
-    {
-      "ts": 1771919039928,
-      "time": "15:43:59",
-      "strategy": "relative_strength",
-      "code": "HK01357",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "美图公司 相对强弱",
-      "display": "HK01357 美图公司 相对强弱: 60日强于恒指 个股+67.9% 恒指+8.1% 超额+59.8% | 现价5.70 日跌-7.9% 量比2.7 净流入2997万",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 67.9,
-        "index_return_60d": 8.1,
-        "excess_return": 59.8
-      }
-    },
-    {
-      "ts": 1771919039998,
-      "time": "15:43:59",
-      "strategy": "macd_bottom_divergence",
-      "code": "HK00325",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "布鲁可 MACD底背离",
-      "display": "HK00325 布鲁可 MACD底背离: 价格122.10<127.20 但DIF-4.9569>-5.3351 | 现价66.60 日跌-4.2% 量比5.0",
-      "detail": {
-        "price": 122.1,
-        "prior_low": 127.2,
-        "dif": -4.9569,
-        "prior_dif": -5.3351,
-        "lookback": 20
-      }
-    },
-    {
-      "ts": 1771919039998,
-      "time": "15:43:59",
-      "strategy": "ma_bearish_align",
-      "code": "HK00325",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "布鲁可 均线空头排列",
-      "display": "HK00325 布鲁可 均线空头排列: MA5=116.18 MA10=117.67 MA20=121.14 MA60=139.97 斜率-1.96% | 现价66.60 日跌-4.2% 量比5.0",
-      "detail": {
-        "ma5": 116.18,
-        "ma10": 117.67,
-        "ma20": 121.14,
-        "ma60": 139.97,
-        "ma20_slope_pct": -1.96
-      }
-    },
-    {
-      "ts": 1771919039998,
-      "time": "15:43:59",
-      "strategy": "relative_strength",
-      "code": "HK00325",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "布鲁可 相对强弱",
-      "display": "HK00325 布鲁可 相对强弱: 60日弱于恒指 个股-18.6% 恒指+8.1% 超额-26.7% | 现价66.60 日跌-4.2% 量比5.0",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -18.6,
-        "index_return_60d": 8.1,
-        "excess_return": -26.7
-      }
-    },
-    {
-      "ts": 1771919047537,
-      "time": "15:44:07",
-      "strategy": "large_order",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 大单成交",
-      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 768万 @ 148.20 (主买) | 现价148.10 日跌-2.7% 净流出111078万",
-      "detail": {
-        "amount": 7676760.0,
-        "price": 148.2,
-        "volume": 51800,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771919047537,
-      "time": "15:44:07",
-      "strategy": "tick_imbalance",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 主买主卖失衡",
-      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.959 窗口成交额1402万 | 现价148.10 日跌-2.7% 净流出111078万",
-      "detail": {
-        "imbalance": 0.959,
-        "buy_vol": 90200,
-        "sell_vol": 1900,
-        "turnover": 14015570.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771919047584,
-      "time": "15:44:07",
-      "strategy": "composite_bullish",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ 多头信号",
-      "display": "HK09988 阿里巴巴－Ｗ 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价148.10 日跌-2.7% 净流出111078万",
-      "detail": {
-        "signals": [
-          "large_order",
-          "tick_imbalance"
-        ],
-        "count": 2,
-        "score": 5
-      }
-    },
-    {
-      "ts": 1771919051369,
-      "time": "15:44:11",
-      "strategy": "large_order",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 大单成交",
-      "display": "HK00700 腾讯控股 大单成交: 成交 4960万 @ 520.50 (主卖) | 现价520.50 日跌-3.3% 净流出118976万",
-      "detail": {
-        "amount": 49603650.0,
-        "price": 520.5,
-        "volume": 95300,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1771919051369,
-      "time": "15:44:11",
-      "strategy": "tick_imbalance",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 主买主卖失衡",
-      "display": "HK00700 腾讯控股 主买主卖失衡: 主卖占优 imbalance=-0.910 窗口成交额5632万 | 现价520.50 日跌-3.3% 净流出118976万",
-      "detail": {
-        "imbalance": -0.91,
-        "buy_vol": 4600,
-        "sell_vol": 97500,
-        "turnover": 56318825.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771919051414,
-      "time": "15:44:11",
-      "strategy": "composite_bearish",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "腾讯控股 空头信号",
-      "display": "HK00700 腾讯控股 空头信号(分=5): 大单成交 + 主买主卖失衡 | 现价520.50 日跌-3.3% 净流出118976万",
-      "detail": {
-        "signals": [
-          "large_order",
-          "tick_imbalance"
-        ],
-        "count": 2,
-        "score": 5
-      }
-    },
-    {
-      "ts": 1771919073831,
-      "time": "15:44:33",
-      "strategy": "volume_price_divergence",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 量价背离",
-      "display": "HK09988 阿里巴巴－Ｗ 量价背离: 价格 148.20 (窗口最高) 主力净流入 -110310万 | 现价148.20 日跌-2.6% 净流出110310万",
-      "detail": {
-        "price": 148.2,
-        "window_high": 148.2,
-        "main_net_inflow": -1103101300.0
-      }
-    },
-    {
-      "ts": 1771919077769,
-      "time": "15:44:37",
-      "strategy": "volume_price_divergence",
-      "code": "HK06809",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "澜起科技 量价背离",
-      "display": "HK06809 澜起科技 量价背离: 价格 207.20 (窗口最高) 主力净流入 -3490万 | 现价207.20 日涨+5.1% 净流出3490万",
-      "detail": {
-        "price": 207.2,
-        "window_high": 207.2,
-        "main_net_inflow": -34900570.0
-      }
-    },
-    {
-      "ts": 1771919100388,
-      "time": "15:45:00",
-      "strategy": "capital_flow_spike",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 主力资金异动",
-      "display": "HK01211 比亚迪股份 主力资金异动: 净流入占比 0.2% → 13.6% | 现价99.40 日跌-0.7% 净流出482万",
-      "detail": {
-        "from_pct": 0.17,
-        "to_pct": 13.62,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771919107904,
-      "time": "15:45:07",
-      "strategy": "volume_price_divergence",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 量价背离",
-      "display": "HK00700 腾讯控股 量价背离: 价格 521.00 (窗口最高) 主力净流入 -123936万 | 现价521.00 日跌-3.2% 净流出123936万",
-      "detail": {
-        "price": 521.0,
-        "window_high": 521.0,
-        "main_net_inflow": -1239361250.0
-      }
-    },
-    {
-      "ts": 1771919111587,
-      "time": "15:45:11",
-      "strategy": "large_order",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 大单成交",
-      "display": "HK01211 比亚迪股份 大单成交: 成交 661万 @ 99.45 (主买) | 现价99.45 日跌-0.6%",
-      "detail": {
-        "amount": 6613425.0,
-        "price": 99.45,
-        "volume": 66500,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771919111587,
-      "time": "15:45:11",
-      "strategy": "tick_imbalance",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 主买主卖失衡",
-      "display": "HK01211 比亚迪股份 主买主卖失衡: 主买占优 imbalance=+0.499 窗口成交额2987万 | 现价99.45 日跌-0.6%",
-      "detail": {
-        "imbalance": 0.499,
-        "buy_vol": 221300,
-        "sell_vol": 74000,
-        "turnover": 29866335.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771919111633,
-      "time": "15:45:11",
-      "strategy": "composite_bullish",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "比亚迪股份 多头信号",
-      "display": "HK01211 比亚迪股份 多头信号(分=6): 主力资金异动 + 大单成交 + 主买主卖失衡 | 现价99.45 日跌-0.6%",
-      "detail": {
-        "signals": [
-          "capital_flow_spike",
-          "large_order",
-          "tick_imbalance"
-        ],
-        "count": 3,
-        "score": 6
-      }
-    },
-    {
-      "ts": 1771919138001,
-      "time": "15:45:38",
-      "strategy": "large_order",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 大单成交",
-      "display": "HK01810 小米集团－Ｗ 大单成交: 成交 893万 @ 35.72 (主卖) | 现价35.72 日跌-2.3% 净流入1864万",
-      "detail": {
-        "amount": 8930000.0,
-        "price": 35.72,
-        "volume": 250000,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1771919138001,
-      "time": "15:45:38",
-      "strategy": "tick_imbalance",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 主买主卖失衡",
-      "display": "HK01810 小米集团－Ｗ 主买主卖失衡: 主卖占优 imbalance=-0.416 窗口成交额5164万 | 现价35.72 日跌-2.3% 净流入1864万",
-      "detail": {
-        "imbalance": -0.416,
-        "buy_vol": 413400,
-        "sell_vol": 1002600,
-        "turnover": 51642292.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771919138046,
-      "time": "15:45:38",
-      "strategy": "composite_bearish",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "小米集团－Ｗ 空头信号",
-      "display": "HK01810 小米集团－Ｗ 空头信号(分=5): 大单成交 + 主买主卖失衡 | 现价35.72 日跌-2.3% 净流入1864万",
-      "detail": {
-        "signals": [
-          "large_order",
-          "tick_imbalance"
-        ],
-        "count": 2,
-        "score": 5
-      }
-    },
-    {
-      "ts": 1771919152825,
-      "time": "15:45:52",
-      "strategy": "order_book_imbalance",
-      "code": "HK06809",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "澜起科技 盘口异动",
-      "display": "HK06809 澜起科技 盘口异动: 委比 -8 → -57 (变化 -49) | 现价207.20 日涨+5.1%",
-      "detail": {
-        "prev_ratio": -8.01,
-        "curr_ratio": -56.84,
-        "delta": -48.83
-      }
-    },
-    {
-      "ts": 1771919227827,
-      "time": "15:47:07",
-      "strategy": "momentum_sell_alert",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "腾讯控股 动量卖出",
-      "display": "HK00700 腾讯控股 动量卖出: 日跌-3.2% | 大单净卖出4357万(2笔) | 资金流出 | 现价520.50 日跌-3.3% 净流出122812万",
-      "detail": {
-        "daily_change_pct": -3.25,
-        "large_order_sell_count": 2,
-        "large_order_net_amount": -43565850.0,
-        "main_net_inflow": -1228118450.0,
-        "session_direction": "bearish",
-        "session_score": -3
-      }
-    },
-    {
-      "ts": 1771919307620,
-      "time": "15:48:27",
-      "strategy": "large_order_reversal",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ 大单翻转",
-      "display": "HK09988 阿里巴巴－Ｗ 大单翻转: 大单翻空(BUY→SELL) | 近期净额-2734万 | 现价148.30 日跌-2.6%",
-      "detail": {
-        "direction": "bearish",
-        "prior_direction": "BUY",
-        "recent_direction": "SELL",
-        "prior_net_amount": 20981140.0,
-        "recent_net_amount": -27335620.0,
-        "prior_count": 5,
-        "recent_count": 3
-      }
-    },
-    {
-      "ts": 1771919356989,
-      "time": "15:49:16",
-      "strategy": "large_order_reversal",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "腾讯控股 大单翻转",
-      "display": "HK00700 腾讯控股 大单翻转: 大单翻多(SELL→BUY) | 近期净额+2009万 | 现价520.50 日跌-3.3% 净流出127302万",
-      "detail": {
-        "direction": "bullish",
-        "prior_direction": "SELL",
-        "recent_direction": "BUY",
-        "prior_net_amount": -93670050.0,
-        "recent_net_amount": 20091300.0,
-        "prior_count": 8,
-        "recent_count": 3
-      }
-    },
-    {
-      "ts": 1771919411757,
-      "time": "15:50:11",
-      "strategy": "order_book_imbalance",
-      "code": "HK06060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "众安在线 盘口异动",
-      "display": "HK06060 众安在线 盘口异动: 委比 -7 → -51 (变化 -44) | 现价16.33 日跌-2.1% 量比1.6",
-      "detail": {
-        "prev_ratio": -7.11,
-        "curr_ratio": -51.34,
-        "delta": -44.23
-      }
-    },
-    {
-      "ts": 1771919419772,
-      "time": "15:50:19",
-      "strategy": "tick_imbalance",
-      "code": "HK01357",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "美图公司 主买主卖失衡",
-      "display": "HK01357 美图公司 主买主卖失衡: 主买占优 imbalance=+0.627 窗口成交额1060万 | 现价5.70 日跌-7.9% 量比2.7",
-      "detail": {
-        "imbalance": 0.627,
-        "buy_vol": 1433500,
-        "sell_vol": 329000,
-        "turnover": 10601900.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771919449908,
-      "time": "15:50:49",
-      "strategy": "tick_imbalance",
-      "code": "HK06060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "众安在线 主买主卖失衡",
-      "display": "HK06060 众安在线 主买主卖失衡: 主买占优 imbalance=+0.491 窗口成交额1038万 | 现价16.33 日跌-2.1% 量比1.6",
-      "detail": {
-        "imbalance": 0.491,
-        "buy_vol": 471100,
-        "sell_vol": 161000,
-        "turnover": 10383583.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771919504003,
-      "time": "15:51:44",
-      "strategy": "momentum_sell_alert",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ 动量卖出",
-      "display": "HK09988 阿里巴巴－Ｗ 动量卖出: 日跌-2.3% | 大单净卖出1668万(7笔) | 资金流出 | 现价148.70 日跌-2.3% 净流出114976万",
-      "detail": {
-        "daily_change_pct": -2.3,
-        "large_order_sell_count": 7,
-        "large_order_net_amount": -16679430.0,
-        "main_net_inflow": -1149758550.0,
-        "session_direction": "bearish",
-        "session_score": -1
-      }
-    },
-    {
-      "ts": 1771919550909,
-      "time": "15:52:30",
-      "strategy": "large_order_reversal",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "小米集团－Ｗ 大单翻转",
-      "display": "HK01810 小米集团－Ｗ 大单翻转: 大单翻多(SELL→BUY) | 近期净额+1920万 | 现价35.86 日跌-1.9% 净流入3036万",
-      "detail": {
-        "direction": "bullish",
-        "prior_direction": "SELL",
-        "recent_direction": "BUY",
-        "prior_net_amount": -1177232.0,
-        "recent_net_amount": 19200400.0,
-        "prior_count": 2,
-        "recent_count": 3
-      }
-    },
-    {
-      "ts": 1771919613073,
-      "time": "15:53:33",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 散户机构分歧",
-      "display": "HK00700 腾讯控股 散户机构分歧: 主力出散户进 | 机构净-118926万 散户净+77163万 | 现价522.50 日跌-2.9% 净流出118926万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -1189260100.0,
-        "retail_net": 771629150.0,
-        "super_net": -747940050.0,
-        "big_net": -441320050.0
-      }
-    },
-    {
-      "ts": 1771919613073,
-      "time": "15:53:33",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 散户机构分歧",
-      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力出散户进 | 机构净-117084万 散户净+30596万 | 现价148.50 日跌-2.4% 净流出117084万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -1170837540.0,
-        "retail_net": 305959990.0,
-        "super_net": -635737670.0,
-        "big_net": -535099870.0
-      }
-    },
-    {
-      "ts": 1771919613073,
-      "time": "15:53:33",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK06809",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "澜起科技 散户机构分歧",
-      "display": "HK06809 澜起科技 散户机构分歧: 主力出散户进 | 机构净-3358万 散户净+4645万 | 现价207.00 日涨+5.0% 净流出3358万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -33575770.0,
-        "retail_net": 46448200.0,
-        "super_net": -11326900.0,
-        "big_net": -22248870.0
-      }
-    },
-    {
-      "ts": 1771919613246,
-      "time": "15:53:33",
-      "strategy": "ma_bullish_align",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "腾讯控股 均线多头排列",
-      "display": "HK00700 腾讯控股 均线多头排列: MA5=582.90 MA10=573.10 MA20=560.55 MA60=525.67 斜率+2.57% | 现价522.50 日跌-2.9% 净流出118926万",
-      "detail": {
-        "ma5": 582.9,
-        "ma10": 573.1,
-        "ma20": 560.55,
-        "ma60": 525.67,
-        "ma20_slope_pct": 2.57
-      }
-    },
-    {
-      "ts": 1771919613246,
-      "time": "15:53:33",
-      "strategy": "engulfing_pattern",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 吞没形态",
-      "display": "HK00700 腾讯控股 看跌吞没形态 | 现价522.50 日跌-2.9% 净流出118926万",
-      "detail": {
-        "direction": "bearish",
-        "prev_open": 587.0,
-        "prev_close": 592.0,
-        "curr_open": 594.0,
-        "curr_close": 587.0
-      }
-    },
-    {
-      "ts": 1771919613246,
-      "time": "15:53:33",
+      "ts": 1771995939725,
+      "time": "13:05:39",
       "strategy": "breakout_pullback",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "腾讯控股 突破回踩",
-      "display": "HK00700 腾讯控股 突破回踩: 回踩支撑560.00 现价587.00 缩量0.83x | 现价522.50 日跌-2.9% 净流出118926万",
-      "detail": {
-        "close": 587.0,
-        "support_level": 560.0,
-        "breakout_close": 586.0,
-        "vol_shrink": 0.83
-      }
-    },
-    {
-      "ts": 1771919613339,
-      "time": "15:53:33",
-      "strategy": "macd_death_cross",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ MACD死叉",
-      "display": "HK09988 阿里巴巴－Ｗ MACD死叉: DIF=1.5329 DEA=1.5444 | 现价148.50 日跌-2.4% 净流出117084万",
-      "detail": {
-        "hist": -0.0231,
-        "prev_hist": 0.2087,
-        "dif": 1.5329,
-        "dea": 1.5444
-      }
-    },
-    {
-      "ts": 1771919613339,
-      "time": "15:53:33",
-      "strategy": "ma_bullish_align",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ 均线多头排列",
-      "display": "HK09988 阿里巴巴－Ｗ 均线多头排列: MA5=119.76 MA10=118.55 MA20=118.49 MA60=114.12 斜率+0.95% | 现价148.50 日跌-2.4% 净流出117084万",
-      "detail": {
-        "ma5": 119.76,
-        "ma10": 118.55,
-        "ma20": 118.49,
-        "ma60": 114.12,
-        "ma20_slope_pct": 0.95
-      }
-    },
-    {
-      "ts": 1771919613470,
-      "time": "15:53:33",
-      "strategy": "relative_strength",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 相对强弱",
-      "display": "HK01211 比亚迪股份 相对强弱: 60日弱于恒指 个股-19.0% 恒指+8.1% 超额-27.1% | 现价99.45 日跌-0.6% 净流入667万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -19.0,
-        "index_return_60d": 8.1,
-        "excess_return": -27.1
-      }
-    },
-    {
-      "ts": 1771919613577,
-      "time": "15:53:33",
-      "strategy": "rsi_overbought",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 RSI超买",
-      "display": "HK01060 大麦娱乐 RSI超买: RSI=72.5 (前日63.9) 突破70 | 现价0.83 日跌-6.7% 量比3.7",
-      "detail": {
-        "rsi": 72.5,
-        "prev_rsi": 63.9,
-        "threshold": 70
-      }
-    },
-    {
-      "ts": 1771919613577,
-      "time": "15:53:33",
-      "strategy": "macd_top_divergence",
       "code": "HK01060",
       "kind": "l2_strategy",
       "notify": true,
-      "message": "大麦娱乐 MACD顶背离",
-      "display": "HK01060 大麦娱乐 MACD顶背离: 价格1.35>1.27 但DIF0.0536<0.0770 | 现价0.83 日跌-6.7% 量比3.7",
+      "message": "大麦娱乐 突破回踩",
+      "display": "HK01060 大麦娱乐 突破回踩: 回踩支撑1.30 现价1.29 缩量0.92x | 现价0.83 日涨+0.0%",
       "detail": {
-        "price": 1.35,
-        "prior_high": 1.27,
-        "dif": 0.0536,
-        "prior_dif": 0.077,
-        "lookback": 20
+        "close": 1.29,
+        "support_level": 1.3,
+        "breakout_close": 1.35,
+        "vol_shrink": 0.92
       }
     },
     {
-      "ts": 1771919613577,
-      "time": "15:53:33",
-      "strategy": "ma_bullish_align",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "大麦娱乐 均线多头排列",
-      "display": "HK01060 大麦娱乐 均线多头排列: MA5=1.23 MA10=1.19 MA20=1.16 MA60=1.03 斜率+0.78% | 现价0.83 日跌-6.7% 量比3.7",
-      "detail": {
-        "ma5": 1.23,
-        "ma10": 1.19,
-        "ma20": 1.16,
-        "ma60": 1.03,
-        "ma20_slope_pct": 0.78
-      }
-    },
-    {
-      "ts": 1771919613577,
-      "time": "15:53:33",
-      "strategy": "adx_trend_start",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 趋势启动",
-      "display": "HK01060 大麦娱乐 趋势启动: ADX=27.1(前日21.7) 多头趋势 | 现价0.83 日跌-6.7% 量比3.7",
-      "detail": {
-        "adx": 27.1,
-        "prev_adx": 21.7,
-        "direction": "bullish",
-        "threshold": 25
-      }
-    },
-    {
-      "ts": 1771919613577,
-      "time": "15:53:33",
-      "strategy": "volume_breakout",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "大麦娱乐 放量突破",
-      "display": "HK01060 大麦娱乐 放量突破: 收盘1.35>前高1.30 量比MA20=1.6x | 现价0.83 日跌-6.7% 量比3.7",
-      "detail": {
-        "close": 1.35,
-        "prev_high": 1.3,
-        "volume": 558217841.0,
-        "vol_ma20": 340589028.0,
-        "vol_ratio": 1.64
-      }
-    },
-    {
-      "ts": 1771919613577,
-      "time": "15:53:33",
+      "ts": 1771995939725,
+      "time": "13:05:39",
       "strategy": "relative_strength",
       "code": "HK01060",
       "kind": "l2_strategy",
       "notify": false,
       "message": "大麦娱乐 相对强弱",
-      "display": "HK01060 大麦娱乐 相对强弱: 60日强于恒指 个股+77.6% 恒指+8.1% 超额+69.5% | 现价0.83 日跌-6.7% 量比3.7",
+      "display": "HK01060 大麦娱乐 相对强弱: 60日强于恒指 个股+65.4% 恒指+7.4% 超额+57.9% | 现价0.83 日涨+0.0%",
       "detail": {
         "direction": "bullish",
-        "stock_return_60d": 77.6,
-        "index_return_60d": 8.1,
-        "excess_return": 69.5
+        "stock_return_60d": 65.4,
+        "index_return_60d": 7.4,
+        "excess_return": 57.9
       }
     },
     {
-      "ts": 1771919613646,
-      "time": "15:53:33",
+      "ts": 1771995939790,
+      "time": "13:05:39",
+      "strategy": "macd_top_divergence",
+      "code": "HK02359",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "药明康德 MACD顶背离",
+      "display": "HK02359 药明康德 MACD顶背离: 价格100.62>92.42 但DIF4.3224<4.7561 | 现价121.30 日跌-0.3%",
+      "detail": {
+        "price": 100.62,
+        "prior_high": 92.42,
+        "dif": 4.3224,
+        "prior_dif": 4.7561,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1771995939790,
+      "time": "13:05:39",
       "strategy": "ma_bullish_align",
       "code": "HK02359",
       "kind": "l2_strategy",
       "notify": true,
       "message": "药明康德 均线多头排列",
-      "display": "HK02359 药明康德 均线多头排列: MA5=105.18 MA10=103.26 MA20=102.02 MA60=85.37 斜率+3.23% | 现价121.40 日跌-4.6%",
+      "display": "HK02359 药明康德 均线多头排列: MA5=105.36 MA10=103.03 MA20=102.48 MA60=85.96 斜率+2.79% | 现价121.30 日跌-0.3%",
       "detail": {
-        "ma5": 105.18,
-        "ma10": 103.26,
-        "ma20": 102.02,
-        "ma60": 85.37,
-        "ma20_slope_pct": 3.23
+        "ma5": 105.36,
+        "ma10": 103.03,
+        "ma20": 102.48,
+        "ma60": 85.96,
+        "ma20_slope_pct": 2.79
       }
     },
     {
-      "ts": 1771919613646,
-      "time": "15:53:33",
-      "strategy": "engulfing_pattern",
-      "code": "HK02359",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "药明康德 吞没形态",
-      "display": "HK02359 药明康德 看跌吞没形态 | 现价121.40 日跌-4.6%",
-      "detail": {
-        "direction": "bearish",
-        "prev_open": 106.62,
-        "prev_close": 107.22,
-        "curr_open": 107.42,
-        "curr_close": 106.12
-      }
-    },
-    {
-      "ts": 1771919613646,
-      "time": "15:53:33",
+      "ts": 1771995939790,
+      "time": "13:05:39",
       "strategy": "relative_strength",
       "code": "HK02359",
       "kind": "l2_strategy",
       "notify": false,
       "message": "药明康德 相对强弱",
-      "display": "HK02359 药明康德 相对强弱: 60日强于恒指 个股+62.6% 恒指+8.1% 超额+54.5% | 现价121.40 日跌-4.6%",
+      "display": "HK02359 药明康德 相对强弱: 60日强于恒指 个股+52.2% 恒指+7.4% 超额+44.7% | 现价121.30 日跌-0.3%",
       "detail": {
         "direction": "bullish",
-        "stock_return_60d": 62.6,
-        "index_return_60d": 8.1,
-        "excess_return": 54.5
+        "stock_return_60d": 52.2,
+        "index_return_60d": 7.4,
+        "excess_return": 44.7
       }
     },
     {
-      "ts": 1771919613726,
-      "time": "15:53:33",
-      "strategy": "macd_golden_cross",
-      "code": "HK06060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "众安在线 MACD金叉",
-      "display": "HK06060 众安在线 MACD金叉: DIF=-0.0334 DEA=-0.0351 | 现价16.33 日跌-2.1% 量比1.6",
-      "detail": {
-        "hist": 0.0034,
-        "prev_hist": -0.2008,
-        "dif": -0.0334,
-        "dea": -0.0351
-      }
-    },
-    {
-      "ts": 1771919613726,
-      "time": "15:53:33",
-      "strategy": "relative_strength",
+      "ts": 1771995939851,
+      "time": "13:05:39",
+      "strategy": "engulfing_pattern",
       "code": "HK06060",
       "kind": "l2_strategy",
       "notify": false,
-      "message": "众安在线 相对强弱",
-      "display": "HK06060 众安在线 相对强弱: 60日强于恒指 个股+40.6% 恒指+8.1% 超额+32.4% | 现价16.33 日跌-2.1% 量比1.6",
+      "message": "众安在线 吞没形态",
+      "display": "HK06060 众安在线 看跌吞没形态 | 现价15.94 日跌-2.3% 量比1.7",
       "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 40.6,
-        "index_return_60d": 8.1,
-        "excess_return": 32.4
+        "direction": "bearish",
+        "prev_open": 19.21,
+        "prev_close": 19.65,
+        "curr_open": 19.66,
+        "curr_close": 19.06
       }
     },
     {
-      "ts": 1771919613826,
-      "time": "15:53:33",
+      "ts": 1771995939914,
+      "time": "13:05:39",
       "strategy": "relative_strength",
       "code": "HK01357",
       "kind": "l2_strategy",
       "notify": false,
       "message": "美图公司 相对强弱",
-      "display": "HK01357 美图公司 相对强弱: 60日强于恒指 个股+67.9% 恒指+8.1% 超额+59.8% | 现价5.71 日跌-7.8% 量比2.7",
+      "display": "HK01357 美图公司 相对强弱: 60日强于恒指 个股+60.5% 恒指+7.4% 超额+53.0% | 现价5.78 日涨+1.0%",
       "detail": {
         "direction": "bullish",
-        "stock_return_60d": 67.9,
-        "index_return_60d": 8.1,
-        "excess_return": 59.8
+        "stock_return_60d": 60.5,
+        "index_return_60d": 7.4,
+        "excess_return": 53.0
       }
     },
     {
-      "ts": 1771919613888,
-      "time": "15:53:33",
+      "ts": 1771995939973,
+      "time": "13:05:39",
       "strategy": "macd_bottom_divergence",
       "code": "HK00325",
       "kind": "l2_strategy",
       "notify": true,
       "message": "布鲁可 MACD底背离",
-      "display": "HK00325 布鲁可 MACD底背离: 价格122.10<127.20 但DIF-4.9569>-5.3351 | 现价66.60 日跌-4.2% 量比4.9",
+      "display": "HK00325 布鲁可 MACD底背离: 价格113.00<127.20 但DIF-5.0640>-5.3343 | 现价65.65 日跌-1.8% 量比3.8",
       "detail": {
-        "price": 122.1,
+        "price": 113.0,
         "prior_low": 127.2,
-        "dif": -4.9569,
-        "prior_dif": -5.3351,
+        "dif": -5.064,
+        "prior_dif": -5.3343,
         "lookback": 20
       }
     },
     {
-      "ts": 1771919613888,
-      "time": "15:53:33",
+      "ts": 1771995939973,
+      "time": "13:05:39",
       "strategy": "ma_bearish_align",
       "code": "HK00325",
       "kind": "l2_strategy",
       "notify": true,
       "message": "布鲁可 均线空头排列",
-      "display": "HK00325 布鲁可 均线空头排列: MA5=116.18 MA10=117.67 MA20=121.14 MA60=139.97 斜率-1.96% | 现价66.60 日跌-4.2% 量比4.9",
+      "display": "HK00325 布鲁可 均线空头排列: MA5=116.24 MA10=117.27 MA20=120.35 MA60=139.35 斜率-1.92% | 现价65.65 日跌-1.8% 量比3.8",
       "detail": {
-        "ma5": 116.18,
-        "ma10": 117.67,
-        "ma20": 121.14,
-        "ma60": 139.97,
-        "ma20_slope_pct": -1.96
+        "ma5": 116.24,
+        "ma10": 117.27,
+        "ma20": 120.35,
+        "ma60": 139.35,
+        "ma20_slope_pct": -1.92
       }
     },
     {
-      "ts": 1771919613888,
-      "time": "15:53:33",
+      "ts": 1771995939973,
+      "time": "13:05:39",
       "strategy": "relative_strength",
       "code": "HK00325",
       "kind": "l2_strategy",
       "notify": false,
       "message": "布鲁可 相对强弱",
-      "display": "HK00325 布鲁可 相对强弱: 60日弱于恒指 个股-18.6% 恒指+8.1% 超额-26.7% | 现价66.60 日跌-4.2% 量比4.9",
+      "display": "HK00325 布鲁可 相对强弱: 60日弱于恒指 个股-26.8% 恒指+7.4% 超额-34.2% | 现价65.65 日跌-1.8% 量比3.8",
       "detail": {
         "direction": "bearish",
-        "stock_return_60d": -18.6,
-        "index_return_60d": 8.1,
-        "excess_return": -26.7
+        "stock_return_60d": -26.8,
+        "index_return_60d": 7.4,
+        "excess_return": -34.2
       }
     },
     {
-      "ts": 1771919614006,
-      "time": "15:53:34",
+      "ts": 1771995940080,
+      "time": "13:05:40",
       "strategy": "macd_golden_cross",
       "code": "HK02590",
       "kind": "l2_strategy",
       "notify": true,
       "message": "极智嘉-W MACD金叉",
-      "display": "HK02590 极智嘉-W MACD金叉: DIF=-0.6186 DEA=-0.6209 | 现价26.04 日跌-3.8%",
+      "display": "HK02590 极智嘉-W MACD金叉: DIF=-0.6186 DEA=-0.6209 | 现价25.16 日跌-3.5%",
       "detail": {
         "hist": 0.0046,
         "prev_hist": -0.1029,
@@ -2821,938 +395,1888 @@
       }
     },
     {
-      "ts": 1771919614006,
-      "time": "15:53:34",
+      "ts": 1771995940080,
+      "time": "13:05:40",
       "strategy": "relative_strength",
       "code": "HK02590",
       "kind": "l2_strategy",
       "notify": false,
       "message": "极智嘉-W 相对强弱",
-      "display": "HK02590 极智嘉-W 相对强弱: 60日弱于恒指 个股-23.0% 恒指+8.1% 超额-31.2% | 现价26.04 日跌-3.8%",
+      "display": "HK02590 极智嘉-W 相对强弱: 60日弱于恒指 个股-23.0% 恒指+7.4% 超额-30.5% | 现价25.16 日跌-3.5%",
       "detail": {
         "direction": "bearish",
         "stock_return_60d": -23.0,
-        "index_return_60d": 8.1,
-        "excess_return": -31.2
+        "index_return_60d": 7.4,
+        "excess_return": -30.5
       }
     },
     {
-      "ts": 1771919614063,
-      "time": "15:53:34",
-      "strategy": "rsi_overbought",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方海力士 RSI超买",
-      "display": "HK07709 XL二南方海力士 RSI超买: RSI=71.7 (前日67.0) 突破70 | 现价35.30 日涨+9.8%",
-      "detail": {
-        "rsi": 71.7,
-        "prev_rsi": 67.0,
-        "threshold": 70
-      }
-    },
-    {
-      "ts": 1771919614063,
-      "time": "15:53:34",
+      "ts": 1771995940130,
+      "time": "13:05:40",
       "strategy": "ma_bullish_align",
       "code": "HK07709",
       "kind": "l2_strategy",
       "notify": true,
       "message": "XL二南方海力士 均线多头排列",
-      "display": "HK07709 XL二南方海力士 均线多头排列: MA5=31.05 MA10=29.10 MA20=27.65 MA60=19.59 斜率+8.45% | 现价35.30 日涨+9.8%",
+      "display": "HK07709 XL二南方海力士 均线多头排列: MA5=32.94 MA10=30.30 MA20=28.41 MA60=20.03 斜率+10.01% | 现价37.00 日涨+4.8% 量比1.8",
       "detail": {
-        "ma5": 31.05,
-        "ma10": 29.1,
-        "ma20": 27.65,
-        "ma60": 19.59,
-        "ma20_slope_pct": 8.45
+        "ma5": 32.94,
+        "ma10": 30.3,
+        "ma20": 28.41,
+        "ma60": 20.03,
+        "ma20_slope_pct": 10.01
       }
     },
     {
-      "ts": 1771919614063,
-      "time": "15:53:34",
-      "strategy": "adx_trend_start",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方海力士 趋势启动",
-      "display": "HK07709 XL二南方海力士 趋势启动: ADX=27.9(前日24.2) 多头趋势 | 现价35.30 日涨+9.8%",
-      "detail": {
-        "adx": 27.9,
-        "prev_adx": 24.2,
-        "direction": "bullish",
-        "threshold": 25
-      }
-    },
-    {
-      "ts": 1771919614063,
-      "time": "15:53:34",
+      "ts": 1771995940130,
+      "time": "13:05:40",
       "strategy": "relative_strength",
       "code": "HK07709",
       "kind": "l2_strategy",
       "notify": false,
       "message": "XL二南方海力士 相对强弱",
-      "display": "HK07709 XL二南方海力士 相对强弱: 60日强于恒指 个股+233.3% 恒指+8.1% 超额+225.2% | 现价35.30 日涨+9.8%",
+      "display": "HK07709 XL二南方海力士 相对强弱: 60日强于恒指 个股+237.6% 恒指+7.4% 超额+230.1% | 现价37.00 日涨+4.8% 量比1.8",
       "detail": {
         "direction": "bullish",
-        "stock_return_60d": 233.3,
-        "index_return_60d": 8.1,
-        "excess_return": 225.2
+        "stock_return_60d": 237.6,
+        "index_return_60d": 7.4,
+        "excess_return": 230.1
       }
     },
     {
-      "ts": 1771919621543,
-      "time": "15:53:41",
-      "strategy": "tick_imbalance",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 主买主卖失衡",
-      "display": "HK00700 腾讯控股 主买主卖失衡: 主买占优 imbalance=+1.000 窗口成交额1062万 | 现价522.50 日跌-2.9%",
-      "detail": {
-        "imbalance": 1.0,
-        "buy_vol": 18900,
-        "sell_vol": 0,
-        "turnover": 10618708.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771919629401,
-      "time": "15:53:49",
-      "strategy": "large_order",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 大单成交",
-      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 1607万 @ 148.50 (主买) | 现价148.60 日跌-2.4% 净流出117084万",
-      "detail": {
-        "amount": 16067700.0,
-        "price": 148.5,
-        "volume": 108200,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771919629401,
-      "time": "15:53:49",
-      "strategy": "large_order",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 大单成交",
-      "display": "HK01810 小米集团－Ｗ 大单成交: 成交 700万 @ 35.90 (主买) | 现价35.90 日跌-1.8% 净流入4309万",
-      "detail": {
-        "amount": 7000500.0,
-        "price": 35.9,
-        "volume": 195000,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1771919629401,
-      "time": "15:53:49",
-      "strategy": "tick_imbalance",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 主买主卖失衡",
-      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.904 窗口成交额3734万 | 现价148.60 日跌-2.4% 净流出117084万",
-      "detail": {
-        "imbalance": 0.904,
-        "buy_vol": 228200,
-        "sell_vol": 11500,
-        "turnover": 37343090.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771919629401,
-      "time": "15:53:49",
-      "strategy": "tick_imbalance",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 主买主卖失衡",
-      "display": "HK01810 小米集团－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.860 窗口成交额1110万 | 现价35.90 日跌-1.8% 净流入4309万",
-      "detail": {
-        "imbalance": 0.86,
-        "buy_vol": 272800,
-        "sell_vol": 20600,
-        "turnover": 11099864.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771919629450,
-      "time": "15:53:49",
-      "strategy": "composite_bullish",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ 多头信号",
-      "display": "HK09988 阿里巴巴－Ｗ 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价148.60 日跌-2.4% 净流出117084万",
-      "detail": {
-        "signals": [
-          "large_order",
-          "tick_imbalance"
-        ],
-        "count": 2,
-        "score": 5
-      }
-    },
-    {
-      "ts": 1771919629450,
-      "time": "15:53:49",
-      "strategy": "composite_bullish",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "小米集团－Ｗ 多头信号",
-      "display": "HK01810 小米集团－Ｗ 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价35.90 日跌-1.8% 净流入4309万",
-      "detail": {
-        "signals": [
-          "large_order",
-          "tick_imbalance"
-        ],
-        "count": 2,
-        "score": 5
-      }
-    },
-    {
-      "ts": 1771919633854,
-      "time": "15:53:53",
-      "strategy": "large_order",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 大单成交",
-      "display": "HK01211 比亚迪股份 大单成交: 成交 585万 @ 99.40 (主卖) | 现价99.40 日跌-0.7% 净流入667万",
-      "detail": {
-        "amount": 5854660.0,
-        "price": 99.4,
-        "volume": 58900,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1771919633854,
-      "time": "15:53:53",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK02359",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "药明康德 散户机构分歧",
-      "display": "HK02359 药明康德 散户机构分歧: 主力进散户出 | 机构净+1061万 散户净-636万 | 现价121.50 日跌-4.6% 净流入1061万",
-      "detail": {
-        "direction": "bullish",
-        "institutional_net": 10608460.0,
-        "retail_net": -6360670.0,
-        "super_net": 5494720.0,
-        "big_net": 5113740.0
-      }
-    },
-    {
-      "ts": 1771919649473,
-      "time": "15:54:09",
-      "strategy": "volume_price_divergence",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 量价背离",
-      "display": "HK00700 腾讯控股 量价背离: 价格 523.00 (窗口最高) 主力净流入 -117275万 | 现价523.00 日跌-2.8% 净流出117275万",
-      "detail": {
-        "price": 523.0,
-        "window_high": 523.0,
-        "main_net_inflow": -1172749100.0
-      }
-    },
-    {
-      "ts": 1771919649473,
-      "time": "15:54:09",
-      "strategy": "volume_price_divergence",
-      "code": "HK06809",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "澜起科技 量价背离",
-      "display": "HK06809 澜起科技 量价背离: 价格 207.00 (窗口最高) 主力净流入 -3358万 | 现价207.00 日涨+5.0% 净流出3358万",
-      "detail": {
-        "price": 207.0,
-        "window_high": 207.0,
-        "main_net_inflow": -33575770.0
-      }
-    },
-    {
-      "ts": 1771919660987,
-      "time": "15:54:20",
-      "strategy": "volume_price_divergence",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 量价背离",
-      "display": "HK09988 阿里巴巴－Ｗ 量价背离: 价格 148.70 (窗口最高) 主力净流入 -114437万 | 现价148.70 日跌-2.3% 净流出114437万",
-      "detail": {
-        "price": 148.7,
-        "window_high": 148.7,
-        "main_net_inflow": -1144367840.0
-      }
-    },
-    {
-      "ts": 1771919665204,
-      "time": "15:54:25",
-      "strategy": "large_order",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 大单成交",
-      "display": "HK01060 大麦娱乐 大单成交: 成交 502万 @ 0.83 | 现价0.83 日跌-6.7% 量比3.7 净流出314万",
-      "detail": {
-        "amount": 5021500.0,
-        "price": 0.83,
-        "volume": 6050000,
-        "direction": "NEUTRAL"
-      }
-    },
-    {
-      "ts": 1771919665205,
-      "time": "15:54:25",
-      "strategy": "tick_imbalance",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 主买主卖失衡",
-      "display": "HK01060 大麦娱乐 主买主卖失衡: 主买占优 imbalance=+0.995 窗口成交额1823万 | 现价0.83 日跌-6.7% 量比3.7 净流出314万",
-      "detail": {
-        "imbalance": 0.995,
-        "buy_vol": 15680000,
-        "sell_vol": 40000,
-        "turnover": 18234700.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1771919684098,
-      "time": "15:54:44",
+      "ts": 1771995944537,
+      "time": "13:05:44",
       "strategy": "large_order",
       "code": "HK00700",
       "kind": "l2_strategy",
       "notify": false,
       "message": "腾讯控股 大单成交",
-      "display": "HK00700 腾讯控股 大单成交: 成交 679万 @ 522.50 (主卖) | 现价522.50 日跌-2.9%",
+      "display": "HK00700 腾讯控股 大单成交: 成交 1289万 @ 526.00 (主买) | 现价526.00 日涨+1.2% 净流入22498万",
       "detail": {
-        "amount": 6792500.0,
-        "price": 522.5,
-        "volume": 13000,
-        "direction": "SELL"
+        "amount": 12887000.0,
+        "price": 526.0,
+        "volume": 24500,
+        "direction": "BUY"
       }
     },
     {
-      "ts": 1771919691818,
-      "time": "15:54:51",
-      "strategy": "large_order_reversal",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ 大单翻转",
-      "display": "HK09988 阿里巴巴－Ｗ 大单翻转: 大单翻空(BUY→SELL) | 近期净额-1898万 | 现价148.50 日跌-2.4% 净流出111472万",
-      "detail": {
-        "direction": "bearish",
-        "prior_direction": "BUY",
-        "recent_direction": "SELL",
-        "prior_net_amount": 56121080.0,
-        "recent_net_amount": -18982980.0,
-        "prior_count": 4,
-        "recent_count": 3
-      }
-    },
-    {
-      "ts": 1771919727015,
-      "time": "15:55:27",
-      "strategy": "large_order_reversal",
+      "ts": 1771995944537,
+      "time": "13:05:44",
+      "strategy": "tick_imbalance",
       "code": "HK00700",
       "kind": "l2_strategy",
-      "notify": true,
-      "message": "腾讯控股 大单翻转",
-      "display": "HK00700 腾讯控股 大单翻转: 大单翻多(SELL→BUY) | 近期净额+2829万 | 现价523.00 日跌-2.8% 净流出118738万",
-      "detail": {
-        "direction": "bullish",
-        "prior_direction": "SELL",
-        "recent_direction": "BUY",
-        "prior_net_amount": -21265750.0,
-        "recent_net_amount": 28287950.0,
-        "prior_count": 2,
-        "recent_count": 3
-      }
-    },
-    {
-      "ts": 1771919829147,
-      "time": "15:57:09",
-      "strategy": "tick_imbalance",
-      "code": "HK01357",
-      "kind": "l2_strategy",
       "notify": false,
-      "message": "美图公司 主买主卖失衡",
-      "display": "HK01357 美图公司 主买主卖失衡: 主买占优 imbalance=+0.909 窗口成交额1039万 | 现价5.73 日跌-7.4% 量比2.7",
+      "message": "腾讯控股 主买主卖失衡",
+      "display": "HK00700 腾讯控股 主买主卖失衡: 主买占优 imbalance=+1.000 窗口成交额1436万 | 现价526.00 日涨+1.2% 净流入22498万",
       "detail": {
-        "imbalance": 0.909,
-        "buy_vol": 1612500,
-        "sell_vol": 77000,
-        "turnover": 10388738.0,
+        "imbalance": 1.0,
+        "buy_vol": 25500,
+        "sell_vol": 0,
+        "turnover": 14359800.0,
         "window_sec": 300
       }
     },
     {
-      "ts": 1771919903214,
-      "time": "15:58:23",
+      "ts": 1771995944579,
+      "time": "13:05:44",
+      "strategy": "composite_bullish",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "腾讯控股 多头信号",
+      "display": "HK00700 腾讯控股 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价526.00 日涨+1.2% 净流入22498万",
+      "detail": {
+        "signals": [
+          "large_order",
+          "tick_imbalance"
+        ],
+        "count": 2,
+        "score": 5
+      }
+    },
+    {
+      "ts": 1771995962522,
+      "time": "13:06:02",
+      "strategy": "large_order",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 大单成交",
+      "display": "HK07709 XL二南方海力士 大单成交: 成交 590万 @ 37.00 (主买) | 现价36.98 日涨+4.7% 量比1.8",
+      "detail": {
+        "amount": 5901500.0,
+        "price": 37.0,
+        "volume": 159500,
+        "direction": "BUY"
+      }
+    },
+    {
+      "ts": 1771995962575,
+      "time": "13:06:02",
+      "strategy": "large_order",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 大单成交",
+      "display": "HK07709 XL二南方海力士 大单成交: 成交 590万 @ 37.00 (主买) | 现价37.00 日涨+4.8% 量比1.8",
+      "detail": {
+        "amount": 5901500.0,
+        "price": 37.0,
+        "volume": 159500,
+        "direction": "BUY"
+      }
+    },
+    {
+      "ts": 1771995966266,
+      "time": "13:06:06",
       "strategy": "tick_imbalance",
       "code": "HK07709",
       "kind": "l2_strategy",
       "notify": false,
       "message": "XL二南方海力士 主买主卖失衡",
-      "display": "HK07709 XL二南方海力士 主买主卖失衡: 主卖占优 imbalance=-0.406 窗口成交额1994万 | 现价35.24 日涨+9.6%",
+      "display": "HK07709 XL二南方海力士 主买主卖失衡: 主买占优 imbalance=+0.558 窗口成交额1180万 | 现价37.00 日涨+4.8% 量比1.8",
       "detail": {
-        "imbalance": -0.406,
-        "buy_vol": 138500,
-        "sell_vol": 327600,
-        "turnover": 19939694.0,
+        "imbalance": 0.558,
+        "buy_vol": 247800,
+        "sell_vol": 70200,
+        "turnover": 11795676.0,
         "window_sec": 300
       }
     },
     {
-      "ts": 1771919922701,
-      "time": "15:58:42",
-      "strategy": "tick_imbalance",
-      "code": "HK03896",
+      "ts": 1771995966313,
+      "time": "13:06:06",
+      "strategy": "composite_bullish",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "XL二南方海力士 多头信号",
+      "display": "HK07709 XL二南方海力士 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价37.00 日涨+4.8% 量比1.8",
+      "detail": {
+        "signals": [
+          "large_order",
+          "tick_imbalance"
+        ],
+        "count": 2,
+        "score": 5
+      }
+    },
+    {
+      "ts": 1771995977243,
+      "time": "13:06:17",
+      "strategy": "volume_price_divergence",
+      "code": "HK06809",
       "kind": "l2_strategy",
       "notify": false,
-      "message": "金山云 主买主卖失衡",
-      "display": "HK03896 金山云 主买主卖失衡: 主买占优 imbalance=+0.608 窗口成交额1019万 | 现价6.83 日跌-5.1%",
+      "message": "澜起科技 量价背离",
+      "display": "HK06809 澜起科技 量价背离: 价格 192.50 (窗口最高) 主力净流入 -3383万 | 现价192.50 日跌-6.9% 净流出3383万",
       "detail": {
-        "imbalance": 0.608,
-        "buy_vol": 1142000,
-        "sell_vol": 278000,
-        "turnover": 10192000.0,
+        "price": 192.5,
+        "window_high": 192.5,
+        "main_net_inflow": -33833970.0
+      }
+    },
+    {
+      "ts": 1771995992089,
+      "time": "13:06:32",
+      "strategy": "order_book_imbalance",
+      "code": "HK00325",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "布鲁可 盘口异动",
+      "display": "HK00325 布鲁可 盘口异动: 委比 35 → -15 (变化 -50) | 现价65.70 日跌-1.7% 量比3.8",
+      "detail": {
+        "prev_ratio": 35.23,
+        "curr_ratio": -15.15,
+        "delta": -50.38
+      }
+    },
+    {
+      "ts": 1771996006608,
+      "time": "13:06:46",
+      "strategy": "large_order",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 大单成交",
+      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 757万 @ 149.00 (主卖) | 现价148.90 日涨+0.6%",
+      "detail": {
+        "amount": 7569200.0,
+        "price": 149.0,
+        "volume": 50800,
+        "direction": "SELL"
+      }
+    },
+    {
+      "ts": 1771996010453,
+      "time": "13:06:50",
+      "strategy": "order_book_imbalance",
+      "code": "HK06809",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "澜起科技 盘口异动",
+      "display": "HK06809 澜起科技 盘口异动: 委比 -19 → 24 (变化 +43) | 现价192.00 日跌-7.2% 净流出3383万",
+      "detail": {
+        "prev_ratio": -19.42,
+        "curr_ratio": 23.77,
+        "delta": 43.19
+      }
+    },
+    {
+      "ts": 1771996010453,
+      "time": "13:06:50",
+      "strategy": "tick_imbalance",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 主买主卖失衡",
+      "display": "HK07709 XL二南方海力士 主买主卖失衡: 主买占优 imbalance=+0.444 窗口成交额5203万 | 现价37.04 日涨+4.9% 量比1.8",
+      "detail": {
+        "imbalance": 0.444,
+        "buy_vol": 913900,
+        "sell_vol": 351800,
+        "turnover": 52028678.0,
         "window_sec": 300
       }
     },
     {
-      "ts": 1771919964600,
-      "time": "15:59:24",
+      "ts": 1771996010499,
+      "time": "13:06:50",
+      "strategy": "composite_bullish",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "XL二南方海力士 多头信号",
+      "display": "HK07709 XL二南方海力士 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价37.04 日涨+4.9% 量比1.8",
+      "detail": {
+        "signals": [
+          "large_order",
+          "tick_imbalance"
+        ],
+        "count": 2,
+        "score": 5
+      }
+    },
+    {
+      "ts": 1771996010505,
+      "time": "13:06:50",
+      "strategy": "order_book_imbalance",
+      "code": "HK06809",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "澜起科技 盘口异动",
+      "display": "HK06809 澜起科技 盘口异动: 委比 -19 → 24 (变化 +43) | 现价192.00 日跌-7.2% 净流出3383万",
+      "detail": {
+        "prev_ratio": -19.42,
+        "curr_ratio": 23.77,
+        "delta": 43.19
+      }
+    },
+    {
+      "ts": 1771996109167,
+      "time": "13:08:29",
+      "strategy": "volume_price_divergence",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 量价背离",
+      "display": "HK09988 阿里巴巴－Ｗ 量价背离: 价格 149.10 (窗口最高) 主力净流入 -6442万 | 现价149.10 日涨+0.7% 净流出6442万",
+      "detail": {
+        "price": 149.1,
+        "window_high": 149.1,
+        "main_net_inflow": -64419650.0
+      }
+    },
+    {
+      "ts": 1771996116904,
+      "time": "13:08:36",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 散户机构分歧",
+      "display": "HK07709 XL二南方海力士 散户机构分歧: 主力进散户出 | 机构净+3225万 散户净-502万 | 现价36.94 日涨+4.6% 量比1.8 净流入3225万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 32253044.0,
+        "retail_net": -5023476.0,
+        "super_net": 32167794.0,
+        "big_net": 85250.0
+      }
+    },
+    {
+      "ts": 1771996124175,
+      "time": "13:08:44",
+      "strategy": "tick_imbalance",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "比亚迪股份 主买主卖失衡",
+      "display": "HK01211 比亚迪股份 主买主卖失衡: 主买占优 imbalance=+0.420 窗口成交额1320万 | 现价98.85 日跌-0.5%",
+      "detail": {
+        "imbalance": 0.42,
+        "buy_vol": 93100,
+        "sell_vol": 38000,
+        "turnover": 13196520.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771996293560,
+      "time": "13:11:33",
+      "strategy": "large_order_reversal",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "腾讯控股 大单翻转",
+      "display": "HK00700 腾讯控股 大单翻转: 大单翻空(BUY→SELL) | 近期净额-2157万 | 现价524.50 日涨+0.9% 净流入26272万",
+      "detail": {
+        "direction": "bearish",
+        "prior_direction": "BUY",
+        "recent_direction": "SELL",
+        "prior_net_amount": 37743150.0,
+        "recent_net_amount": -21572250.0,
+        "prior_count": 3,
+        "recent_count": 3
+      }
+    },
+    {
+      "ts": 1771996353927,
+      "time": "13:12:33",
+      "strategy": "volume_price_divergence",
+      "code": "HK06060",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "众安在线 量价背离",
+      "display": "HK06060 众安在线 量价背离: 价格 15.96 (窗口最高) 主力净流入 -687万 | 现价15.96 日跌-2.2% 量比1.7 净流出687万",
+      "detail": {
+        "price": 15.96,
+        "window_high": 15.96,
+        "main_net_inflow": -6867655.0
+      }
+    },
+    {
+      "ts": 1771996439687,
+      "time": "13:13:59",
+      "strategy": "tick_imbalance",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 主买主卖失衡",
+      "display": "HK01810 小米集团－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.513 窗口成交额1880万 | 现价35.66 日跌-0.2%",
+      "detail": {
+        "imbalance": 0.513,
+        "buy_vol": 364400,
+        "sell_vol": 117400,
+        "turnover": 18802232.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771996503543,
+      "time": "13:15:03",
+      "strategy": "order_book_imbalance",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "极智嘉-W 盘口异动",
+      "display": "HK02590 极智嘉-W 盘口异动: 委比 25 → -74 (变化 -99) | 现价24.82 日跌-4.8%",
+      "detail": {
+        "prev_ratio": 24.57,
+        "curr_ratio": -74.12,
+        "delta": -98.69
+      }
+    },
+    {
+      "ts": 1771996643262,
+      "time": "13:17:23",
+      "strategy": "large_order",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 大单成交",
+      "display": "HK00700 腾讯控股 大单成交: 成交 1301万 @ 524.50 (主卖) | 现价524.50 日涨+0.9% 净流入26010万",
+      "detail": {
+        "amount": 13007600.0,
+        "price": 524.5,
+        "volume": 24800,
+        "direction": "SELL"
+      }
+    },
+    {
+      "ts": 1771996748009,
+      "time": "13:19:08",
+      "strategy": "tick_imbalance",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "极智嘉-W 主买主卖失衡",
+      "display": "HK02590 极智嘉-W 主买主卖失衡: 主卖占优 imbalance=-0.619 窗口成交额1000万 | 现价24.74 日跌-5.1%",
+      "detail": {
+        "imbalance": -0.619,
+        "buy_vol": 75200,
+        "sell_vol": 319400,
+        "turnover": 10000260.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771996789666,
+      "time": "13:19:49",
+      "strategy": "tick_imbalance",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 主买主卖失衡",
+      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主卖占优 imbalance=-0.401 窗口成交额3366万 | 现价148.80 日涨+0.5% 净流出4990万",
+      "detail": {
+        "imbalance": -0.401,
+        "buy_vol": 61500,
+        "sell_vol": 143900,
+        "turnover": 33656946.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771996824247,
+      "time": "13:20:24",
       "strategy": "tick_imbalance",
       "code": "HK02359",
       "kind": "l2_strategy",
       "notify": false,
       "message": "药明康德 主买主卖失衡",
-      "display": "HK02359 药明康德 主买主卖失衡: 主买占优 imbalance=+0.401 窗口成交额1111万 | 现价121.70 日跌-4.4%",
+      "display": "HK02359 药明康德 主买主卖失衡: 主卖占优 imbalance=-0.402 窗口成交额1129万 | 现价120.50 日跌-1.0% 净流入111万",
       "detail": {
-        "imbalance": 0.401,
-        "buy_vol": 61300,
-        "sell_vol": 26200,
-        "turnover": 11114825.0,
+        "imbalance": -0.402,
+        "buy_vol": 25300,
+        "sell_vol": 59300,
+        "turnover": 11289680.0,
         "window_sec": 300
       }
     },
     {
-      "ts": 1771919980322,
-      "time": "15:59:40",
-      "strategy": "order_book_imbalance",
-      "code": "HK07709",
+      "ts": 1771996952334,
+      "time": "13:22:32",
+      "strategy": "tick_imbalance",
+      "code": "HK00700",
       "kind": "l2_strategy",
       "notify": false,
-      "message": "XL二南方海力士 盘口异动",
-      "display": "HK07709 XL二南方海力士 盘口异动: 委比 -29 → 20 (变化 +48) | 现价35.20 日涨+9.5%",
+      "message": "腾讯控股 主买主卖失衡",
+      "display": "HK00700 腾讯控股 主买主卖失衡: 主买占优 imbalance=+0.402 窗口成交额8508万 | 现价524.50 日涨+0.9%",
       "detail": {
-        "prev_ratio": -28.65,
-        "curr_ratio": 19.82,
-        "delta": 48.47
+        "imbalance": 0.402,
+        "buy_vol": 93500,
+        "sell_vol": 39900,
+        "turnover": 85078030.0,
+        "window_sec": 300
       }
     },
     {
-      "ts": 1771920007306,
-      "time": "16:00:07",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 散户机构分歧",
-      "display": "HK01060 大麦娱乐 散户机构分歧: 主力进散户出 | 机构净+1078万 散户净-3485万 | 现价0.83 日跌-6.7% 量比3.8 净流入1078万",
-      "detail": {
-        "direction": "bullish",
-        "institutional_net": 10778000.0,
-        "retail_net": -34849000.0,
-        "super_net": 41609500.0,
-        "big_net": -30831500.0
-      }
-    },
-    {
-      "ts": 1771920060290,
-      "time": "16:01:00",
-      "strategy": "order_book_imbalance",
+      "ts": 1771996997115,
+      "time": "13:23:17",
+      "strategy": "capital_flow_spike",
       "code": "HK02359",
       "kind": "l2_strategy",
       "notify": false,
-      "message": "药明康德 盘口异动",
-      "display": "HK02359 药明康德 盘口异动: 委比 -1 → -55 (变化 -54) | 现价121.70 日跌-4.4%",
+      "message": "药明康德 主力资金异动",
+      "display": "HK02359 药明康德 主力资金异动: 净流入占比 0.0% → 12.1% | 现价120.30 日跌-1.2% 净流出106万",
       "detail": {
-        "prev_ratio": -0.96,
-        "curr_ratio": -55.4,
-        "delta": -54.44
+        "from_pct": 0,
+        "to_pct": 12.07,
+        "window_sec": 300
       }
     },
     {
-      "ts": 1771920060290,
-      "time": "16:01:00",
+      "ts": 1771997019938,
+      "time": "13:23:39",
+      "strategy": "large_order",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 大单成交",
+      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 658万 @ 148.80 (主买) | 现价148.80 日涨+0.5%",
+      "detail": {
+        "amount": 6576960.0,
+        "price": 148.8,
+        "volume": 44200,
+        "direction": "BUY"
+      }
+    },
+    {
+      "ts": 1771997103445,
+      "time": "13:25:03",
+      "strategy": "tick_imbalance",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "比亚迪股份 主买主卖失衡",
+      "display": "HK01211 比亚迪股份 主买主卖失衡: 主买占优 imbalance=+0.818 窗口成交额1078万 | 现价99.30 日跌-0.1%",
+      "detail": {
+        "imbalance": 0.818,
+        "buy_vol": 77000,
+        "sell_vol": 7700,
+        "turnover": 10783381.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771997373167,
+      "time": "13:29:33",
+      "strategy": "large_order",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "极智嘉-W 大单成交",
+      "display": "HK02590 极智嘉-W 大单成交: 成交 803万 @ 24.80 (主买) | 现价24.86 日跌-4.6% 净流出1770万",
+      "detail": {
+        "amount": 8025280.0,
+        "price": 24.8,
+        "volume": 323600,
+        "direction": "BUY"
+      }
+    },
+    {
+      "ts": 1771997373167,
+      "time": "13:29:33",
+      "strategy": "tick_imbalance",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "极智嘉-W 主买主卖失衡",
+      "display": "HK02590 极智嘉-W 主买主卖失衡: 主买占优 imbalance=+0.540 窗口成交额1269万 | 现价24.86 日跌-4.6% 净流出1770万",
+      "detail": {
+        "imbalance": 0.54,
+        "buy_vol": 392800,
+        "sell_vol": 117200,
+        "turnover": 12694056.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771997373214,
+      "time": "13:29:33",
+      "strategy": "composite_bullish",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "极智嘉-W 多头信号",
+      "display": "HK02590 极智嘉-W 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价24.86 日跌-4.6% 净流出1770万",
+      "detail": {
+        "signals": [
+          "large_order",
+          "tick_imbalance"
+        ],
+        "count": 2,
+        "score": 5
+      }
+    },
+    {
+      "ts": 1771997414771,
+      "time": "13:30:14",
       "strategy": "order_book_imbalance",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "金山云 盘口异动",
+      "display": "HK03896 金山云 盘口异动: 委比 -33 → 11 (变化 +45) | 现价6.89 日涨+0.9%",
+      "detail": {
+        "prev_ratio": -33.42,
+        "curr_ratio": 11.36,
+        "delta": 44.78
+      }
+    },
+    {
+      "ts": 1771997482527,
+      "time": "13:31:22",
+      "strategy": "large_order",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 大单成交",
+      "display": "HK00700 腾讯控股 大单成交: 成交 1143万 @ 524.50 (主买) | 现价524.50 日涨+0.9%",
+      "detail": {
+        "amount": 11434100.0,
+        "price": 524.5,
+        "volume": 21800,
+        "direction": "BUY"
+      }
+    },
+    {
+      "ts": 1771997573775,
+      "time": "13:32:53",
+      "strategy": "tick_imbalance",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 主买主卖失衡",
+      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.462 窗口成交额4277万 | 现价148.80 日涨+0.5%",
+      "detail": {
+        "imbalance": 0.462,
+        "buy_vol": 185300,
+        "sell_vol": 68200,
+        "turnover": 42773715.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771997573816,
+      "time": "13:32:53",
+      "strategy": "composite_bullish",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "阿里巴巴－Ｗ 多头信号",
+      "display": "HK09988 阿里巴巴－Ｗ 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价148.80 日涨+0.5%",
+      "detail": {
+        "signals": [
+          "large_order",
+          "tick_imbalance"
+        ],
+        "count": 2,
+        "score": 5
+      }
+    },
+    {
+      "ts": 1771997585220,
+      "time": "13:33:05",
+      "strategy": "large_order_reversal",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "阿里巴巴－Ｗ 大单翻转",
+      "display": "HK09988 阿里巴巴－Ｗ 大单翻转: 大单翻空(BUY→SELL) | 近期净额-2132万 | 现价148.80 日涨+0.5% 净流出3465万",
+      "detail": {
+        "direction": "bearish",
+        "prior_direction": "BUY",
+        "recent_direction": "SELL",
+        "prior_net_amount": 6947640.0,
+        "recent_net_amount": -21323040.0,
+        "prior_count": 3,
+        "recent_count": 3
+      }
+    },
+    {
+      "ts": 1771997623067,
+      "time": "13:33:43",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 散户机构分歧",
+      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力出散户进 | 机构净-7123万 散户净+523万 | 现价148.80 日涨+0.5% 净流出7123万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -71225850.0,
+        "retail_net": 5231580.0,
+        "super_net": -30424670.0,
+        "big_net": -40801180.0
+      }
+    },
+    {
+      "ts": 1771997724217,
+      "time": "13:35:24",
+      "strategy": "tick_imbalance",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 主买主卖失衡",
+      "display": "HK07709 XL二南方海力士 主买主卖失衡: 主买占优 imbalance=+0.482 窗口成交额2657万 | 现价36.46 日涨+3.2% 量比1.7",
+      "detail": {
+        "imbalance": 0.482,
+        "buy_vol": 536500,
+        "sell_vol": 187500,
+        "turnover": 26569216.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771997739303,
+      "time": "13:35:39",
+      "strategy": "order_book_imbalance",
+      "code": "HK06809",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "澜起科技 盘口异动",
+      "display": "HK06809 澜起科技 盘口异动: 委比 79 → 28 (变化 -50) | 现价191.00 日跌-7.6% 净流出4014万",
+      "detail": {
+        "prev_ratio": 78.57,
+        "curr_ratio": 28.3,
+        "delta": -50.27
+      }
+    },
+    {
+      "ts": 1771997748169,
+      "time": "13:35:48",
+      "strategy": "tick_imbalance",
+      "code": "HK01357",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "美图公司 主买主卖失衡",
+      "display": "HK01357 美图公司 主买主卖失衡: 主卖占优 imbalance=-0.543 窗口成交额1199万 | 现价5.73 日涨+0.2%",
+      "detail": {
+        "imbalance": -0.543,
+        "buy_vol": 303500,
+        "sell_vol": 1025000,
+        "turnover": 11985895.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771997770547,
+      "time": "13:36:10",
+      "strategy": "large_order",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 大单成交",
+      "display": "HK01810 小米集团－Ｗ 大单成交: 成交 506万 @ 35.60 (主卖) | 现价35.60 日跌-0.4% 净流入6636万",
+      "detail": {
+        "amount": 5055200.0,
+        "price": 35.6,
+        "volume": 142000,
+        "direction": "SELL"
+      }
+    },
+    {
+      "ts": 1771997782377,
+      "time": "13:36:22",
+      "strategy": "tick_imbalance",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 主买主卖失衡",
+      "display": "HK01810 小米集团－Ｗ 主买主卖失衡: 主卖占优 imbalance=-0.656 窗口成交额3409万 | 现价35.56 日跌-0.5%",
+      "detail": {
+        "imbalance": -0.656,
+        "buy_vol": 142400,
+        "sell_vol": 685800,
+        "turnover": 34086880.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771997782420,
+      "time": "13:36:22",
+      "strategy": "composite_bearish",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 空头信号",
+      "display": "HK01810 小米集团－Ｗ 空头信号(分=5): 大单成交 + 主买主卖失衡 | 现价35.56 日跌-0.5%",
+      "detail": {
+        "signals": [
+          "large_order",
+          "tick_imbalance"
+        ],
+        "count": 2,
+        "score": 5
+      }
+    },
+    {
+      "ts": 1771997857898,
+      "time": "13:37:37",
+      "strategy": "tick_imbalance",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "比亚迪股份 主买主卖失衡",
+      "display": "HK01211 比亚迪股份 主买主卖失衡: 主买占优 imbalance=+0.523 窗口成交额1116万 | 现价98.95 日跌-0.4%",
+      "detail": {
+        "imbalance": 0.523,
+        "buy_vol": 84400,
+        "sell_vol": 26400,
+        "turnover": 11157617.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771997923056,
+      "time": "13:38:43",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 散户机构分歧",
+      "display": "HK07709 XL二南方海力士 散户机构分歧: 主力进散户出 | 机构净+2972万 散户净-832万 | 现价36.30 日涨+2.8% 量比1.7 净流入2972万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 29716244.0,
+        "retail_net": -8320948.0,
+        "super_net": 32167794.0,
+        "big_net": -2451550.0
+      }
+    },
+    {
+      "ts": 1771997964836,
+      "time": "13:39:24",
+      "strategy": "large_order",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 大单成交",
+      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 745万 @ 148.80 (主买) | 现价148.70 日涨+0.5%",
+      "detail": {
+        "amount": 7454880.0,
+        "price": 148.8,
+        "volume": 50100,
+        "direction": "BUY"
+      }
+    },
+    {
+      "ts": 1771998093232,
+      "time": "13:41:33",
+      "strategy": "large_order",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 大单成交",
+      "display": "HK00700 腾讯控股 大单成交: 成交 544万 @ 523.50 (主卖) | 现价524.00 日涨+0.8%",
+      "detail": {
+        "amount": 5444400.0,
+        "price": 523.5,
+        "volume": 10400,
+        "direction": "SELL"
+      }
+    },
+    {
+      "ts": 1771998174452,
+      "time": "13:42:54",
+      "strategy": "tick_imbalance",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 主买主卖失衡",
+      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.445 窗口成交额4704万 | 现价148.80 日涨+0.5% 净流出6377万",
+      "detail": {
+        "imbalance": 0.445,
+        "buy_vol": 195100,
+        "sell_vol": 75000,
+        "turnover": 47041571.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771998231549,
+      "time": "13:43:51",
+      "strategy": "tick_imbalance",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 主买主卖失衡",
+      "display": "HK00700 腾讯控股 主买主卖失衡: 主买占优 imbalance=+0.415 窗口成交额6705万 | 现价524.00 日涨+0.8% 净流入22191万",
+      "detail": {
+        "imbalance": 0.415,
+        "buy_vol": 76500,
+        "sell_vol": 31600,
+        "turnover": 67051934.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771998383216,
+      "time": "13:46:23",
+      "strategy": "tick_imbalance",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 主买主卖失衡",
+      "display": "HK01810 小米集团－Ｗ 主买主卖失衡: 主买占优 imbalance=+0.605 窗口成交额3764万 | 现价35.64 日跌-0.3% 净流入7284万",
+      "detail": {
+        "imbalance": 0.605,
+        "buy_vol": 775200,
+        "sell_vol": 191000,
+        "turnover": 37642842.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771998458142,
+      "time": "13:47:38",
+      "strategy": "tick_imbalance",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "比亚迪股份 主买主卖失衡",
+      "display": "HK01211 比亚迪股份 主买主卖失衡: 主买占优 imbalance=+0.773 窗口成交额1529万 | 现价99.35 日涨+0.0%",
+      "detail": {
+        "imbalance": 0.773,
+        "buy_vol": 117700,
+        "sell_vol": 15100,
+        "turnover": 15288141.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771998708413,
+      "time": "13:51:48",
+      "strategy": "tick_imbalance",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 主买主卖失衡",
+      "display": "HK07709 XL二南方海力士 主买主卖失衡: 主买占优 imbalance=+0.423 窗口成交额1977万 | 现价36.30 日涨+2.8% 量比1.7",
+      "detail": {
+        "imbalance": 0.423,
+        "buy_vol": 382900,
+        "sell_vol": 155400,
+        "turnover": 19768355.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771998834189,
+      "time": "13:53:54",
+      "strategy": "tick_imbalance",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 主买主卖失衡",
+      "display": "HK00700 腾讯控股 主买主卖失衡: 主卖占优 imbalance=-0.606 窗口成交额8480万 | 现价523.50 日涨+0.7% 净流入20493万",
+      "detail": {
+        "imbalance": -0.606,
+        "buy_vol": 28600,
+        "sell_vol": 116500,
+        "turnover": 84802468.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771998838618,
+      "time": "13:53:58",
+      "strategy": "large_order",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 大单成交",
+      "display": "HK00700 腾讯控股 大单成交: 成交 565万 @ 523.50 (主卖) | 现价523.50 日涨+0.7% 净流入20493万",
+      "detail": {
+        "amount": 5653800.0,
+        "price": 523.5,
+        "volume": 10800,
+        "direction": "SELL"
+      }
+    },
+    {
+      "ts": 1771998838618,
+      "time": "13:53:58",
+      "strategy": "tick_imbalance",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 主买主卖失衡",
+      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主卖占优 imbalance=-0.505 窗口成交额4605万 | 现价148.70 日涨+0.5% 净流出7098万",
+      "detail": {
+        "imbalance": -0.505,
+        "buy_vol": 56700,
+        "sell_vol": 172500,
+        "turnover": 46052102.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771998901446,
+      "time": "13:55:01",
+      "strategy": "ma_bullish_align",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "腾讯控股 均线多头排列",
+      "display": "HK00700 腾讯控股 均线多头排列: MA5=589.50 MA10=576.45 MA20=563.88 MA60=527.04 斜率+2.53% | 现价524.00 日涨+0.8% 净流入22064万",
+      "detail": {
+        "ma5": 589.5,
+        "ma10": 576.45,
+        "ma20": 563.88,
+        "ma60": 527.04,
+        "ma20_slope_pct": 2.53
+      }
+    },
+    {
+      "ts": 1771998901447,
+      "time": "13:55:01",
+      "strategy": "breakout_pullback",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "腾讯控股 突破回踩",
+      "display": "HK00700 腾讯控股 突破回踩: 回踩支撑560.00 现价592.50 缩量0.77x | 现价524.00 日涨+0.8% 净流入22064万",
+      "detail": {
+        "close": 592.5,
+        "support_level": 560.0,
+        "breakout_close": 586.0,
+        "vol_shrink": 0.77
+      }
+    },
+    {
+      "ts": 1771998901516,
+      "time": "13:55:01",
+      "strategy": "ma_bullish_align",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "阿里巴巴－Ｗ 均线多头排列",
+      "display": "HK09988 阿里巴巴－Ｗ 均线多头排列: MA5=120.10 MA10=118.78 MA20=118.51 MA60=114.18 斜率+0.53% | 现价148.50 日涨+0.3% 净流出7098万",
+      "detail": {
+        "ma5": 120.1,
+        "ma10": 118.78,
+        "ma20": 118.51,
+        "ma60": 114.18,
+        "ma20_slope_pct": 0.53
+      }
+    },
+    {
+      "ts": 1771998901588,
+      "time": "13:55:01",
+      "strategy": "engulfing_pattern",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 吞没形态",
+      "display": "HK01810 小米集团－Ｗ 看跌吞没形态 | 现价35.60 日跌-0.4% 净流入6943万",
+      "detail": {
+        "direction": "bearish",
+        "prev_open": 52.75,
+        "prev_close": 53.05,
+        "curr_open": 53.5,
+        "curr_close": 52.4
+      }
+    },
+    {
+      "ts": 1771998901655,
+      "time": "13:55:01",
+      "strategy": "macd_golden_cross",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "比亚迪股份 MACD金叉",
+      "display": "HK01211 比亚迪股份 MACD金叉: DIF=-3.2864 DEA=-3.3849 | 现价99.10 日跌-0.3% 净流入4452万",
+      "detail": {
+        "hist": 0.1972,
+        "prev_hist": -0.1624,
+        "dif": -3.2864,
+        "dea": -3.3849
+      }
+    },
+    {
+      "ts": 1771998901655,
+      "time": "13:55:01",
+      "strategy": "relative_strength",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "比亚迪股份 相对强弱",
+      "display": "HK01211 比亚迪股份 相对强弱: 60日弱于恒指 个股-17.4% 恒指+7.4% 超额-24.8% | 现价99.10 日跌-0.3% 净流入4452万",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -17.4,
+        "index_return_60d": 7.4,
+        "excess_return": -24.8
+      }
+    },
+    {
+      "ts": 1771998901761,
+      "time": "13:55:01",
+      "strategy": "macd_top_divergence",
+      "code": "HK01060",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "大麦娱乐 MACD顶背离",
+      "display": "HK01060 大麦娱乐 MACD顶背离: 价格1.29>1.27 但DIF0.0571<0.0770 | 现价0.83 日涨+0.0%",
+      "detail": {
+        "price": 1.29,
+        "prior_high": 1.27,
+        "dif": 0.0571,
+        "prior_dif": 0.077,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1771998901761,
+      "time": "13:55:01",
+      "strategy": "ma_bullish_align",
+      "code": "HK01060",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "大麦娱乐 均线多头排列",
+      "display": "HK01060 大麦娱乐 均线多头排列: MA5=1.26 MA10=1.20 MA20=1.17 MA60=1.04 斜率+0.60% | 现价0.83 日涨+0.0%",
+      "detail": {
+        "ma5": 1.26,
+        "ma10": 1.2,
+        "ma20": 1.17,
+        "ma60": 1.04,
+        "ma20_slope_pct": 0.6
+      }
+    },
+    {
+      "ts": 1771998901761,
+      "time": "13:55:01",
+      "strategy": "breakout_pullback",
+      "code": "HK01060",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "大麦娱乐 突破回踩",
+      "display": "HK01060 大麦娱乐 突破回踩: 回踩支撑1.30 现价1.29 缩量0.92x | 现价0.83 日涨+0.0%",
+      "detail": {
+        "close": 1.29,
+        "support_level": 1.3,
+        "breakout_close": 1.35,
+        "vol_shrink": 0.92
+      }
+    },
+    {
+      "ts": 1771998901761,
+      "time": "13:55:01",
+      "strategy": "relative_strength",
+      "code": "HK01060",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "大麦娱乐 相对强弱",
+      "display": "HK01060 大麦娱乐 相对强弱: 60日强于恒指 个股+65.4% 恒指+7.4% 超额+57.9% | 现价0.83 日涨+0.0%",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 65.4,
+        "index_return_60d": 7.4,
+        "excess_return": 57.9
+      }
+    },
+    {
+      "ts": 1771998901824,
+      "time": "13:55:01",
+      "strategy": "macd_top_divergence",
+      "code": "HK02359",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "药明康德 MACD顶背离",
+      "display": "HK02359 药明康德 MACD顶背离: 价格100.62>92.42 但DIF4.3224<4.7561 | 现价120.90 日跌-0.7% 净流出106万",
+      "detail": {
+        "price": 100.62,
+        "prior_high": 92.42,
+        "dif": 4.3224,
+        "prior_dif": 4.7561,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1771998901824,
+      "time": "13:55:01",
+      "strategy": "ma_bullish_align",
+      "code": "HK02359",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "药明康德 均线多头排列",
+      "display": "HK02359 药明康德 均线多头排列: MA5=105.36 MA10=103.03 MA20=102.48 MA60=85.96 斜率+2.79% | 现价120.90 日跌-0.7% 净流出106万",
+      "detail": {
+        "ma5": 105.36,
+        "ma10": 103.03,
+        "ma20": 102.48,
+        "ma60": 85.96,
+        "ma20_slope_pct": 2.79
+      }
+    },
+    {
+      "ts": 1771998901824,
+      "time": "13:55:01",
+      "strategy": "relative_strength",
+      "code": "HK02359",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "药明康德 相对强弱",
+      "display": "HK02359 药明康德 相对强弱: 60日强于恒指 个股+52.2% 恒指+7.4% 超额+44.7% | 现价120.90 日跌-0.7% 净流出106万",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 52.2,
+        "index_return_60d": 7.4,
+        "excess_return": 44.7
+      }
+    },
+    {
+      "ts": 1771998901895,
+      "time": "13:55:01",
+      "strategy": "engulfing_pattern",
       "code": "HK06060",
       "kind": "l2_strategy",
       "notify": false,
-      "message": "众安在线 盘口异动",
-      "display": "HK06060 众安在线 盘口异动: 委比 -74 → 64 (变化 +138) | 现价16.35 日跌-2.0% 量比1.7",
+      "message": "众安在线 吞没形态",
+      "display": "HK06060 众安在线 看跌吞没形态 | 现价15.87 日跌-2.8% 量比1.6 净流出1539万",
       "detail": {
-        "prev_ratio": -74.03,
-        "curr_ratio": 63.64,
-        "delta": 137.67
+        "direction": "bearish",
+        "prev_open": 19.21,
+        "prev_close": 19.65,
+        "curr_open": 19.66,
+        "curr_close": 19.06
+      }
+    },
+    {
+      "ts": 1771998901964,
+      "time": "13:55:01",
+      "strategy": "relative_strength",
+      "code": "HK01357",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "美图公司 相对强弱",
+      "display": "HK01357 美图公司 相对强弱: 60日强于恒指 个股+60.5% 恒指+7.4% 超额+53.0% | 现价5.76 日涨+0.7% 净流入1470万",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 60.5,
+        "index_return_60d": 7.4,
+        "excess_return": 53.0
+      }
+    },
+    {
+      "ts": 1771998902030,
+      "time": "13:55:02",
+      "strategy": "macd_bottom_divergence",
+      "code": "HK00325",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "布鲁可 MACD底背离",
+      "display": "HK00325 布鲁可 MACD底背离: 价格113.00<127.20 但DIF-5.0640>-5.3343 | 现价65.30 日跌-2.3% 量比3.0",
+      "detail": {
+        "price": 113.0,
+        "prior_low": 127.2,
+        "dif": -5.064,
+        "prior_dif": -5.3343,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1771998902030,
+      "time": "13:55:02",
+      "strategy": "ma_bearish_align",
+      "code": "HK00325",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "布鲁可 均线空头排列",
+      "display": "HK00325 布鲁可 均线空头排列: MA5=116.24 MA10=117.27 MA20=120.35 MA60=139.35 斜率-1.92% | 现价65.30 日跌-2.3% 量比3.0",
+      "detail": {
+        "ma5": 116.24,
+        "ma10": 117.27,
+        "ma20": 120.35,
+        "ma60": 139.35,
+        "ma20_slope_pct": -1.92
+      }
+    },
+    {
+      "ts": 1771998902030,
+      "time": "13:55:02",
+      "strategy": "relative_strength",
+      "code": "HK00325",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "布鲁可 相对强弱",
+      "display": "HK00325 布鲁可 相对强弱: 60日弱于恒指 个股-26.8% 恒指+7.4% 超额-34.2% | 现价65.30 日跌-2.3% 量比3.0",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -26.8,
+        "index_return_60d": 7.4,
+        "excess_return": -34.2
+      }
+    },
+    {
+      "ts": 1771998902148,
+      "time": "13:55:02",
+      "strategy": "macd_golden_cross",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "极智嘉-W MACD金叉",
+      "display": "HK02590 极智嘉-W MACD金叉: DIF=-0.6186 DEA=-0.6209 | 现价24.82 日跌-4.8% 量比1.6 净流出1309万",
+      "detail": {
+        "hist": 0.0046,
+        "prev_hist": -0.1029,
+        "dif": -0.6186,
+        "dea": -0.6209
+      }
+    },
+    {
+      "ts": 1771998902148,
+      "time": "13:55:02",
+      "strategy": "relative_strength",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "极智嘉-W 相对强弱",
+      "display": "HK02590 极智嘉-W 相对强弱: 60日弱于恒指 个股-23.0% 恒指+7.4% 超额-30.5% | 现价24.82 日跌-4.8% 量比1.6 净流出1309万",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -23.0,
+        "index_return_60d": 7.4,
+        "excess_return": -30.5
+      }
+    },
+    {
+      "ts": 1771998902206,
+      "time": "13:55:02",
+      "strategy": "ma_bullish_align",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "XL二南方海力士 均线多头排列",
+      "display": "HK07709 XL二南方海力士 均线多头排列: MA5=32.74 MA10=30.20 MA20=28.36 MA60=20.02 斜率+9.82% | 现价36.02 日涨+2.0% 量比1.6 净流入2955万",
+      "detail": {
+        "ma5": 32.74,
+        "ma10": 30.2,
+        "ma20": 28.36,
+        "ma60": 20.02,
+        "ma20_slope_pct": 9.82
+      }
+    },
+    {
+      "ts": 1771998902206,
+      "time": "13:55:02",
+      "strategy": "relative_strength",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 相对强弱",
+      "display": "HK07709 XL二南方海力士 相对强弱: 60日强于恒指 个股+228.6% 恒指+7.4% 超额+221.2% | 现价36.02 日涨+2.0% 量比1.6 净流入2955万",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 228.6,
+        "index_return_60d": 7.4,
+        "excess_return": 221.2
+      }
+    },
+    {
+      "ts": 1771998906652,
+      "time": "13:55:06",
+      "strategy": "large_order",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 大单成交",
+      "display": "HK00700 腾讯控股 大单成交: 成交 586万 @ 523.50 (主卖) | 现价523.50 日涨+0.7% 净流入22064万",
+      "detail": {
+        "amount": 5863200.0,
+        "price": 523.5,
+        "volume": 11200,
+        "direction": "SELL"
+      }
+    },
+    {
+      "ts": 1771998924615,
+      "time": "13:55:24",
+      "strategy": "tick_imbalance",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 主买主卖失衡",
+      "display": "HK00700 腾讯控股 主买主卖失衡: 主卖占优 imbalance=-0.899 窗口成交额1482万 | 现价523.50 日涨+0.7%",
+      "detail": {
+        "imbalance": -0.899,
+        "buy_vol": 1200,
+        "sell_vol": 22500,
+        "turnover": 14817575.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771998924667,
+      "time": "13:55:24",
+      "strategy": "composite_bearish",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 空头信号",
+      "display": "HK00700 腾讯控股 空头信号(分=5): 大单成交 + 主买主卖失衡 | 现价523.50 日涨+0.7%",
+      "detail": {
+        "signals": [
+          "large_order",
+          "tick_imbalance"
+        ],
+        "count": 2,
+        "score": 5
+      }
+    },
+    {
+      "ts": 1771998940125,
+      "time": "13:55:40",
+      "strategy": "volume_price_divergence",
+      "code": "HK06809",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "澜起科技 量价背离",
+      "display": "HK06809 澜起科技 量价背离: 价格 191.30 (窗口最高) 主力净流入 -4147万 | 现价191.30 日跌-7.5% 净流出4147万",
+      "detail": {
+        "price": 191.3,
+        "window_high": 191.3,
+        "main_net_inflow": -41473720.0
+      }
+    },
+    {
+      "ts": 1771998962499,
+      "time": "13:56:02",
+      "strategy": "volume_price_divergence",
+      "code": "HK06060",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "众安在线 量价背离",
+      "display": "HK06060 众安在线 量价背离: 价格 15.88 (窗口最高) 主力净流入 -1539万 | 现价15.88 日跌-2.7% 量比1.6 净流出1539万",
+      "detail": {
+        "price": 15.88,
+        "window_high": 15.88,
+        "main_net_inflow": -15393607.0
+      }
+    },
+    {
+      "ts": 1771998970354,
+      "time": "13:56:10",
+      "strategy": "volume_price_divergence",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 量价背离",
+      "display": "HK09988 阿里巴巴－Ｗ 量价背离: 价格 148.60 (窗口最高) 主力净流入 -7098万 | 现价148.60 日涨+0.4% 净流出7098万",
+      "detail": {
+        "price": 148.6,
+        "window_high": 148.6,
+        "main_net_inflow": -70982920.0
+      }
+    },
+    {
+      "ts": 1771998992710,
+      "time": "13:56:32",
+      "strategy": "large_order",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 大单成交",
+      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 999万 @ 148.50 (主卖) | 现价148.40 日涨+0.3% 净流出7098万",
+      "detail": {
+        "amount": 9994050.0,
+        "price": 148.5,
+        "volume": 67300,
+        "direction": "SELL"
+      }
+    },
+    {
+      "ts": 1771998992710,
+      "time": "13:56:32",
+      "strategy": "tick_imbalance",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 主买主卖失衡",
+      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主卖占优 imbalance=-0.910 窗口成交额8898万 | 现价148.40 日涨+0.3% 净流出7098万",
+      "detail": {
+        "imbalance": -0.91,
+        "buy_vol": 26500,
+        "sell_vol": 561600,
+        "turnover": 88981645.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771998992757,
+      "time": "13:56:32",
+      "strategy": "composite_bearish",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "阿里巴巴－Ｗ 空头信号",
+      "display": "HK09988 阿里巴巴－Ｗ 空头信号(分=7): 大单成交 + 主买主卖失衡 + 量价背离 | 现价148.40 日涨+0.3% 净流出7098万",
+      "detail": {
+        "signals": [
+          "large_order",
+          "tick_imbalance",
+          "volume_price_divergence"
+        ],
+        "count": 3,
+        "score": 7
+      }
+    },
+    {
+      "ts": 1771999000564,
+      "time": "13:56:40",
+      "strategy": "capital_flow_spike",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 主力资金异动",
+      "display": "HK09988 阿里巴巴－Ｗ 主力资金异动: 净流入占比 -333.4% → 220.5% | 现价148.40 日涨+0.3% 净流出13548万",
+      "detail": {
+        "from_pct": -333.45,
+        "to_pct": 220.51,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771999000564,
+      "time": "13:56:40",
+      "strategy": "volume_price_divergence",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "极智嘉-W 量价背离",
+      "display": "HK02590 极智嘉-W 量价背离: 价格 24.82 (窗口最高) 主力净流入 -1309万 | 现价24.82 日跌-4.8% 量比1.6 净流出1309万",
+      "detail": {
+        "price": 24.82,
+        "window_high": 24.82,
+        "main_net_inflow": -13085360.0
+      }
+    },
+    {
+      "ts": 1771999000564,
+      "time": "13:56:40",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 散户机构分歧",
+      "display": "HK07709 XL二南方海力士 散户机构分歧: 主力进散户出 | 机构净+2955万 散户净-521万 | 现价36.00 日涨+1.9% 量比1.6 净流入2955万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 29545394.0,
+        "retail_net": -5212542.0,
+        "super_net": 32167794.0,
+        "big_net": -2622400.0
+      }
+    },
+    {
+      "ts": 1771999048773,
+      "time": "13:57:28",
+      "strategy": "tick_imbalance",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 主买主卖失衡",
+      "display": "HK07709 XL二南方海力士 主买主卖失衡: 主卖占优 imbalance=-0.819 窗口成交额1010万 | 现价36.00 日涨+1.9% 量比1.6",
+      "detail": {
+        "imbalance": -0.819,
+        "buy_vol": 23400,
+        "sell_vol": 234500,
+        "turnover": 10102432.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771999060921,
+      "time": "13:57:40",
+      "strategy": "tick_imbalance",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 主买主卖失衡",
+      "display": "HK01810 小米集团－Ｗ 主买主卖失衡: 主卖占优 imbalance=-0.705 窗口成交额1061万 | 现价35.56 日跌-0.5% 净流入6943万",
+      "detail": {
+        "imbalance": -0.705,
+        "buy_vol": 40600,
+        "sell_vol": 234800,
+        "turnover": 10609206.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771999071781,
+      "time": "13:57:51",
+      "strategy": "large_order",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 大单成交",
+      "display": "HK01810 小米集团－Ｗ 大单成交: 成交 651万 @ 35.58 (主买) | 现价35.60 日跌-0.4%",
+      "detail": {
+        "amount": 6511140.0,
+        "price": 35.58,
+        "volume": 183000,
+        "direction": "BUY"
+      }
+    },
+    {
+      "ts": 1771999269353,
+      "time": "14:01:09",
+      "strategy": "large_order_reversal",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "阿里巴巴－Ｗ 大单翻转",
+      "display": "HK09988 阿里巴巴－Ｗ 大单翻转: 大单翻多(SELL→BUY) | 近期净额+1817万 | 现价148.40 日涨+0.3%",
+      "detail": {
+        "direction": "bullish",
+        "prior_direction": "SELL",
+        "recent_direction": "BUY",
+        "prior_net_amount": -64493550.0,
+        "recent_net_amount": 18167870.0,
+        "prior_count": 4,
+        "recent_count": 3
+      }
+    },
+    {
+      "ts": 1771999352142,
+      "time": "14:02:32",
+      "strategy": "order_book_imbalance",
+      "code": "HK06809",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "澜起科技 盘口异动",
+      "display": "HK06809 澜起科技 盘口异动: 委比 35 → 86 (变化 +51) | 现价191.10 日跌-7.6%",
+      "detail": {
+        "prev_ratio": 34.93,
+        "curr_ratio": 86.37,
+        "delta": 51.44
+      }
+    },
+    {
+      "ts": 1771999501004,
+      "time": "14:05:01",
+      "strategy": "tick_imbalance",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "比亚迪股份 主买主卖失衡",
+      "display": "HK01211 比亚迪股份 主买主卖失衡: 主卖占优 imbalance=-0.619 窗口成交额1106万 | 现价99.10 日跌-0.3%",
+      "detail": {
+        "imbalance": -0.619,
+        "buy_vol": 20100,
+        "sell_vol": 85300,
+        "turnover": 11057035.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771999501004,
+      "time": "14:05:01",
+      "strategy": "large_order_reversal",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "腾讯控股 大单翻转",
+      "display": "HK00700 腾讯控股 大单翻转: 大单翻多(SELL→BUY) | 近期净额+1663万 | 现价523.00 日涨+0.6%",
+      "detail": {
+        "direction": "bullish",
+        "prior_direction": "SELL",
+        "recent_direction": "BUY",
+        "prior_net_amount": -48015450.0,
+        "recent_net_amount": 16631400.0,
+        "prior_count": 8,
+        "recent_count": 3
+      }
+    },
+    {
+      "ts": 1771999561882,
+      "time": "14:06:01",
+      "strategy": "large_order",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "比亚迪股份 大单成交",
+      "display": "HK01211 比亚迪股份 大单成交: 成交 615万 @ 99.05 (主卖) | 现价98.95 日跌-0.4%",
+      "detail": {
+        "amount": 6151005.0,
+        "price": 99.05,
+        "volume": 62100,
+        "direction": "SELL"
+      }
+    },
+    {
+      "ts": 1771999561925,
+      "time": "14:06:01",
+      "strategy": "composite_bearish",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "比亚迪股份 空头信号",
+      "display": "HK01211 比亚迪股份 空头信号(分=5): 大单成交 + 主买主卖失衡 | 现价98.95 日跌-0.4%",
+      "detail": {
+        "signals": [
+          "large_order",
+          "tick_imbalance"
+        ],
+        "count": 2,
+        "score": 5
+      }
+    },
+    {
+      "ts": 1771999642217,
+      "time": "14:07:22",
+      "strategy": "tick_imbalance",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 主买主卖失衡",
+      "display": "HK00700 腾讯控股 主买主卖失衡: 主卖占优 imbalance=-0.407 窗口成交额20016万 | 现价522.50 日涨+0.5% 净流入21175万",
+      "detail": {
+        "imbalance": -0.407,
+        "buy_vol": 107000,
+        "sell_vol": 254100,
+        "turnover": 200158292.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771999664535,
+      "time": "14:07:44",
+      "strategy": "tick_imbalance",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 主买主卖失衡",
+      "display": "HK01810 小米集团－Ｗ 主买主卖失衡: 主卖占优 imbalance=-0.432 窗口成交额3178万 | 现价35.50 日跌-0.7%",
+      "detail": {
+        "imbalance": -0.432,
+        "buy_vol": 229000,
+        "sell_vol": 577000,
+        "turnover": 31781544.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771999699478,
+      "time": "14:08:19",
+      "strategy": "large_order",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 大单成交",
+      "display": "HK00700 腾讯控股 大单成交: 成交 789万 @ 522.50 (主买) | 现价523.00 日涨+0.6% 净流入21175万",
+      "detail": {
+        "amount": 7889750.0,
+        "price": 522.5,
+        "volume": 15100,
+        "direction": "BUY"
+      }
+    },
+    {
+      "ts": 1771999760441,
+      "time": "14:09:20",
+      "strategy": "tick_imbalance",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 主买主卖失衡",
+      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主卖占优 imbalance=-0.400 窗口成交额5550万 | 现价148.20 日涨+0.1% 净流出11731万",
+      "detail": {
+        "imbalance": -0.4,
+        "buy_vol": 97000,
+        "sell_vol": 226600,
+        "turnover": 55496337.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1771999783113,
+      "time": "14:09:43",
+      "strategy": "large_order",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 大单成交",
+      "display": "HK01810 小米集团－Ｗ 大单成交: 成交 723万 @ 35.50 (主卖) | 现价35.48 日跌-0.7% 净流入6877万",
+      "detail": {
+        "amount": 7227800.0,
+        "price": 35.5,
+        "volume": 203600,
+        "direction": "SELL"
+      }
+    },
+    {
+      "ts": 1771999783164,
+      "time": "14:09:43",
+      "strategy": "composite_bearish",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "小米集团－Ｗ 空头信号",
+      "display": "HK01810 小米集团－Ｗ 空头信号(分=5): 大单成交 + 主买主卖失衡 | 现价35.48 日跌-0.7% 净流入6877万",
+      "detail": {
+        "signals": [
+          "large_order",
+          "tick_imbalance"
+        ],
+        "count": 2,
+        "score": 5
+      }
+    },
+    {
+      "ts": 1771999906460,
+      "time": "14:11:46",
+      "strategy": "large_order",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 大单成交",
+      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 676万 @ 148.30 (主买) | 现价148.40 日涨+0.3% 净流出11055万",
+      "detail": {
+        "amount": 6762480.0,
+        "price": 148.3,
+        "volume": 45600,
+        "direction": "BUY"
+      }
+    },
+    {
+      "ts": 1771999968211,
+      "time": "14:12:48",
+      "strategy": "capital_flow_spike",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "金山云 主力资金异动",
+      "display": "HK03896 金山云 主力资金异动: 净流入占比 0.2% → 10.0% | 现价6.83 日涨+0.0% 净流入221万",
+      "detail": {
+        "from_pct": 0.17,
+        "to_pct": 9.99,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1772000176536,
+      "time": "14:16:16",
+      "strategy": "tick_imbalance",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 主买主卖失衡",
+      "display": "HK07709 XL二南方海力士 主买主卖失衡: 主买占优 imbalance=+0.419 窗口成交额1922万 | 现价36.58 日涨+3.6% 量比1.6",
+      "detail": {
+        "imbalance": 0.419,
+        "buy_vol": 369100,
+        "sell_vol": 151300,
+        "turnover": 19221562.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1772000188243,
+      "time": "14:16:28",
+      "strategy": "tick_imbalance",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "金山云 主买主卖失衡",
+      "display": "HK03896 金山云 主买主卖失衡: 主买占优 imbalance=+0.590 窗口成交额1199万 | 现价6.83 日涨+0.0%",
+      "detail": {
+        "imbalance": 0.59,
+        "buy_vol": 976000,
+        "sell_vol": 252000,
+        "turnover": 11987760.0,
+        "window_sec": 300
+      }
+    },
+    {
+      "ts": 1772000341739,
+      "time": "14:19:01",
+      "strategy": "large_order",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 大单成交",
+      "display": "HK00700 腾讯控股 大单成交: 成交 706万 @ 523.00 (主卖) | 现价523.00 日涨+0.6%",
+      "detail": {
+        "amount": 7060500.0,
+        "price": 523.0,
+        "volume": 13500,
+        "direction": "SELL"
       }
     }
   ],
   "session": {
-    "HK09988": {
-      "direction": "bullish",
-      "score": 3,
-      "tick": {
-        "buy_vol": 2981800,
-        "sell_vol": 1260400,
-        "imbalance": 0.406,
-        "direction_score": 1
-      },
-      "large_order": {
-        "buy_count": 17,
-        "sell_count": 12,
-        "buy_amount": 290536410.0,
-        "sell_amount": 93213410.0,
-        "net_amount": 197323000.0,
-        "direction_score": 1,
-        "orders": [
-          [
-            1771919629.401419,
-            "BUY",
-            16067700.0
-          ],
-          [
-            1771919629.401421,
-            "BUY",
-            10402000.0
-          ],
-          [
-            1771919657.0864341,
-            "BUY",
-            21205220.0
-          ],
-          [
-            1771919657.0864341,
-            "BUY",
-            8446160.0
-          ],
-          [
-            1771919684.0987551,
-            "SELL",
-            6954480.0
-          ],
-          [
-            1771919691.818374,
-            "SELL",
-            5063850.0
-          ],
-          [
-            1771919691.818374,
-            "SELL",
-            6964650.0
-          ],
-          [
-            1771919703.774865,
-            "SELL",
-            12370050.0
-          ],
-          [
-            1771919727.015712,
-            "BUY",
-            11389950.0
-          ],
-          [
-            1771919750.288546,
-            "SELL",
-            6964650.0
-          ],
-          [
-            1771919758.297843,
-            "BUY",
-            34192860.0
-          ],
-          [
-            1771919774.447207,
-            "SELL",
-            8499920.0
-          ],
-          [
-            1771919785.979001,
-            "SELL",
-            7677450.0
-          ],
-          [
-            1771919790.005756,
-            "BUY",
-            22572340.0
-          ],
-          [
-            1771919790.0057569,
-            "BUY",
-            19955540.0
-          ],
-          [
-            1771919809.513528,
-            "SELL",
-            6969340.0
-          ],
-          [
-            1771919817.350264,
-            "BUY",
-            29368250.0
-          ],
-          [
-            1771919840.939839,
-            "SELL",
-            6969340.0
-          ],
-          [
-            1771919844.934963,
-            "BUY",
-            14855130.0
-          ],
-          [
-            1771919848.978071,
-            "BUY",
-            5516770.0
-          ],
-          [
-            1771919848.978071,
-            "BUY",
-            14299680.0
-          ],
-          [
-            1771919848.978071,
-            "BUY",
-            13049760.0
-          ],
-          [
-            1771919853.111304,
-            "SELL",
-            11985220.0
-          ],
-          [
-            1771919880.120178,
-            "BUY",
-            30012960.0
-          ],
-          [
-            1771919880.120179,
-            "BUY",
-            10579680.0
-          ],
-          [
-            1771919899.596282,
-            "SELL",
-            6969340.0
-          ],
-          [
-            1771919907.088885,
-            "BUY",
-            9977770.0
-          ],
-          [
-            1771919907.088886,
-            "BUY",
-            18644640.0
-          ],
-          [
-            1771919930.2281861,
-            "SELL",
-            5825120.0
-          ]
-        ]
-      },
-      "capital_flow": {
-        "main_net_inflow": -968450690.0,
-        "main_net_inflow_pct": 121.54,
-        "direction_score": -1
-      }
-    },
-    "HK00700": {
-      "direction": "bullish",
-      "score": 3,
-      "tick": {
-        "buy_vol": 814200,
-        "sell_vol": 244500,
-        "imbalance": 0.538,
-        "direction_score": 1
-      },
-      "large_order": {
-        "buy_count": 12,
-        "sell_count": 7,
-        "buy_amount": 268248300.0,
-        "sell_amount": 65948350.0,
-        "net_amount": 202299950.0,
-        "direction_score": 1,
-        "orders": [
-          [
-            1771919684.098752,
-            "SELL",
-            6792500.0
-          ],
-          [
-            1771919684.098754,
-            "SELL",
-            14473250.0
-          ],
-          [
-            1771919687.996047,
-            "BUY",
-            6635750.0
-          ],
-          [
-            1771919727.0157099,
-            "BUY",
-            38022100.0
-          ],
-          [
-            1771919727.015711,
-            "SELL",
-            16369900.0
-          ],
-          [
-            1771919758.297843,
-            "BUY",
-            27457500.0
-          ],
-          [
-            1771919774.447207,
-            "SELL",
-            7053750.0
-          ],
-          [
-            1771919782.03019,
-            "SELL",
-            7099200.0
-          ],
-          [
-            1771919785.979,
-            "BUY",
-            38038000.0
-          ],
-          [
-            1771919797.882577,
-            "BUY",
-            5225000.0
-          ],
-          [
-            1771919817.350264,
-            "BUY",
-            26072750.0
-          ],
-          [
-            1771919821.459863,
-            "BUY",
-            31663500.0
-          ],
-          [
-            1771919848.97807,
-            "BUY",
-            32426000.0
-          ],
-          [
-            1771919861.049164,
-            "BUY",
-            10460000.0
-          ],
-          [
-            1771919880.1201768,
-            "BUY",
-            38597400.0
-          ],
-          [
-            1771919884.22033,
-            "SELL",
-            7733000.0
-          ],
-          [
-            1771919888.000602,
-            "BUY",
-            5700700.0
-          ],
-          [
-            1771919907.088885,
-            "BUY",
-            7949600.0
-          ],
-          [
-            1771919964.6007822,
-            "SELL",
-            6426750.0
-          ]
-        ]
-      },
-      "capital_flow": {
-        "main_net_inflow": -981374850.0,
-        "main_net_inflow_pct": 147.13,
-        "direction_score": -1
-      }
-    },
-    "HK06060": {
-      "direction": "bullish",
-      "score": 2,
-      "tick": {
-        "buy_vol": 210400,
-        "sell_vol": 120200,
-        "imbalance": 0.273,
-        "direction_score": 1
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 0,
-        "buy_amount": 0.0,
-        "sell_amount": 0.0,
-        "net_amount": 0.0,
-        "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": 2980156.0,
-        "main_net_inflow_pct": -18.55,
-        "direction_score": 0
-      }
-    },
-    "HK01810": {
-      "direction": "bullish",
-      "score": 3,
-      "tick": {
-        "buy_vol": 2911400,
-        "sell_vol": 1994600,
-        "imbalance": 0.187,
-        "direction_score": 1
-      },
-      "large_order": {
-        "buy_count": 1,
-        "sell_count": 2,
-        "buy_amount": 7000500.0,
-        "sell_amount": 14495520.0,
-        "net_amount": -7495020.0,
-        "direction_score": 0,
-        "orders": [
-          [
-            1771919629.401422,
-            "BUY",
-            7000500.0
-          ],
-          [
-            1771919672.9035058,
-            "SELL",
-            8130408.0
-          ],
-          [
-            1771919832.7547898,
-            "SELL",
-            6365112.0
-          ],
-          [
-            1771919880.12018,
-            "NEUTRAL",
-            6461972.0
-          ]
-        ]
-      },
-      "capital_flow": {
-        "main_net_inflow": 38228500.0,
-        "main_net_inflow_pct": 12.36,
-        "direction_score": 1
-      }
-    },
-    "HK01211": {
+    "HK02359": {
       "direction": "neutral",
       "score": 0,
       "tick": {
-        "buy_vol": 456300,
-        "sell_vol": 376600,
-        "imbalance": 0.096,
+        "buy_vol": 29500,
+        "sell_vol": 25900,
+        "imbalance": 0.065,
         "direction_score": 0
-      },
-      "large_order": {
-        "buy_count": 1,
-        "sell_count": 1,
-        "buy_amount": 6666240.0,
-        "sell_amount": 5854660.0,
-        "net_amount": 811580.0,
-        "direction_score": 0,
-        "orders": [
-          [
-            1771919633.854898,
-            "SELL",
-            5854660.0
-          ],
-          [
-            1771919888.000603,
-            "BUY",
-            6666240.0
-          ]
-        ]
-      },
-      "capital_flow": {
-        "main_net_inflow": 2084135.0,
-        "main_net_inflow_pct": 6.29,
-        "direction_score": 0
-      }
-    },
-    "HK01060": {
-      "direction": "bullish",
-      "score": 3,
-      "tick": {
-        "buy_vol": 23930000,
-        "sell_vol": 5010000,
-        "imbalance": 0.654,
-        "direction_score": 1
-      },
-      "large_order": {
-        "buy_count": 1,
-        "sell_count": 0,
-        "buy_amount": 11578500.0,
-        "sell_amount": 0.0,
-        "net_amount": 11578500.0,
-        "direction_score": 0,
-        "orders": [
-          [
-            1771919665.204942,
-            "NEUTRAL",
-            5021500.0
-          ],
-          [
-            1771919665.2049432,
-            "BUY",
-            11578500.0
-          ]
-        ]
-      },
-      "capital_flow": {
-        "main_net_inflow": 10778000.0,
-        "main_net_inflow_pct": -19.46,
-        "direction_score": 1
-      }
-    },
-    "HK03896": {
-      "direction": "bullish",
-      "score": 2,
-      "tick": {
-        "buy_vol": 1360000,
-        "sell_vol": 358000,
-        "imbalance": 0.583,
-        "direction_score": 1
       },
       "large_order": {
         "buy_count": 0,
@@ -3764,43 +2288,19 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 0,
-        "main_net_inflow_pct": 0,
+        "main_net_inflow": -1062530.0,
+        "main_net_inflow_pct": 17.97,
         "direction_score": 0
       }
     },
     "HK01357": {
       "direction": "bullish",
-      "score": 2,
+      "score": 1,
       "tick": {
-        "buy_vol": 2208000,
-        "sell_vol": 896500,
-        "imbalance": 0.422,
-        "direction_score": 1
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 0,
-        "buy_amount": 0.0,
-        "sell_amount": 0.0,
-        "net_amount": 0.0,
-        "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": 0,
-        "main_net_inflow_pct": 0,
+        "buy_vol": 1228000,
+        "sell_vol": 1101000,
+        "imbalance": 0.055,
         "direction_score": 0
-      }
-    },
-    "HK02359": {
-      "direction": "bullish",
-      "score": 3,
-      "tick": {
-        "buy_vol": 71700,
-        "sell_vol": 37400,
-        "imbalance": 0.314,
-        "direction_score": 1
       },
       "large_order": {
         "buy_count": 0,
@@ -3812,8 +2312,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 9514060.0,
-        "main_net_inflow_pct": 67.69,
+        "main_net_inflow": 15762625.0,
+        "main_net_inflow_pct": 78.71,
         "direction_score": 1
       }
     },
@@ -3821,9 +2321,9 @@
       "direction": "bearish",
       "score": -3,
       "tick": {
-        "buy_vol": 29200,
-        "sell_vol": 42600,
-        "imbalance": -0.187,
+        "buy_vol": 18300,
+        "sell_vol": 47200,
+        "imbalance": -0.441,
         "direction_score": -1
       },
       "large_order": {
@@ -3836,19 +2336,19 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -36390970.0,
-        "main_net_inflow_pct": -366.18,
+        "main_net_inflow": -42545000.0,
+        "main_net_inflow_pct": 42.48,
         "direction_score": -1
       }
     },
     "HK07709": {
-      "direction": "bearish",
-      "score": -2,
+      "direction": "bullish",
+      "score": 3,
       "tick": {
-        "buy_vol": 200000,
-        "sell_vol": 395200,
-        "imbalance": -0.328,
-        "direction_score": -1
+        "buy_vol": 1636700,
+        "sell_vol": 1229200,
+        "imbalance": 0.142,
+        "direction_score": 1
       },
       "large_order": {
         "buy_count": 0,
@@ -3860,18 +2360,108 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 0,
-        "main_net_inflow_pct": 0,
-        "direction_score": 0
+        "main_net_inflow": 34955244.0,
+        "main_net_inflow_pct": 93.26,
+        "direction_score": 1
+      }
+    },
+    "HK01810": {
+      "direction": "bearish",
+      "score": -3,
+      "tick": {
+        "buy_vol": 1576200,
+        "sell_vol": 3767400,
+        "imbalance": -0.41,
+        "direction_score": -1
+      },
+      "large_order": {
+        "buy_count": 2,
+        "sell_count": 5,
+        "buy_amount": 12148540.0,
+        "sell_amount": 46969544.0,
+        "net_amount": -34821004.0,
+        "direction_score": -1,
+        "orders": [
+          [
+            1771999071.7815502,
+            "BUY",
+            6511140.0
+          ],
+          [
+            1771999783.113589,
+            "SELL",
+            7227800.0
+          ],
+          [
+            1771999783.11359,
+            "SELL",
+            9918700.0
+          ],
+          [
+            1771999783.11359,
+            "SELL",
+            17260100.0
+          ],
+          [
+            1771999783.11359,
+            "SELL",
+            5343288.0
+          ],
+          [
+            1771999914.4123409,
+            "BUY",
+            5637400.0
+          ],
+          [
+            1772000149.412796,
+            "SELL",
+            7219656.0
+          ]
+        ]
+      },
+      "capital_flow": {
+        "main_net_inflow": 28417028.0,
+        "main_net_inflow_pct": 24.33,
+        "direction_score": 1
+      }
+    },
+    "HK01211": {
+      "direction": "bearish",
+      "score": -1,
+      "tick": {
+        "buy_vol": 205200,
+        "sell_vol": 324300,
+        "imbalance": -0.225,
+        "direction_score": -1
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 1,
+        "buy_amount": 0.0,
+        "sell_amount": 6151005.0,
+        "net_amount": -6151005.0,
+        "direction_score": 0,
+        "orders": [
+          [
+            1771999561.8825028,
+            "SELL",
+            6151005.0
+          ]
+        ]
+      },
+      "capital_flow": {
+        "main_net_inflow": 34561370.0,
+        "main_net_inflow_pct": 46.87,
+        "direction_score": 1
       }
     },
     "HK00325": {
       "direction": "neutral",
       "score": 0,
       "tick": {
-        "buy_vol": 7500,
-        "sell_vol": 8700,
-        "imbalance": -0.074,
+        "buy_vol": 3900,
+        "sell_vol": 6300,
+        "imbalance": -0.235,
         "direction_score": 0
       },
       "large_order": {
@@ -3884,17 +2474,17 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 0,
+        "main_net_inflow": 942405.0,
         "main_net_inflow_pct": 0,
         "direction_score": 0
       }
     },
-    "HK02590": {
+    "HK01060": {
       "direction": "bullish",
       "score": 2,
       "tick": {
-        "buy_vol": 62200,
-        "sell_vol": 37400,
+        "buy_vol": 3540000,
+        "sell_vol": 2130000,
         "imbalance": 0.249,
         "direction_score": 1
       },
@@ -3908,11 +2498,288 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 0,
-        "main_net_inflow_pct": 0,
+        "main_net_inflow": 0.0,
+        "main_net_inflow_pct": 0.0,
         "direction_score": 0
+      }
+    },
+    "HK09988": {
+      "direction": "bearish",
+      "score": -5,
+      "tick": {
+        "buy_vol": 968100,
+        "sell_vol": 1763900,
+        "imbalance": -0.291,
+        "direction_score": -1
+      },
+      "large_order": {
+        "buy_count": 6,
+        "sell_count": 4,
+        "buy_amount": 45713180.0,
+        "sell_amount": 64493550.0,
+        "net_amount": -18780370.0,
+        "direction_score": -1,
+        "orders": [
+          [
+            1771998992.710834,
+            "SELL",
+            9994050.0
+          ],
+          [
+            1771998992.710834,
+            "SELL",
+            9994050.0
+          ],
+          [
+            1771998992.710835,
+            "SELL",
+            9994050.0
+          ],
+          [
+            1771998992.710835,
+            "SELL",
+            34511400.0
+          ],
+          [
+            1771999155.743248,
+            "BUY",
+            7108360.0
+          ],
+          [
+            1771999182.429795,
+            "BUY",
+            5509350.0
+          ],
+          [
+            1771999269.3535821,
+            "BUY",
+            5550160.0
+          ],
+          [
+            1771999906.460924,
+            "BUY",
+            6762480.0
+          ],
+          [
+            1772000207.183084,
+            "BUY",
+            10640280.0
+          ],
+          [
+            1772000337.881832,
+            "BUY",
+            10142550.0
+          ]
+        ]
+      },
+      "capital_flow": {
+        "main_net_inflow": -89763290.0,
+        "main_net_inflow_pct": 89.74,
+        "direction_score": -1
+      }
+    },
+    "HK03896": {
+      "direction": "bullish",
+      "score": 3,
+      "tick": {
+        "buy_vol": 1938000,
+        "sell_vol": 1422000,
+        "imbalance": 0.154,
+        "direction_score": 1
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": 5663960.0,
+        "main_net_inflow_pct": 20.88,
+        "direction_score": 1
+      }
+    },
+    "HK06060": {
+      "direction": "bearish",
+      "score": -3,
+      "tick": {
+        "buy_vol": 346800,
+        "sell_vol": 769600,
+        "imbalance": -0.379,
+        "direction_score": -1
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": -19393938.0,
+        "main_net_inflow_pct": 51.86,
+        "direction_score": -1
+      }
+    },
+    "HK02590": {
+      "direction": "bearish",
+      "score": -3,
+      "tick": {
+        "buy_vol": 157600,
+        "sell_vol": 271200,
+        "imbalance": -0.265,
+        "direction_score": -1
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": -16067048.0,
+        "main_net_inflow_pct": 99.11,
+        "direction_score": -1
+      }
+    },
+    "HK00700": {
+      "direction": "bearish",
+      "score": -3,
+      "tick": {
+        "buy_vol": 412400,
+        "sell_vol": 641200,
+        "imbalance": -0.217,
+        "direction_score": -1
+      },
+      "large_order": {
+        "buy_count": 9,
+        "sell_count": 12,
+        "buy_amount": 78392250.0,
+        "sell_amount": 92783750.0,
+        "net_amount": -14391500.0,
+        "direction_score": -1,
+        "orders": [
+          [
+            1771998906.652255,
+            "SELL",
+            5863200.0
+          ],
+          [
+            1771998947.4342132,
+            "SELL",
+            8847150.0
+          ],
+          [
+            1771998984.791714,
+            "BUY",
+            10470000.0
+          ],
+          [
+            1771999045.2349,
+            "SELL",
+            7792700.0
+          ],
+          [
+            1771999196.906422,
+            "SELL",
+            9937000.0
+          ],
+          [
+            1771999409.620406,
+            "SELL",
+            5230000.0
+          ],
+          [
+            1771999409.620407,
+            "SELL",
+            5125400.0
+          ],
+          [
+            1771999409.620407,
+            "SELL",
+            15690000.0
+          ],
+          [
+            1771999409.620407,
+            "SELL",
+            6276000.0
+          ],
+          [
+            1771999501.004931,
+            "BUY",
+            6851300.0
+          ],
+          [
+            1771999501.0049322,
+            "BUY",
+            16056100.0
+          ],
+          [
+            1771999699.478049,
+            "BUY",
+            7889750.0
+          ],
+          [
+            1771999699.47805,
+            "BUY",
+            7158250.0
+          ],
+          [
+            1771999775.08346,
+            "SELL",
+            5481000.0
+          ],
+          [
+            1771999825.2631319,
+            "BUY",
+            6792500.0
+          ],
+          [
+            1772000073.285321,
+            "BUY",
+            7897300.0
+          ],
+          [
+            1772000073.285322,
+            "BUY",
+            9570900.0
+          ],
+          [
+            1772000207.183083,
+            "BUY",
+            5706150.0
+          ],
+          [
+            1772000341.73981,
+            "SELL",
+            7060500.0
+          ],
+          [
+            1772000341.73981,
+            "SELL",
+            6276000.0
+          ],
+          [
+            1772000341.7398112,
+            "SELL",
+            9204800.0
+          ]
+        ]
+      },
+      "capital_flow": {
+        "main_net_inflow": 234791550.0,
+        "main_net_inflow_pct": 50.46,
+        "direction_score": 1
       }
     }
   },
-  "lastUpdated": 1771920060342
+  "lastUpdated": 1772000376660
 }

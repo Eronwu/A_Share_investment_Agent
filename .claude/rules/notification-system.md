@@ -31,7 +31,7 @@ Merge: `{**DEFAULT_POLICIES[level], **user_overrides}`
 ## Single Computation Source
 
 - **Notifier** (`DeltaAlertEngine`) is the ONLY alert computation engine
-- Writes results to `alert_events.json` (dual format: `message` for terminal, `display` for web)
+- Writes results to `sim_trading.db:alert_events` table (dual format: `message` for terminal, `display` for web)
 - Web `useAlerts` hook ONLY reads and displays, never computes
 - Terminal notifications and web logs are always in sync
 
@@ -52,8 +52,9 @@ Merge: `{**DEFAULT_POLICIES[level], **user_overrides}`
 ## Daily Reset
 
 - Triggers at **08:00** (not midnight) — avoids clearing HK after-hours events
-- Clears: `_notified` dict, `_last_portfolio_pnl`, `alert_events.json`
-- Web `useAlerts` auto-resets watermark when events list becomes empty
+- Clears: `_notified` dict, `_last_portfolio_pnl`
+- Runs 30-day cleanup: `DELETE FROM alert_events WHERE date < (today - 30d)`
+- Web reads only today's events via `WHERE date = ?` — auto-scoped per day
 
 ## Stealth Mode
 

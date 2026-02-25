@@ -5,7 +5,7 @@ L2 Strategy Daemon — 独立进程，3s 轮询检测 L2 策略信号
 读取 monitor_config.json（持仓列表）+ l2_strategy_config.json（策略参数），
 通过 Futu OpenD 获取实时 L2 数据，检测信号后写入 l2_strategy_signals.json。
 
-Notifier 消费信号文件，转换为 macOS 通知 + alert_events.json。
+Notifier 消费信号文件，转换为 macOS 通知 + sim_trading.db:alert_events。
 
 设计原则:
   - OpenD 不可用时静默退出（Futu 可选）

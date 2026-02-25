@@ -9,6 +9,7 @@ import { D } from "../theme";
 interface Trade {
   trade_id: string;
   code: string;
+  name?: string;
   entry_price: number;
   exit_price: number;
   quantity: number;
@@ -20,6 +21,8 @@ interface Trade {
   confidence: number;
   entry_date: string;
   exit_date: string;
+  entry_time?: number;  // epoch ms
+  exit_time?: number;   // epoch ms
 }
 
 interface DailyPnl {
@@ -71,9 +74,11 @@ interface PositionSnap {
 
 interface LivePosition {
   code: string;
+  name: string;
   entry_price: number;
   quantity: number;
   current_price: number;
+  entry_time: number;
   entry_date: string;
   stop_loss: number;
   take_profit: number | null;
@@ -82,6 +87,8 @@ interface LivePosition {
   confidence: number;
   unrealized_pnl: number;
   pnl_pct: number;
+  change: number;
+  chgAmt: number;
   last_updated: number;
 }
 
@@ -91,6 +98,16 @@ interface LiveData {
   n_positions: number;
   total_unrealized: number;
   total_market_value: number;
+  realized_pnl: number;
+  total_pnl: number;
+  total_return: number;
+  current_equity: number;
+  cash: number;
+  initial_capital: number;
+  total_trades: number;
+  win_rate: number;
+  profit_factor: number | string;
+  total_commission: number;
 }
 
 interface SimData {
@@ -109,6 +126,17 @@ interface SimData {
 const pnlColor = (v: number) => (v > 0 ? D.red : v < 0 ? D.green : D.comment);
 const pctFmt = (v: number) => `${v >= 0 ? "+" : ""}${(v * 100).toFixed(2)}%`;
 const numFmt = (v: number) => v.toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+/** epoch ms → "MM-DD HH:MM" */
+function tsToTime(ts: number | undefined, fallbackDate?: string): string {
+  if (!ts || ts <= 0) return fallbackDate || "-";
+  const d = new Date(ts);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${mm}-${dd} ${hh}:${mi}`;
+}
 
 /** 退出原因翻译 */
 function exitReasonCN(r: string): string {
@@ -178,29 +206,13 @@ function TitleBar() {
         ))}
       </div>
       <span style={{ color: D.comment, fontSize: 12 }}>
-        模拟盘 — 回测报告
+        ✱ sim — trading
       </span>
     </div>
   );
 }
 
-function NavBar({
-  data, tab, setTab,
-}: {
-  data: SimData | null;
-  tab: "live" | "history";
-  setTab: (t: "live" | "history") => void;
-}) {
-  const hasLive = data?.live && data.live.n_positions > 0;
-  const tabStyle = (t: "live" | "history") => ({
-    color: tab === t ? D.cyan : D.comment,
-    cursor: "pointer" as const,
-    userSelect: "none" as const,
-    fontWeight: tab === t ? 700 : 400,
-    borderBottom: tab === t ? `2px solid ${D.cyan}` : "2px solid transparent",
-    paddingBottom: 2,
-  });
-
+function NavBar({ data }: { data: SimData | null }) {
   return (
     <div
       style={{
@@ -214,29 +226,28 @@ function NavBar({
       }}
     >
       <Link href="/" style={{ color: D.cyan, textDecoration: "none" }}>
-        ← 监控台
+        ← monitor
       </Link>
+      <span style={{ color: D.comment }}>|</span>
       <Link href="/alerts" style={{ color: D.comment, textDecoration: "none" }}>
-        告警
+        alerts
       </Link>
-      <span style={{ color: D.currentLine }}>|</span>
-      <span style={tabStyle("live")} onClick={() => setTab("live")}>
-        实时持仓{hasLive ? ` (${data!.live.n_positions})` : ""}
-      </span>
-      <span style={tabStyle("history")} onClick={() => setTab("history")}>
-        历史回测
-      </span>
-      {tab === "history" && data?.summary && (
+      <span style={{ color: D.purple, fontWeight: 700 }}>sim</span>
+      <Link href="/manage" style={{ color: D.comment, textDecoration: "none" }}>
+        manage
+      </Link>
+      {data && (
         <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>
-          {data.summary.total_trades} 笔交易 | {data.summary.trading_days} 交易日
-        </span>
-      )}
-      {tab === "live" && data?.live && (
-        <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>
-          市值 {numFmt(data.live.total_market_value)} |{" "}
-          <span style={{ color: pnlColor(data.live.total_unrealized) }}>
-            浮盈 {data.live.total_unrealized >= 0 ? "+" : ""}{numFmt(data.live.total_unrealized)}
-          </span>
+          {data.live.n_positions > 0 && (
+            <>
+              {data.live.n_positions} positions |{" "}
+              <span style={{ color: pnlColor(data.live.total_unrealized) }}>
+                P&L {data.live.total_unrealized >= 0 ? "+" : ""}{numFmt(data.live.total_unrealized)}
+              </span>
+              {" | "}
+            </>
+          )}
+          {data.summary.total_trades} trades | {data.summary.trading_days} days
         </span>
       )}
     </div>
@@ -437,23 +448,11 @@ function EquityCurve({ data, initialCapital }: { data: DailyPnl[]; initialCapita
   );
 }
 
-function TradesTable({ trades }: { trades: Trade[] }) {
+function TradesTable({ trades, bare }: { trades: Trade[]; bare?: boolean }) {
   const [open, setOpen] = useState(true);
 
-  return (
-    <div style={{ padding: "4px 0" }}>
-      <div
-        style={{
-          color: D.comment, padding: "4px 0 2px",
-          cursor: "pointer", userSelect: "none",
-        }}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <span style={{ color: D.purple }}>{open ? "▾" : "▸"}</span> # ──
-        交易记录 ({trades.length}笔) ──
-      </div>
-      {open && (
-        <>
+  const tableContent = (
+    <>
           {/* 表头 */}
           <div
             style={{
@@ -463,15 +462,16 @@ function TradesTable({ trades }: { trades: Trade[] }) {
             }}
           >
             <span style={{ width: "10ch" }}>代码</span>
+            <span style={{ width: "8ch" }}>名称</span>
             <span style={{ width: "9ch", textAlign: "right" }}>买入</span>
             <span style={{ width: "3ch", textAlign: "center" }}>→</span>
             <span style={{ width: "9ch", textAlign: "right" }}>卖出</span>
             <span style={{ width: "8ch", textAlign: "right" }}>数量</span>
-            <span style={{ width: "11ch", textAlign: "right" }}>盈亏</span>
+            <span style={{ width: "10ch", textAlign: "right" }}>盈亏</span>
             <span style={{ width: "8ch", textAlign: "right" }}>盈亏%</span>
-            <span style={{ width: "5ch", textAlign: "right" }}>天数</span>
-            <span style={{ width: "16ch", paddingLeft: "2ch" }}>退出原因</span>
-            <span style={{ width: "14ch" }}>入场策略</span>
+            <span style={{ width: "12ch", paddingLeft: "1ch" }}>退出原因</span>
+            <span style={{ width: "12ch" }}>入场策略</span>
+            <span style={{ width: "12ch", textAlign: "right" }}>日期</span>
           </div>
           {/* 行 */}
           {trades.map((t) => {
@@ -485,6 +485,7 @@ function TradesTable({ trades }: { trades: Trade[] }) {
                 }}
               >
                 <span style={{ color: D.cyan, width: "10ch" }}>{t.code}</span>
+                <span style={{ color: D.fg, width: "8ch" }}>{(t.name || "").slice(0, 6)}</span>
                 <span style={{ color: D.fg, width: "9ch", textAlign: "right" }}>
                   {t.entry_price.toFixed(2)}
                 </span>
@@ -495,26 +496,42 @@ function TradesTable({ trades }: { trades: Trade[] }) {
                 <span style={{ color: D.fg, width: "8ch", textAlign: "right" }}>
                   {t.quantity.toLocaleString()}
                 </span>
-                <span style={{ color: c, width: "11ch", textAlign: "right", fontWeight: 500 }}>
+                <span style={{ color: c, width: "10ch", textAlign: "right", fontWeight: 500 }}>
                   {t.pnl >= 0 ? "+" : ""}{t.pnl.toFixed(0)}
                 </span>
                 <span style={{ color: c, width: "8ch", textAlign: "right", fontWeight: 500 }}>
                   {t.pnl_pct * 100 >= 0 ? "+" : ""}{(t.pnl_pct * 100).toFixed(1)}%
                 </span>
-                <span style={{ color: D.comment, width: "5ch", textAlign: "right" }}>
-                  {t.hold_days}天
-                </span>
-                <span style={{ color: D.orange, width: "16ch", paddingLeft: "2ch" }}>
+                <span style={{ color: D.orange, width: "12ch", paddingLeft: "1ch" }}>
                   {exitReasonCN(t.exit_reason)}
                 </span>
-                <span style={{ color: D.comment, width: "14ch" }}>
+                <span style={{ color: D.comment, width: "12ch" }}>
                   {strategyCN(t.notes)}
+                </span>
+                <span style={{ color: D.comment, width: "12ch", textAlign: "right" }}>
+                  {t.exit_date || t.entry_date}
                 </span>
               </div>
             );
           })}
         </>
-      )}
+  );
+
+  if (bare) return <div style={{ padding: "4px 0" }}>{tableContent}</div>;
+
+  return (
+    <div style={{ padding: "4px 0" }}>
+      <div
+        style={{
+          color: D.comment, padding: "4px 0 2px",
+          cursor: "pointer", userSelect: "none",
+        }}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span style={{ color: D.purple }}>{open ? "▾" : "▸"}</span> # ──
+        交易记录 ({trades.length}笔) ──
+      </div>
+      {open && tableContent}
     </div>
   );
 }
@@ -691,6 +708,71 @@ function PositionsTable({
   );
 }
 
+function LiveSummaryBar({ live, ts }: { live: LiveData; ts: string }) {
+  const pfVal = typeof live.profit_factor === "string" ? live.profit_factor : live.profit_factor.toFixed(2);
+  const pfColor =
+    typeof live.profit_factor === "string" || live.profit_factor > 1.5
+      ? D.green : live.profit_factor > 1 ? D.orange : D.red;
+  const winColor = live.win_rate > 0.5 ? D.green : live.win_rate > 0.3 ? D.orange : D.red;
+
+  return (
+    <div style={{ borderBottom: `1px solid ${D.currentLine}`, marginBottom: 8, padding: "4px 0 6px" }}>
+      {/* 第一行：核心指标（大字） */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 28px", fontSize: 15, marginBottom: 4 }}>
+        <span>
+          <span style={{ color: D.comment }}>总盈亏 </span>
+          <span style={{ color: pnlColor(live.total_pnl), fontWeight: 700, fontSize: 17 }}>
+            {live.total_pnl >= 0 ? "+" : ""}{numFmt(live.total_pnl)}
+          </span>
+        </span>
+        <span>
+          <span style={{ color: D.comment }}>收益率 </span>
+          <span style={{ color: pnlColor(live.total_return), fontWeight: 700, fontSize: 17 }}>
+            {pctFmt(live.total_return)}
+          </span>
+        </span>
+        <span>
+          <span style={{ color: D.comment }}>浮盈 </span>
+          <span style={{ color: pnlColor(live.total_unrealized), fontWeight: 700 }}>
+            {live.total_unrealized >= 0 ? "+" : ""}{numFmt(live.total_unrealized)}
+          </span>
+        </span>
+        <span>
+          <span style={{ color: D.comment }}>已实现 </span>
+          <span style={{ color: pnlColor(live.realized_pnl), fontWeight: 700 }}>
+            {live.realized_pnl >= 0 ? "+" : ""}{numFmt(live.realized_pnl)}
+          </span>
+        </span>
+      </div>
+      {/* 第二行：辅助指标（小字）+ 时间戳 */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 20px", fontSize: 11, color: D.comment }}>
+        <span>
+          胜率{" "}
+          <span style={{ color: live.total_trades >= 10 ? winColor : D.comment }}>
+            {live.total_trades > 0 ? `${(live.win_rate * 100).toFixed(0)}%` : "-"}
+          </span>
+          {live.total_trades > 0 && live.total_trades < 10 && (
+            <span style={{ color: D.comment, fontSize: 10 }}> (n={live.total_trades})</span>
+          )}
+        </span>
+        <span>
+          盈亏比{" "}
+          <span style={{ color: live.total_trades >= 10 ? pfColor : D.comment }}>
+            {live.total_trades > 0 ? pfVal : "-"}
+          </span>
+        </span>
+        <span>净值 <span style={{ color: D.fg }}>{numFmt(live.current_equity)}</span></span>
+        <span>交易 <span style={{ color: D.fg }}>{live.total_trades}笔</span></span>
+        <span>手续费 <span style={{ color: D.orange }}>{numFmt(live.total_commission)}</span></span>
+        <span>可用 <span style={{ color: D.fg }}>{numFmt(live.cash)}</span></span>
+        <span style={{ marginLeft: "auto" }}>
+          {ts}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function LivePanel({ live }: { live: LiveData }) {
   const [posOpen, setPosOpen] = useState(true);
   const [tradesOpen, setTradesOpen] = useState(true);
@@ -730,30 +812,43 @@ function LivePanel({ live }: { live: LiveData }) {
               >
                 <span style={{ width: "6ch" }}> 类型</span>
                 <span style={{ width: "10ch" }}>代码</span>
+                <span style={{ width: "8ch" }}>名称</span>
                 <span style={{ width: "10ch", textAlign: "right" }}>   现价</span>
+                <span style={{ width: "9ch", textAlign: "right" }}>涨跌幅</span>
                 <span style={{ width: "9ch", textAlign: "right" }}>  成本</span>
                 <span style={{ width: "10ch", textAlign: "right" }}>  盈亏%</span>
                 <span style={{ width: "10ch", textAlign: "right" }}>   市值</span>
                 <span style={{ width: "10ch", textAlign: "right" }}>  浮盈</span>
                 <span style={{ width: "9ch", textAlign: "right" }}>  止损</span>
+                <span style={{ width: "8ch", textAlign: "right" }}>距止损</span>
                 <span style={{ width: "9ch", textAlign: "right" }}>  止盈</span>
-                <span style={{ width: "14ch", paddingLeft: "2ch" }}>入场策略</span>
               </div>
               {live.positions.map((p) => {
                 const mktVal = p.current_price * p.quantity;
                 const c = pnlColor(p.unrealized_pnl);
+                const chgSign = p.change > 0 ? "+" : "";
+                // 距止损百分比: 正值=安全, 越小越危险
+                const slDist = p.stop_loss > 0 && p.current_price > 0
+                  ? (p.current_price - p.stop_loss) / p.current_price
+                  : 0;
+                const slDistColor = slDist < 0.01 ? D.red : slDist < 0.02 ? D.orange : D.comment;
                 return (
                   <div
                     key={p.code}
                     style={{
                       display: "flex", whiteSpace: "pre", padding: "1px 0",
                       borderBottom: "1px solid #191a21",
+                      background: slDist < 0.01 ? "#ff555510" : "transparent",
                     }}
                   >
                     <span style={{ color: D.orange, width: "6ch" }}> SIM</span>
                     <span style={{ color: D.cyan, width: "10ch" }}>{p.code}</span>
+                    <span style={{ color: D.fg, width: "8ch" }}>{(p.name || "").slice(0, 6)}</span>
                     <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
                       {p.current_price.toFixed(2)}
+                    </span>
+                    <span style={{ color: pnlColor(p.change), width: "9ch", textAlign: "right", fontWeight: 500 }}>
+                      {chgSign}{p.change.toFixed(2)}%
                     </span>
                     <span style={{ color: D.comment, width: "9ch", textAlign: "right" }}>
                       {p.entry_price.toFixed(2)}
@@ -770,11 +865,11 @@ function LivePanel({ live }: { live: LiveData }) {
                     <span style={{ color: D.orange, width: "9ch", textAlign: "right" }}>
                       {p.stop_loss.toFixed(2)}
                     </span>
+                    <span style={{ color: slDistColor, width: "8ch", textAlign: "right", fontWeight: slDist < 0.02 ? 700 : 400 }}>
+                      {(slDist * 100).toFixed(1)}%
+                    </span>
                     <span style={{ color: D.green, width: "9ch", textAlign: "right" }}>
                       {p.take_profit ? p.take_profit.toFixed(2) : "-"}
-                    </span>
-                    <span style={{ color: D.comment, width: "14ch", paddingLeft: "2ch" }}>
-                      {strategyCN(p.entry_strategy)}
                     </span>
                   </div>
                 );
@@ -784,17 +879,213 @@ function LivePanel({ live }: { live: LiveData }) {
         </div>
       )}
 
-      {/* 实时交易记录 */}
+      {/* 操作记录 — 每笔 BUY/SELL 单独一行 */}
+      <OperationsLog live={live} />
+
+      {/* 已完成交易 — 完整闭环 */}
       {live.trades.length > 0 && (
-        <div style={{ padding: "4px 0" }}>
+        <CompletedTradesTable trades={live.trades} />
+      )}
+    </div>
+  );
+}
+
+function OperationsLog({ live }: { live: LiveData }) {
+  const [open, setOpen] = useState(true);
+
+  // 构造操作记录：从持仓(BUY) + 已平仓交易(BUY+SELL)
+  interface Op {
+    ts: number;     // epoch ms, 排序用
+    display: string; // 显示时间
+    action: "BUY" | "SELL";
+    code: string;
+    name: string;
+    price: number;
+    quantity: number;
+    reason: string;
+    pnl?: number;
+  }
+
+  const ops: Op[] = [];
+
+  // 已平仓交易 → 拆成 BUY + SELL 两条
+  for (const t of live.trades) {
+    ops.push({
+      ts: t.entry_time || 0,
+      display: tsToTime(t.entry_time, t.entry_date),
+      action: "BUY",
+      code: t.code,
+      name: t.name || t.code,
+      price: t.entry_price,
+      quantity: t.quantity,
+      reason: strategyCN(t.notes),
+    });
+    ops.push({
+      ts: t.exit_time || 0,
+      display: tsToTime(t.exit_time, t.exit_date),
+      action: "SELL",
+      code: t.code,
+      name: t.name || t.code,
+      price: t.exit_price,
+      quantity: t.quantity,
+      reason: exitReasonCN(t.exit_reason),
+      pnl: t.pnl,
+    });
+  }
+
+  // 当前持仓 → BUY 记录（未平仓）
+  for (const p of live.positions) {
+    ops.push({
+      ts: p.entry_time || 0,
+      display: tsToTime(p.entry_time, p.entry_date),
+      action: "BUY",
+      code: p.code,
+      name: p.name || p.code,
+      price: p.entry_price,
+      quantity: p.quantity,
+      reason: strategyCN(p.entry_strategy),
+    });
+  }
+
+  // 按时间倒序（最新在上），同时间卖出排在买入前
+  ops.sort((a, b) => b.ts - a.ts || (a.action === "SELL" ? -1 : 1));
+
+  if (ops.length === 0) return null;
+
+  return (
+    <div style={{ padding: "4px 0" }}>
+      <div
+        style={{ color: D.comment, padding: "4px 0 2px", cursor: "pointer", userSelect: "none" }}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span style={{ color: D.purple }}>{open ? "▾" : "▸"}</span> # ──
+        操作记录 ({ops.length}条) ──
+      </div>
+      {open && (
+        <>
           <div
-            style={{ color: D.comment, padding: "4px 0 2px", cursor: "pointer", userSelect: "none" }}
-            onClick={() => setTradesOpen((v) => !v)}
+            style={{
+              display: "flex", whiteSpace: "pre", color: D.pink,
+              borderBottom: `1px solid ${D.currentLine}`,
+              paddingBottom: 3, marginBottom: 2, fontWeight: 500, fontSize: 12,
+            }}
           >
-            <span style={{ color: D.purple }}>{tradesOpen ? "▾" : "▸"}</span> # ──
-            实时交易 ({live.trades.length}笔) ──
+            <span style={{ width: "13ch" }}>时间</span>
+            <span style={{ width: "6ch" }}>操作</span>
+            <span style={{ width: "10ch" }}>代码</span>
+            <span style={{ width: "8ch" }}>名称</span>
+            <span style={{ width: "10ch", textAlign: "right" }}>价格</span>
+            <span style={{ width: "8ch", textAlign: "right" }}>数量</span>
+            <span style={{ width: "10ch", textAlign: "right" }}>盈亏</span>
+            <span style={{ width: "16ch", paddingLeft: "2ch" }}>原因</span>
           </div>
-          {tradesOpen && <TradesTable trades={live.trades} />}
+          {ops.map((o, i) => {
+            const actionColor = o.action === "BUY" ? D.red : D.green;
+            const actionLabel = o.action === "BUY" ? "买入" : "卖出";
+            return (
+              <div
+                key={`${o.code}-${o.action}-${i}`}
+                style={{
+                  display: "flex", whiteSpace: "pre", padding: "1px 0",
+                  borderBottom: "1px solid #191a21", fontSize: 12,
+                }}
+              >
+                <span style={{ color: D.comment, width: "13ch" }}>{o.display}</span>
+                <span style={{ color: actionColor, width: "6ch", fontWeight: 700 }}>{actionLabel}</span>
+                <span style={{ color: D.cyan, width: "10ch" }}>{o.code}</span>
+                <span style={{ color: D.fg, width: "8ch" }}>{(o.name || "").slice(0, 6)}</span>
+                <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
+                  {o.price.toFixed(2)}
+                </span>
+                <span style={{ color: D.fg, width: "8ch", textAlign: "right" }}>
+                  {o.quantity.toLocaleString()}
+                </span>
+                <span style={{
+                  color: o.pnl != null ? pnlColor(o.pnl) : D.comment,
+                  width: "10ch", textAlign: "right", fontWeight: o.pnl != null ? 500 : 400,
+                }}>
+                  {o.pnl != null ? `${o.pnl >= 0 ? "+" : ""}${o.pnl.toFixed(0)}` : "-"}
+                </span>
+                <span style={{ color: D.orange, width: "16ch", paddingLeft: "2ch" }}>
+                  {o.reason}
+                </span>
+              </div>
+            );
+          })}
+        </>
+      )}
+    </div>
+  );
+}
+
+function CompletedTradesTable({ trades }: { trades: Trade[] }) {
+  const [open, setOpen] = useState(true);
+  if (trades.length === 0) return null;
+
+  const totalPnl = trades.reduce((s, t) => s + t.pnl, 0);
+
+  return (
+    <div style={{ padding: "4px 0" }}>
+      <div
+        style={{ color: D.comment, padding: "4px 0 2px", cursor: "pointer", userSelect: "none" }}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span style={{ color: D.purple }}>{open ? "▾" : "▸"}</span> # ──
+        已完成交易 ({trades.length}笔 |{" "}
+        <span style={{ color: pnlColor(totalPnl) }}>
+          {totalPnl >= 0 ? "+" : ""}{numFmt(totalPnl)}
+        </span>
+        ) ──
+      </div>
+      {open && <TradesTable trades={trades} bare />}
+    </div>
+  );
+}
+
+function HistorySection({ data }: { data: SimData }) {
+  const [open, setOpen] = useState(false); // 默认折叠
+
+  return (
+    <div style={{ padding: "8px 0 0" }}>
+      <div
+        style={{
+          color: D.comment, padding: "4px 0 2px",
+          cursor: "pointer", userSelect: "none",
+        }}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span style={{ color: D.purple }}>{open ? "▾" : "▸"}</span> # ══ 历史回测
+        <span style={{ fontSize: 11 }}>
+          （{data.summary.total_trades}笔 | {pctFmt(data.summary.total_return)} | 夏普 {data.summary.sharpe_ratio.toFixed(2)}）
+        </span>
+         ══
+      </div>
+      {open && (
+        <div style={{ padding: "4px 0" }}>
+          <SummaryBar s={data.summary} />
+          <EquityCurve
+            data={data.daily_pnl}
+            initialCapital={data.summary.initial_capital}
+          />
+          <TradesTable trades={data.trades} />
+          <div
+            style={{
+              display: "flex", gap: 24,
+              flexWrap: "wrap", marginTop: 8,
+            }}
+          >
+            <AttributionPanel
+              title="按策略归因"
+              data={data.per_strategy}
+              nameWidth="16ch"
+              isStrategy
+            />
+            <AttributionPanel
+              title="按股票归因"
+              data={data.per_stock}
+              nameWidth="12ch"
+            />
+          </div>
         </div>
       )}
     </div>
@@ -826,7 +1117,7 @@ export default function SimPage() {
   const [data, setData] = useState<SimData | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
-  const [tab, setTab] = useState<"live" | "history">("live");
+  const [lastUpdate, setLastUpdate] = useState("");
 
   const fetchData = useCallback(async () => {
     try {
@@ -837,6 +1128,7 @@ export default function SimPage() {
       } else {
         setData(json);
         setFetchError("");
+        setLastUpdate(new Date().toLocaleTimeString("zh-CN", { hour12: false }));
       }
     } catch (e) {
       setFetchError(String(e));
@@ -847,11 +1139,9 @@ export default function SimPage() {
 
   useEffect(() => {
     fetchData();
-    // Live tab: 5s refresh; History tab: 30s refresh
-    const ms = tab === "live" ? 5_000 : 30_000;
-    const iv = setInterval(fetchData, ms);
+    const iv = setInterval(fetchData, 5_000);
     return () => clearInterval(iv);
-  }, [fetchData, tab]);
+  }, [fetchData]);
 
   const hasLive = data?.live && (data.live.n_positions > 0 || data.live.trades.length > 0);
 
@@ -865,10 +1155,10 @@ export default function SimPage() {
       }}
     >
       <TitleBar />
-      <NavBar data={data} tab={tab} setTab={setTab} />
+      <NavBar data={data} />
 
       <div style={{ flex: 1, overflow: "auto", padding: "8px 16px 24px" }}>
-        <Prompt cmd={tab === "live" ? "tail -f live_positions.log" : "cat sim_report.log"} />
+        <Prompt cmd="cat sim_trading.log" />
 
         {/* 加载中 */}
         {loading && (
@@ -890,61 +1180,23 @@ export default function SimPage() {
           </div>
         )}
 
-        {/* ── 实时 tab ── */}
-        {tab === "live" && !loading && data && (
+        {!loading && data && (
           <>
+            {/* ── 实时摘要（总盈亏/收益率/胜率一目了然） ── */}
+            <LiveSummaryBar live={data.live} ts={lastUpdate} />
+
+            {/* ── 实时持仓 ── */}
             {hasLive ? (
               <LivePanel live={data.live} />
             ) : (
-              <div style={{ color: D.comment, padding: "16px 0" }}>
-                <span style={{ color: D.yellow }}>info</span> 实时引擎未检测到持仓或交易。
-                确保 L2 daemon 正在运行且已启用 sim engine。
+              <div style={{ color: D.comment, padding: "8px 0" }}>
+                <span style={{ color: D.yellow }}>info</span> 实时引擎暂无持仓。等待 L2 信号触发...
               </div>
             )}
-          </>
-        )}
 
-        {/* ── 历史 tab ── */}
-        {tab === "history" && !loading && data && (
-          <>
-            {data.summary.total_trades === 0 ? (
-              <div style={{ color: D.comment, padding: "16px 0" }}>
-                <span style={{ color: D.yellow }}>warn</span> 暂无交易记录。请先运行{" "}
-                <span style={{ color: D.green }}>
-                  poetry run python -m src.sim_trading.replay_runner
-                </span>{" "}
-                生成回测数据。
-              </div>
-            ) : (
-              <>
-                <SummaryBar s={data.summary} />
-                <EquityCurve
-                  data={data.daily_pnl}
-                  initialCapital={data.summary.initial_capital}
-                />
-                {data.positions && Object.keys(data.positions).length > 0 && (
-                  <PositionsTable positions={data.positions} />
-                )}
-                <TradesTable trades={data.trades} />
-                <div
-                  style={{
-                    display: "flex", gap: 24,
-                    flexWrap: "wrap", marginTop: 8,
-                  }}
-                >
-                  <AttributionPanel
-                    title="按策略归因"
-                    data={data.per_strategy}
-                    nameWidth="16ch"
-                    isStrategy
-                  />
-                  <AttributionPanel
-                    title="按股票归因"
-                    data={data.per_stock}
-                    nameWidth="12ch"
-                  />
-                </div>
-              </>
+            {/* ── 历史回测（折叠） ── */}
+            {data.summary.total_trades > 0 && (
+              <HistorySection data={data} />
             )}
           </>
         )}

@@ -53,22 +53,23 @@ class RealtimeSimEngine:
     # ── State persistence ──
 
     def _load_watermark(self):
-        """Load last processed signal timestamp from DB."""
+        """Load watermark: process all signals from today onward.
+
+        On startup, set watermark to yesterday's last signal so that
+        all of today's signals (already archived) get processed in the
+        first tick(). This ensures no signals are skipped.
+        """
         conn = get_connection()
+        today = datetime.now().strftime("%Y-%m-%d")
         row = conn.execute(
-            "SELECT MAX(last_updated) as wm FROM live_state"
+            "SELECT MAX(ts) as max_ts FROM signals WHERE date < ?",
+            (today,),
         ).fetchone()
-        if row and row["wm"]:
-            # Use live_state's last_updated as rough watermark
-            pass
-        # Better: use signals table filtered by what we've already processed
-        # Since we persist positions, any signal that led to a position is "processed"
-        # Just start from the latest signal ts that has a live position
-        row2 = conn.execute(
-            "SELECT MAX(ts) as max_ts FROM signals"
-        ).fetchone()
-        if row2 and row2["max_ts"]:
-            self._last_processed_ts = row2["max_ts"]
+        if row and row["max_ts"]:
+            self._last_processed_ts = row["max_ts"]
+        else:
+            # No previous day signals — start from 0 (process everything)
+            self._last_processed_ts = 0
         conn.close()
 
     def _load_state(self):

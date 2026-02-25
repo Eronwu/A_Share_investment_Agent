@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { readFileSync } from "fs";
 import { join } from "path";
+import Database from "better-sqlite3";
+import { SIM_DB_PATH } from "../../lib/db";
 
 const DATA_PATH = join(process.cwd(), "..", "src", "data", "market_data.json");
 const CONFIG_PATH = join(process.cwd(), "..", "src", "data", "monitor_config.json");
 const ALERT_PATH = join(process.cwd(), "..", "src", "data", "alert_config.json");
-const ALERT_EVENTS_PATH = join(process.cwd(), "..", "src", "data", "alert_events.json");
 
 const EMPTY = { services: [], ts: 0, settings: {} };
 
@@ -80,11 +81,18 @@ export async function GET() {
 
     data.settings = settings;
 
-    // 读 alert events（notifier 写入，web 只读）
+    // 读 alert events（notifier 写入 SQLite，web 只读）
     try {
-      const evRaw = readFileSync(ALERT_EVENTS_PATH, "utf-8");
-      const evData = JSON.parse(evRaw);
-      data.alertEvents = evData.events || [];
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const db = new Database(SIM_DB_PATH, { readonly: true });
+      data.alertEvents = db
+        .prepare(
+          "SELECT ts, time, symbol, kind, level, message, display, change_pct " +
+          "FROM alert_events WHERE date = ? ORDER BY ts",
+        )
+        .all(today);
+      db.close();
     } catch {
       data.alertEvents = [];
     }

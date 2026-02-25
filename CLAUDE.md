@@ -86,11 +86,11 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
 **Loading 状态**: Dashboard 首次加载时显示 `info Loading metrics...`（终端风格），不渲染空表格。
 
-**Data flow**: 四文件分离，`/api/metrics` 负责合并。
+**Data flow**: 三 JSON + SQLite alert_events 分离，`/api/metrics` 负责合并。
 
 **Key hooks**:
 - `useCommand` — parses `svc add|update|rm|hide|unhide|star|unstar|ls|config|help` commands, manages terminal log entries. Returns `addLogs` for external log injection.
-- `useAlerts` — 读取 notifier 写入的 `alert_events.json` 展示在 web 日志区，不做任何告警计算（纯消费者）。用 `display` 字段展示中文详细格式。
+- `useAlerts` — 读取 notifier 写入 SQLite `alert_events` 表的数据（经 `/api/metrics` 返回），展示在 web 日志区，不做任何告警计算（纯消费者）。用 `display` 字段展示中文详细格式。
 
 **模拟盘页面 (`/sim`)**:
 - `/api/sim` 读 `sim_trading.db`（better-sqlite3，只读），TS 端计算 Sharpe/MaxDD/归因
@@ -107,18 +107,18 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 - Promote (watching→holding) 必须填写 cost 和 shares 才能 Confirm
 - Demote (holding→watching) 有 `confirm()` 确认弹窗
 
-**四文件职责分离**:
+**数据职责分离**:
 
-| 文件 | 写入方 | 内容 |
+| 存储 | 写入方 | 内容 |
 |------|--------|------|
 | `market_data.json` | Poller (Python) | 个股行情 + 两市成交额 (marketTurnover) + 汇率 |
 | `monitor_config.json` | UI (/api/config) | 持仓配置 (name/type/cost/shares/hidden) |
 | `alert_config.json` | UI (/api/config) | 告警规则 (above/below，按股票代码索引) |
-| `alert_events.json` | Notifier (Python) | 告警事件流 (message/display 双格式) |
+| `sim_trading.db` → `alert_events` | Notifier (Python) | 告警事件流 (message/display 双格式) |
 
-`/api/metrics` 合并四者 + 计算 pnl，任何 UI 操作立即生效，不依赖 poller 周期。
+`/api/metrics` 合并三 JSON + SQLite alert_events + 计算 pnl，任何 UI 操作立即生效，不依赖 poller 周期。
 
-**`alert_events.json`** — Notifier 写入的告警事件流（运行时数据，不入库）。每条事件含两种格式：`message`（stealth 简短，terminal 通知用）和 `display`（中文详细，web 日志展示用）。同一数据源，两端各取所需，terminal 清掉后可在 web 追溯。
+**`alert_events` 表（`sim_trading.db`）** — Notifier 写入的告警事件，存储在 SQLite 中（原 `alert_events.json` 已迁移）。每条事件含两种格式：`message`（stealth 简短，terminal 通知用）和 `display`（中文详细，web 日志展示用）。`INSERT OR IGNORE` + `UNIQUE(ts, symbol, message)` 零成本去重。date 索引支持历史查询。30 天自动清理。
 
 **`monitor_config.json` structure** (不含 above/below):
 ```json
@@ -182,6 +182,7 @@ poetry run python -m src.sim_trading.replay_runner --version v2_test  # 指定�
 - `trades`: 已平仓交易 (entry/exit price, pnl, exit_reason, entry strategy)
 - `daily_pnl`: 每日权益快照 (equity, cash, invested, positions_json)
 - `param_versions`: 参数版本配置
+- `alert_events`: 告警事件 (ts, date, symbol, kind, level, message, display, change_pct)
 
 **Web 页面 (`/sim`)**:
 - `/api/sim` 路由: 用 `better-sqlite3` 读 SQLite，TS 端计算 summary/归因
@@ -199,10 +200,10 @@ poetry run python -m src.sim_trading.replay_runner --version v2_test  # 指定�
 
 ### Architecture Rules
 
-- **Poller 是生产者，UI 是消费者，二者无耦合。** Poller (`src/tools/market_data_poller.py`) 只写行情数据到 `market_data.json`（price/change/vol/amount 等）；用户配置（type/cost/shares/hidden）只存 `monitor_config.json`；告警规则（above/below）独立存 `alert_config.json`。`/api/metrics` 负责合并四个 JSON + 计算派生字段（pnl）。任何 UI 端操作立即生效，不依赖 poller 周期。
+- **Poller 是生产者，UI 是消费者，二者无耦合。** Poller (`src/tools/market_data_poller.py`) 只写行情数据到 `market_data.json`（price/change/vol/amount 等）；用户配置（type/cost/shares/hidden）只存 `monitor_config.json`；告警规则（above/below）独立存 `alert_config.json`；告警事件存 `sim_trading.db` 的 `alert_events` 表。`/api/metrics` 负责合并三 JSON + SQLite alert_events + 计算派生字段（pnl）。任何 UI 端操作立即生效，不依赖 poller 周期。
 - **All market data and FX rate fetching must happen in the Python poller script**, not in Next.js API routes. The web layer (`/api/metrics`) only reads from `market_data.json` written by the poller. This keeps the data pipeline centralized and avoids duplicate API calls from the frontend.
 - **告警规则与持仓配置分离。** `above`/`below` 阈值存在 `alert_config.json`，不存在 `monitor_config.json` 的 watchlist 条目里。所有读写告警的代码（web API、CLI、notifier）统一从 `alert_config.json` 操作。删除股票时同步清理两个文件。
-- **告警计算单一数据源。** Notifier (`stock_notifier.py` DeltaAlertEngine) 是唯一的告警计算引擎，产出写入 `alert_events.json`。Web 前端 (`useAlerts`) 只读取展示，不做任何告警计算。确保 terminal 弹窗和 web 日志完全一致，不重复计算，不重复告警。
+- **告警计算单一数据源。** Notifier (`stock_notifier.py` DeltaAlertEngine) 是唯一的告警计算引擎，产出写入 `sim_trading.db` 的 `alert_events` 表。Web 前端 (`useAlerts`) 只读取展示，不做任何告警计算。确保 terminal 弹窗和 web 日志完全一致，不重复计算，不重复告警。
 
 ### HK Stock Codes
 
@@ -216,7 +217,7 @@ Hong Kong stocks use `HK` prefix (e.g., `HK09988`). The web metrics API strips t
 
 Lightweight macOS notification daemon. Reads poller output, never fetches data directly.
 
-**Data flow**: `market_data.json` (poller) + `monitor_config.json` (config) + `alert_config.json` (thresholds) → DeltaAlertEngine → stealth_dispatch → terminal-notifier + `alert_events.json` → web
+**Data flow**: `market_data.json` (poller) + `monitor_config.json` (config) + `alert_config.json` (thresholds) → DeltaAlertEngine → stealth_dispatch → terminal-notifier + `sim_trading.db:alert_events` → web
 
 **启动**: `./start_monitor.sh` 一键启动 Poller + Notifier + Web，或单独运行 `poetry run python src/tools/stock_notifier.py`。修改代码后必须重启进程（kill old pid → restart）。
 
@@ -241,7 +242,7 @@ Lightweight macOS notification daemon. Reads poller output, never fetches data d
 - **内容极简**: 只显示股票名称 + 涨跌幅% + 现价。不显示盈亏金额、持仓数量等敏感数据。
 - **Stealth 模式**: 通知标题伪装为 CI/监控系统（"CI Pipeline Alert"、"SRE Notification"），同事看到不会察觉是股票。
 - **无声为主**: 只有严重告警（跌幅 > 8% 或触价）才有提示音，其余静默弹窗。
-- **每日重置**: 每天 8:00 清除所有 delta 追踪状态 + 清空 `alert_events.json`，新交易日重新开始。
+- **每日重置**: 每天 8:00 清除所有 delta 追踪状态，新交易日重新开始。alert_events 保留在 SQLite 中（按 date 索引，30 天自动清理）。
 
 #### Settings (monitor_config.json → settings)
 

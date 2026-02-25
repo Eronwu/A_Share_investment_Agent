@@ -36,7 +36,18 @@
 - Low: TitleBar, ZshPrompt duplicated across 3 pages
 - Fixed: C1 alert threshold edit, C3 fetchError/isStale, H7 HK fx rate in row P&L
 
+### Sim Trading Page (`web/app/sim/page.tsx`, ~1035 lines)
+- API route: `web/app/api/sim/route.ts` (reads sim_trading.db via better-sqlite3)
+- Live data polls every 5s, no freshness indicator
+- Summary bar: 10 KPIs at equal visual weight (needs tiered hierarchy)
+- SVG equity curve: fixed 760px width, label overlap >17 data points
+- SIM badge repeated redundantly on every position row
+- Trade history: no sort/filter, only shows exit date (not entry+hold duration)
+- Distance-to-stop-loss not computed/displayed despite data being available
+- NavBar and LiveSummaryBar show overlapping P&L info (different definitions)
+
 ### Review History
 - 2026-02-10: Initial column/data review
 - 2026-02-13: Manage page scalability review (search/filter added)
 - 2026-02-24: Full UX/UI/UE professional audit (comprehensive)
+- 2026-02-25: Sim trading page (/sim) detailed UX review
