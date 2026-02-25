@@ -91,8 +91,11 @@ browser-state*.json
 # macro summary (runtime)
 src/data/macro_summary.json
 
-
-/src/data/archive/
+# runtime data (not tracked)
+src/data/sim_trading.db-shm
+src/data/sim_trading.db-wal
+src/data/daily_summary.json
+src/data/archive/
 
 # playwright test results & screenshots
 web/test-results/
