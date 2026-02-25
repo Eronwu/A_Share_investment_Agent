@@ -42,10 +42,11 @@ NON_TRADING_CHECK_SEC = 60  # mtime check interval outside trading hours
 
 
 def _archive_and_reset(today):
-    """归档昨日 market_data.json + 清理 30 天前 alert_events。
+    """归档昨日 market_data + l2_strategy_signals，清理 30 天前 alert_events。
 
     归档文件命名: archive/market_data_2026-02-12.json
-    alert_events 已迁移到 SQLite，不再需要 JSON 归档/清空。
+    l2_strategy_signals 每 3s 覆盖，session 上下文（资金流、盘口）不入 DB，
+    必须每日归档保留完整数据用于量化回测。
     """
     import shutil
     yesterday = (today - timedelta(days=1)).isoformat()
@@ -60,6 +61,16 @@ def _archive_and_reset(today):
                 logger.info(f"归档: {MARKET_DATA_PATH.name} → archive/{dest.name}")
     except Exception as e:
         logger.warning(f"归档 market_data 失败: {e}")
+
+    # 归档 l2_strategy_signals.json（session 上下文仅存于此文件，不归档则丢失）
+    try:
+        if L2_SIGNALS_PATH.exists():
+            dest = ARCHIVE_DIR / f"l2_strategy_signals_{yesterday}.json"
+            if not dest.exists():
+                shutil.copy2(L2_SIGNALS_PATH, dest)
+                logger.info(f"归档: {L2_SIGNALS_PATH.name} → archive/{dest.name}")
+    except Exception as e:
+        logger.warning(f"归档 l2_strategy_signals 失败: {e}")
 
     # 清理 30 天前的 alert_events（SQLite）
     conn = None
