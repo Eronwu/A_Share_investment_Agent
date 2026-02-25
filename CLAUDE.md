@@ -164,7 +164,7 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 |------|------|
 | `sim_trading.db-shm` / `sim_trading.db-wal` | SQLite WAL 临时文件 |
 | `daily_summary.json` | 每日报告（收盘后生成，可重新生成） |
-| `archive/` | 历史归档目录（每日 08:00 自动归档 market_data + l2_signals） |
+| `archive/` | 历史归档目录（每日 08:00 归档 market_data + l2_signals + daily_summary，90 天自动清理） |
 
 ### Simulated Trading (`src/sim_trading/`)
 
@@ -254,13 +254,14 @@ tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
 **测试**: `poetry run pytest src/sim_trading/test_sim_trading.py -v` (54 tests)
 
 **SQLite 数据库 (`src/data/sim_trading.db`)**:
-- `signals`: 归档的 L2 信号 (strategy, code, direction, price_at_signal)
-- `price_snapshots`: 30s 粒度价格快照
-- `trades`: 已平仓交易 (entry/exit price, pnl, exit_reason, param_version="live")
-- `daily_pnl`: 每日权益快照 (equity, cash, invested, positions_json)
+- `signals`: 归档的 L2 信号 (strategy, code, direction, price_at_signal) — 180 天保留
+- `price_snapshots`: 30s 粒度价格快照 (HK only) — 180 天保留
+- `session_snapshots`: 5 分钟 session 上下文快照 (资金流、盘口状态) — 180 天保留
+- `trades`: 已平仓交易 (entry/exit price, pnl, exit_reason, param_version="live") — 永久保留
+- `daily_pnl`: 每日权益快照 (equity, cash, invested, positions_json) — 永久保留
 - `live_state`: 实时持仓 (entry_price, SL/TP, daily_score, unrealized_pnl)
 - `param_versions`: 参数版本配置
-- `alert_events`: 告警事件 (ts, date, symbol, kind, level, message, display, change_pct)
+- `alert_events`: 告警事件 (ts, date, symbol, kind, level, message, display, change_pct) — 30 天保留
 
 **RT engine 日志**: logger 名 `l2_daemon.rt_sim`，继承 daemon handler，写入 `logs/l2_daemon.log`。
 
@@ -355,4 +356,4 @@ UI 修改后使用 `/playwright-test` skill 验证。脚本存放在 `web/screen
 
 #### Hidden List
 
-`hiddenList` 在前端不按 tab 过滤，统一显示所有 hidden 股票（跨 A股/HK tab）。避免用户 hide HK 股后在 A股 tab 看不到。
+`hiddenList` 按当前 market tab 过滤（与 prod/stage 分组一致）。A 股 tab 只显示 A 股 hidden，HK tab 只显示港股 hidden。

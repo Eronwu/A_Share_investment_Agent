@@ -72,18 +72,53 @@ def _archive_and_reset(today):
     except Exception as e:
         logger.warning(f"归档 l2_strategy_signals 失败: {e}")
 
-    # 清理 30 天前的 alert_events（SQLite）
+    # 归档 daily_summary.json（LLM 日报每日覆盖，不归档则丢失）
+    try:
+        summary_path = PROJECT_ROOT / "src" / "data" / "daily_summary.json"
+        if summary_path.exists():
+            dest = ARCHIVE_DIR / f"daily_summary_{yesterday}.json"
+            if not dest.exists():
+                shutil.copy2(summary_path, dest)
+                logger.info(f"归档: {summary_path.name} → archive/{dest.name}")
+    except Exception as e:
+        logger.warning(f"归档 daily_summary 失败: {e}")
+
+    # 清理 90 天前的归档文件
+    try:
+        cutoff_date = (today - timedelta(days=90)).isoformat()
+        removed = 0
+        for f in ARCHIVE_DIR.glob("*_????-??-??.json"):
+            # 提取文件名中的日期: xxx_2026-02-12.json → 2026-02-12
+            date_str = f.stem.rsplit("_", 1)[-1]
+            if len(date_str) == 10 and date_str < cutoff_date:
+                f.unlink()
+                removed += 1
+        if removed:
+            logger.info(f"清理归档: 删除 {removed} 个 90 天前文件")
+    except Exception as e:
+        logger.warning(f"清理归档失败: {e}")
+
+    # 清理 SQLite 过期数据
     conn = None
     try:
         from src.sim_trading.db import get_connection
-        cutoff = (today - timedelta(days=30)).isoformat()
         conn = get_connection()
-        deleted = conn.execute("DELETE FROM alert_events WHERE date < ?", (cutoff,)).rowcount
+        cutoff_30d = (today - timedelta(days=30)).isoformat()
+        cutoff_180d = (today - timedelta(days=180)).isoformat()
+
+        # alert_events: 30 天
+        d1 = conn.execute("DELETE FROM alert_events WHERE date < ?", (cutoff_30d,)).rowcount
+        # signals / price_snapshots / session_snapshots: 180 天
+        d2 = conn.execute("DELETE FROM signals WHERE date < ?", (cutoff_180d,)).rowcount
+        d3 = conn.execute("DELETE FROM price_snapshots WHERE date < ?", (cutoff_180d,)).rowcount
+        d4 = conn.execute("DELETE FROM session_snapshots WHERE date < ?", (cutoff_180d,)).rowcount
+
         conn.commit()
-        if deleted:
-            logger.info(f"清理 alert_events: 删除 {deleted} 条 30 天前记录")
+        total = d1 + d2 + d3 + d4
+        if total:
+            logger.info(f"SQLite 清理: alert_events -{d1}, signals -{d2}, price_snap -{d3}, session_snap -{d4}")
     except Exception as e:
-        logger.warning(f"清理 alert_events 失败: {e}")
+        logger.warning(f"SQLite 清理失败: {e}")
     finally:
         if conn:
             conn.close()
