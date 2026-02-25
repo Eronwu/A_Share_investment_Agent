@@ -24,6 +24,7 @@ MARKET_DATA_PATH = PROJECT_ROOT / "data" / "market_data.json"
 
 SIGNAL_CHECK_SEC = 5
 PRICE_SAMPLE_SEC = 30
+SESSION_SNAPSHOT_SEC = 300  # 每 5 分钟归档一次 session 上下文
 
 
 def _read_json(path: Path) -> dict | None:
@@ -107,12 +108,13 @@ def _get_price_context(market_data: dict, code: str) -> tuple[float, float]:
 
 
 class SignalArchiver:
-    """归档 L2 信号和价格快照到 SQLite。"""
+    """归档 L2 信号、价格快照和 session 上下文到 SQLite。"""
 
     def __init__(self):
         init_db()
         self._last_signal_ts = 0  # 信号水位标记
         self._last_price_sample = 0.0  # 上次价格采样时间
+        self._last_session_snapshot = 0.0  # 上次 session 快照时间
 
     def _load_watermark(self):
         """从 DB 加载最新信号 ts 作为水位标记。"""
@@ -232,8 +234,56 @@ class SignalArchiver:
 
         return sampled
 
+    def snapshot_session(self) -> int:
+        """归档 session 上下文（资金流、盘口状态）到 SQLite。返回归档数量。
+
+        session 包含 capital_flow、tracker 状态等 daemon 运行时数据，
+        仅存在于 l2_strategy_signals.json，不归档则丢失。
+        每 5 分钟采样一次，保留日内资金流演变轨迹。
+        """
+        now = time.time()
+        if now - self._last_session_snapshot < SESSION_SNAPSHOT_SEC:
+            return 0
+
+        self._last_session_snapshot = now
+
+        data = _read_json(SIGNALS_PATH)
+        if not data or not isinstance(data, dict):
+            return 0
+
+        session = data.get("session", {})
+        if not session:
+            return 0
+
+        ts = int(now * 1000)
+        today = datetime.now().strftime("%Y-%m-%d")
+        t = datetime.now().strftime("%H:%M:%S")
+
+        conn = get_connection()
+        saved = 0
+        for code, ctx in session.items():
+            if not code or not isinstance(ctx, dict):
+                continue
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO session_snapshots
+                       (ts, date, time, code, session_json)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    (ts, today, t, code, json.dumps(ctx, ensure_ascii=False)),
+                )
+                saved += 1
+            except Exception as e:
+                logger.debug(f"Session snapshot error: {e}")
+
+        conn.commit()
+        conn.close()
+
+        if saved > 0:
+            logger.info(f"Session snapshot: {saved} stocks archived")
+        return saved
+
     def run(self):
-        """主循环: 5s 检查信号 + 30s 采样价格。"""
+        """主循环: 5s 检查信号 + 30s 采样价格 + 5min session 快照。"""
         self._load_watermark()
         logger.info("Signal Archiver started")
         logger.info(f"  signals: {SIGNALS_PATH.name}")
@@ -244,6 +294,7 @@ class SignalArchiver:
                 try:
                     self.archive_signals()
                     self.sample_prices()
+                    self.snapshot_session()
                 except Exception as e:
                     logger.warning(f"Archiver error: {e}")
                 time.sleep(SIGNAL_CHECK_SEC)

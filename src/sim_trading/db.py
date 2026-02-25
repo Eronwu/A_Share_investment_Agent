@@ -152,6 +152,18 @@ CREATE TABLE IF NOT EXISTS alert_events (
 );
 CREATE INDEX IF NOT EXISTS idx_alert_events_date ON alert_events(date);
 CREATE INDEX IF NOT EXISTS idx_alert_events_date_ts ON alert_events(date, ts);
+
+-- L2 session 上下文快照 (资金流、盘口状态，量化回测用)
+CREATE TABLE IF NOT EXISTS session_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    time TEXT NOT NULL,
+    code TEXT NOT NULL,
+    session_json TEXT NOT NULL,
+    UNIQUE(ts, code)
+);
+CREATE INDEX IF NOT EXISTS idx_session_snap_date_code ON session_snapshots(date, code);
 """
 
 
