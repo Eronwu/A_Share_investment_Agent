@@ -142,6 +142,30 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
 `type: "holding"` = production (PROD), otherwise watching (DEV). `poll_interval` controls refresh rate. Interactive commands modify config via `/api/config` POST.
 
+### Git 版本控制
+
+`src/data/` 下的文件分为两类：
+
+**需要提交的（含持久状态）**:
+
+| 文件 | 说明 |
+|------|------|
+| `monitor_config.json` | 持仓配置（用户手动维护） |
+| `alert_config.json` | 告警规则（用户手动维护） |
+| `sim_trading.db` | SQLite 数据库（信号归档、交易记录、alert_events、实时持仓） |
+| `market_data.json` | 最新行情快照（poller 写入，提交保留最后状态） |
+| `signal_rules.json` | 信号规则配置 |
+| `l2_strategy_config.json` | L2 策略参数 |
+
+**不需要提交的（临时/派生）**:
+
+| 文件 | 说明 |
+|------|------|
+| `sim_trading.db-shm` / `sim_trading.db-wal` | SQLite WAL 临时文件 |
+| `l2_strategy_signals.json` | L2 daemon 实时输出（每 3s 覆盖） |
+| `daily_summary.json` | 每日报告（收盘后生成，可重新生成） |
+| `archive/` | 历史归档目录 |
+
 ### Simulated Trading (`src/sim_trading/`)
 
 模拟交易系统：消费 L2 信号，生成虚拟交易，计算绩效指标。
