@@ -431,6 +431,13 @@ class RealtimeSimEngine:
             if est_qty <= 0:
                 continue
 
+            # Min notional filter: avoid tiny positions with disproportionate fees
+            notional = exec_price * est_qty
+            min_notional = cfg.get("min_notional", 30000)
+            if notional < min_notional:
+                logger.debug(f"Skip {code}: notional {notional:.0f} < min {min_notional}")
+                continue
+
             cost_info = self._engine.calc_cost(exec_price, est_qty, "BUY")
 
             # Override stop_loss / take_profit from scorer
@@ -706,6 +713,13 @@ class RealtimeSimEngine:
         alloc = self._pos_mgr.cash * position_pct
         est_qty = self._pos_mgr._align_lot(code, int(alloc / exec_price))
         if est_qty <= 0:
+            return
+
+        # Min notional filter
+        notional = exec_price * est_qty
+        min_notional = cfg.get("min_notional", 30000)
+        if notional < min_notional:
+            logger.debug(f"Skip intraday {code}: notional {notional:.0f} < min {min_notional}")
             return
 
         cost_info = self._engine.calc_cost(exec_price, est_qty, "BUY")

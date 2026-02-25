@@ -80,7 +80,8 @@
     "min_hold_minutes": 30,
     "max_hold_days": 10,
     "position_pct": 0.25,
-    "min_profit_after_cost_pct": 0.003
+    "min_profit_after_cost_pct": 0.005,
+    "min_notional": 30000
   },
   "scoring_weights": {
     "macd": 20,
