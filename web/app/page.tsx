@@ -276,7 +276,7 @@ function Home() {
   const prodETF = applySortList(tabServices.filter((s) => s.type === "holding" && !s.hidden && isETF(s)), holdSort);
   const stageStock = applySortList(tabServices.filter((s) => s.type !== "holding" && !s.hidden && !isETF(s)), watchSort);
   const stageETF = applySortList(tabServices.filter((s) => s.type !== "holding" && !s.hidden && isETF(s)), watchSort);
-  const hiddenList = applySortList(services.filter((s) => s.hidden), holdSort);
+  const hiddenList = applySortList(tabServices.filter((s) => s.hidden), holdSort);
   const hasHold = prodStock.length > 0 || prodETF.length > 0;
 
   const now = ts
@@ -325,7 +325,7 @@ function Home() {
     const pnlPctStr = s.pnl !== null ? `${s.pnl >= 0 ? "+" : ""}${s.pnl.toFixed(1)}%` : "-";
     const rowFx = s.id.startsWith("HK") ? fxRate : 1;
     const mktVal = s.shares != null ? s.price * s.shares * rowFx : null;
-    const totalPnlRaw = s.cost != null && s.cost > 0 && s.shares != null ? (s.price - s.cost) * s.shares * rowFx : null;
+    const totalPnlRaw = s.cost != null && s.cost !== 0 && s.shares != null ? (s.price - s.cost) * s.shares * rowFx : null;
     const dayPnl = s.shares != null ? s.chgAmt * s.shares * rowFx : null;
     // Near alert threshold indicator
     const nearAlert =
@@ -354,6 +354,9 @@ function Home() {
         <span style={{ color: D.comment, width: "9ch", textAlign: "right" }}>
           {pad(s.cost != null ? s.cost.toFixed(2) : "-", 8, true)}
         </span>
+        <span style={{ color: D.fg, width: "7ch", textAlign: "right" }}>
+          {pad(s.shares != null ? String(s.shares) : "-", 6, true)}
+        </span>
         <span style={{ color: s.pnl !== null ? chgColor(s.pnl) : D.comment, width: "10ch", textAlign: "right", fontWeight: 500 }}>
           {pad(pnlPctStr, 9, true)}
         </span>
@@ -367,10 +370,10 @@ function Home() {
           {pad(dayPnl != null ? fmtMoney(dayPnl) : "-", 8, true)}
         </span>
         <span style={{ color: s.volRatio >= 1.5 ? D.red : s.volRatio <= 0.5 ? D.comment : D.fg, width: "7ch", textAlign: "right" }}>
-          {pad(s.volRatio.toFixed(2), 6, true)}
+          {pad(s.volRatio > 0 ? s.volRatio.toFixed(2) : "-", 6, true)}
         </span>
         <span style={{ color: s.turnover >= 5 ? D.red : D.fg, width: "8ch", textAlign: "right" }}>
-          {pad(s.turnover.toFixed(2), 7, true)}
+          {pad(s.turnover > 0 ? s.turnover.toFixed(2) : "-", 7, true)}
         </span>
         <span style={{ color: D.comment, width: "9ch", textAlign: "right" }}>
           {pad(fmtAmt(s.amount), 8, true)}
@@ -412,10 +415,10 @@ function Home() {
           {pad(`${csign}${s.chgAmt.toFixed(2)}`, 7, true)}
         </span>
         <span style={{ color: s.volRatio >= 1.5 ? D.red : s.volRatio <= 0.5 ? D.comment : D.fg, width: "7ch", textAlign: "right" }}>
-          {pad(s.volRatio.toFixed(2), 6, true)}
+          {pad(s.volRatio > 0 ? s.volRatio.toFixed(2) : "-", 6, true)}
         </span>
         <span style={{ color: s.turnover >= 5 ? D.red : D.fg, width: "8ch", textAlign: "right" }}>
-          {pad(s.turnover.toFixed(2), 7, true)}
+          {pad(s.turnover > 0 ? s.turnover.toFixed(2) : "-", 7, true)}
         </span>
         <span style={{ color: D.comment, width: "9ch", textAlign: "right" }}>
           {pad(fmtAmt(s.amount), 8, true)}
@@ -564,6 +567,7 @@ function Home() {
               <span style={hs("10ch", "price", true)} onClick={() => ht("price")}>{pad("现价" + ha("price"), 9, true)}</span>
               <span style={hs("9ch", "change", true)} onClick={() => ht("change")}>{pad("涨跌幅" + ha("change"), 8, true)}</span>
               <span style={hs("9ch", "cost", true)} onClick={() => ht("cost")}>{pad("成本" + ha("cost"), 8, true)}</span>
+              <span style={{ width: "7ch", textAlign: "right" }}>{pad("股数", 6, true)}</span>
               <span style={hs("10ch", "pnl", true)} onClick={() => ht("pnl")}>{pad("盈亏%" + ha("pnl"), 9, true)}</span>
               <span style={hs("10ch", "mktVal", true)} onClick={() => ht("mktVal")}>{pad("市值" + ha("mktVal"), 9, true)}</span>
               <span style={hs("10ch", "totalPnl", true)} onClick={() => ht("totalPnl")}>{pad("盈亏额" + ha("totalPnl"), 9, true)}</span>

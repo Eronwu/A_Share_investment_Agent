@@ -9,23 +9,17 @@
       "star": false
     },
     "159326": {
-      "name": "电网设备ETF",
-      "type": "holding",
-      "cost": 1.704,
-      "shares": 2300
+      "name": "电网设备ETF"
     },
     "159516": {
       "name": "半导设备",
       "type": "holding",
-      "cost": 1.849,
-      "shares": 6000,
+      "cost": 1.813,
+      "shares": 200,
       "hidden": false
     },
     "159691": {
-      "name": "港股红利ETF",
-      "type": "holding",
-      "cost": 1.3,
-      "shares": 5300
+      "name": "港股红利ETF"
     },
     "159736": {
       "name": "饮食ETF",
@@ -60,8 +54,8 @@
     "159915": {
       "name": "创业板",
       "type": "holding",
-      "cost": 2.246,
-      "shares": 13000
+      "cost": 2.157,
+      "shares": 12000
     },
     "159941": {
       "name": "纳指ETF",
@@ -144,8 +138,8 @@
     "588000": {
       "name": "科创50",
       "type": "holding",
-      "cost": 1.348,
-      "shares": 7500
+      "cost": 1.274,
+      "shares": 5500
     },
     "588170": {
       "name": "科创半导体ETF",
@@ -197,10 +191,7 @@
       "hidden": false
     },
     "601088": {
-      "name": "中国神华",
-      "type": "holding",
-      "cost": 38.44,
-      "shares": 300
+      "name": "中国神华"
     },
     "601138": {
       "name": "工业富联",
@@ -224,10 +215,7 @@
       "shares": 2700
     },
     "601318": {
-      "name": "中国平安",
-      "type": "holding",
-      "cost": 48.252,
-      "shares": 100
+      "name": "中国平安"
     },
     "601689": {
       "name": "拓普集团",
@@ -280,34 +268,34 @@
     "HK00700": {
       "name": "腾讯控股",
       "type": "holding",
-      "cost": 636.764,
+      "cost": 642.31,
       "shares": 100,
       "hidden": false
     },
     "HK09988": {
       "name": "阿里巴巴－Ｗ",
       "type": "holding",
-      "cost": 157.447,
-      "shares": 400
+      "cost": 156.016,
+      "shares": 600
     },
     "HK01810": {
       "name": "小米集团－Ｗ",
       "type": "holding",
-      "cost": 50.825,
-      "shares": 200
+      "cost": 51.311,
+      "shares": 600
     },
     "HK03690": {
       "name": "美团－Ｗ",
       "type": "holding",
-      "cost": 112.448,
-      "shares": 1000,
+      "cost": 119.048,
+      "shares": 1200,
       "hidden": true
     },
     "HK01211": {
       "name": "比亚迪股份",
       "type": "holding",
-      "cost": 122.658,
-      "shares": 1200
+      "cost": 128.678,
+      "shares": 1000
     },
     "HK06809": {
       "name": "澜起科技",
@@ -319,38 +307,35 @@
     "HK01060": {
       "name": "大麦娱乐",
       "type": "holding",
-      "cost": 1.092,
+      "cost": 1.101,
       "shares": 30000
     },
     "HK02359": {
       "name": "药明康德",
       "type": "holding",
-      "cost": 64.305,
-      "shares": 300
+      "cost": -48.888,
+      "shares": 100
     },
     "HK06060": {
       "name": "众安在线",
       "type": "holding",
-      "cost": 17.534,
+      "cost": 17.686,
       "shares": 300
     },
     "HK01357": {
       "name": "美图公司",
       "type": "holding",
-      "cost": 9.833,
-      "shares": 5500
+      "cost": 9.582,
+      "shares": 6000
     },
     "HK00325": {
       "name": "布鲁可",
       "type": "holding",
-      "cost": 118.995,
+      "cost": 120.031,
       "shares": 300
     },
     "HK03896": {
-      "name": "金山云",
-      "type": "holding",
-      "cost": 7.132,
-      "shares": 2000
+      "name": "金山云"
     },
     "002050": {
       "name": "三花智控",
@@ -385,14 +370,14 @@
     "000338": {
       "name": "潍柴动力",
       "type": "holding",
-      "cost": 24.552,
-      "shares": 600
+      "cost": 25.733,
+      "shares": 1000
     },
     "002475": {
       "name": "立讯精密",
       "type": "holding",
-      "cost": 41.586,
-      "shares": 800
+      "cost": 43.42,
+      "shares": 1100
     },
     "000001": {
       "name": "平安银行",
@@ -409,8 +394,8 @@
     "002920": {
       "name": "德赛西威",
       "type": "holding",
-      "cost": 127.38,
-      "shares": 600
+      "cost": 127.843,
+      "shares": 500
     },
     "002074": {
       "name": "国轩高科",
@@ -427,8 +412,8 @@
     "002156": {
       "name": "通富微电",
       "type": "holding",
-      "cost": 49.404,
-      "shares": 400
+      "cost": 49.778,
+      "shares": 800
     },
     "002202": {
       "name": "金风科技",
@@ -445,8 +430,6 @@
     "HK03986": {
       "name": "兆易创新",
       "type": "watching",
-      "cost": 305.999,
-      "shares": 100,
       "star": true
     },
     "HK02590": {
@@ -461,6 +444,30 @@
       "type": "holding",
       "cost": 24.565,
       "shares": 1100
+    },
+    "HK09618": {
+      "name": "京东-SW",
+      "type": "holding",
+      "cost": 113.38,
+      "shares": 250
+    },
+    "HK09927": {
+      "name": "赛力斯",
+      "type": "holding",
+      "cost": 131.5,
+      "shares": 100
+    },
+    "HK03288": {
+      "name": "海天味业",
+      "type": "holding",
+      "cost": 40.843,
+      "shares": 200
+    },
+    "HK07262": {
+      "name": "XL二南方看多日经",
+      "type": "holding",
+      "cost": 152.25,
+      "shares": 30
     }
   },
   "settings": {

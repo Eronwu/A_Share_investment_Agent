@@ -160,6 +160,11 @@ class FutuL2Enricher:
             if snap:
                 entry["bidAskRatio"] = snap.get("bidAskRatio")
                 entry["avgPrice"] = snap.get("avgPrice")
+                # 量比/换手率：东方财富对港股返回 0，用 Futu 数据覆盖
+                if snap.get("volumeRatio"):
+                    entry["volRatio"] = snap["volumeRatio"]
+                if snap.get("turnoverRate"):
+                    entry["turnover"] = snap["turnoverRate"]
 
             # capital flow 字段
             cap = capital_data.get(code)
@@ -181,7 +186,7 @@ class FutuL2Enricher:
         return result
 
     def _fetch_snapshot_extra(self, codes: list[str]) -> dict[str, dict]:
-        """从 snapshot 提取 bidAskRatio 和 avgPrice"""
+        """从 snapshot 提取 bidAskRatio, avgPrice, volumeRatio, turnoverRate"""
         from futu import RET_OK
 
         futu_codes = [to_futu_code(c) for c in codes]
@@ -202,11 +207,17 @@ class FutuL2Enricher:
                     code = from_futu_code(row["code"])
                     bid_ask = row.get("bid_ask_ratio")
                     avg = row.get("avg_price")
+                    vol_ratio = row.get("volume_ratio")
+                    turnover_rate = row.get("turnover_rate")
                     entry = {}
                     if bid_ask and bid_ask != 0:
                         entry["bidAskRatio"] = round(float(bid_ask), 3)
                     if avg and avg != 0:
                         entry["avgPrice"] = round(float(avg), 3)
+                    if vol_ratio and vol_ratio > 0:
+                        entry["volumeRatio"] = round(float(vol_ratio), 2)
+                    if turnover_rate and turnover_rate > 0:
+                        entry["turnoverRate"] = round(float(turnover_rate), 2)
                     if entry:
                         result[code] = entry
             except Exception as e:

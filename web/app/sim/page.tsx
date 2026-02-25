@@ -819,6 +819,7 @@ function LivePanel({ live }: { live: LiveData }) {
                 <span style={{ width: "10ch", textAlign: "right" }}>   现价</span>
                 <span style={{ width: "9ch", textAlign: "right" }}>涨跌幅</span>
                 <span style={{ width: "9ch", textAlign: "right" }}>  成本</span>
+                <span style={{ width: "7ch", textAlign: "right" }}> 股数</span>
                 <span style={{ width: "10ch", textAlign: "right" }}>  盈亏%</span>
                 <span style={{ width: "10ch", textAlign: "right" }}>   市值</span>
                 <span style={{ width: "10ch", textAlign: "right" }}>  浮盈</span>
@@ -860,6 +861,9 @@ function LivePanel({ live }: { live: LiveData }) {
                     </span>
                     <span style={{ color: D.comment, width: "9ch", textAlign: "right" }}>
                       {p.entry_price.toFixed(2)}
+                    </span>
+                    <span style={{ color: D.fg, width: "7ch", textAlign: "right" }}>
+                      {p.quantity}
                     </span>
                     <span style={{ color: c, width: "10ch", textAlign: "right", fontWeight: 500 }}>
                       {p.pnl_pct >= 0 ? "+" : ""}{(p.pnl_pct * 100).toFixed(1)}%

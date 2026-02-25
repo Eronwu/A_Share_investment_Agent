@@ -61,8 +61,8 @@ export async function GET() {
         const isHolding = type === "holding";
 
         let pnl: number | null = null;
-        if (isHolding && cost && cost > 0 && price > 0) {
-          pnl = Math.round(((price - cost) / cost) * 10000) / 100;
+        if (isHolding && cost != null && cost !== 0 && price > 0) {
+          pnl = Math.round(((price - cost) / Math.abs(cost)) * 10000) / 100;
         }
 
         return {

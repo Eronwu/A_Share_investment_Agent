@@ -272,4 +272,4 @@ UI 修改后使用 `/playwright-test` skill 验证。脚本存放在 `web/screen
 
 #### Hidden List
 
-`hiddenList` 在前端不按 tab 过滤，统一显示所有 hidden 股票（跨 A股/HK tab）。避免用户 hide HK 股后在 A股 tab 看不到。
+`hiddenList` 按当前 market tab 过滤（与 prod/stage 分组一致）。A 股 tab 只显示 A 股 hidden，HK tab 只显示港股 hidden。
