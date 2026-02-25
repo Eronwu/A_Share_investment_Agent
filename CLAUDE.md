@@ -168,29 +168,75 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
 ### Simulated Trading (`src/sim_trading/`)
 
-模拟交易系统：消费 L2 信号，生成虚拟交易，计算绩效指标。
+模拟交易系统，v2 策略：日线评分驱动型交易（替代 v1 的 L2 秒级信号驱动）。
 
-**数据流**: `l2_strategy_signals.json` → `signal_archiver` → `sim_trading.db` → `replay_runner` → trades/daily_pnl → `/api/sim` → `/sim` 页面
+**v2 策略核心**:
+- **开仓**: 日线综合评分 >= 70 分（6 维度加权：MACD/RSI/MA排列/主力资金/量价/支撑位）
+- **平仓**: 止损/止盈实时检查 + 15:30 收盘评估（评分 < 40 → 平仓）
+- **入场窗口**: 10:00-10:30，每天最多 1 只新开仓
+- **日内例外**: 极强 L2 信号（confidence >= 0.85 且 score >= 60）可在窗口外入场
+- **T3 纠偏**: 加手续费过滤（|pnl| > 0.5%）+ min_hold 30 分钟检查；盈利时只收窄止损不卖出
+- **冷却**: 同一股票平仓后 120 分钟内不再入场
+- **最小交易额**: notional < 30,000 HKD 的交易不执行（避免小仓位手续费率过高）
+
+**v1→v2 改进背景**: v1 在实盘中 17 笔交易全部被 T3:large_order_reversal 反复平仓，手续费 1,406 HKD（占 |PnL| 的 171%），6/17 笔毛利为正但扣费后亏损。
+
+**数据流**:
+```
+实时: L2 signals → signal_archiver → sim_trading.db
+      DailyIndicatorTracker.score() → RealtimeSimEngine.tick() → live_state / trades
+回放: sim_trading.db → replay_runner → trades/daily_pnl
+Web:  sim_trading.db → /api/sim → /sim 页面
+```
 
 **模块**:
 
 | 模块 | 职责 |
 |------|------|
 | `signal_archiver.py` | 实时归档 L2 信号 + 30s 价格快照到 SQLite |
+| `realtime_engine.py` | **v2 实时引擎**: 日线评分入场、时间窗口控制、T3 手续费过滤、per-tick score 缓存 |
 | `signal_mapper.py` | 4 层信号规则引擎 (Tier1 独立→Tier2 增强→Tier3 纠偏→Tier4 仅日志) |
 | `position_manager.py` | 虚拟持仓管理 (lot-size 对齐, SL/TP/max-hold 退出) |
 | `simulation_engine.py` | HK 交易成本 (佣金+印花税+交易费+结算费) + 流动性滑点 |
 | `trade_analyzer.py` | 绩效分析: 胜率/Sharpe/最大回撤/Calmar/归因 |
 | `replay_runner.py` | 历史回放入口 |
 
+**DailyIndicatorTracker 评分系统** (`l2_strategy_engine.py`):
+- `score(code, main_net_inflow_pct)` → 0-100 分，6 个子维度
+- `get_atr(code)` → 缓存在 `_ind[code]["atr"]` 中的 14 期 ATR
+- 每 30 分钟从 Futu OpenD 刷新日 K 线（120 天），计算 RSI/MACD/MA/BB/ADX/ATR/Vol
+- 无 kline 数据时返回 `{"total": 0, "action": "WAIT"}` — 不会误开仓或误平仓
+
+**评分维度 (`signal_rules.json → scoring_weights`)**:
+
+| 维度 | 满分 | 计算逻辑 |
+|------|------|---------|
+| MACD | 20 | 金叉=20, hist扩张=18, 死叉=0, DIF/DEA零轴上方+2 |
+| RSI | 15 | 60-70=15, 50-60=10, >80=3(极度超买), <30=2 |
+| MA排列 | 20 | 多头排列+站上MA20=20, 空头排列=0 |
+| 主力资金 | 20 | 净流入>10%=20, 无数据时固定=8 (需L2数据传入) |
+| 量价配合 | 15 | 放量上涨=15, 缩量上涨=6, 放量下跌=2 |
+| 支撑位 | 10 | 距支撑<2%=10, <5%=8, >10%=3 |
+
 **信号规则 (`src/data/signal_rules.json`)**:
-- `tiers.1_independent`: 14 种独立信号 → BUY/SELL 决策 (composite_bullish, momentum_alert, MACD 金叉等)
-- `tiers.2_enhance`: tick_persistence (+0.15 boost), large_order (+0.10 boost)
-- `tiers.3_correction`: 6 种纠偏信号 (large_order_reversal→SELL, volume_price_divergence→TIGHTEN_SL)
-- `tiers.4_log_only`: 11 种仅记录信号 (tick_imbalance, order_book_imbalance 等)
-- `risk_control`: min_confidence=0.60, max_single_stock=25%, max_total_invested=80%, 同股同日多空冲突取消
+- `tiers.1-4`: 同 v1（14 种独立 + 2 种增强 + 6 种纠偏 + 11 种日志）
+- `daily_score`: v2 核心配置（entry/exit 阈值、时间窗口、冷却、min_hold、min_notional）
+- `scoring_weights`: 6 维度权重（合计 100 分）
+- `risk_control`: min_confidence=0.60, max_single_stock=25%, max_total_invested=80%
 - `cost_model`: HK 市场费率 (佣金 0.03% min 3 HKD, 印花税 0.13%, 交易费 0.00565%, 结算费 0.002%)
 - `lot_sizes`: 每只 HK 股的每手股数
+
+**Daemon 架构** (`l2_strategy_daemon.py`):
+```
+L2StrategyEngine (poll_once → L2 signals)
+  ├── _daily_indicators: DailyIndicatorTracker (日K指标 + 评分)
+  └── 传递引用 → RealtimeSimEngine(rules, daily_tracker=engine._daily_indicators)
+       ├── tick() 每 3s 调用（交易时段）
+       ├── _evaluate_entries() → 10:00-10:30 评分选股
+       ├── _process_signal_v2() → T3 过滤 + 日内例外
+       ├── _evaluate_exits() → 15:30 收盘评估
+       └── _persist_state() → live_state 表 (含 daily_score)
+```
 
 **运行回放**:
 ```bash
@@ -198,19 +244,32 @@ poetry run python -m src.sim_trading.replay_runner                    # 默认 v
 poetry run python -m src.sim_trading.replay_runner --version v2_test  # 指定参数版本
 ```
 
+**重启 daemon (v2)**:
+```bash
+pkill -f l2_strategy_daemon
+nohup poetry run python src/tools/l2_strategy_daemon.py >> logs/l2_daemon_out.log 2>&1 &
+tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
+```
+
 **测试**: `poetry run pytest src/sim_trading/test_sim_trading.py -v` (54 tests)
 
 **SQLite 数据库 (`src/data/sim_trading.db`)**:
 - `signals`: 归档的 L2 信号 (strategy, code, direction, price_at_signal)
 - `price_snapshots`: 30s 粒度价格快照
-- `trades`: 已平仓交易 (entry/exit price, pnl, exit_reason, entry strategy)
+- `trades`: 已平仓交易 (entry/exit price, pnl, exit_reason, param_version="live")
 - `daily_pnl`: 每日权益快照 (equity, cash, invested, positions_json)
+- `live_state`: 实时持仓 (entry_price, SL/TP, daily_score, unrealized_pnl)
 - `param_versions`: 参数版本配置
 - `alert_events`: 告警事件 (ts, date, symbol, kind, level, message, display, change_pct)
 
+**RT engine 日志**: logger 名 `l2_daemon.rt_sim`，继承 daemon handler，写入 `logs/l2_daemon.log`。
+
 **Web 页面 (`/sim`)**:
-- `/api/sim` 路由: 用 `better-sqlite3` 读 SQLite，TS 端计算 summary/归因
-- 页面布局: 摘要栏(收益率/夏普/胜率/回撤/盈亏比) → 净值曲线(SVG) → 模拟持仓(与主页 HoldRow 风格一致) → 交易记录 → 策略归因 + 股票归因
+- `/api/sim` 路由: 用 `better-sqlite3` 读 SQLite，`SELECT * FROM live_state` 自动包含 daily_score
+- 实时持仓表: 类型/代码/名称/**评分**/现价/涨跌幅/成本/盈亏%/市值/浮盈/止损/距止损/止盈
+- 评分列着色: >= 70 绿色 (BUY), 40-69 橙色 (HOLD), < 40 红色 (SELL)
+- 摘要栏: 收益率/夏普/胜率/回撤/盈亏比/总市值/总资产/可用/交易笔数/手续费
+- 页面布局: 摘要栏 → 实时持仓 → 操作记录 → 已完成交易 → 净值曲线(SVG) → 回测归因
 - 全中文标签，Dracula 终端风格
 
 ### Data Sources & Tools (`src/tools/`)
@@ -296,4 +355,4 @@ UI 修改后使用 `/playwright-test` skill 验证。脚本存放在 `web/screen
 
 #### Hidden List
 
-`hiddenList` 按当前 market tab 过滤（与 prod/stage 分组一致）。A 股 tab 只显示 A 股 hidden，HK tab 只显示港股 hidden。
+`hiddenList` 在前端不按 tab 过滤，统一显示所有 hidden 股票（跨 A股/HK tab）。避免用户 hide HK 股后在 A股 tab 看不到。
