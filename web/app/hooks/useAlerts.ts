@@ -24,11 +24,22 @@ const MAX_DISPLAY = 5;
 export function useAlerts(
   alertEvents: AlertEvent[],
   addLogs: (entries: LogEntry[]) => void,
+  marketTab?: string,
 ) {
   const lastSeenTs = useRef<number>(0);
   const displayedCount = useRef<number>(0);
+  const prevTab = useRef<string | undefined>(marketTab);
 
   useEffect(() => {
+    // Reset watermark on tab switch so the other market's alerts aren't skipped
+    if (marketTab !== prevTab.current) {
+      lastSeenTs.current = alertEvents.length > 0
+        ? Math.max(...alertEvents.map((e) => e.ts))
+        : 0;
+      prevTab.current = marketTab;
+      return;
+    }
+
     if (!alertEvents || alertEvents.length === 0) {
       lastSeenTs.current = 0;
       displayedCount.current = 0;
@@ -62,5 +73,5 @@ export function useAlerts(
 
     displayedCount.current += toShow.length;
     addLogs(entries);
-  }, [alertEvents, addLogs]);
+  }, [alertEvents, addLogs, marketTab]);
 }

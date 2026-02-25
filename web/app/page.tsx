@@ -219,7 +219,12 @@ function Home() {
     verdict: string;
   } | null>(null);
   const cmd = useCommand(fetchData);
-  useAlerts(alertEvents as Parameters<typeof useAlerts>[0], cmd.addLogs);
+  // Filter alerts by active market tab (HK symbols start with "HK", rest are A-share)
+  // Portfolio-level alerts (empty symbol) show in both tabs
+  const tabAlertEvents = (alertEvents as Parameters<typeof useAlerts>[0]).filter(
+    (e) => !e.symbol || (activeTab === "HK" ? e.symbol.startsWith("HK") : !e.symbol.startsWith("HK"))
+  );
+  useAlerts(tabAlertEvents, cmd.addLogs, activeTab);
 
   const pollMs = (settings.poll_interval ?? DEFAULT_POLL_SEC) * 1000;
 
