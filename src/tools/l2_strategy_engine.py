@@ -1560,6 +1560,15 @@ class DailyIndicatorTracker:
         # ADX
         adx = _calc_adx(high, low, close, cfg.get("adx_period", 14))
 
+        # ATR (True Range → EWM, independent of ADX period)
+        atr_period = cfg.get("atr_period", 14)
+        tr = pd.concat([
+            high - low,
+            (high - close.shift()).abs(),
+            (low - close.shift()).abs(),
+        ], axis=1).max(axis=1)
+        atr = tr.ewm(span=atr_period, adjust=False).mean()
+
         # Volume MA
         vol_ma20 = volume.rolling(20).mean()
 
@@ -1577,6 +1586,7 @@ class DailyIndicatorTracker:
             "bb_lower": bb_lower,
             "bb_width": bb_width,
             "adx": adx,
+            "atr": atr,
             "vol_ma20": vol_ma20,
         }
 
@@ -2200,6 +2210,193 @@ class DailyIndicatorTracker:
     def update_index(self, ctx):
         """Refresh index kline (call once per poll cycle, not per stock)"""
         self._fetch_index_kline(ctx)
+
+    # ── Daily Scorer (v2 策略核心) ──
+
+    def get_atr(self, code: str, period: int = 14) -> float:
+        """返回最新 ATR 值（已在 _compute_all 中缓存）"""
+        ind = self._ind.get(code)
+        if not ind or "atr" not in ind:
+            return 0.0
+        atr_series = ind["atr"]
+        if len(atr_series) < 1 or pd.isna(atr_series.iloc[-1]):
+            return 0.0
+        return float(atr_series.iloc[-1])
+
+    def score(self, code: str,
+              main_net_inflow: float = 0,
+              main_net_inflow_pct: float = 0) -> dict:
+        """综合评分 0-100，驱动 v2 日线级开仓/平仓决策。
+
+        Args:
+            code: 股票代码
+            main_net_inflow: 主力净流入金额 (元)
+            main_net_inflow_pct: 主力净流入占比 (0-1)
+
+        Returns:
+            {"total": int, "macd": int, "rsi": int, "ma": int,
+             "capital_flow": int, "volume_price": int, "support": int,
+             "action": "BUY"|"HOLD"|"SELL",
+             "stop_loss": float, "take_profit": float, "atr": float}
+        """
+        ind = self._ind.get(code)
+        if not ind:
+            return {"total": 0, "action": "WAIT",
+                    "stop_loss": 0, "take_profit": 0, "atr": 0}
+
+        close = ind["close"]
+        if len(close) < 60:
+            return {"total": 0, "action": "WAIT",
+                    "stop_loss": 0, "take_profit": 0, "atr": 0}
+
+        # 读最新值
+        c = float(close.iloc[-1])
+        rsi_val = float(ind["rsi"].iloc[-1]) if not pd.isna(ind["rsi"].iloc[-1]) else 50
+        macd_hist = float(ind["macd_hist"].iloc[-1]) if not pd.isna(ind["macd_hist"].iloc[-1]) else 0
+        prev_hist = float(ind["macd_hist"].iloc[-2]) if len(ind["macd_hist"]) >= 2 and not pd.isna(ind["macd_hist"].iloc[-2]) else 0
+        dif = float(ind["macd_dif"].iloc[-1]) if not pd.isna(ind["macd_dif"].iloc[-1]) else 0
+        dea = float(ind["macd_dea"].iloc[-1]) if not pd.isna(ind["macd_dea"].iloc[-1]) else 0
+        mas = ind["mas"]
+        ma5 = float(mas["ma5"].iloc[-1]) if not pd.isna(mas["ma5"].iloc[-1]) else c
+        ma10 = float(mas["ma10"].iloc[-1]) if not pd.isna(mas["ma10"].iloc[-1]) else c
+        ma20 = float(mas["ma20"].iloc[-1]) if not pd.isna(mas["ma20"].iloc[-1]) else c
+        ma60 = float(mas["ma60"].iloc[-1]) if not pd.isna(mas["ma60"].iloc[-1]) else c
+        vol = float(ind["volume"].iloc[-1]) if not pd.isna(ind["volume"].iloc[-1]) else 0
+        vol_ma20 = float(ind["vol_ma20"].iloc[-1]) if not pd.isna(ind["vol_ma20"].iloc[-1]) else 1
+
+        scores = {}
+
+        # ── MACD (20分) ──
+        # 金叉 + hist 扩张 = 满分；死叉 = 0
+        macd_score = 10  # 中性基线
+        if macd_hist > 0 and prev_hist <= 0:
+            macd_score = 20  # 刚金叉
+        elif macd_hist > 0 and macd_hist > prev_hist:
+            macd_score = 18  # hist 扩张
+        elif macd_hist > 0:
+            macd_score = 14  # hist 正但收缩
+        elif macd_hist < 0 and prev_hist >= 0:
+            macd_score = 0   # 刚死叉
+        elif macd_hist < 0 and macd_hist < prev_hist:
+            macd_score = 2   # hist 扩大负值
+        elif macd_hist < 0:
+            macd_score = 6   # hist 负但收窄
+        # DIF/DEA 零轴上方加分
+        if dif > 0 and dea > 0:
+            macd_score = min(20, macd_score + 2)
+        scores["macd"] = macd_score
+
+        # ── RSI (15分) ──
+        # 50-60 中性, 60-70 偏多, 30-50 偏空, 极值区减分
+        if 60 <= rsi_val <= 70:
+            rsi_score = 15
+        elif 50 <= rsi_val < 60:
+            rsi_score = 10
+        elif 70 < rsi_val <= 80:
+            rsi_score = 10  # 偏高但未极端
+        elif 40 <= rsi_val < 50:
+            rsi_score = 7
+        elif 30 <= rsi_val < 40:
+            rsi_score = 4
+        elif rsi_val > 80:
+            rsi_score = 3   # 极度超买
+        else:
+            rsi_score = 2   # RSI < 30 极度超卖 (反弹可能但风险大)
+        scores["rsi"] = rsi_score
+
+        # ── MA 排列 (20分) ──
+        # 多头排列: ma5 > ma10 > ma20 > ma60
+        bullish_align = (ma5 > ma10 > ma20 > ma60)
+        bearish_align = (ma5 < ma10 < ma20 < ma60)
+        above_ma20 = c > ma20
+        above_ma60 = c > ma60
+
+        if bullish_align and above_ma20:
+            ma_score = 20
+        elif above_ma20 and above_ma60 and ma5 > ma10:
+            ma_score = 16
+        elif above_ma20 and above_ma60:
+            ma_score = 12
+        elif above_ma60:
+            ma_score = 8
+        elif bearish_align:
+            ma_score = 0
+        else:
+            ma_score = 5
+        scores["ma"] = ma_score
+
+        # ── 主力资金 (20分) ──
+        # 大额净流入 = 高分，需外部传入 (L2 数据)
+        if main_net_inflow_pct > 0.10:
+            cf_score = 20
+        elif main_net_inflow_pct > 0.05:
+            cf_score = 16
+        elif main_net_inflow_pct > 0:
+            cf_score = 12
+        elif main_net_inflow_pct > -0.05:
+            cf_score = 8
+        elif main_net_inflow_pct > -0.10:
+            cf_score = 4
+        else:
+            cf_score = 0
+        scores["capital_flow"] = cf_score
+
+        # ── 量价配合 (15分) ──
+        # 价涨量增 = 好；量缩价涨 = 谨慎
+        vol_ratio = vol / vol_ma20 if vol_ma20 > 0 else 1
+        price_up = c > float(close.iloc[-2]) if len(close) >= 2 else False
+
+        if price_up and vol_ratio > 1.5:
+            vp_score = 15  # 放量上涨
+        elif price_up and vol_ratio > 1.0:
+            vp_score = 12  # 温和放量
+        elif price_up and vol_ratio < 0.8:
+            vp_score = 6   # 缩量上涨 (谨慎)
+        elif not price_up and vol_ratio > 1.5:
+            vp_score = 2   # 放量下跌
+        elif not price_up and vol_ratio < 0.8:
+            vp_score = 7   # 缩量回调 (不严重)
+        else:
+            vp_score = 8   # 中性
+        scores["volume_price"] = vp_score
+
+        # ── 支撑位 (10分) ──
+        # 接近支撑 = 高分 (买入安全垫); 远离支撑 = 中性
+        low_30 = float(ind["low"].iloc[-30:].min()) if len(ind["low"]) >= 30 else c * 0.95
+        support = max(low_30, ma60)
+        dist_to_support = (c - support) / c if c > 0 else 0
+
+        if dist_to_support < 0.02:
+            sup_score = 10  # 非常接近支撑
+        elif dist_to_support < 0.05:
+            sup_score = 8
+        elif dist_to_support < 0.10:
+            sup_score = 5
+        else:
+            sup_score = 3   # 远离支撑
+        scores["support"] = sup_score
+
+        total = sum(scores.values())
+
+        # 动作判定
+        action = "BUY" if total >= 70 else "HOLD" if total >= 40 else "SELL"
+
+        # 计算建议止损止盈
+        atr = self.get_atr(code)
+        if atr <= 0:
+            atr = c * 0.02  # fallback
+
+        resistance = float(ind["high"].iloc[-30:].max()) if len(ind["high"]) >= 30 else c * 1.05
+        stop_loss = max(support - atr * 0.5, c - atr * 2)
+        take_profit = min(resistance, c + atr * 3)
+
+        return {
+            "total": total, **scores,
+            "action": action,
+            "stop_loss": round(stop_loss, 4),
+            "take_profit": round(take_profit, 4),
+            "atr": round(atr, 4),
+        }
 
     def reset(self):
         """每日重置"""

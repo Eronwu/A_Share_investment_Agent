@@ -66,5 +66,28 @@
     "HK01211": 500, "HK06809": 100, "HK01060": 10000,
     "HK02359": 500, "HK06060": 1000, "HK01357": 2000,
     "HK00325": 100, "HK03896": 2000, "HK03986": 100
+  },
+  "daily_score": {
+    "entry_threshold": 70,
+    "exit_threshold": 40,
+    "intraday_exception_confidence": 0.85,
+    "intraday_exception_min_score": 60,
+    "entry_window_start": "10:00",
+    "entry_window_end": "10:30",
+    "exit_review_time": "15:30",
+    "max_new_positions_per_day": 1,
+    "reentry_cooldown_minutes": 120,
+    "min_hold_minutes": 30,
+    "max_hold_days": 10,
+    "position_pct": 0.25,
+    "min_profit_after_cost_pct": 0.003
+  },
+  "scoring_weights": {
+    "macd": 20,
+    "rsi": 15,
+    "ma": 20,
+    "capital_flow": 20,
+    "volume_price": 15,
+    "support": 10
   }
 }

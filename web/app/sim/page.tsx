@@ -87,6 +87,7 @@ interface LivePosition {
   confidence: number;
   unrealized_pnl: number;
   pnl_pct: number;
+  daily_score: number;
   change: number;
   chgAmt: number;
   last_updated: number;
@@ -761,10 +762,11 @@ function LiveSummaryBar({ live, ts }: { live: LiveData; ts: string }) {
             {live.total_trades > 0 ? pfVal : "-"}
           </span>
         </span>
-        <span>净值 <span style={{ color: D.fg }}>{numFmt(live.current_equity)}</span></span>
+        <span>总市值 <span style={{ color: D.fg }}>{numFmt(live.total_market_value)}</span></span>
+        <span>总资产 <span style={{ color: D.fg }}>{numFmt(live.current_equity)}</span></span>
+        <span>可用 <span style={{ color: D.fg }}>{numFmt(live.cash)}</span></span>
         <span>交易 <span style={{ color: D.fg }}>{live.total_trades}笔</span></span>
         <span>手续费 <span style={{ color: D.orange }}>{numFmt(live.total_commission)}</span></span>
-        <span>可用 <span style={{ color: D.fg }}>{numFmt(live.cash)}</span></span>
         <span style={{ marginLeft: "auto" }}>
           {ts}
         </span>
@@ -813,6 +815,7 @@ function LivePanel({ live }: { live: LiveData }) {
                 <span style={{ width: "6ch" }}> 类型</span>
                 <span style={{ width: "10ch" }}>代码</span>
                 <span style={{ width: "8ch" }}>名称</span>
+                <span style={{ width: "5ch", textAlign: "right" }}>评分</span>
                 <span style={{ width: "10ch", textAlign: "right" }}>   现价</span>
                 <span style={{ width: "9ch", textAlign: "right" }}>涨跌幅</span>
                 <span style={{ width: "9ch", textAlign: "right" }}>  成本</span>
@@ -832,6 +835,8 @@ function LivePanel({ live }: { live: LiveData }) {
                   ? (p.current_price - p.stop_loss) / p.current_price
                   : 0;
                 const slDistColor = slDist < 0.01 ? D.red : slDist < 0.02 ? D.orange : D.comment;
+                const score = p.daily_score || 0;
+                const scoreColor = score >= 70 ? D.green : score >= 40 ? D.orange : D.red;
                 return (
                   <div
                     key={p.code}
@@ -844,6 +849,9 @@ function LivePanel({ live }: { live: LiveData }) {
                     <span style={{ color: D.orange, width: "6ch" }}> SIM</span>
                     <span style={{ color: D.cyan, width: "10ch" }}>{p.code}</span>
                     <span style={{ color: D.fg, width: "8ch" }}>{(p.name || "").slice(0, 6)}</span>
+                    <span style={{ color: scoreColor, width: "5ch", textAlign: "right", fontWeight: 500 }}>
+                      {score > 0 ? score : "-"}
+                    </span>
                     <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
                       {p.current_price.toFixed(2)}
                     </span>

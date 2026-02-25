@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS live_state (
     trigger_signals TEXT,
     unrealized_pnl REAL,
     pnl_pct REAL,
+    daily_score INTEGER DEFAULT 0,
     last_updated INTEGER
 );
 
@@ -167,6 +168,14 @@ def init_db():
     """Create all tables if they don't exist."""
     conn = get_connection()
     conn.executescript(SCHEMA)
+    # Migration: add daily_score column if missing (existing DBs)
+    try:
+        conn.execute("SELECT daily_score FROM live_state LIMIT 1")
+    except sqlite3.OperationalError:
+        try:
+            conn.execute("ALTER TABLE live_state ADD COLUMN daily_score INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass  # column already exists
     conn.commit()
     conn.close()
 

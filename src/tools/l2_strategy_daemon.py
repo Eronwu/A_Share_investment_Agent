@@ -141,12 +141,13 @@ def run():
         archiver_enabled = False
         logger.warning(f"Signal archiver not available: {e}")
 
-    # ── Initialize real-time sim engine ──
+    # ── Initialize real-time sim engine (v2: pass daily_tracker reference) ──
     try:
         from src.sim_trading.realtime_engine import RealtimeSimEngine
         rt_rules_path = PROJECT_ROOT / "src" / "data" / "signal_rules.json"
         rt_rules = json.loads(rt_rules_path.read_text(encoding="utf-8"))
-        rt_engine = RealtimeSimEngine(rt_rules)
+        daily_tracker = getattr(engine, '_daily_indicators', None)
+        rt_engine = RealtimeSimEngine(rt_rules, daily_tracker=daily_tracker)
         rt_enabled = True
     except Exception as e:
         rt_engine = None
