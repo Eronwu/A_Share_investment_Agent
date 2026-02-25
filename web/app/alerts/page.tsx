@@ -241,10 +241,12 @@ export default function AlertsPage() {
       setFetchError(`network error: ${eventsRes.reason}`);
     }
 
-    // Handle summary
+    // Handle summary — only show today's report
     if (summaryRes.status === "fulfilled") {
       const sData = summaryRes.value;
-      setSummary(sData.data || null);
+      const s = sData.data;
+      const today = new Date().toISOString().slice(0, 10);
+      setSummary(s && s.date === today ? s : null);
     }
 
     setLoading(false);

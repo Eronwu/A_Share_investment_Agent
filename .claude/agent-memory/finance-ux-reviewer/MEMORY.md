@@ -25,6 +25,17 @@
 - Components: `web/app/components/CommandPrompt.tsx`
 - Parser: `web/app/utils/commandParser.ts`
 
+### Known Issues (2026-02-24 audit)
+- Critical: cost=0 causes incorrect P&L in HoldRow (API guards cost>0, frontend doesn't)
+- Critical: watching stocks cannot be hidden via Manage GUI (only CLI)
+- High: No loading skeleton on Dashboard initial load
+- High: Config API has read-modify-write race condition on concurrent edits
+- High: Chinese header + sort arrow overflow due to char-width vs display-width in pad()
+- Medium: AlertEvent interface duplicated in 3 files
+- Medium: Add action overwrites existing watchlist entries without warning
+- Low: TitleBar, ZshPrompt duplicated across 3 pages
+- Fixed: C1 alert threshold edit, C3 fetchError/isStale, H7 HK fx rate in row P&L
+
 ### Review History
 - 2026-02-10: Initial column/data review
 - 2026-02-13: Manage page scalability review (search/filter added)
