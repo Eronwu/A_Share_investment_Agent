@@ -25,7 +25,7 @@ from .signal_mapper import TradeSignalMapper, TradeDecision
 from .position_manager import Position, PositionManager
 from .simulation_engine import SimulationEngine
 
-logger = logging.getLogger("rt_sim_engine")
+logger = logging.getLogger("l2_daemon.rt_sim")
 
 MARKET_DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "market_data.json"
 MONITOR_CONFIG_PATH = Path(__file__).resolve().parent.parent / "data" / "monitor_config.json"
