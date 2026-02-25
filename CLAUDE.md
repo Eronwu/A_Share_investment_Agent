@@ -154,6 +154,7 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 | `alert_config.json` | 告警规则（用户手动维护） |
 | `sim_trading.db` | SQLite 数据库（信号归档、交易记录、alert_events、实时持仓） |
 | `market_data.json` | 最新行情快照（poller 写入，提交保留最后状态） |
+| `l2_strategy_signals.json` | L2 信号 + session 上下文（资金流快照、盘口状态，量化回测用） |
 | `signal_rules.json` | 信号规则配置 |
 | `l2_strategy_config.json` | L2 策略参数 |
 
@@ -162,7 +163,6 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 | 文件 | 说明 |
 |------|------|
 | `sim_trading.db-shm` / `sim_trading.db-wal` | SQLite WAL 临时文件 |
-| `l2_strategy_signals.json` | L2 daemon 实时输出（每 3s 覆盖） |
 | `daily_summary.json` | 每日报告（收盘后生成，可重新生成） |
 | `archive/` | 历史归档目录 |
 
