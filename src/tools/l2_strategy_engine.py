@@ -1496,18 +1496,21 @@ class DailyIndicatorTracker:
         return time.time() - last >= self._refresh_sec
 
     def _fetch_kline(self, code: str, ctx) -> Optional[pd.DataFrame]:
-        """Fetch 120-day daily kline from Futu, ending at today.
+        """Fetch ~120 trading days of daily kline from Futu.
 
-        IMPORTANT: must pass end=today, otherwise Futu returns the FIRST
-        120 bars from listing date (not the most recent 120).
+        IMPORTANT: Futu API ignores end+max_count and returns stale data
+        unless BOTH start AND end are explicitly provided. We request
+        200 calendar days (~135 trading days) to ensure >= 120 bars.
         """
         try:
             from futu import RET_OK, KLType, AuType
             import datetime as _dt
-            today = _dt.date.today().strftime("%Y-%m-%d")
+            today = _dt.date.today()
+            start = (today - _dt.timedelta(days=200)).strftime("%Y-%m-%d")
+            end = today.strftime("%Y-%m-%d")
             ret, data, _ = ctx.request_history_kline(
                 to_futu_code(code), ktype=KLType.K_DAY,
-                autype=AuType.QFQ, end=today, max_count=120)
+                autype=AuType.QFQ, start=start, end=end, max_count=200)
             if ret == RET_OK and data is not None and not data.empty:
                 return data
         except Exception as e:
@@ -1522,10 +1525,12 @@ class DailyIndicatorTracker:
         try:
             from futu import RET_OK, KLType, AuType
             import datetime as _dt
-            today = _dt.date.today().strftime("%Y-%m-%d")
+            today = _dt.date.today()
+            start = (today - _dt.timedelta(days=200)).strftime("%Y-%m-%d")
+            end = today.strftime("%Y-%m-%d")
             ret, data, _ = ctx.request_history_kline(
                 "HK.800000", ktype=KLType.K_DAY,
-                autype=AuType.QFQ, end=today, max_count=120)
+                autype=AuType.QFQ, start=start, end=end, max_count=200)
             if ret == RET_OK and data is not None and not data.empty:
                 self._index_kline = data
                 self._index_last_refresh = now
