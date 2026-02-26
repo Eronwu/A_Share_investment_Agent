@@ -23,6 +23,7 @@ interface Trade {
   exit_date: string;
   entry_time?: number;  // epoch ms
   exit_time?: number;   // epoch ms
+  commission?: number;
 }
 
 interface DailyPnl {
@@ -488,6 +489,58 @@ function EquityCurve({ data, initialCapital }: { data: DailyPnl[]; initialCapita
   );
 }
 
+/** 生成单笔交易的复盘点评 */
+function tradeReviewCN(t: Trade): { text: string; color: string } {
+  const pnlPct = t.pnl_pct * 100;
+  const fee = t.commission || 0;
+  const gross = t.pnl + fee;
+  const holdMs = (t.exit_time || 0) - (t.entry_time || 0);
+  const holdMin = holdMs > 0 ? holdMs / 60000 : 0;
+  const er = t.exit_reason;
+
+  // 盈利交易
+  if (t.pnl > 0) {
+    if (er.startsWith("stop_loss")) return { text: "盈利止损,控制得当", color: D.green };
+    if (er.startsWith("take_profit")) return { text: "目标达成,纪律执行", color: D.green };
+    if (er.includes("T3:")) return { text: "T3平仓,小赚离场", color: D.green };
+    return { text: `盈利${pnlPct.toFixed(1)}%,执行OK`, color: D.green };
+  }
+
+  // 亏损交易
+  // 手续费杀利润
+  if (gross > 0 && t.pnl <= 0) {
+    return { text: `毛利+${gross.toFixed(0)}被手续费吞`, color: D.orange };
+  }
+
+  // 瞬间交易
+  if (holdMin < 1) {
+    return { text: "瞬间平仓,入场即出错", color: D.red };
+  }
+
+  // 评分退出
+  if (er.startsWith("exit_score")) {
+    if (pnlPct > -3) return { text: "评分退出,小亏离场", color: D.orange };
+    return { text: "评分退出,趋势判断错误", color: D.red };
+  }
+
+  // 止损退出
+  if (er.startsWith("stop_loss")) {
+    if (holdMin < 60) return { text: "快速止损,入场时机差", color: D.orange };
+    if (pnlPct > -5) return { text: "正常止损,风控有效", color: D.comment };
+    return { text: "大幅止损,需优化入场", color: D.red };
+  }
+
+  // T3 平仓亏损
+  if (er.includes("T3:") || er.includes("large_order_reversal")) {
+    if (holdMin < 30) return { text: "T3频繁割肉,策略需优化", color: D.red };
+    return { text: "T3纠偏,信号反转", color: D.orange };
+  }
+
+  // 其他
+  if (pnlPct > -2) return { text: "小亏,可接受", color: D.comment };
+  return { text: `亏${pnlPct.toFixed(1)}%,需复盘入场逻辑`, color: D.red };
+}
+
 function TradesTable({ trades, bare }: { trades: Trade[]; bare?: boolean }) {
   const [open, setOpen] = useState(true);
 
@@ -511,11 +564,13 @@ function TradesTable({ trades, bare }: { trades: Trade[]; bare?: boolean }) {
             <span style={{ width: "8ch", textAlign: "right" }}>盈亏%</span>
             <span style={{ width: "12ch", paddingLeft: "1ch" }}>退出原因</span>
             <span style={{ width: "12ch" }}>入场策略</span>
-            <span style={{ width: "12ch", textAlign: "right" }}>日期</span>
+            <span style={{ width: "10ch", textAlign: "right" }}>日期</span>
+            <span style={{ paddingLeft: "1ch" }}>复盘</span>
           </div>
           {/* 行 */}
           {trades.map((t) => {
             const c = pnlColor(t.pnl);
+            const review = tradeReviewCN(t);
             return (
               <div
                 key={t.trade_id}
@@ -548,8 +603,11 @@ function TradesTable({ trades, bare }: { trades: Trade[]; bare?: boolean }) {
                 <span style={{ color: D.comment, width: "12ch" }}>
                   {strategyCN(t.notes)}
                 </span>
-                <span style={{ color: D.comment, width: "12ch", textAlign: "right" }}>
+                <span style={{ color: D.comment, width: "10ch", textAlign: "right" }}>
                   {t.exit_date || t.entry_date}
+                </span>
+                <span style={{ color: review.color, paddingLeft: "1ch", fontWeight: 500 }}>
+                  {review.text}
                 </span>
               </div>
             );
