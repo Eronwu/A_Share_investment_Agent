@@ -164,6 +164,50 @@ CREATE TABLE IF NOT EXISTS session_snapshots (
     UNIQUE(ts, code)
 );
 CREATE INDEX IF NOT EXISTS idx_session_snap_date_code ON session_snapshots(date, code);
+
+-- 板块轮动排名（东方财富行业/概念板块每日排名）
+CREATE TABLE IF NOT EXISTS sector_rotation (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    category TEXT NOT NULL,
+    board_name TEXT NOT NULL,
+    change_pct REAL,
+    rank INTEGER,
+    UNIQUE(date, category, board_name)
+);
+CREATE INDEX IF NOT EXISTS idx_sector_rot_date ON sector_rotation(date);
+CREATE INDEX IF NOT EXISTS idx_sector_rot_cat_date ON sector_rotation(category, date);
+
+-- 自定义指数每日值
+CREATE TABLE IF NOT EXISTS sector_daily (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    index_id TEXT NOT NULL,
+    avg_change_pct REAL,
+    index_value REAL,
+    up_count INTEGER,
+    down_count INTEGER,
+    components_json TEXT,
+    UNIQUE(date, index_id)
+);
+CREATE INDEX IF NOT EXISTS idx_sector_daily_idx ON sector_daily(index_id);
+
+-- 主线告警
+CREATE TABLE IF NOT EXISTS sector_alerts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    index_id TEXT NOT NULL,
+    index_name TEXT,
+    alert_type TEXT,
+    cumulative_pct REAL,
+    slope REAL,
+    r_squared REAL,
+    message TEXT,
+    display TEXT,
+    UNIQUE(date, index_id, alert_type)
+);
+CREATE INDEX IF NOT EXISTS idx_sector_alerts_date ON sector_alerts(date);
 """
 
 
