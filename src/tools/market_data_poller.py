@@ -36,16 +36,20 @@ CONFIG_PATH = PROJECT_ROOT / "src" / "data" / "monitor_config.json"
 OUTPUT_PATH = PROJECT_ROOT / "src" / "data" / "market_data.json"
 
 
-def fetch_realtime_with_fallback(symbols: list[str]) -> list[dict]:
-    """优先东方财富，失败回退新浪（价格能刷新，但无量比/换手率）"""
+def fetch_realtime_with_fallback(symbols: list[str]) -> tuple[list[dict], bool]:
+    """优先东方财富，失败回退新浪（价格能刷新，但无量比/换手率）
+
+    Returns:
+        (stocks, is_sina_fallback) — is_sina_fallback=True 时 turnover/vol_ratio 为 0
+    """
     stocks = fetch_realtime_eastmoney(symbols)
     if stocks:
-        return stocks
+        return stocks, False
 
     logger.warning("东方财富不可达，回退新浪行情")
     sina_quotes = fetch_realtime_sina(symbols)
     if not sina_quotes:
-        return []
+        return [], True
 
     # 转换新浪格式 → 东方财富格式
     results = []
@@ -74,14 +78,14 @@ def fetch_realtime_with_fallback(symbols: list[str]) -> list[dict]:
             "volume": q.get("volume", 0),
             "amount": q.get("amount", 0),
             "amplitude": round((q.get("high", 0) - q.get("low", 0)) / prev * 100, 2) if prev > 0 else 0,
-            "turnover": 0,     # 新浪无换手率
-            "vol_ratio": 0,    # 新浪无量比
+            "turnover": 0,     # 新浪无换手率，poll_once 会从旧数据继承
+            "vol_ratio": 0,    # 新浪无量比，poll_once 会从旧数据继承
             "high": q.get("high", 0),
             "low": q.get("low", 0),
             "open": q.get("open", 0),
             "prev_close": prev,
         })
-    return results
+    return results, True
 
 
 def build_services(stocks: list[dict], watchlist: dict) -> list[dict]:
@@ -232,7 +236,7 @@ def poll_once() -> bool:
         logger.warning("watchlist 为空，跳过本轮")
         return False
 
-    stocks = fetch_realtime_with_fallback(symbols)
+    stocks, is_sina_fallback = fetch_realtime_with_fallback(symbols)
 
     # 两市成交额（新浪源，独立于东方财富，不受其故障影响）
     turnover = fetch_market_turnover()
@@ -258,6 +262,25 @@ def poll_once() -> bool:
 
     services = build_services(stocks, watchlist)
 
+    # 新浪降级时继承旧数据中的量比/换手率（新浪不提供这两个字段）
+    if is_sina_fallback:
+        try:
+            old_data = json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
+            old_map = {s["id"]: s for s in old_data.get("services", []) if s.get("id")}
+            carried = 0
+            for svc in services:
+                old = old_map.get(svc["id"])
+                if old:
+                    if old.get("turnover"):
+                        svc["turnover"] = old["turnover"]
+                    if old.get("volRatio"):
+                        svc["volRatio"] = old["volRatio"]
+                    carried += 1
+            if carried:
+                logger.info(f"新浪降级: 从旧数据继承量比/换手率 ({carried} 只)")
+        except Exception:
+            pass
+
     # Futu L2 增强（可选，失败时 l2_data = {}，不影响后续）
     l2_data = _futu_enricher.enrich(services)
     if l2_data:
@@ -267,9 +290,17 @@ def poll_once() -> bool:
                 svc.update(extra)
         logger.info(f"L2 增强: {len(l2_data)}/{len(services)} 只")
 
-    # 有港股持仓时获取汇率
+    # 有港股持仓时获取汇率（失败时从旧数据继承）
     has_hk = any(s.startswith("HK") for s in symbols)
     hkd_cny_rate = fetch_hkd_cny_rate() if has_hk else None
+    if has_hk and hkd_cny_rate is None:
+        try:
+            old_rate = json.loads(OUTPUT_PATH.read_text(encoding="utf-8")).get("hkdCnyRate")
+            if old_rate:
+                hkd_cny_rate = old_rate
+                logger.info(f"汇率获取失败，继承上次值: {hkd_cny_rate}")
+        except Exception:
+            pass
 
     # 合并旧数据中缺失的 service（盘前 price=0 被跳过的股票保留昨日收盘价）
     new_ids = {s["id"] for s in services}
