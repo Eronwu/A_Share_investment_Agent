@@ -13,12 +13,14 @@ function EditableCell({
   width,
   placeholder,
   isNumber,
+  step,
 }: {
   value: string | number | null | undefined;
   onSave: (val: string) => void;
   width: string;
   placeholder?: string;
   isNumber?: boolean;
+  step?: number | string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value ?? ""));
@@ -70,7 +72,7 @@ function EditableCell({
           borderRadius: 2,
         }}
         type={isNumber ? "number" : "text"}
-        step={isNumber ? "any" : undefined}
+        step={step ?? (isNumber ? "any" : undefined)}
       />
     );
   }
@@ -314,6 +316,7 @@ function StockRow({
               width="80px"
               placeholder="shares"
               isNumber
+              step={100}
             />
             <button
               style={{
@@ -466,6 +469,8 @@ function StockRow({
             <input
               style={promoteSmallInput}
               type="number"
+              step={100}
+              min={0}
               value={promoShares}
               onChange={(e) => setPromoShares(e.target.value)}
               placeholder="0"
@@ -990,6 +995,8 @@ export default function ManagePage() {
             <input
               style={inputStyle}
               type="number"
+              step={100}
+              min={0}
               value={addShares}
               onChange={(e) => setAddShares(e.target.value)}
               placeholder="-"
