@@ -921,9 +921,11 @@ function OperationsLog({ live }: { live: LiveData }) {
   const ops: Op[] = [];
 
   // 已平仓交易 → 拆成 BUY + SELL 两条
+  // 用 max(entry, exit) 作为排序键，确保同一笔交易的 BUY/SELL 相邻
   for (const t of live.trades) {
+    const groupTs = Math.max(t.entry_time || 0, t.exit_time || 0);
     ops.push({
-      ts: t.entry_time || 0,
+      ts: groupTs,
       display: tsToTime(t.entry_time, t.entry_date),
       action: "BUY",
       code: t.code,
@@ -933,7 +935,7 @@ function OperationsLog({ live }: { live: LiveData }) {
       reason: strategyCN(t.notes),
     });
     ops.push({
-      ts: t.exit_time || 0,
+      ts: groupTs,
       display: tsToTime(t.exit_time, t.exit_date),
       action: "SELL",
       code: t.code,
@@ -959,7 +961,7 @@ function OperationsLog({ live }: { live: LiveData }) {
     });
   }
 
-  // 按时间倒序（最新在上），同时间卖出排在买入前
+  // 按时间倒序。同一笔交易 BUY/SELL 共享 groupTs，SELL 排前（先显示结果）
   ops.sort((a, b) => b.ts - a.ts || (a.action === "SELL" ? -1 : 1));
 
   if (ops.length === 0) return null;
