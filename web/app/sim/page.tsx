@@ -950,39 +950,70 @@ function LivePanel({ live }: { live: LiveData }) {
 function OperationsLog({ live }: { live: LiveData }) {
   const [open, setOpen] = useState(true);
 
-  // 构造操作记录：从持仓(BUY) + 已平仓交易(BUY+SELL)
+  // 构造操作记录：开仓(持仓) + 清仓(已平仓交易的SELL) + 开仓+清仓(已平仓交易的BUY+SELL)
   interface Op {
-    ts: number;     // epoch ms, 排序用
-    display: string; // 显示时间
-    action: "BUY" | "SELL";
+    ts: number;
+    display: string;
+    action: "开仓" | "清仓" | "止损" | "止盈" | "评分退出" | "T3平仓" | "到期平仓";
     code: string;
     name: string;
     price: number;
     quantity: number;
-    reason: string;
+    reason: string;    // 主行原因
+    detail?: string;   // 第二行策略详情
     pnl?: number;
+  }
+
+  /** 从 exit_reason 推导操作类型 */
+  function exitAction(r: string): Op["action"] {
+    if (r.startsWith("stop_loss")) return "止损";
+    if (r.startsWith("take_profit")) return "止盈";
+    if (r.startsWith("exit_score")) return "评分退出";
+    if (r.startsWith("max_hold")) return "到期平仓";
+    if (r.includes("T3:") || r.includes("large_order_reversal") || r.includes("volume_price") || r.includes("macd_top")) return "T3平仓";
+    return "清仓";
+  }
+
+  /** 为开仓生成策略详情 */
+  function entryDetail(pos: LivePosition): string {
+    const parts: string[] = [];
+    if (pos.stop_loss > 0) parts.push(`止损 ${pos.stop_loss.toFixed(2)}`);
+    if (pos.take_profit) parts.push(`止盈 ${pos.take_profit.toFixed(2)}`);
+    if (pos.daily_score > 0) parts.push(`评分${pos.daily_score}`);
+    const scoreAction = pos.daily_score >= 70 ? "持有" : pos.daily_score >= 40 ? "观察" : pos.daily_score > 0 ? "待退出" : "";
+    if (scoreAction) parts.push(scoreAction);
+    if (pos.max_hold_days > 0) parts.push(`最长${pos.max_hold_days}天`);
+    return parts.join(" | ");
+  }
+
+  /** 为已平仓开仓生成简要策略 */
+  function closedEntryDetail(t: Trade): string {
+    const parts: string[] = [];
+    parts.push(`→ ${exitReasonCN(t.exit_reason)}`);
+    if (t.pnl !== 0) parts.push(`${t.pnl >= 0 ? "+" : ""}${t.pnl.toFixed(0)}`);
+    return parts.join(" ");
   }
 
   const ops: Op[] = [];
 
-  // 已平仓交易 → 拆成 BUY + SELL 两条
-  // 用 max(entry, exit) 作为排序键，确保同一笔交易的 BUY/SELL 相邻
+  // 已平仓交易 → 开仓 + 清仓 两条
   for (const t of live.trades) {
     const groupTs = Math.max(t.entry_time || 0, t.exit_time || 0);
     ops.push({
       ts: groupTs,
       display: tsToTime(t.entry_time, t.entry_date),
-      action: "BUY",
+      action: "开仓",
       code: t.code,
       name: t.name || t.code,
       price: t.entry_price,
       quantity: t.quantity,
       reason: strategyCN(t.notes),
+      detail: closedEntryDetail(t),
     });
     ops.push({
       ts: groupTs,
       display: tsToTime(t.exit_time, t.exit_date),
-      action: "SELL",
+      action: exitAction(t.exit_reason),
       code: t.code,
       name: t.name || t.code,
       price: t.exit_price,
@@ -992,24 +1023,30 @@ function OperationsLog({ live }: { live: LiveData }) {
     });
   }
 
-  // 当前持仓 → BUY 记录（未平仓）
+  // 当前持仓 → 开仓记录（含策略详情）
   for (const p of live.positions) {
     ops.push({
       ts: p.entry_time || 0,
       display: tsToTime(p.entry_time, p.entry_date),
-      action: "BUY",
+      action: "开仓",
       code: p.code,
       name: p.name || p.code,
       price: p.entry_price,
       quantity: p.quantity,
       reason: strategyCN(p.entry_strategy),
+      detail: entryDetail(p),
     });
   }
 
-  // 按时间倒序。同一笔交易 BUY/SELL 共享 groupTs，SELL 排前（先显示结果）
-  ops.sort((a, b) => b.ts - a.ts || (a.action === "SELL" ? -1 : 1));
+  // 按时间倒序。同一笔交易共享 groupTs，清仓排在开仓前
+  ops.sort((a, b) => b.ts - a.ts || (a.action !== "开仓" ? -1 : 1));
 
   if (ops.length === 0) return null;
+
+  const actionColors: Record<string, string> = {
+    "开仓": D.red, "清仓": D.green, "止损": "#ff6b6b", "止盈": "#51cf66",
+    "评分退出": D.orange, "T3平仓": D.yellow, "到期平仓": D.comment,
+  };
 
   return (
     <div style={{ padding: "4px 0" }}>
@@ -1030,29 +1067,24 @@ function OperationsLog({ live }: { live: LiveData }) {
             }}
           >
             <span style={{ width: "13ch" }}>时间</span>
-            <span style={{ width: "6ch" }}>操作</span>
+            <span style={{ width: "8ch" }}>操作</span>
             <span style={{ width: "10ch" }}>代码</span>
-            <span style={{ width: "8ch" }}>名称</span>
+            <span style={{ width: "6ch" }}>名称</span>
             <span style={{ width: "10ch", textAlign: "right" }}>价格</span>
             <span style={{ width: "8ch", textAlign: "right" }}>数量</span>
             <span style={{ width: "10ch", textAlign: "right" }}>盈亏</span>
-            <span style={{ width: "22ch", paddingLeft: "2ch" }}>原因</span>
+            <span style={{ paddingLeft: "2ch" }}>原因 / 策略</span>
           </div>
-          {ops.map((o, i) => {
-            const actionColor = o.action === "BUY" ? D.red : D.green;
-            const actionLabel = o.action === "BUY" ? "买入" : "卖出";
-            return (
-              <div
-                key={`${o.code}-${o.action}-${i}`}
-                style={{
-                  display: "flex", whiteSpace: "pre", padding: "1px 0",
-                  borderBottom: "1px solid #191a21", fontSize: 12,
-                }}
-              >
+          {ops.map((o, i) => (
+            <div key={`${o.code}-${o.action}-${i}`}>
+              <div style={{
+                display: "flex", whiteSpace: "pre", padding: "1px 0",
+                borderBottom: o.detail ? "none" : "1px solid #191a21", fontSize: 12,
+              }}>
                 <span style={{ color: D.comment, width: "13ch" }}>{o.display}</span>
-                <span style={{ color: actionColor, width: "6ch", fontWeight: 700 }}>{actionLabel}</span>
+                <span style={{ color: actionColors[o.action] || D.fg, width: "8ch", fontWeight: 700 }}>{o.action}</span>
                 <span style={{ color: D.cyan, width: "10ch" }}>{o.code}</span>
-                <span style={{ color: D.fg, width: "8ch" }}>{(o.name || "").slice(0, 6)}</span>
+                <span style={{ color: D.fg, width: "6ch" }}>{(o.name || "").slice(0, 4)}</span>
                 <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
                   {o.price.toFixed(2)}
                 </span>
@@ -1065,12 +1097,20 @@ function OperationsLog({ live }: { live: LiveData }) {
                 }}>
                   {o.pnl != null ? `${o.pnl >= 0 ? "+" : ""}${o.pnl.toFixed(0)}` : "-"}
                 </span>
-                <span style={{ color: D.orange, width: "22ch", paddingLeft: "2ch" }}>
+                <span style={{ color: D.orange, paddingLeft: "2ch" }}>
                   {o.reason}
                 </span>
               </div>
-            );
-          })}
+              {o.detail && (
+                <div style={{
+                  fontSize: 11, color: D.comment, paddingLeft: "21ch",
+                  borderBottom: "1px solid #191a21", paddingBottom: 1,
+                }}>
+                  {o.detail}
+                </div>
+              )}
+            </div>
+          ))}
         </>
       )}
     </div>
