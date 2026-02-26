@@ -566,15 +566,15 @@ function TradesTable({ trades, bare }: { trades: Trade[]; bare?: boolean }) {
             <span style={{ width: "10ch" }}>代码</span>
             <span style={{ width: "8ch" }}>名称</span>
             <span style={{ width: "9ch", textAlign: "right" }}>买入</span>
-            <span style={{ width: "3ch", textAlign: "center" }}>→</span>
+            <span style={{ width: "2ch", textAlign: "center" }}>→</span>
             <span style={{ width: "9ch", textAlign: "right" }}>卖出</span>
-            <span style={{ width: "8ch", textAlign: "right" }}>数量</span>
-            <span style={{ width: "10ch", textAlign: "right" }}>盈亏</span>
-            <span style={{ width: "8ch", textAlign: "right" }}>盈亏%</span>
-            <span style={{ width: "12ch", paddingLeft: "1ch" }}>退出原因</span>
-            <span style={{ width: "12ch" }}>入场策略</span>
+            <span style={{ width: "7ch", textAlign: "right" }}>数量</span>
+            <span style={{ width: "9ch", textAlign: "right" }}>盈亏</span>
+            <span style={{ width: "7ch", textAlign: "right" }}>盈亏%</span>
+            <span style={{ width: "9ch", paddingLeft: "1ch" }}>退出原因</span>
+            <span style={{ width: "9ch" }}>入场策略</span>
             <span style={{ width: "6ch", textAlign: "right" }}>入场</span>
-            <span style={{ width: "5ch", textAlign: "right" }}>持仓</span>
+            <span style={{ width: "4ch", textAlign: "right" }}>持仓</span>
             <span style={{ paddingLeft: "1ch" }}>复盘</span>
           </div>
           {/* 行 */}
@@ -594,29 +594,29 @@ function TradesTable({ trades, bare }: { trades: Trade[]; bare?: boolean }) {
                 <span style={{ color: D.fg, width: "9ch", textAlign: "right" }}>
                   {t.entry_price.toFixed(2)}
                 </span>
-                <span style={{ color: D.comment, width: "3ch", textAlign: "center" }}>→</span>
+                <span style={{ color: D.comment, width: "2ch", textAlign: "center" }}>→</span>
                 <span style={{ color: D.fg, width: "9ch", textAlign: "right" }}>
                   {t.exit_price.toFixed(2)}
                 </span>
-                <span style={{ color: D.fg, width: "8ch", textAlign: "right" }}>
+                <span style={{ color: D.fg, width: "7ch", textAlign: "right" }}>
                   {t.quantity.toLocaleString()}
                 </span>
-                <span style={{ color: c, width: "10ch", textAlign: "right", fontWeight: 500 }}>
+                <span style={{ color: c, width: "9ch", textAlign: "right", fontWeight: 500 }}>
                   {t.pnl >= 0 ? "+" : ""}{t.pnl.toFixed(0)}
                 </span>
-                <span style={{ color: c, width: "8ch", textAlign: "right", fontWeight: 500 }}>
+                <span style={{ color: c, width: "7ch", textAlign: "right", fontWeight: 500 }}>
                   {t.pnl_pct * 100 >= 0 ? "+" : ""}{(t.pnl_pct * 100).toFixed(1)}%
                 </span>
-                <span style={{ color: D.orange, width: "12ch", paddingLeft: "1ch" }}>
+                <span title={exitReasonCN(t.exit_reason)} style={{ color: D.orange, width: "9ch", paddingLeft: "1ch", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {exitReasonCN(t.exit_reason)}
                 </span>
-                <span style={{ color: D.comment, width: "12ch" }}>
+                <span title={strategyCN(t.notes)} style={{ color: D.comment, width: "9ch", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {strategyCN(t.notes)}
                 </span>
                 <span style={{ color: D.comment, width: "6ch", textAlign: "right" }}>
                   {(t.entry_date || "").slice(5)}
                 </span>
-                <span style={{ color: D.comment, width: "5ch", textAlign: "right" }}>
+                <span style={{ color: D.comment, width: "4ch", textAlign: "right" }}>
                   {(() => {
                     if (t.entry_time && t.exit_time && t.exit_time > t.entry_time) {
                       const hrs = (t.exit_time - t.entry_time) / 3600000;
@@ -625,7 +625,7 @@ function TradesTable({ trades, bare }: { trades: Trade[]; bare?: boolean }) {
                     return t.hold_days > 0 ? `${t.hold_days}d` : "-";
                   })()}
                 </span>
-                <span style={{ color: review.color, paddingLeft: "1ch", fontWeight: 500 }}>
+                <span title={review.text} style={{ color: review.color, paddingLeft: "1ch", fontWeight: 500 }}>
                   {review.text}
                 </span>
               </div>
