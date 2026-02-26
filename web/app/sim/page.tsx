@@ -141,41 +141,75 @@ function tsToTime(ts: number | undefined, fallbackDate?: string): string {
   return `${mm}-${dd} ${hh}:${mi}`;
 }
 
-/** 退出原因翻译 */
+/** 退出原因翻译 — 保留关键数值 */
 function exitReasonCN(r: string): string {
-  if (r.startsWith("stop_loss")) return "止损 " + r.replace("stop_loss", "").replace(/[()]/g, "");
-  if (r.startsWith("take_profit")) return "止盈 " + r.replace("take_profit", "").replace(/[()]/g, "");
-  if (r.startsWith("max_hold")) return "到期平仓";
-  if (r === "force_close_eod") return "强制平仓";
-  if (r.includes("composite_bearish")) return "空头信号";
-  if (r.includes("composite_bullish")) return "多头信号";
-  if (r.includes("momentum_sell")) return "动量卖出";
-  if (r.includes("large_order_reversal")) return "大单翻转";
+  // stop_loss(96.55) → 触发止损 @96.55
+  const slMatch = r.match(/stop_loss\(([^)]+)\)/);
+  if (slMatch) return `触发止损 @${slMatch[1]}`;
+  // take_profit(130.00) → 触发止盈 @130.00
+  const tpMatch = r.match(/take_profit\(([^)]+)\)/);
+  if (tpMatch) return `触发止盈 @${tpMatch[1]}`;
+  // max_hold(10d) → 持仓到期 10天
+  if (r.startsWith("max_hold")) return "持仓到期";
+  if (r === "force_close_eod") return "收盘强平";
+  // exit_score=36<40 → 评分退出 36<40
+  const scoreMatch = r.match(/exit_score=(\d+)<(\d+)/);
+  if (scoreMatch) return `评分退出 ${scoreMatch[1]}<${scoreMatch[2]}`;
+  // T3:large_order_reversal(v2) → T3大单翻转
+  if (r.includes("large_order_reversal")) return "T3大单翻转";
+  if (r.includes("volume_price_divergence")) return "T3量价背离";
+  if (r.includes("macd_top_divergence")) return "T3 MACD顶背离";
+  if (r.includes("closing_surge")) return "T3尾盘异动";
+  if (r.includes("support_breakdown")) return "T3跌破支撑";
+  if (r.includes("rsi_extreme")) return "T3 RSI极值";
+  if (r.includes("composite_bearish")) return "空头综合信号";
+  if (r.includes("momentum_sell")) return "动量转空";
   if (r.includes("sell_next_open")) return "次日开盘卖";
   return r;
 }
 
-/** 策略名翻译 */
+/** 策略/入场原因翻译 — 保留评分数值 */
 function strategyCN(s: string): string {
+  // daily_score=75 → 日线评分75
+  const dsMatch = s.match(/daily_score=(\d+)/);
+  if (dsMatch) return `日线评分${dsMatch[1]}`;
+  // intraday_exception:momentum_alert(score=65) → 日内例外:动量(65)
+  const ieMatch = s.match(/intraday_exception:(\w+)\(score=(\d+)\)/);
+  if (ieMatch) return `日内例外:${signalCN(ieMatch[1])}(${ieMatch[2]})`;
+
   const map: Record<string, string> = {
-    composite_bullish: "多头综合",
-    composite_bearish: "空头综合",
-    momentum_alert: "动量确认",
-    momentum_sell_alert: "动量卖出",
-    volume_accel_alert: "放量加速",
-    volume_accel_sell_alert: "放量砸盘",
-    macd_golden_cross: "MACD金叉",
-    macd_death_cross: "MACD死叉",
-    ma_bullish_align: "均线多头排列",
-    ma_bearish_align: "均线空头排列",
-    volume_breakout: "放量突破",
-    breakout_pullback: "突破回踩",
+    composite_bullish: "L2多头综合",
+    composite_bearish: "L2空头综合",
+    momentum_alert: "L2动量确认",
+    momentum_sell_alert: "L2动量卖出",
+    volume_accel_alert: "L2放量加速",
+    volume_accel_sell_alert: "L2放量砸盘",
+    macd_golden_cross: "日K MACD金叉",
+    macd_death_cross: "日K MACD死叉",
+    ma_bullish_align: "日K均线多头排列",
+    ma_bearish_align: "日K均线空头排列",
+    volume_breakout: "日K放量突破",
+    breakout_pullback: "日K突破回踩",
+    bollinger_squeeze_breakout: "日K布林突破",
+    morning_evening_star: "日K星线形态",
     force_close: "强制平仓",
-    "T3:large_order_reversal": "T3:大单翻转",
-    "T3:volume_price_divergence": "T3:量价背离",
-    "T3:macd_top_divergence": "T3:MACD顶背离",
+    "T3:large_order_reversal": "T3大单翻转",
+    "T3:large_order_reversal(v2)": "T3大单翻转(v2)",
+    "T3:volume_price_divergence": "T3量价背离",
+    "T3:macd_top_divergence": "T3 MACD顶背离",
   };
   return map[s] || s;
+}
+
+/** 信号名简写翻译 */
+function signalCN(s: string): string {
+  const m: Record<string, string> = {
+    momentum_alert: "动量", volume_accel_alert: "放量",
+    composite_bullish: "综合多", macd_golden_cross: "MACD金叉",
+    ma_bullish_align: "均线多", volume_breakout: "放量突破",
+    breakout_pullback: "突破回踩",
+  };
+  return m[s] || s;
 }
 
 /* ── Components ── */
@@ -1002,7 +1036,7 @@ function OperationsLog({ live }: { live: LiveData }) {
             <span style={{ width: "10ch", textAlign: "right" }}>价格</span>
             <span style={{ width: "8ch", textAlign: "right" }}>数量</span>
             <span style={{ width: "10ch", textAlign: "right" }}>盈亏</span>
-            <span style={{ width: "16ch", paddingLeft: "2ch" }}>原因</span>
+            <span style={{ width: "22ch", paddingLeft: "2ch" }}>原因</span>
           </div>
           {ops.map((o, i) => {
             const actionColor = o.action === "BUY" ? D.red : D.green;
@@ -1031,7 +1065,7 @@ function OperationsLog({ live }: { live: LiveData }) {
                 }}>
                   {o.pnl != null ? `${o.pnl >= 0 ? "+" : ""}${o.pnl.toFixed(0)}` : "-"}
                 </span>
-                <span style={{ color: D.orange, width: "16ch", paddingLeft: "2ch" }}>
+                <span style={{ color: D.orange, width: "22ch", paddingLeft: "2ch" }}>
                   {o.reason}
                 </span>
               </div>
