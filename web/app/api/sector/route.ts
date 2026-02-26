@@ -76,16 +76,37 @@ function readSectorConfig(): SectorConfig {
     if (!existsSync(SECTOR_CONFIG_PATH)) {
       return { indices: [], alertRules: {}, rotation: {} };
     }
-    const raw = readFileSync(SECTOR_CONFIG_PATH, "utf-8");
-    return JSON.parse(raw);
+    const raw = JSON.parse(readFileSync(SECTOR_CONFIG_PATH, "utf-8"));
+    // Config file stores indices as dict { id: {...} }, convert to array
+    const indicesObj = raw.indices || {};
+    const indices: IndexDef[] = Object.entries(indicesObj).map(([id, v]) => ({
+      id,
+      ...(v as Omit<IndexDef, "id">),
+    }));
+    return {
+      indices,
+      alertRules: raw.alert_rules || raw.alertRules || {},
+      rotation: raw.rotation || {},
+    };
   } catch {
     return { indices: [], alertRules: {}, rotation: {} };
   }
 }
 
 function writeSectorConfig(config: SectorConfig) {
+  // Convert array back to dict format for Python compatibility
+  const indicesObj: Record<string, Omit<IndexDef, "id">> = {};
+  for (const idx of config.indices) {
+    const { id, ...rest } = idx;
+    indicesObj[id] = rest;
+  }
+  const out = {
+    indices: indicesObj,
+    alert_rules: config.alertRules,
+    rotation: config.rotation,
+  };
   const tmp = SECTOR_CONFIG_PATH + ".tmp";
-  writeFileSync(tmp, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  writeFileSync(tmp, JSON.stringify(out, null, 2) + "\n", "utf-8");
   renameSync(tmp, SECTOR_CONFIG_PATH);
 }
 
