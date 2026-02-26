@@ -375,6 +375,8 @@ tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
 
 - **Poller 是生产者，UI 是消费者，二者无耦合。** Poller (`src/tools/market_data_poller.py`) 只写行情数据到 `market_data.json`（price/change/vol/amount 等）；用户配置（type/cost/shares/hidden）只存 `monitor_config.json`；告警规则（above/below）独立存 `alert_config.json`；告警事件存 `sim_trading.db` 的 `alert_events` 表。`/api/metrics` 负责合并三 JSON + SQLite alert_events + 计算派生字段（pnl）。任何 UI 端操作立即生效，不依赖 poller 周期。
 - **All market data and FX rate fetching must happen in the Python poller script**, not in Next.js API routes. The web layer (`/api/metrics`) only reads from `market_data.json` written by the poller. This keeps the data pipeline centralized and avoids duplicate API calls from the frontend.
+- **Poller 降级不丢数据。** 东方财富不可用时 fallback 到新浪（价格刷新，但无量比/换手率）。Sina 降级时从上轮 `market_data.json` 继承 `volRatio`/`turnover`，避免用 0 覆盖。FX 汇率获取失败时同理继承上次值。
+- **板块轮动独立于 Poller。** `sector_index_engine.py` 是独立 cron，不嵌入 poller 循环。数据源优先 akshare (EM push2)，公司网络封锁时自动 fallback 新浪财经 API。Web 层 `/api/sector` 只读 SQLite + `sector_config.json`，不调用外部 API。
 - **告警规则与持仓配置分离。** `above`/`below` 阈值存在 `alert_config.json`，不存在 `monitor_config.json` 的 watchlist 条目里。所有读写告警的代码（web API、CLI、notifier）统一从 `alert_config.json` 操作。删除股票时同步清理两个文件。
 - **告警计算单一数据源。** Notifier (`stock_notifier.py` DeltaAlertEngine) 是唯一的告警计算引擎，产出写入 `sim_trading.db` 的 `alert_events` 表。Web 前端 (`useAlerts`) 只读取展示，不做任何告警计算。确保 terminal 弹窗和 web 日志完全一致，不重复计算，不重复告警。
 
