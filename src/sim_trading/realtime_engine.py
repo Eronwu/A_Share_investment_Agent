@@ -119,6 +119,35 @@ class RealtimeSimEngine:
         if rows:
             logger.info(f"Restored {len(rows)} live positions from DB")
 
+        # Restore daily counters from DB (restart safety)
+        today = datetime.now().strftime("%Y-%m-%d")
+        conn = get_connection()
+        row = conn.execute(
+            "SELECT COUNT(DISTINCT code) as cnt FROM trades "
+            "WHERE param_version='live' AND entry_date=? AND action='SELL'",
+            (today,),
+        ).fetchone()
+        conn.close()
+        closed_today = row["cnt"] if row else 0
+        self._new_positions_today = len(self._pos_mgr.positions) + closed_today
+        if self._new_positions_today > 0:
+            logger.info(
+                f"Restored _new_positions_today={self._new_positions_today} "
+                f"(live={len(self._pos_mgr.positions)}, closed={closed_today})"
+            )
+
+        # If past entry window, mark as evaluated to prevent re-entry
+        entry_end = self._score_cfg.get("entry_window_end", "10:30")
+        now_hm = datetime.now().strftime("%H:%M")
+        if now_hm > entry_end:
+            self._entry_evaluated_today = True
+            logger.info(f"Past entry window ({entry_end}), marked entry_evaluated=True")
+
+        # If past exit review time, mark as evaluated
+        exit_time = self._score_cfg.get("exit_review_time", "15:30")
+        if now_hm > exit_time:
+            self._exit_evaluated_today = True
+
     def _persist_state(self, prices: dict[str, float]):
         """Write all current positions to live_state table (full replace)."""
         conn = get_connection()
@@ -338,6 +367,7 @@ class RealtimeSimEngine:
                 current_ts=now_ts,
                 current_date=today,
                 cost_calculator=lambda p, q, a: self._engine.calc_cost(p, q, a),
+                min_hold_minutes=cfg.get("min_hold_minutes", 30),
             )
             for trade in exit_trades:
                 trade["notes"] = trade.get("notes", "")
@@ -445,13 +475,13 @@ class RealtimeSimEngine:
             # (e.g. ex-rights kline vs real-time price mismatch), fallback to ATR-based
             sl = score_result.get("stop_loss", 0)
             tp = score_result.get("take_profit", 0)
-            if sl <= 0 or sl >= exec_price or abs(sl - exec_price) / exec_price > 0.50:
+            if sl <= 0 or sl >= exec_price or abs(sl - exec_price) / exec_price > 0.15:
                 sl = exec_price - atr * 2
                 logger.warning(
                     f"Scorer SL {score_result.get('stop_loss', 0):.2f} invalid for "
                     f"{code}@{exec_price:.2f}, fallback SL={sl:.2f}"
                 )
-            if tp <= 0 or tp <= exec_price or abs(tp - exec_price) / exec_price > 0.50:
+            if tp <= 0 or tp <= exec_price or abs(tp - exec_price) / exec_price > 0.15:
                 tp = exec_price + atr * 3
 
             pos = self._pos_mgr.open_position(

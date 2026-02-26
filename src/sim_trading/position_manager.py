@@ -205,6 +205,7 @@ class PositionManager:
         current_ts: int = 0,
         current_date: str = "",
         cost_calculator=None,
+        min_hold_minutes: int = 0,
     ) -> list[dict]:
         """Check all positions for stop-loss, take-profit, or max-hold exits.
 
@@ -214,6 +215,7 @@ class PositionManager:
             current_ts: epoch ms
             current_date: YYYY-MM-DD
             cost_calculator: optional callable(price, qty, action) → cost
+            min_hold_minutes: skip SL/TP exits within this period (extreme loss exempt)
 
         Returns list of closed trade records.
         """
@@ -233,14 +235,38 @@ class PositionManager:
             if price > pos.highest_price:
                 pos.highest_price = price
 
+            # min_hold guard: skip normal SL/TP during hold period
+            # Exception: extreme loss (>8%) or emergency stop (>5%) always exits
+            hold_minutes = (
+                (current_ts - pos.entry_time) / 60000
+                if current_ts and pos.entry_time else 999
+            )
+            pnl_pct = (
+                (price - pos.entry_price) / pos.entry_price
+                if pos.entry_price > 0 else 0
+            )
+            extreme_loss = pnl_pct <= -0.08
+            in_hold_period = (
+                hold_minutes < min_hold_minutes
+                and not extreme_loss
+            )
+
             reason = None
 
-            # Stop loss
-            if price <= pos.stop_loss:
+            # Emergency stop: -5% hard cap (independent of SL price)
+            if pnl_pct <= -0.05 and not in_hold_period:
+                reason = f"emergency_stop({pnl_pct:.1%})"
+
+            # Extreme loss: always exit regardless of hold period
+            elif extreme_loss:
+                reason = f"emergency_stop({pnl_pct:.1%})"
+
+            # Stop loss (skipped during hold period)
+            elif price <= pos.stop_loss and not in_hold_period:
                 reason = f"stop_loss({pos.stop_loss:.2f})"
 
-            # Take profit
-            elif pos.take_profit and price >= pos.take_profit:
+            # Take profit (skipped during hold period)
+            elif pos.take_profit and price >= pos.take_profit and not in_hold_period:
                 reason = f"take_profit({pos.take_profit:.2f})"
 
             # Max hold days

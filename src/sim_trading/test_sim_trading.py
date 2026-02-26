@@ -672,3 +672,173 @@ class TestIntegration:
         )
         assert len(closed) == 1
         assert closed[0]["pnl"] > 0
+
+
+# ---------------------------------------------------------------------------
+# Bug fix tests: min_hold guard, emergency stop
+# ---------------------------------------------------------------------------
+
+class TestMinHoldGuard:
+    """Bug 2: check_exits() should respect min_hold_minutes."""
+
+    def _open_pos(self, pos_mgr, code="HK00700", price=100.0, atr=1.5, entry_ts=1000000):
+        """Open position with tight SL (100-2*1.5=97) so SL tests don't hit emergency."""
+        decision = TradeDecision(
+            action="BUY", code=code, confidence=0.65,
+            position_pct=0.10, stop_atr=2.0, max_hold_days=5,
+            trigger_signal_ids=[1], reason="test",
+        )
+        return pos_mgr.open_position(
+            decision, price=price, atr=atr, trade_cost=50.0,
+            current_date="2026-01-01", current_ts=entry_ts, day_index=0,
+        )
+
+    def test_sl_blocked_during_hold_period(self, pos_mgr):
+        """SL should NOT trigger within min_hold period."""
+        entry_ts = 1_000_000
+        # SL = 100 - 2*1.5 = 97.0, so price 96.5 is below SL but > -5% (95.0)
+        pos = self._open_pos(pos_mgr, entry_ts=entry_ts)
+        assert pos.stop_loss == 97.0
+
+        # 10 minutes later → within 30min hold period
+        now_ts = entry_ts + 10 * 60 * 1000
+        closed = pos_mgr.check_exits(
+            {"HK00700": 96.5},  # Below SL (97) but above emergency (95)
+            day_index=0, current_ts=now_ts,
+            current_date="2026-01-01",
+            min_hold_minutes=30,
+        )
+        assert len(closed) == 0, "SL should be blocked during min_hold period"
+
+    def test_sl_triggers_after_hold_period(self, pos_mgr):
+        """SL should trigger normally after min_hold expires."""
+        entry_ts = 1_000_000
+        pos = self._open_pos(pos_mgr, entry_ts=entry_ts)
+
+        # 35 minutes later → past hold period
+        now_ts = entry_ts + 35 * 60 * 1000
+        closed = pos_mgr.check_exits(
+            {"HK00700": 96.5},  # Below SL (97) but above emergency (95)
+            day_index=0, current_ts=now_ts,
+            current_date="2026-01-01",
+            min_hold_minutes=30,
+        )
+        assert len(closed) == 1
+        assert "stop_loss" in closed[0]["exit_reason"]
+
+    def test_extreme_loss_bypasses_hold_period(self, pos_mgr):
+        """Extreme loss (>8%) should trigger even during hold period."""
+        entry_ts = 1_000_000
+        pos = self._open_pos(pos_mgr, price=100.0, entry_ts=entry_ts)
+
+        # 5 minutes later, price crashed 10%
+        now_ts = entry_ts + 5 * 60 * 1000
+        closed = pos_mgr.check_exits(
+            {"HK00700": 90.0},  # -10% → extreme loss
+            day_index=0, current_ts=now_ts,
+            current_date="2026-01-01",
+            min_hold_minutes=30,
+        )
+        assert len(closed) == 1
+        assert "emergency_stop" in closed[0]["exit_reason"]
+
+    def test_tp_blocked_during_hold_period(self, pos_mgr):
+        """TP should also be blocked during hold period."""
+        entry_ts = 1_000_000
+        pos = self._open_pos(pos_mgr, entry_ts=entry_ts)
+
+        now_ts = entry_ts + 10 * 60 * 1000
+        closed = pos_mgr.check_exits(
+            {"HK00700": pos.take_profit + 10},
+            day_index=0, current_ts=now_ts,
+            current_date="2026-01-01",
+            min_hold_minutes=30,
+        )
+        assert len(closed) == 0, "TP should be blocked during min_hold period"
+
+    def test_max_hold_not_affected_by_min_hold(self, pos_mgr):
+        """Max hold days exit should NOT be blocked by min_hold."""
+        entry_ts = 1_000_000
+        pos = self._open_pos(pos_mgr, entry_ts=entry_ts)
+
+        now_ts = entry_ts + 10 * 60 * 1000  # Still in hold period
+        closed = pos_mgr.check_exits(
+            {"HK00700": 100.0},  # Price unchanged
+            day_index=10,  # Way past max_hold_days=5
+            current_ts=now_ts,
+            current_date="2026-01-10",
+            min_hold_minutes=30,
+        )
+        assert len(closed) == 1
+        assert "max_hold" in closed[0]["exit_reason"]
+
+
+class TestEmergencyStop:
+    """Bug 3: emergency stop at -5% independent of SL price."""
+
+    def _open_pos(self, pos_mgr, code="HK00700", price=100.0, entry_ts=1000000):
+        decision = TradeDecision(
+            action="BUY", code=code, confidence=0.65,
+            position_pct=0.10, stop_atr=2.0, max_hold_days=5,
+            trigger_signal_ids=[1], reason="test",
+        )
+        return pos_mgr.open_position(
+            decision, price=price, atr=5.0, trade_cost=50.0,
+            current_date="2026-01-01", current_ts=entry_ts, day_index=0,
+        )
+
+    def test_emergency_stop_at_5pct(self, pos_mgr):
+        """Price drop of 5% should trigger emergency stop."""
+        entry_ts = 1_000_000
+        pos = self._open_pos(pos_mgr, price=100.0, entry_ts=entry_ts)
+
+        # SL is at 90.0 (100 - 2*5), but emergency triggers at 95.0 (-5%)
+        now_ts = entry_ts + 60 * 60 * 1000  # 1 hour later
+        closed = pos_mgr.check_exits(
+            {"HK00700": 94.5},  # -5.5% < -5% threshold
+            day_index=0, current_ts=now_ts,
+            current_date="2026-01-01",
+            min_hold_minutes=30,
+        )
+        assert len(closed) == 1
+        assert "emergency_stop" in closed[0]["exit_reason"]
+
+    def test_no_emergency_at_4pct(self, pos_mgr):
+        """Price drop of 4% should NOT trigger emergency stop (SL at 90%)."""
+        entry_ts = 1_000_000
+        pos = self._open_pos(pos_mgr, price=100.0, entry_ts=entry_ts)
+
+        now_ts = entry_ts + 60 * 60 * 1000
+        closed = pos_mgr.check_exits(
+            {"HK00700": 96.0},  # -4%, above emergency but also above SL (90)
+            day_index=0, current_ts=now_ts,
+            current_date="2026-01-01",
+            min_hold_minutes=30,
+        )
+        assert len(closed) == 0
+
+    def test_emergency_before_sl(self, pos_mgr):
+        """Emergency stop should trigger before normal SL if loss > 5%."""
+        entry_ts = 1_000_000
+        # Use narrow ATR so SL is at 98 (100-2*1), but emergency is at 95
+        decision = TradeDecision(
+            action="BUY", code="HK00700", confidence=0.65,
+            position_pct=0.10, stop_atr=2.0, max_hold_days=5,
+            trigger_signal_ids=[1], reason="test",
+        )
+        pos = pos_mgr.open_position(
+            decision, price=100.0, atr=1.0, trade_cost=50.0,
+            current_date="2026-01-01", current_ts=entry_ts, day_index=0,
+        )
+        assert pos.stop_loss == 98.0  # Confirm narrow SL
+
+        now_ts = entry_ts + 60 * 60 * 1000
+        closed = pos_mgr.check_exits(
+            {"HK00700": 94.0},  # -6%, below both SL (98) and emergency (95)
+            day_index=0, current_ts=now_ts,
+            current_date="2026-01-01",
+            min_hold_minutes=30,
+        )
+        assert len(closed) == 1
+        # Emergency stop takes priority since it's checked first
+        assert "emergency_stop" in closed[0]["exit_reason"]
