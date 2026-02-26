@@ -322,6 +322,18 @@ export async function GET() {
     const currentEquity = initialCapital + totalPnl;
     const cashAvailable = initialCapital - totalCostBasis + realizedPnl - liveCommission;
 
+    // Today's P&L = today's realized (closed today) + today's unrealized change (positions day pnl)
+    const today = new Date().toISOString().slice(0, 10);
+    const todayRealizedPnl = liveTrades
+      .filter(t => t.exit_date === today)
+      .reduce((sum, t) => sum + (t.pnl || 0), 0);
+    const todayUnrealizedPnl = livePositions.reduce((sum, p) => {
+      const qty = Number(p.quantity) || 0;
+      const chgAmt = Number(p.chgAmt) || 0;
+      return sum + chgAmt * qty;
+    }, 0);
+    const todayPnl = todayRealizedPnl + todayUnrealizedPnl;
+
     return NextResponse.json({
       summary,
       trades,
@@ -345,11 +357,12 @@ export async function GET() {
         win_rate: round(liveWinRate, 4),
         profit_factor: liveProfitFactor === Infinity ? "inf" : round(liveProfitFactor, 2),
         total_commission: round(liveCommission, 2),
+        today_pnl: round(todayPnl, 2),
       },
     });
   } catch (e) {
     return NextResponse.json(
-      { error: String(e), summary: null, trades: [], daily_pnl: [], per_strategy: {}, per_stock: {}, positions: {}, live: { positions: [], trades: [], n_positions: 0, total_unrealized: 0, total_market_value: 0, realized_pnl: 0, total_pnl: 0, total_return: 0, current_equity: 0, cash: 0, initial_capital: 0, total_trades: 0, win_rate: 0, profit_factor: 0, total_commission: 0 } },
+      { error: String(e), summary: null, trades: [], daily_pnl: [], per_strategy: {}, per_stock: {}, positions: {}, live: { positions: [], trades: [], n_positions: 0, total_unrealized: 0, total_market_value: 0, realized_pnl: 0, total_pnl: 0, total_return: 0, current_equity: 0, cash: 0, initial_capital: 0, total_trades: 0, win_rate: 0, profit_factor: 0, total_commission: 0, today_pnl: 0 } },
       { status: 500 },
     );
   }

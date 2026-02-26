@@ -109,6 +109,7 @@ interface LiveData {
   win_rate: number;
   profit_factor: number | string;
   total_commission: number;
+  today_pnl: number;
 }
 
 interface SimData {
@@ -730,6 +731,12 @@ function LiveSummaryBar({ live, ts }: { live: LiveData; ts: string }) {
           <span style={{ color: D.comment }}>收益率 </span>
           <span style={{ color: pnlColor(live.total_return), fontWeight: 700, fontSize: 17 }}>
             {pctFmt(live.total_return)}
+          </span>
+        </span>
+        <span>
+          <span style={{ color: D.comment }}>今日 </span>
+          <span style={{ color: pnlColor(live.today_pnl), fontWeight: 700 }}>
+            {live.today_pnl >= 0 ? "+" : ""}{numFmt(live.today_pnl)}
           </span>
         </span>
         <span>
