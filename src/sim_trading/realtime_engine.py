@@ -441,8 +441,18 @@ class RealtimeSimEngine:
             cost_info = self._engine.calc_cost(exec_price, est_qty, "BUY")
 
             # Override stop_loss / take_profit from scorer
-            sl = score_result.get("stop_loss", exec_price - atr * 2)
-            tp = score_result.get("take_profit", exec_price + atr * 3)
+            # Sanity check: if scorer SL/TP is wildly off from exec_price
+            # (e.g. ex-rights kline vs real-time price mismatch), fallback to ATR-based
+            sl = score_result.get("stop_loss", 0)
+            tp = score_result.get("take_profit", 0)
+            if sl <= 0 or sl >= exec_price or abs(sl - exec_price) / exec_price > 0.50:
+                sl = exec_price - atr * 2
+                logger.warning(
+                    f"Scorer SL {score_result.get('stop_loss', 0):.2f} invalid for "
+                    f"{code}@{exec_price:.2f}, fallback SL={sl:.2f}"
+                )
+            if tp <= 0 or tp <= exec_price or abs(tp - exec_price) / exec_price > 0.50:
+                tp = exec_price + atr * 3
 
             pos = self._pos_mgr.open_position(
                 decision, exec_price, atr,
