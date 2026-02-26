@@ -100,6 +100,19 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 - 交易记录: 可折叠表格，退出原因和策略名中文翻译
 - 归因面板: 按策略 + 按股票，PnL 降序
 
+**板块轮动页面 (`/sector`)**:
+- 板块轮动矩阵: 东方财富风格排名网格，行=排名(1-N)，列=日期(横向滚动)，每格=板块名+涨跌幅
+- 筛选器: 行业/概念、涨幅/跌幅、前10/20名
+- 点击板块名 → 底部详情面板（近1月N次进前10 + 排名历史）
+- 我的指数: 自定义板块指数（等权平均涨跌幅），展示今日/3日/5日/10日/累涨/状态
+- 主线告警: 累涨 >= 8% + 线性回归斜率 >= 0.3 → 触发主线信号
+- 指数管理: 新建（名称+ID+成分股代码）、★star、删除
+- `/api/sector` GET: 读 sector_rotation + sector_daily + sector_alerts + sector_config.json
+- `/api/sector` POST: create/update/delete/watch/star/config
+- `sector_index_engine.py`: 每日 15:30 运行（`poetry run python -m src.tools.sector_index_engine`），采集 EM 板块排名 + 计算自定义指数 + 检测主线信号
+- `sector_config.json`: 指数定义（indices）+ 告警规则（alert_rules）+ 轮动配置（rotation）
+- SQLite 表: sector_rotation (90天) / sector_daily (180天) / sector_alerts (30天)
+
 **管理页面 (`/manage`)**:
 - 列标题行: `type | code | name | cost | shares | ▲ above | ▼ below | ★ | hide`
 - `above`/`below` 告警阈值通过 `EditableCell` 内联编辑，保存到 `alert_config.json`（适用于 holding 和 watching）
@@ -115,6 +128,8 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 | `monitor_config.json` | UI (/api/config) | 持仓配置 (name/type/cost/shares/hidden) |
 | `alert_config.json` | UI (/api/config) | 告警规则 (above/below，按股票代码索引) |
 | `sim_trading.db` → `alert_events` | Notifier (Python) | 告警事件流 (message/display 双格式) |
+| `sector_config.json` | UI (/api/sector) | 自定义指数定义 + 告警规则 + 轮动配置 |
+| `sim_trading.db` → `sector_*` | sector_index_engine (Python) | 板块轮动排名 + 自定义指数日线 + 主线告警 |
 
 `/api/metrics` 合并三 JSON + SQLite alert_events + 计算 pnl，任何 UI 操作立即生效，不依赖 poller 周期。
 
@@ -157,6 +172,7 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 | `l2_strategy_signals.json` | L2 信号 + session 上下文（资金流快照、盘口状态）。daemon 每 3s 覆盖，**每日 08:00 自动归档到 `archive/`**，防止 session 数据丢失 |
 | `signal_rules.json` | 信号规则配置 |
 | `l2_strategy_config.json` | L2 策略参数 |
+| `sector_config.json` | 自定义板块指数定义 + 告警规则 + 轮动配置 |
 
 **不需要提交的（临时/派生）**:
 
@@ -262,6 +278,9 @@ tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
 - `live_state`: 实时持仓 (entry_price, SL/TP, daily_score, unrealized_pnl)
 - `param_versions`: 参数版本配置
 - `alert_events`: 告警事件 (ts, date, symbol, kind, level, message, display, change_pct) — 30 天保留
+- `sector_rotation`: EM 板块每日排名 (date, category, board_name, change_pct, rank) — 90 天保留
+- `sector_daily`: 自定义指数日线 (date, index_id, avg_change_pct, index_value, components_json) — 180 天保留
+- `sector_alerts`: 主线告警 (date, index_id, alert_type, cumulative_pct, slope, message) — 30 天保留
 
 **RT engine 日志**: logger 名 `l2_daemon.rt_sim`，继承 daemon handler，写入 `logs/l2_daemon.log`。
 
