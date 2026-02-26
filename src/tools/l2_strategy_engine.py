@@ -2249,6 +2249,24 @@ class DailyIndicatorTracker:
             return {"total": 0, "action": "WAIT",
                     "stop_loss": 0, "take_profit": 0, "atr": 0}
 
+        # Stale data check: if kline is >5 days old, score is unreliable
+        kline = self._kline_cache.get(code)
+        if kline is not None and "time_key" in kline.columns:
+            import datetime as _dt
+            try:
+                last_date = pd.to_datetime(kline["time_key"].iloc[-1]).date()
+                today = _dt.date.today()
+                stale_days = (today - last_date).days
+                if stale_days > 5:
+                    logger.warning(
+                        f"score({code}): kline stale by {stale_days} days "
+                        f"(last={last_date}), returning WAIT"
+                    )
+                    return {"total": 0, "action": "WAIT",
+                            "stop_loss": 0, "take_profit": 0, "atr": 0}
+            except Exception:
+                pass
+
         # 读最新值
         c = float(close.iloc[-1])
         rsi_val = float(ind["rsi"].iloc[-1]) if not pd.isna(ind["rsi"].iloc[-1]) else 50
