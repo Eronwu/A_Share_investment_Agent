@@ -295,6 +295,7 @@ export default function AlertsPage() {
         <span style={{ color: D.comment }}>|</span>
         <span style={{ color: D.purple, fontWeight: 700 }}>alerts</span>
         <a href="/sim" style={{ color: D.comment, textDecoration: "none" }}>sim</a>
+        <a href="/sector" style={{ color: D.comment, textDecoration: "none" }}>sector</a>
         <a href="/manage" style={{ color: D.comment, textDecoration: "none" }}>manage</a>
         <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>
           {sorted.length} events today | auto-refresh 30s
