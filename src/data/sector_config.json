@@ -1,0 +1,14 @@
+{
+  "indices": {},
+  "alert_rules": {
+    "cumulative_gain_pct": 8,
+    "slope_threshold": 0.3,
+    "lookback_days": 10,
+    "min_days_since_create": 3
+  },
+  "rotation": {
+    "category": "industry",
+    "sort": "change_pct",
+    "top_n": 10
+  }
+}
