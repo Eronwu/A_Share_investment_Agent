@@ -131,6 +131,9 @@ function TabBar({ activeTab, onTabChange }: { activeTab: MarketTab; onTabChange:
       <Link href="/sim" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
         sim
       </Link>
+      <Link href="/sector" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
+        sector
+      </Link>
       <Link href="/manage" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
         manage
       </Link>
@@ -255,10 +258,21 @@ function Home() {
     );
   }
 
+  // 今日盈亏：当日买入的股票用 totalPnl 封顶（不可能今天赚的比总共赚的还多）
+  function calcDayPnl(s: Service, fx: number): number {
+    if (s.shares == null) return 0;
+    const raw = s.chgAmt * s.shares * fx;
+    if (s.cost == null || s.cost === 0) return raw;
+    const total = (s.price - s.cost) * s.shares * fx;
+    if (total >= 0 && raw > 0 && raw > total) return total;
+    if (total <= 0 && raw < 0 && raw < total) return total;
+    return raw;
+  }
+
   function derivedVal(s: Service, key: SortKey): number {
     if (key === "mktVal") return s.shares != null ? s.price * s.shares : -Infinity;
     if (key === "totalPnl") return s.cost != null && s.shares != null ? (s.price - s.cost) * s.shares : -Infinity;
-    if (key === "dayPnl") return s.shares != null ? s.chgAmt * s.shares : -Infinity;
+    if (key === "dayPnl") return s.shares != null ? calcDayPnl(s, s.id.startsWith("HK") ? fxRate : 1) : -Infinity;
     return (s[key as keyof Service] as number) ?? -Infinity;
   }
 
@@ -303,7 +317,7 @@ function Home() {
   const tabHoldings = tabServices.filter((s) => s.type === "holding" && s.pnl !== null && s.cost && s.shares);
   const tabFx = activeTab === "HK" ? fxRate : 1;
   const tabPnl = tabHoldings.reduce((sum, s) => sum + (s.price - s.cost!) * s.shares! * tabFx, 0);
-  const tabTodayPnl = tabHoldings.reduce((sum, s) => sum + s.chgAmt * s.shares! * tabFx, 0);
+  const tabTodayPnl = tabHoldings.reduce((sum, s) => sum + calcDayPnl(s, tabFx), 0);
   const tabPosition = tabHoldings.reduce((sum, s) => sum + s.price * s.shares! * tabFx, 0);
   const tabCostBasis = tabHoldings.reduce((sum, s) => sum + s.cost! * s.shares! * tabFx, 0);
   const tabReturnPct = tabCostBasis > 0 ? (tabPnl / tabCostBasis) * 100 : 0;
@@ -330,7 +344,7 @@ function Home() {
     const rowFx = s.id.startsWith("HK") ? fxRate : 1;
     const mktVal = s.shares != null ? s.price * s.shares * rowFx : null;
     const totalPnlRaw = s.cost != null && s.cost !== 0 && s.shares != null ? (s.price - s.cost) * s.shares * rowFx : null;
-    const dayPnl = s.shares != null ? s.chgAmt * s.shares * rowFx : null;
+    const dayPnl = s.shares != null ? calcDayPnl(s, rowFx) : null;
     // Near alert threshold indicator
     const nearAlert =
       (s.above && s.price > 0 && (s.above - s.price) / s.price < 0.03) ||
