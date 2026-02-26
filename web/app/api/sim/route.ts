@@ -333,6 +333,9 @@ export async function GET() {
       return sum + chgAmt * qty;
     }, 0);
     const todayPnl = todayRealizedPnl + todayUnrealizedPnl;
+    // Today's return% = todayPnl / yesterday's equity (equity before today's change)
+    const yesterdayEquity = currentEquity - todayPnl;
+    const todayReturn = yesterdayEquity > 0 ? todayPnl / yesterdayEquity : 0;
 
     return NextResponse.json({
       summary,
@@ -358,11 +361,12 @@ export async function GET() {
         profit_factor: liveProfitFactor === Infinity ? "inf" : round(liveProfitFactor, 2),
         total_commission: round(liveCommission, 2),
         today_pnl: round(todayPnl, 2),
+        today_return: round(todayReturn, 4),
       },
     });
   } catch (e) {
     return NextResponse.json(
-      { error: String(e), summary: null, trades: [], daily_pnl: [], per_strategy: {}, per_stock: {}, positions: {}, live: { positions: [], trades: [], n_positions: 0, total_unrealized: 0, total_market_value: 0, realized_pnl: 0, total_pnl: 0, total_return: 0, current_equity: 0, cash: 0, initial_capital: 0, total_trades: 0, win_rate: 0, profit_factor: 0, total_commission: 0, today_pnl: 0 } },
+      { error: String(e), summary: null, trades: [], daily_pnl: [], per_strategy: {}, per_stock: {}, positions: {}, live: { positions: [], trades: [], n_positions: 0, total_unrealized: 0, total_market_value: 0, realized_pnl: 0, total_pnl: 0, total_return: 0, current_equity: 0, cash: 0, initial_capital: 0, total_trades: 0, win_rate: 0, profit_factor: 0, total_commission: 0, today_pnl: 0, today_return: 0 } },
       { status: 500 },
     );
   }
