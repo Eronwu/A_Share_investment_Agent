@@ -100,18 +100,88 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 - 交易记录: 可折叠表格，退出原因和策略名中文翻译
 - 归因面板: 按策略 + 按股票，PnL 降序
 
-**板块轮动页面 (`/sector`)**:
-- 板块轮动矩阵: 东方财富风格排名网格，行=排名(1-N)，列=日期(横向滚动)，每格=板块名+涨跌幅
-- 筛选器: 行业/概念、涨幅/跌幅、前10/20名
-- 点击板块名 → 底部详情面板（近1月N次进前10 + 排名历史）
-- 我的指数: 自定义板块指数（等权平均涨跌幅），展示今日/3日/5日/10日/累涨/状态
-- 主线告警: 累涨 >= 8% + 线性回归斜率 >= 0.3 → 触发主线信号
-- 指数管理: 新建（名称+ID+成分股代码）、★star、删除
-- `/api/sector` GET: 读 sector_rotation + sector_daily + sector_alerts + sector_config.json
-- `/api/sector` POST: create/update/delete/watch/star/config
-- `sector_index_engine.py`: 每日 15:30 运行（`poetry run python -m src.tools.sector_index_engine`），采集 EM 板块排名 + 计算自定义指数 + 检测主线信号
-- `sector_config.json`: 指数定义（indices）+ 告警规则（alert_rules）+ 轮动配置（rotation）
-- SQLite 表: sector_rotation (90天) / sector_daily (180天) / sector_alerts (30天)
+### 板块轮动 & 自定义指数 (`/sector`)
+
+**概览**: 东方财富风格的板块排名矩阵 + 用户自定义板块指数 + 主线行情告警。用于分析 A 股板块轮动节奏、识别持续上涨的主线板块。
+
+**数据流**:
+```
+[每日 15:30 cron]
+sector_index_engine.py
+  ├── 新浪财经 API (Sina fallback 优先，EM push2 被公司网封)
+  │   ├── 行业板块: vip.stock.finance.sina.com.cn/q/view/newSinaHy.php (49 板块)
+  │   └── 概念板块: vip.stock.finance.sina.com.cn/q/view/newFLJK.php (84 板块)
+  ├── akshare stock_zh_a_hist() → 自定义指数成分股日线
+  ├── 等权平均涨跌幅 → 自定义指数值
+  ├── 线性回归斜率 + 累涨检测 → 主线告警
+  └── 写入 sim_trading.db: sector_rotation / sector_daily / sector_alerts
+          ↓
+/api/sector (Next.js, GET 只读 + POST 管理)
+          ↓
+/sector 页面 (轮动矩阵 + 我的指数 + 主线告警)
+```
+
+**轮动矩阵**:
+- 排名网格: 行=排名(1-N)，列=日期(横向滚动)，每格=板块名+涨跌幅%
+- 筛选器: 行业/概念、涨幅/跌幅、前10/20/30名
+- Rank 徽章: 1=红 2=橙 3=黄，其余灰色；涨幅红色/跌幅绿色（A股惯例）
+- 点击板块名 → 底部详情面板（排名N + 近1月N次进前10 + 历史排名序列）
+- 数据源: 优先 akshare (EM push2)，失败时 fallback 到新浪财经 API
+
+**自定义指数**:
+- 用户从自选股分组创建，支持增删成分股
+- 指数值 = 等权平均涨跌幅，从 baseline 100 累积
+- 展示: 今日/3日/5日/10日涨幅 + 累涨(自创建起) + 状态
+- Star 指数排最前，主线告警触发后状态显示红色「主线」标签
+
+**主线行情检测**:
+- 规则: `累涨 >= cumulative_gain_pct (默认8%)` AND `线性回归斜率 >= slope_threshold (默认0.3)`
+- 过滤: `min_days_since_create (默认3天)` 排除一日游
+- 接近告警: 累涨 >= 75% 阈值时提前预警
+- 告警写入 `sector_alerts` 表，同时可写入 `alert_events` 复用通知分级
+
+**运行方式**:
+```bash
+poetry run python -m src.tools.sector_index_engine              # 全量运行
+poetry run python -m src.tools.sector_index_engine --rotation    # 仅采集板块排名
+poetry run python -m src.tools.sector_index_engine --indices     # 仅计算自定义指数
+poetry run python -m src.tools.sector_index_engine --backfill ID # 回填指数30天历史
+poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主线信号
+```
+
+**配置 (`sector_config.json`)**:
+```json
+{
+  "indices": {
+    "phosphorus": {
+      "name": "磷化工",
+      "stocks": ["000792", "600096", "002895"],
+      "created_at": "2026-02-26",
+      "baseline_value": 100,
+      "watch": true, "star": false
+    }
+  },
+  "alert_rules": {
+    "cumulative_gain_pct": 8,
+    "slope_threshold": 0.3,
+    "lookback_days": 10,
+    "min_days_since_create": 3
+  },
+  "rotation": { "category": "industry", "sort": "change_pct", "top_n": 10 }
+}
+```
+
+**API**:
+- `GET /api/sector?category=industry&sort=change_pct&top_n=10&board=陶瓷行业` → rotation matrix + indices + alerts + config
+- `POST /api/sector` → `{action: "create"|"update"|"delete"|"watch"|"star"|"config", ...}`
+- 配置文件存储格式为 dict (`{id: {...}}`)，API 层自动 dict↔array 转换
+
+**SQLite 表** (in `sim_trading.db`):
+- `sector_rotation`: 板块每日排名 (date, category, board_name, change_pct, rank) — 90 天保留
+- `sector_daily`: 自定义指数日线 (date, index_id, avg_change_pct, index_value, components_json) — 180 天保留
+- `sector_alerts`: 主线告警 (date, index_id, alert_type, cumulative_pct, slope, message) — 30 天保留
+
+**历史回填**: 新建指数时通过 `--backfill` 从 akshare 拉取成分股 30 天日线计算历史指数值。板块轮动历史通过新浪成分股日 K 反推（每板块取前 8 只成分股等权平均）。
 
 **管理页面 (`/manage`)**:
 - 列标题行: `type | code | name | cost | shares | ▲ above | ▼ below | ★ | hide`
@@ -315,6 +385,16 @@ Hong Kong stocks use `HK` prefix (e.g., `HK09988`). The web metrics API strips t
 **HK P&L FX 转换**: 行级和汇总级都乘 `fxRate`（来自 poller 的 `hkdCnyRate`，fallback 0.92）。`HoldRow` 中 `rowFx = s.id.startsWith("HK") ? fxRate : 1` 应用于 `mktVal`、`totalPnlRaw`、`dayPnl`。百分比字段（`pnl%`、`change%`）不转换。
 
 **P&L 守护**: 前端 `totalPnlRaw` 计算需要 `s.cost > 0`（不仅 `!= null`），与 API 端 `pnl` 计算的守护条件一致。cost=0 的 holding 显示 `-` 而非无意义大数。
+
+**今日盈亏 (`calcDayPnl`)**: 前端 `page.tsx` 用 `calcDayPnl(s, fx)` 计算行级和汇总级 dayPnl。基础公式 `chgAmt × shares × fx`，但对当日买入的股票做封顶：当 rawDayPnl 与 totalPnl 同向且绝对值超过 totalPnl 时，用 totalPnl 封顶。原因：当日买入的股票，今日盈亏应从买入成本算起，不应包含昨收→买入价之间的隔夜跳空。
+
+### Poller 降级保护
+
+`market_data_poller.py` 的 `fetch_realtime_with_fallback` 返回 `(stocks, is_sina_fallback)` 标记数据来源：
+
+- **量比/换手率继承**: 新浪不提供 `turnover`/`volRatio`，降级时从上一轮 `market_data.json` 继承（而非写 0 覆盖）
+- **汇率继承**: `hkdCnyRate` 获取失败时从旧数据继承上次有效值（而非写 null 触发前端 WARN）
+- **孤儿进程防护**: `start_monitor.sh` 的 `_stop_one` 使用进程组 kill + `pkill -f` 兜底清理；`_ensure_no_orphan` 在启动前检测并清理 PID 文件失效但进程仍在的孤儿，防止 restart 后出现多实例
 
 ### Stock Notifier (`src/tools/stock_notifier.py`)
 
