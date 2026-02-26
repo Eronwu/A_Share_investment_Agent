@@ -16,9 +16,17 @@
 
 ## Key Pages
 - `/` (page.tsx) - Main monitor dashboard with A-share/HK tabs
-- `/sim` (sim/page.tsx) - Simulated trading dashboard
+- `/sim` (sim/page.tsx) - Simulated trading dashboard (1370 lines)
 - `/alerts` - Alert log viewer
 - `/manage` - Config management (editable cells)
+
+## Sim Page Structure (reviewed 2026-02)
+- LiveSummaryBar: 2-tier (primary row 15px + secondary row 11px)
+- LivePanel: positions table + OperationsLog + CompletedTradesTable
+- HistorySection: collapsed by default, contains SummaryBar + EquityCurve + TradesTable + Attribution
+- EquityCurve: SVG 760x130, fixed width, labels on every data point
+- Data: /api/sim reads sim_trading.db (better-sqlite3, readonly), 5s polling
+- Operations log: chronological BUY/SELL with strategy detail sub-rows
 
 ## Recurring UX Patterns Found
 - Summary bars use flat flex-wrap with equal-weight KPIs (needs tiered hierarchy)
@@ -29,7 +37,7 @@
 - Section headers follow pattern: `# -- Title (count) --`
 
 ## Data Architecture
-- 4-file separation: market_data.json, monitor_config.json, alert_config.json, alert_events.json
+- 4-file separation: market_data.json, monitor_config.json, alert_config.json, alert_events table
 - `/api/metrics` merges all 4 for main page
 - `/api/sim` reads sim_trading.db (SQLite, better-sqlite3, readonly)
 - Python poller is sole data producer; web is pure consumer
@@ -41,3 +49,6 @@
 - Trade table shows only exit date, not entry date + hold duration
 - Equity curve labels overlap when data.length > ~17 points
 - No keyboard navigation or shortcuts despite terminal aesthetic
+- Operations log groups by groupTs causing BUY/SELL interleaving across different trades
+- Live positions: 14 columns, potential horizontal overflow on <1280px screens
+- pnlColor uses D.green for losses, but SummaryBar winColor also uses D.green for >50% win rate (semantic collision)
