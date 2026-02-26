@@ -21,7 +21,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from statistics import mean
 
+import re
+
 import akshare as ak
+import requests as _requests
 
 from src.sim_trading.db import get_connection, init_db
 
@@ -80,11 +83,51 @@ def _today_compact(today=None) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Sina Finance fallback (when EM push2 is blocked by corporate network)
+# ---------------------------------------------------------------------------
+
+_SINA_URLS = {
+    "industry": "https://vip.stock.finance.sina.com.cn/q/view/newSinaHy.php",
+    "concept": "https://vip.stock.finance.sina.com.cn/q/view/newFLJK.php",
+}
+
+
+def _fetch_sina_boards(category: str) -> list[tuple[str, float]]:
+    """Fetch board rankings from Sina Finance.
+
+    Returns list of (board_name, change_pct) sorted by change% desc.
+    Sina data format: var XXX = {"key":"key,name,count,avg_price,change_amt,change_pct,..."}
+    """
+    url = _SINA_URLS.get(category)
+    if not url:
+        return []
+    try:
+        r = _requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
+        r.raise_for_status()
+        m = re.search(r"=\s*(\{.*\})", r.text, re.DOTALL)
+        if not m:
+            return []
+        data = json.loads(m.group(1))
+        boards = []
+        for val in data.values():
+            parts = val.split(",")
+            if len(parts) >= 6:
+                name = parts[1]
+                pct = float(parts[5]) if parts[5] else 0.0
+                boards.append((name, pct))
+        boards.sort(key=lambda x: x[1], reverse=True)
+        return boards
+    except Exception as exc:
+        logger.warning("Sina %s fetch failed: %s", category, exc)
+        return []
+
+
+# ---------------------------------------------------------------------------
 # 1. collect_rotation
 # ---------------------------------------------------------------------------
 
 def collect_rotation(today=None):
-    """Fetch EM industry + concept board rankings and store in sector_rotation."""
+    """Fetch board rankings (EM first, Sina fallback) and store in sector_rotation."""
     date_str = _today_str(today)
     logger.info("collect_rotation for %s", date_str)
 
@@ -92,43 +135,35 @@ def collect_rotation(today=None):
     try:
         inserted = 0
 
-        # --- industry boards ---
-        df_ind = _akshare_call(
-            lambda: ak.stock_board_industry_name_em(),
-            "industry_boards",
-        )
-        if df_ind is not None and not df_ind.empty:
-            df_ind = df_ind.sort_values("涨跌幅", ascending=False).reset_index(drop=True)
-            for rank, (_, row) in enumerate(df_ind.iterrows(), start=1):
-                conn.execute(
-                    "INSERT OR IGNORE INTO sector_rotation"
-                    " (date, category, board_name, change_pct, rank)"
-                    " VALUES (?, ?, ?, ?, ?)",
-                    (date_str, "industry", row["板块名称"], float(row["涨跌幅"]), rank),
-                )
-                inserted += 1
-            logger.info("industry boards: %d rows", len(df_ind))
-        else:
-            logger.warning("industry boards: no data")
+        for category, ak_fn, ak_label in [
+            ("industry", lambda: ak.stock_board_industry_name_em(), "EM_industry"),
+            ("concept", lambda: ak.stock_board_concept_name_em(), "EM_concept"),
+        ]:
+            boards: list[tuple[str, float]] = []
 
-        # --- concept boards ---
-        df_con = _akshare_call(
-            lambda: ak.stock_board_concept_name_em(),
-            "concept_boards",
-        )
-        if df_con is not None and not df_con.empty:
-            df_con = df_con.sort_values("涨跌幅", ascending=False).reset_index(drop=True)
-            for rank, (_, row) in enumerate(df_con.iterrows(), start=1):
+            # Try akshare (EM push2) first
+            df = _akshare_call(ak_fn, ak_label)
+            if df is not None and not df.empty:
+                df = df.sort_values("涨跌幅", ascending=False).reset_index(drop=True)
+                boards = [(row["板块名称"], float(row["涨跌幅"])) for _, row in df.iterrows()]
+                logger.info("%s via EM: %d boards", category, len(boards))
+            else:
+                # Fallback to Sina
+                logger.info("%s EM failed, trying Sina fallback...", category)
+                boards = _fetch_sina_boards(category)
+                if boards:
+                    logger.info("%s via Sina: %d boards", category, len(boards))
+                else:
+                    logger.warning("%s: no data from EM or Sina", category)
+
+            for rank, (name, pct) in enumerate(boards, 1):
                 conn.execute(
                     "INSERT OR IGNORE INTO sector_rotation"
                     " (date, category, board_name, change_pct, rank)"
                     " VALUES (?, ?, ?, ?, ?)",
-                    (date_str, "concept", row["板块名称"], float(row["涨跌幅"]), rank),
+                    (date_str, category, name, pct, rank),
                 )
                 inserted += 1
-            logger.info("concept boards: %d rows", len(df_con))
-        else:
-            logger.warning("concept boards: no data")
 
         conn.commit()
         logger.info("collect_rotation done, inserted %d rows total", inserted)
