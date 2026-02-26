@@ -72,10 +72,11 @@ function TitleBar() {
 type MarketTab = "A" | "HK";
 
 function TabBar({ activeTab, onTabChange }: { activeTab: MarketTab; onTabChange: (t: MarketTab) => void }) {
-  const tabs: { label: string; key: MarketTab | null }[] = [
+  const tabs: { label: string; key: MarketTab | null; href?: string }[] = [
     { label: "Claude Code (node)", key: null },
     { label: "A-share (node)", key: "A" },
     { label: "HK (node)", key: "HK" },
+    { label: "Sector (node)", key: null, href: "/sector" },
     { label: "~ (-zsh)", key: null },
   ];
   return (
@@ -90,11 +91,11 @@ function TabBar({ activeTab, onTabChange }: { activeTab: MarketTab; onTabChange:
     >
       {tabs.map((t, i) => {
         const isActive = t.key !== null && t.key === activeTab;
-        const clickable = t.key !== null;
-        return (
+        const clickable = t.key !== null || !!t.href;
+        const inner = (
           <div
             key={i}
-            onClick={() => clickable && onTabChange(t.key!)}
+            onClick={() => t.key && onTabChange(t.key)}
             style={{
               padding: "5px 16px",
               background: isActive ? D.bg : "#21222c",
@@ -119,6 +120,9 @@ function TabBar({ activeTab, onTabChange }: { activeTab: MarketTab; onTabChange:
             </span>
           </div>
         );
+        return t.href
+          ? <Link key={i} href={t.href} style={{ textDecoration: "none" }}>{inner}</Link>
+          : inner;
       })}
       <div style={{ flex: 1, background: "#21222c" }} />
       <Link href="/alerts" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
