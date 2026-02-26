@@ -1069,7 +1069,7 @@ function OperationsLog({ live }: { live: LiveData }) {
             <span style={{ width: "13ch" }}>时间</span>
             <span style={{ width: "8ch" }}>操作</span>
             <span style={{ width: "10ch" }}>代码</span>
-            <span style={{ width: "6ch" }}>名称</span>
+            <span style={{ width: "8ch" }}>名称</span>
             <span style={{ width: "10ch", textAlign: "right" }}>价格</span>
             <span style={{ width: "8ch", textAlign: "right" }}>数量</span>
             <span style={{ width: "10ch", textAlign: "right" }}>盈亏</span>
@@ -1084,7 +1084,7 @@ function OperationsLog({ live }: { live: LiveData }) {
                 <span style={{ color: D.comment, width: "13ch" }}>{o.display}</span>
                 <span style={{ color: actionColors[o.action] || D.fg, width: "8ch", fontWeight: 700 }}>{o.action}</span>
                 <span style={{ color: D.cyan, width: "10ch" }}>{o.code}</span>
-                <span style={{ color: D.fg, width: "6ch" }}>{(o.name || "").slice(0, 4)}</span>
+                <span style={{ color: D.fg, width: "8ch" }}>{(o.name || "").slice(0, 6)}</span>
                 <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
                   {o.price.toFixed(2)}
                 </span>
@@ -1103,7 +1103,7 @@ function OperationsLog({ live }: { live: LiveData }) {
               </div>
               {o.detail && (
                 <div style={{
-                  fontSize: 11, color: D.comment, paddingLeft: "21ch",
+                  fontSize: 11, color: D.comment, paddingLeft: "23ch",
                   borderBottom: "1px solid #191a21", paddingBottom: 1,
                 }}>
                   {o.detail}
