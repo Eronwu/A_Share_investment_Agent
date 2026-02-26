@@ -185,6 +185,7 @@ function Home() {
 
   function switchTab(tab: MarketTab) {
     setActiveTab(tab);
+    clearLogs();  // 清掉另一个市场的 alert 日志
     window.history.replaceState(null, "", `/?tab=${tab}`);
   }
   const [prodStockOpen, setProdStockOpen] = useState(true);
@@ -224,7 +225,7 @@ function Home() {
     shIndex: number; szIndex: number; shPct: number; szPct: number;
     verdict: string;
   } | null>(null);
-  const { logs, addLogs } = useLogEntries();
+  const { logs, addLogs, clearLogs } = useLogEntries();
   // Filter alerts by active market tab (HK symbols start with "HK", rest are A-share)
   // Portfolio-level alerts (empty symbol) show in both tabs
   const tabAlertEvents = (alertEvents as Parameters<typeof useAlerts>[0]).filter(

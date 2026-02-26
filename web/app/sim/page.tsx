@@ -310,11 +310,11 @@ function Prompt({ cmd }: { cmd: string }) {
 
 function SummaryBar({ s }: { s: Summary }) {
   const sharpeColor = s.sharpe_ratio > 1 ? D.purple : s.sharpe_ratio > 0 ? D.orange : D.red;
-  const winColor = s.win_rate > 0.5 ? D.green : s.win_rate > 0.3 ? D.orange : D.red;
+  const winColor = s.win_rate > 0.5 ? D.cyan : s.win_rate > 0.3 ? D.orange : D.red;
   const pfVal = typeof s.profit_factor === "string" ? s.profit_factor : s.profit_factor.toFixed(2);
   const pfColor =
     typeof s.profit_factor === "string" || s.profit_factor > 1.5
-      ? D.green
+      ? D.cyan
       : s.profit_factor > 1
         ? D.orange
         : D.red;
@@ -413,7 +413,7 @@ function EquityCurve({ data, initialCapital }: { data: DailyPnl[]; initialCapita
     .join(" ");
   const areaPath = `${linePath} L${points[points.length - 1].x.toFixed(1)},${(PAD.top + plotH).toFixed(1)} L${points[0].x.toFixed(1)},${(PAD.top + plotH).toFixed(1)} Z`;
 
-  const lineColor = equities[equities.length - 1] >= initialCapital ? D.green : D.red;
+  const lineColor = equities[equities.length - 1] >= initialCapital ? D.cyan : D.red;
   const capY = toY(initialCapital);
 
   return (
@@ -421,7 +421,7 @@ function EquityCurve({ data, initialCapital }: { data: DailyPnl[]; initialCapita
       <div style={{ color: D.comment, marginBottom: 4 }}>
         <span style={{ color: D.purple }}>▾</span> # ── 净值曲线 ──
       </div>
-      <svg width={W} height={H} style={{ display: "block" }}>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block" }}>
         <defs>
           <linearGradient id="eqGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={lineColor} stopOpacity={0.25} />
@@ -468,22 +468,31 @@ function EquityCurve({ data, initialCapital }: { data: DailyPnl[]; initialCapita
             fill={lineColor} stroke={D.bg} strokeWidth={1}
           />
         ))}
-        {/* X轴日期 */}
-        {points.map((p, i) => (
-          <text key={i} x={p.x} y={H - 6} textAnchor="middle"
-            fill={D.comment} fontSize={9} fontFamily="JetBrains Mono"
-          >
-            {p.date.slice(5)}
-          </text>
-        ))}
-        {/* 净值标签 */}
-        {points.map((p, i) => (
-          <text key={`v${i}`} x={p.x} y={p.y - 7} textAnchor="middle"
-            fill={D.fg} fontSize={8} fontFamily="JetBrains Mono"
-          >
-            {(p.equity / 1000).toFixed(0)}k
-          </text>
-        ))}
+        {/* X轴日期 — every Nth */}
+        {(() => {
+          const step = Math.ceil(points.length / 10);
+          return points.filter((_, i) => i % step === 0 || i === points.length - 1).map((p) => (
+            <text key={p.date} x={p.x} y={H - 6} textAnchor="middle"
+              fill={D.comment} fontSize={9} fontFamily="JetBrains Mono"
+            >
+              {p.date.slice(5)}
+            </text>
+          ));
+        })()}
+        {/* 净值标签 — first, last, min, max only */}
+        {(() => {
+          const minIdx = equities.indexOf(Math.min(...equities));
+          const maxIdx = equities.indexOf(Math.max(...equities));
+          const show = new Set([0, points.length - 1, minIdx, maxIdx]);
+          return points.filter((_, i) => show.has(i)).map((p, _, arr) => (
+            <text key={`v${p.date}`} x={p.x} y={p.y - 7}
+              textAnchor={p === arr[arr.length - 1] ? "end" : p === arr[0] ? "start" : "middle"}
+              fill={D.fg} fontSize={8} fontFamily="JetBrains Mono"
+            >
+              {(p.equity / 1000).toFixed(0)}k
+            </text>
+          ));
+        })()}
       </svg>
     </div>
   );
@@ -500,10 +509,10 @@ function tradeReviewCN(t: Trade): { text: string; color: string } {
 
   // 盈利交易
   if (t.pnl > 0) {
-    if (er.startsWith("stop_loss")) return { text: "盈利止损,控制得当", color: D.green };
-    if (er.startsWith("take_profit")) return { text: "目标达成,纪律执行", color: D.green };
-    if (er.includes("T3:")) return { text: "T3平仓,小赚离场", color: D.green };
-    return { text: `盈利${pnlPct.toFixed(1)}%,执行OK`, color: D.green };
+    if (er.startsWith("stop_loss")) return { text: "盈利止损,控制得当", color: D.cyan };
+    if (er.startsWith("take_profit")) return { text: "目标达成,纪律执行", color: D.cyan };
+    if (er.includes("T3:")) return { text: "T3平仓,小赚离场", color: D.cyan };
+    return { text: `盈利${pnlPct.toFixed(1)}%,执行OK`, color: D.cyan };
   }
 
   // 亏损交易
@@ -564,7 +573,8 @@ function TradesTable({ trades, bare }: { trades: Trade[]; bare?: boolean }) {
             <span style={{ width: "8ch", textAlign: "right" }}>盈亏%</span>
             <span style={{ width: "12ch", paddingLeft: "1ch" }}>退出原因</span>
             <span style={{ width: "12ch" }}>入场策略</span>
-            <span style={{ width: "10ch", textAlign: "right" }}>日期</span>
+            <span style={{ width: "6ch", textAlign: "right" }}>入场</span>
+            <span style={{ width: "5ch", textAlign: "right" }}>持仓</span>
             <span style={{ paddingLeft: "1ch" }}>复盘</span>
           </div>
           {/* 行 */}
@@ -603,8 +613,17 @@ function TradesTable({ trades, bare }: { trades: Trade[]; bare?: boolean }) {
                 <span style={{ color: D.comment, width: "12ch" }}>
                   {strategyCN(t.notes)}
                 </span>
-                <span style={{ color: D.comment, width: "10ch", textAlign: "right" }}>
-                  {t.exit_date || t.entry_date}
+                <span style={{ color: D.comment, width: "6ch", textAlign: "right" }}>
+                  {(t.entry_date || "").slice(5)}
+                </span>
+                <span style={{ color: D.comment, width: "5ch", textAlign: "right" }}>
+                  {(() => {
+                    if (t.entry_time && t.exit_time && t.exit_time > t.entry_time) {
+                      const hrs = (t.exit_time - t.entry_time) / 3600000;
+                      return hrs >= 24 ? `${Math.round(hrs / 24)}d` : `${Math.round(hrs)}h`;
+                    }
+                    return t.hold_days > 0 ? `${t.hold_days}d` : "-";
+                  })()}
                 </span>
                 <span style={{ color: review.color, paddingLeft: "1ch", fontWeight: 500 }}>
                   {review.text}
@@ -687,7 +706,7 @@ function AttributionPanel({
           </span>
           <span
             style={{
-              color: d.win_rate > 0.5 ? D.green : d.win_rate > 0 ? D.orange : D.comment,
+              color: d.win_rate > 0.5 ? D.cyan : d.win_rate > 0 ? D.orange : D.comment,
               width: "7ch", textAlign: "right",
             }}
           >
@@ -748,7 +767,6 @@ function PositionsTable({
               paddingBottom: 3, marginBottom: 2, fontWeight: 500,
             }}
           >
-            <span style={{ width: "6ch" }}> 类型</span>
             <span style={{ width: "10ch" }}>代码</span>
             <span style={{ width: "10ch", textAlign: "right" }}>   现价</span>
             <span style={{ width: "9ch", textAlign: "right" }}>  成本</span>
@@ -774,7 +792,6 @@ function PositionsTable({
                   borderBottom: "1px solid #191a21",
                 }}
               >
-                <span style={{ color: D.orange, width: "6ch" }}> SIM</span>
                 <span style={{ color: D.cyan, width: "10ch" }}>{code}</span>
                 <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
                   {p.current_price.toFixed(2)}
@@ -794,7 +811,7 @@ function PositionsTable({
                 <span style={{ color: D.orange, width: "9ch", textAlign: "right" }}>
                   {p.stop_loss.toFixed(2)}
                 </span>
-                <span style={{ color: D.green, width: "9ch", textAlign: "right" }}>
+                <span style={{ color: D.cyan, width: "9ch", textAlign: "right" }}>
                   {p.take_profit ? p.take_profit.toFixed(2) : "-"}
                 </span>
               </div>
@@ -810,8 +827,8 @@ function LiveSummaryBar({ live, ts }: { live: LiveData; ts: string }) {
   const pfVal = typeof live.profit_factor === "string" ? live.profit_factor : live.profit_factor.toFixed(2);
   const pfColor =
     typeof live.profit_factor === "string" || live.profit_factor > 1.5
-      ? D.green : live.profit_factor > 1 ? D.orange : D.red;
-  const winColor = live.win_rate > 0.5 ? D.green : live.win_rate > 0.3 ? D.orange : D.red;
+      ? D.cyan : live.profit_factor > 1 ? D.orange : D.red;
+  const winColor = live.win_rate > 0.5 ? D.cyan : live.win_rate > 0.3 ? D.orange : D.red;
 
   return (
     <div style={{ borderBottom: `1px solid ${D.currentLine}`, marginBottom: 8, padding: "4px 0 6px" }}>
@@ -822,7 +839,7 @@ function LiveSummaryBar({ live, ts }: { live: LiveData; ts: string }) {
           <span style={{ color: pnlColor(live.today_pnl), fontWeight: 700, fontSize: 17 }}>
             {live.today_pnl >= 0 ? "+" : ""}{numFmt(live.today_pnl)}
           </span>
-          <span style={{ color: pnlColor(live.today_return), fontWeight: 700, fontSize: 17, marginLeft: 4 }}>
+          <span style={{ color: pnlColor(live.today_return), fontWeight: 600, fontSize: 13, marginLeft: 8 }}>
             {pctFmt(live.today_return)}
           </span>
         </span>
@@ -918,7 +935,6 @@ function LivePanel({ live }: { live: LiveData }) {
                   paddingBottom: 3, marginBottom: 2, fontWeight: 500,
                 }}
               >
-                <span style={{ width: "6ch" }}> 类型</span>
                 <span style={{ width: "10ch" }}>代码</span>
                 <span style={{ width: "8ch" }}>名称</span>
                 <span style={{ width: "5ch", textAlign: "right" }}>评分</span>
@@ -943,7 +959,7 @@ function LivePanel({ live }: { live: LiveData }) {
                   : 0;
                 const slDistColor = slDist < 0.01 ? D.red : slDist < 0.02 ? D.orange : D.comment;
                 const score = p.daily_score || 0;
-                const scoreColor = score >= 70 ? D.green : score >= 40 ? D.orange : D.red;
+                const scoreColor = score >= 70 ? D.cyan : score >= 40 ? D.orange : D.red;
                 return (
                   <div
                     key={p.code}
@@ -953,7 +969,6 @@ function LivePanel({ live }: { live: LiveData }) {
                       background: slDist < 0.01 ? "#ff555510" : "transparent",
                     }}
                   >
-                    <span style={{ color: D.orange, width: "6ch" }}> SIM</span>
                     <span style={{ color: D.cyan, width: "10ch" }}>{p.code}</span>
                     <span style={{ color: D.fg, width: "8ch" }}>{(p.name || "").slice(0, 6)}</span>
                     <span style={{ color: scoreColor, width: "5ch", textAlign: "right", fontWeight: 500 }}>
@@ -986,7 +1001,7 @@ function LivePanel({ live }: { live: LiveData }) {
                     <span style={{ color: slDistColor, width: "8ch", textAlign: "right", fontWeight: slDist < 0.02 ? 700 : 400 }}>
                       {(slDist * 100).toFixed(1)}%
                     </span>
-                    <span style={{ color: D.green, width: "9ch", textAlign: "right" }}>
+                    <span style={{ color: D.cyan, width: "9ch", textAlign: "right" }}>
                       {p.take_profit ? p.take_profit.toFixed(2) : "-"}
                     </span>
                   </div>
@@ -1011,22 +1026,8 @@ function LivePanel({ live }: { live: LiveData }) {
 function OperationsLog({ live }: { live: LiveData }) {
   const [open, setOpen] = useState(true);
 
-  // 构造操作记录：开仓(持仓) + 清仓(已平仓交易的SELL) + 开仓+清仓(已平仓交易的BUY+SELL)
-  interface Op {
-    ts: number;
-    display: string;
-    action: "开仓" | "清仓" | "止损" | "止盈" | "评分退出" | "T3平仓" | "到期平仓";
-    code: string;
-    name: string;
-    price: number;
-    quantity: number;
-    reason: string;    // 主行原因
-    detail?: string;   // 第二行策略详情
-    pnl?: number;
-  }
-
   /** 从 exit_reason 推导操作类型 */
-  function exitAction(r: string): Op["action"] {
+  function exitAction(r: string): string {
     if (r.startsWith("stop_loss")) return "止损";
     if (r.startsWith("take_profit")) return "止盈";
     if (r.startsWith("exit_score")) return "评分退出";
@@ -1035,78 +1036,70 @@ function OperationsLog({ live }: { live: LiveData }) {
     return "清仓";
   }
 
-  /** 为开仓生成策略详情 */
-  function entryDetail(pos: LivePosition): string {
-    const parts: string[] = [];
-    if (pos.stop_loss > 0) parts.push(`止损 ${pos.stop_loss.toFixed(2)}`);
-    if (pos.take_profit) parts.push(`止盈 ${pos.take_profit.toFixed(2)}`);
-    if (pos.daily_score > 0) parts.push(`评分${pos.daily_score}`);
-    const scoreAction = pos.daily_score >= 70 ? "持有" : pos.daily_score >= 40 ? "观察" : pos.daily_score > 0 ? "待退出" : "";
-    if (scoreAction) parts.push(scoreAction);
-    if (pos.max_hold_days > 0) parts.push(`最长${pos.max_hold_days}天`);
-    return parts.join(" | ");
+  // 交易组：已平仓 = 开仓+平仓配对，持仓 = 仅开仓
+  interface TradeGroup {
+    sortTs: number;
+    code: string;
+    name: string;
+    entry: { time: string; price: number; qty: number; reason: string };
+    exit?: { time: string; action: string; price: number; qty: number; reason: string; pnl: number };
+    detail?: string; // 持仓的 SL/TP/score 摘要
   }
 
-  /** 为已平仓开仓生成简要策略 */
-  function closedEntryDetail(t: Trade): string {
-    const parts: string[] = [];
-    parts.push(`→ ${exitReasonCN(t.exit_reason)}`);
-    if (t.pnl !== 0) parts.push(`${t.pnl >= 0 ? "+" : ""}${t.pnl.toFixed(0)}`);
-    return parts.join(" ");
-  }
+  const groups: TradeGroup[] = [];
 
-  const ops: Op[] = [];
-
-  // 已平仓交易 → 开仓 + 清仓 两条
+  // 已平仓交易 → 配对组
   for (const t of live.trades) {
-    const groupTs = Math.max(t.entry_time || 0, t.exit_time || 0);
-    ops.push({
-      ts: groupTs,
-      display: tsToTime(t.entry_time, t.entry_date),
-      action: "开仓",
+    groups.push({
+      sortTs: Math.max(t.exit_time || 0, t.entry_time || 0),
       code: t.code,
       name: t.name || t.code,
-      price: t.entry_price,
-      quantity: t.quantity,
-      reason: strategyCN(t.notes),
-      detail: closedEntryDetail(t),
-    });
-    ops.push({
-      ts: groupTs,
-      display: tsToTime(t.exit_time, t.exit_date),
-      action: exitAction(t.exit_reason),
-      code: t.code,
-      name: t.name || t.code,
-      price: t.exit_price,
-      quantity: t.quantity,
-      reason: exitReasonCN(t.exit_reason),
-      pnl: t.pnl,
+      entry: {
+        time: tsToTime(t.entry_time, t.entry_date),
+        price: t.entry_price,
+        qty: t.quantity,
+        reason: strategyCN(t.notes),
+      },
+      exit: {
+        time: tsToTime(t.exit_time, t.exit_date),
+        action: exitAction(t.exit_reason),
+        price: t.exit_price,
+        qty: t.quantity,
+        reason: exitReasonCN(t.exit_reason),
+        pnl: t.pnl,
+      },
     });
   }
 
-  // 当前持仓 → 开仓记录（含策略详情）
+  // 当前持仓 → 仅开仓
   for (const p of live.positions) {
-    ops.push({
-      ts: p.entry_time || 0,
-      display: tsToTime(p.entry_time, p.entry_date),
-      action: "开仓",
+    const parts: string[] = [];
+    if (p.stop_loss > 0) parts.push(`SL ${p.stop_loss.toFixed(2)}`);
+    if (p.take_profit) parts.push(`TP ${p.take_profit.toFixed(2)}`);
+    if (p.daily_score > 0) parts.push(`评分${p.daily_score}`);
+    groups.push({
+      sortTs: p.entry_time || 0,
       code: p.code,
       name: p.name || p.code,
-      price: p.entry_price,
-      quantity: p.quantity,
-      reason: strategyCN(p.entry_strategy),
-      detail: entryDetail(p),
+      entry: {
+        time: tsToTime(p.entry_time, p.entry_date),
+        price: p.entry_price,
+        qty: p.quantity,
+        reason: strategyCN(p.entry_strategy),
+      },
+      detail: parts.join(" | ") || undefined,
     });
   }
 
-  // 按时间倒序。同一笔交易共享 groupTs，清仓排在开仓前
-  ops.sort((a, b) => b.ts - a.ts || (a.action !== "开仓" ? -1 : 1));
+  groups.sort((a, b) => b.sortTs - a.sortTs);
 
-  if (ops.length === 0) return null;
+  if (groups.length === 0) return null;
 
-  const actionColors: Record<string, string> = {
-    "开仓": D.red, "清仓": D.green, "止损": "#ff6b6b", "止盈": "#51cf66",
-    "评分退出": D.orange, "T3平仓": D.yellow, "到期平仓": D.comment,
+  const totalOps = groups.reduce((n, g) => n + (g.exit ? 2 : 1), 0);
+
+  const exitColors: Record<string, string> = {
+    "止损": "#ff6b6b", "止盈": "#51cf66", "评分退出": D.orange,
+    "T3平仓": D.yellow, "到期平仓": D.comment, "清仓": D.cyan,
   };
 
   return (
@@ -1116,7 +1109,7 @@ function OperationsLog({ live }: { live: LiveData }) {
         onClick={() => setOpen((v) => !v)}
       >
         <span style={{ color: D.purple }}>{open ? "▾" : "▸"}</span> # ──
-        操作记录 ({ops.length}条) ──
+        操作记录 ({totalOps}条 | {groups.length}笔) ──
       </div>
       {open && (
         <>
@@ -1128,7 +1121,7 @@ function OperationsLog({ live }: { live: LiveData }) {
             }}
           >
             <span style={{ width: "13ch" }}>时间</span>
-            <span style={{ width: "8ch" }}>操作</span>
+            <span style={{ width: "7ch" }}>操作</span>
             <span style={{ width: "10ch" }}>代码</span>
             <span style={{ width: "8ch" }}>名称</span>
             <span style={{ width: "10ch", textAlign: "right" }}>价格</span>
@@ -1136,38 +1129,35 @@ function OperationsLog({ live }: { live: LiveData }) {
             <span style={{ width: "10ch", textAlign: "right" }}>盈亏</span>
             <span style={{ paddingLeft: "2ch" }}>原因 / 策略</span>
           </div>
-          {ops.map((o, i) => (
-            <div key={`${o.code}-${o.action}-${i}`}>
-              <div style={{
-                display: "flex", whiteSpace: "pre", padding: "1px 0",
-                borderBottom: o.detail ? "none" : "1px solid #191a21", fontSize: 12,
-              }}>
-                <span style={{ color: D.comment, width: "13ch" }}>{o.display}</span>
-                <span style={{ color: actionColors[o.action] || D.fg, width: "8ch", fontWeight: 700 }}>{o.action}</span>
-                <span style={{ color: D.cyan, width: "10ch" }}>{o.code}</span>
-                <span style={{ color: D.fg, width: "8ch" }}>{(o.name || "").slice(0, 6)}</span>
-                <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
-                  {o.price.toFixed(2)}
-                </span>
-                <span style={{ color: D.fg, width: "8ch", textAlign: "right" }}>
-                  {o.quantity.toLocaleString()}
-                </span>
-                <span style={{
-                  color: o.pnl != null ? pnlColor(o.pnl) : D.comment,
-                  width: "10ch", textAlign: "right", fontWeight: o.pnl != null ? 500 : 400,
-                }}>
-                  {o.pnl != null ? `${o.pnl >= 0 ? "+" : ""}${o.pnl.toFixed(0)}` : "-"}
-                </span>
-                <span style={{ color: D.orange, paddingLeft: "2ch" }}>
-                  {o.reason}
-                </span>
+          {groups.map((g, gi) => (
+            <div key={`${g.code}-${gi}`} style={{ marginBottom: g.exit ? 6 : 0, borderBottom: `1px solid #191a21` }}>
+              {/* 开仓行 */}
+              <div style={{ display: "flex", whiteSpace: "pre", padding: "2px 0", fontSize: 12 }}>
+                <span style={{ color: D.comment, width: "13ch" }}>{g.entry.time}</span>
+                <span style={{ color: D.red, width: "7ch", fontWeight: 700 }}>开仓</span>
+                <span style={{ color: D.cyan, width: "10ch" }}>{g.code}</span>
+                <span style={{ color: D.fg, width: "8ch" }}>{(g.name || "").slice(0, 6)}</span>
+                <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>{g.entry.price.toFixed(2)}</span>
+                <span style={{ color: D.fg, width: "8ch", textAlign: "right" }}>{g.entry.qty.toLocaleString()}</span>
+                <span style={{ color: D.comment, width: "10ch", textAlign: "right" }}>-</span>
+                <span style={{ color: D.orange, paddingLeft: "2ch" }}>{g.entry.reason}</span>
+                {g.detail && <span style={{ color: D.comment, paddingLeft: "1ch", fontSize: 11 }}>({g.detail})</span>}
               </div>
-              {o.detail && (
-                <div style={{
-                  fontSize: 11, color: D.comment, paddingLeft: "23ch",
-                  borderBottom: "1px solid #191a21", paddingBottom: 1,
-                }}>
-                  {o.detail}
+              {/* 平仓行 */}
+              {g.exit && (
+                <div style={{ display: "flex", whiteSpace: "pre", padding: "2px 0", fontSize: 12 }}>
+                  <span style={{ color: D.comment, width: "13ch" }}>{g.exit.time}</span>
+                  <span style={{ color: exitColors[g.exit.action] || D.fg, width: "7ch", fontWeight: 700 }}>{g.exit.action}</span>
+                  <span style={{ color: D.cyan, width: "10ch" }}>{g.code}</span>
+                  <span style={{ color: D.fg, width: "8ch" }}>{(g.name || "").slice(0, 6)}</span>
+                  <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>{g.exit.price.toFixed(2)}</span>
+                  <span style={{ color: D.fg, width: "8ch", textAlign: "right" }}>{g.exit.qty.toLocaleString()}</span>
+                  <span style={{
+                    color: pnlColor(g.exit.pnl), width: "10ch", textAlign: "right", fontWeight: 500,
+                  }}>
+                    {g.exit.pnl >= 0 ? "+" : ""}{g.exit.pnl.toFixed(0)}
+                  </span>
+                  <span style={{ color: exitColors[g.exit.action] || D.orange, paddingLeft: "2ch" }}>{g.exit.reason}</span>
                 </div>
               )}
             </div>

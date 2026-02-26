@@ -14,5 +14,7 @@ export function useLogEntries() {
     setLogs((prev) => [...prev, ...entries].slice(-100));
   }, []);
 
-  return { logs, addLogs };
+  const clearLogs = useCallback(() => setLogs([]), []);
+
+  return { logs, addLogs, clearLogs };
 }
