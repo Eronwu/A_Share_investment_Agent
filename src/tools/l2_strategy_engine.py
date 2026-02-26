@@ -1496,12 +1496,18 @@ class DailyIndicatorTracker:
         return time.time() - last >= self._refresh_sec
 
     def _fetch_kline(self, code: str, ctx) -> Optional[pd.DataFrame]:
-        """Fetch 120-day daily kline from Futu"""
+        """Fetch 120-day daily kline from Futu, ending at today.
+
+        IMPORTANT: must pass end=today, otherwise Futu returns the FIRST
+        120 bars from listing date (not the most recent 120).
+        """
         try:
             from futu import RET_OK, KLType, AuType
+            import datetime as _dt
+            today = _dt.date.today().strftime("%Y-%m-%d")
             ret, data, _ = ctx.request_history_kline(
                 to_futu_code(code), ktype=KLType.K_DAY,
-                autype=AuType.QFQ, max_count=120)
+                autype=AuType.QFQ, end=today, max_count=120)
             if ret == RET_OK and data is not None and not data.empty:
                 return data
         except Exception as e:
@@ -1515,9 +1521,11 @@ class DailyIndicatorTracker:
             return self._index_kline
         try:
             from futu import RET_OK, KLType, AuType
+            import datetime as _dt
+            today = _dt.date.today().strftime("%Y-%m-%d")
             ret, data, _ = ctx.request_history_kline(
                 "HK.800000", ktype=KLType.K_DAY,
-                autype=AuType.QFQ, max_count=120)
+                autype=AuType.QFQ, end=today, max_count=120)
             if ret == RET_OK and data is not None and not data.empty:
                 self._index_kline = data
                 self._index_last_refresh = now
