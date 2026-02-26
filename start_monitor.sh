@@ -22,17 +22,33 @@ _is_running() {
 }
 
 _stop_one() {
-  local pidfile=$1 label=$2
+  local pidfile=$1 label=$2 pattern=$3
   local pid=$(_read_pid "$pidfile")
   if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-    kill "$pid"
+    # 杀进程组（poetry → python 子进程一起杀）
+    kill -- -"$pid" 2>/dev/null || kill "$pid" 2>/dev/null
     echo "$label 已停止 (pid=$pid)"
   fi
   rm -f "$pidfile"
+  # 兜底：用命令模式清理可能的孤儿进程
+  if [ -n "$pattern" ]; then
+    pkill -f "$pattern" 2>/dev/null || true
+  fi
+}
+
+_ensure_no_orphan() {
+  # 启动前兜底：若 PID 文件不存在/失效但进程实际还在，先杀掉
+  local pidfile=$1 pattern=$2
+  if ! _is_running "$pidfile" && pgrep -f "$pattern" > /dev/null 2>&1; then
+    echo "  检测到孤儿进程 ($pattern)，清理中..."
+    pkill -f "$pattern" 2>/dev/null || true
+    sleep 0.5
+  fi
 }
 
 do_start() {
   # Poller
+  _ensure_no_orphan "$POLLER_PID" "market_data_poller.py"
   if _is_running "$POLLER_PID"; then
     echo "Poller 已在运行 (pid=$(_read_pid "$POLLER_PID"))，跳过"
   else
@@ -43,6 +59,7 @@ do_start() {
   fi
 
   # Notifier (等 poller 先写一次数据)
+  _ensure_no_orphan "$NOTIFIER_PID" "stock_notifier.py"
   if _is_running "$NOTIFIER_PID"; then
     echo "Notifier 已在运行 (pid=$(_read_pid "$NOTIFIER_PID"))，跳过"
   else
@@ -54,6 +71,7 @@ do_start() {
   fi
 
   # L2 Strategy Daemon (optional, needs Futu OpenD)
+  _ensure_no_orphan "$L2_DAEMON_PID" "l2_strategy_daemon.py"
   if _is_running "$L2_DAEMON_PID"; then
     echo "L2 Daemon 已在运行 (pid=$(_read_pid "$L2_DAEMON_PID"))，跳过"
   else
@@ -64,6 +82,7 @@ do_start() {
   fi
 
   # Web
+  _ensure_no_orphan "$WEB_PID" "next dev"
   if _is_running "$WEB_PID"; then
     echo "Web    已在运行 (pid=$(_read_pid "$WEB_PID"))，跳过"
   else
@@ -81,10 +100,10 @@ do_start() {
 }
 
 do_stop() {
-  _stop_one "$NOTIFIER_PID" "Notifier"
-  _stop_one "$L2_DAEMON_PID" "L2 Daemon"
-  _stop_one "$POLLER_PID" "Poller"
-  _stop_one "$WEB_PID" "Web"
+  _stop_one "$NOTIFIER_PID" "Notifier" "stock_notifier.py"
+  _stop_one "$L2_DAEMON_PID" "L2 Daemon" "l2_strategy_daemon.py"
+  _stop_one "$POLLER_PID" "Poller" "market_data_poller.py"
+  _stop_one "$WEB_PID" "Web" "next-router-worker\|next dev"
 }
 
 do_status() {
