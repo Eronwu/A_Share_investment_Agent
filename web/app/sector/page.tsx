@@ -6,19 +6,15 @@ import { D } from "../theme";
 
 /* ── Types ── */
 
-interface RotationCell {
-  board: string;
-  change: number;
-}
-
-interface RotationRow {
-  rank: number;
-  cells: RotationCell[];
-}
-
 interface ComponentEntry {
   code: string;
   change_pct: number;
+}
+
+interface DayPoint {
+  date: string;
+  change: number;
+  value: number;
 }
 
 interface IndexEntry {
@@ -35,6 +31,7 @@ interface IndexEntry {
   cumGain: number;
   status: "mainline" | "approaching" | "watching" | "inactive";
   components: ComponentEntry[];
+  history: DayPoint[];
 }
 
 interface AlertEntry {
@@ -49,35 +46,9 @@ interface AlertEntry {
   display: string;
 }
 
-interface BoardStock {
-  code: string;
-  name: string;
-  price: number;
-  change: number;
-  changePct: number;
-  volume: number;
-  amount: number;
-}
-
-interface BoardDetail {
-  name: string;
-  top10Count: number;
-  rankHistory: Array<{ date: string; rank: number }>;
-  stocks: BoardStock[];
-}
-
 interface SectorData {
-  rotation: {
-    dates: string[];
-    rows: RotationRow[];
-  };
-  boardDetail: BoardDetail | null;
   indices: IndexEntry[];
   alerts: AlertEntry[];
-  config: {
-    alertRules: Record<string, number>;
-    rotation: { category?: string; sort?: string; top_n?: number };
-  };
   error?: string;
 }
 
@@ -552,110 +523,126 @@ export default function SectorPage() {
 
               {indicesOpen && (
                 <>
-                  {indices.length > 0 ? (
-                    <>
-                      {/* table header */}
-                      <div
-                        style={{
-                          display: "flex",
-                          whiteSpace: "pre",
-                          color: D.pink,
-                          borderBottom: `1px solid ${D.currentLine}`,
-                          paddingBottom: 3,
-                          marginBottom: 2,
-                          fontWeight: 500,
-                          fontSize: 12,
-                        }}
-                      >
-                        <span style={{ width: "4ch", textAlign: "right" }}>#</span>
-                        <span style={{ width: "14ch", paddingLeft: 8 }}>板块</span>
-                        <span style={{ width: "10ch", textAlign: "right" }}>今日</span>
-                        <span style={{ width: "10ch", textAlign: "right" }}>3日</span>
-                        <span style={{ width: "10ch", textAlign: "right" }}>5日</span>
-                        <span style={{ width: "10ch", textAlign: "right" }}>10日</span>
-                        <span style={{ width: "10ch", textAlign: "right" }}>累涨</span>
-                        <span style={{ width: "10ch", textAlign: "center" }}>状态</span>
-                        <span style={{ width: "4ch" }}></span>
-                      </div>
+                  {indices.length > 0 ? (() => {
+                    // Collect all unique dates across indices (chronological)
+                    const allDates = Array.from(
+                      new Set(indices.flatMap((idx) => idx.history.map((h) => h.date))),
+                    ).sort();
 
-                      {indices.map((idx, i) => {
-                        const statusInfo = statusStyle(idx.status);
-                        const isExpanded = expandedIndex === idx.id;
+                    // Build lookup: indexId -> { date -> DayPoint }
+                    const lookup = new Map<string, Map<string, DayPoint>>();
+                    for (const idx of indices) {
+                      const m = new Map<string, DayPoint>();
+                      for (const h of idx.history) m.set(h.date, h);
+                      lookup.set(idx.id, m);
+                    }
 
-                        return (
-                          <div key={idx.id}>
-                            <div
-                              style={{
-                                display: "flex",
-                                whiteSpace: "pre",
-                                padding: "3px 0",
-                                borderBottom: isExpanded ? "none" : "1px solid #191a21",
-                                cursor: "pointer",
-                                alignItems: "center",
-                              }}
-                              onClick={() =>
-                                setExpandedIndex(isExpanded ? null : idx.id)
-                              }
-                            >
-                              <span style={{ width: "4ch", textAlign: "right", color: D.comment }}>
-                                {i + 1}
-                              </span>
-                              <span style={{ width: "14ch", paddingLeft: 8 }}>
-                                {/* star toggle */}
+                    const COL_W = 72;
+                    const ROW_H = 48;
+                    const NAME_W = 160;
+
+                    return (
+                      <div style={{ display: "flex" }}>
+                        {/* fixed left: index names + summary */}
+                        <div style={{ flexShrink: 0, width: NAME_W }}>
+                          {/* header */}
+                          <div
+                            style={{
+                              height: 32,
+                              display: "flex",
+                              alignItems: "center",
+                              borderBottom: `1px solid ${D.currentLine}`,
+                              color: D.pink,
+                              fontWeight: 500,
+                              fontSize: 12,
+                              gap: 4,
+                            }}
+                          >
+                            <span style={{ width: 16 }}></span>
+                            <span>板块</span>
+                            <span style={{ marginLeft: "auto", paddingRight: 8, fontSize: 11 }}>累涨</span>
+                          </div>
+                          {/* index rows */}
+                          {indices.map((idx) => {
+                            const statusInfo = statusStyle(idx.status);
+                            return (
+                              <div
+                                key={idx.id}
+                                style={{
+                                  height: ROW_H,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  borderBottom: "1px solid #191a21",
+                                  gap: 2,
+                                  cursor: "pointer",
+                                }}
+                                onClick={() =>
+                                  setExpandedIndex(expandedIndex === idx.id ? null : idx.id)
+                                }
+                              >
+                                {/* star */}
                                 <span
                                   style={{
+                                    width: 16,
                                     color: idx.star ? D.yellow : D.comment,
                                     cursor: "pointer",
                                     userSelect: "none",
+                                    fontSize: 12,
+                                    textAlign: "center",
                                   }}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleToggleStar(idx.id, idx.star);
                                   }}
-                                  title={idx.star ? "取消关注" : "标记关注"}
                                 >
                                   {idx.star ? "★" : "☆"}
                                 </span>
-                                <span style={{ color: D.fg }}>{idx.name}</span>
-                              </span>
-                              <span style={{ width: "10ch", textAlign: "right", color: chgColor(idx.today), fontWeight: 500 }}>
-                                {fmtPct(idx.today)}
-                              </span>
-                              <span style={{ width: "10ch", textAlign: "right", color: chgColor(idx.d3) }}>
-                                {fmtPct(idx.d3)}
-                              </span>
-                              <span style={{ width: "10ch", textAlign: "right", color: chgColor(idx.d5) }}>
-                                {fmtPct(idx.d5)}
-                              </span>
-                              <span style={{ width: "10ch", textAlign: "right", color: chgColor(idx.d10) }}>
-                                {fmtPct(idx.d10)}
-                              </span>
-                              <span style={{ width: "10ch", textAlign: "right", color: chgColor(idx.cumGain), fontWeight: 700 }}>
-                                {fmtPct(idx.cumGain)}
-                              </span>
-                              <span style={{ width: "10ch", textAlign: "center" }}>
+                                {/* name + status */}
+                                <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+                                  <div style={{ fontSize: 12, color: D.fg, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                    {idx.name}
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 1 }}>
+                                    <span
+                                      style={{
+                                        display: "inline-block",
+                                        padding: "0 5px",
+                                        borderRadius: 2,
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        background: statusInfo.bg,
+                                        color: statusInfo.fg,
+                                        lineHeight: "16px",
+                                      }}
+                                    >
+                                      {statusInfo.label}
+                                    </span>
+                                    <span style={{ fontSize: 10, color: D.comment }}>
+                                      {idx.stocks.length}股
+                                    </span>
+                                  </div>
+                                </div>
+                                {/* cumGain */}
                                 <span
                                   style={{
-                                    display: "inline-block",
-                                    padding: "1px 8px",
-                                    borderRadius: 3,
-                                    fontSize: 11,
+                                    fontSize: 12,
                                     fontWeight: 700,
-                                    background: statusInfo.bg,
-                                    color: statusInfo.fg,
+                                    color: chgColor(idx.cumGain),
+                                    paddingRight: 6,
+                                    whiteSpace: "nowrap",
                                   }}
                                 >
-                                  {statusInfo.label}
+                                  {fmtPct(idx.cumGain)}
                                 </span>
-                              </span>
-                              <span style={{ width: "4ch", textAlign: "center" }}>
+                                {/* delete */}
                                 <span
                                   style={{
-                                    color: D.red,
+                                    color: D.comment,
                                     cursor: "pointer",
                                     fontWeight: 700,
-                                    fontSize: 15,
+                                    fontSize: 13,
                                     userSelect: "none",
+                                    paddingRight: 4,
                                   }}
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -665,64 +652,132 @@ export default function SectorPage() {
                                 >
                                   ×
                                 </span>
-                              </span>
-                            </div>
+                              </div>
+                            );
+                          })}
+                        </div>
 
-                            {/* expanded component stocks */}
-                            {isExpanded && (
+                        {/* scrollable right: date columns */}
+                        <div style={{ overflowX: "auto", flex: 1 }}>
+                          {/* date header */}
+                          <div style={{ display: "flex" }}>
+                            {allDates.map((d) => (
                               <div
+                                key={d}
                                 style={{
-                                  background: D.currentLine,
-                                  borderRadius: 4,
-                                  padding: "6px 12px",
-                                  marginBottom: 4,
-                                  borderBottom: "1px solid #191a21",
+                                  minWidth: COL_W,
+                                  height: 32,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  borderBottom: `1px solid ${D.currentLine}`,
+                                  color: D.pink,
+                                  fontWeight: 500,
+                                  fontSize: 11,
                                 }}
                               >
-                                <div style={{ color: D.comment, fontSize: 11, marginBottom: 4 }}>
-                                  成分股 ({idx.stocks.length}):
-                                  <span style={{ color: D.comment, marginLeft: 8 }}>
-                                    {idx.stocks.join(", ")}
-                                  </span>
-                                </div>
-                                {idx.components.length > 0 ? (
-                                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                                    {idx.components.map((c) => (
-                                      <span
-                                        key={c.code}
-                                        style={{
-                                          display: "inline-block",
-                                          padding: "2px 8px",
-                                          borderRadius: 3,
-                                          fontSize: 11,
-                                          background: "#191a21",
-                                          color: D.fg,
-                                        }}
-                                      >
-                                        <span style={{ color: D.cyan }}>{c.code}</span>
-                                        {" "}
-                                        <span style={{ color: chgColor(c.change_pct), fontWeight: 500 }}>
-                                          {fmtPct(c.change_pct)}
-                                        </span>
-                                      </span>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div style={{ color: D.comment, fontSize: 11 }}>
-                                    暂无今日成分股涨跌数据
-                                  </div>
-                                )}
+                                {shortDate(d)}
                               </div>
-                            )}
+                            ))}
                           </div>
-                        );
-                      })}
-                    </>
-                  ) : (
+
+                          {/* data rows */}
+                          {indices.map((idx) => {
+                            const idxLookup = lookup.get(idx.id)!;
+                            return (
+                              <div key={idx.id} style={{ display: "flex" }}>
+                                {allDates.map((d) => {
+                                  const pt = idxLookup.get(d);
+                                  return (
+                                    <div
+                                      key={d}
+                                      style={{
+                                        minWidth: COL_W,
+                                        height: ROW_H,
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        justifyContent: "center",
+                                        alignItems: "center",
+                                        borderBottom: "1px solid #191a21",
+                                        fontSize: 12,
+                                      }}
+                                    >
+                                      {pt ? (
+                                        <>
+                                          <span style={{ color: chgColor(pt.change), fontWeight: 500 }}>
+                                            {fmtPct(pt.change)}
+                                          </span>
+                                          <span style={{ color: D.comment, fontSize: 10 }}>
+                                            {pt.value.toFixed(1)}
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <span style={{ color: D.comment, fontSize: 11 }}>-</span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })() : (
                     <div style={{ color: D.comment, padding: "8px 0" }}>
                       # 暂无自定义指数。点击 [+ 新建] 创建。
                     </div>
                   )}
+
+                  {/* expanded component detail (below matrix) */}
+                  {expandedIndex && (() => {
+                    const idx = indices.find((i) => i.id === expandedIndex);
+                    if (!idx) return null;
+                    return (
+                      <div
+                        style={{
+                          background: D.currentLine,
+                          borderRadius: 4,
+                          padding: "6px 12px",
+                          marginTop: 4,
+                        }}
+                      >
+                        <div style={{ color: D.comment, fontSize: 11, marginBottom: 4 }}>
+                          {idx.name} 成分股 ({idx.stocks.length}):
+                          <span style={{ color: D.comment, marginLeft: 8 }}>
+                            {idx.stocks.join(", ")}
+                          </span>
+                        </div>
+                        {idx.components.length > 0 ? (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                            {idx.components.map((c) => (
+                              <span
+                                key={c.code}
+                                style={{
+                                  display: "inline-block",
+                                  padding: "2px 8px",
+                                  borderRadius: 3,
+                                  fontSize: 11,
+                                  background: "#191a21",
+                                  color: D.fg,
+                                }}
+                              >
+                                <span style={{ color: D.cyan }}>{c.code}</span>
+                                {" "}
+                                <span style={{ color: chgColor(c.change_pct), fontWeight: 500 }}>
+                                  {fmtPct(c.change_pct)}
+                                </span>
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ color: D.comment, fontSize: 11 }}>
+                            暂无今日成分股涨跌数据
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </>
               )}
             </div>

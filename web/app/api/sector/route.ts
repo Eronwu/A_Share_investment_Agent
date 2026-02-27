@@ -411,6 +411,7 @@ export async function GET(request: NextRequest) {
       cumGain: number;
       status: string;
       components: ComponentEntry[];
+      history: Array<{ date: string; change: number; value: number }>;
     }> = [];
 
     for (const idx of config.indices) {
@@ -469,6 +470,15 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Daily history (chronological, newest last) for matrix view
+      const history = dailyRows
+        .map((r) => ({
+          date: r.date,
+          change: round(r.avg_change_pct, 2),
+          value: round(r.index_value, 2),
+        }))
+        .reverse();
+
       indices.push({
         id: idx.id,
         name: idx.name,
@@ -483,6 +493,7 @@ export async function GET(request: NextRequest) {
         cumGain,
         status,
         components,
+        history,
       });
     }
 
