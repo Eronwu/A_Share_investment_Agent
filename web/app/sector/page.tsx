@@ -729,52 +729,184 @@ export default function SectorPage() {
                     </div>
                   )}
 
-                  {/* expanded component detail (below matrix) */}
+                  {/* expanded: K-line chart + component stocks */}
                   {expandedIndex && (() => {
                     const idx = indices.find((i) => i.id === expandedIndex);
-                    if (!idx) return null;
+                    if (!idx || idx.history.length < 2) return null;
+
+                    // Chart dimensions
+                    const W = 760, H = 150, PAD_T = 20, PAD_B = 24, PAD_L = 44, PAD_R = 8;
+                    const pts = [...idx.history].reverse(); // chronological
+                    const vals = pts.map((p) => p.value);
+                    const minV = Math.min(...vals);
+                    const maxV = Math.max(...vals);
+                    const range = maxV - minV || 1;
+                    const baseline = idx.stocks.length > 0 ? 100 : minV;
+
+                    const xStep = (W - PAD_L - PAD_R) / (pts.length - 1);
+                    const yScale = (v: number) =>
+                      PAD_T + (H - PAD_T - PAD_B) * (1 - (v - minV) / range);
+
+                    // Build polyline points
+                    const line = pts
+                      .map((p, i) => `${PAD_L + i * xStep},${yScale(p.value)}`)
+                      .join(" ");
+
+                    // Area fill under line
+                    const area =
+                      `${PAD_L},${yScale(minV)} ` +
+                      pts.map((p, i) => `${PAD_L + i * xStep},${yScale(p.value)}`).join(" ") +
+                      ` ${PAD_L + (pts.length - 1) * xStep},${yScale(minV)}`;
+
+                    // Determine trend color
+                    const lastVal = vals[vals.length - 1];
+                    const firstVal = vals[0];
+                    const trendUp = lastVal >= firstVal;
+                    const lineColor = trendUp ? D.red : D.green;
+                    const fillColor = trendUp ? "rgba(255,85,85,0.1)" : "rgba(80,250,123,0.1)";
+
+                    // Y-axis labels (5 ticks)
+                    const yTicks = Array.from({ length: 5 }, (_, i) =>
+                      minV + (range * i) / 4,
+                    );
+
+                    // X-axis labels (evenly spaced, max 8)
+                    const xLabelStep = Math.max(1, Math.floor(pts.length / 7));
+                    const xLabels = pts.filter((_, i) => i % xLabelStep === 0 || i === pts.length - 1);
+
+                    // Baseline 100 line
+                    const baseY = yScale(baseline);
+                    const baseInRange = baseline >= minV && baseline <= maxV;
+
                     return (
                       <div
                         style={{
                           background: D.currentLine,
                           borderRadius: 4,
-                          padding: "6px 12px",
+                          padding: "10px 12px 8px",
                           marginTop: 4,
                         }}
                       >
-                        <div style={{ color: D.comment, fontSize: 11, marginBottom: 4 }}>
-                          {idx.name} 成分股 ({idx.stocks.length}):
-                          <span style={{ color: D.comment, marginLeft: 8 }}>
-                            {idx.stocks.join(", ")}
+                        {/* chart header */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+                          <span style={{ color: D.fg, fontWeight: 700, fontSize: 13 }}>
+                            {idx.name}
+                          </span>
+                          <span style={{ color: D.comment, fontSize: 11 }}>
+                            指数值 {lastVal.toFixed(1)}
+                          </span>
+                          <span style={{ color: chgColor(idx.cumGain), fontSize: 12, fontWeight: 500 }}>
+                            {fmtPct(idx.cumGain)}
+                          </span>
+                          <span style={{ color: D.comment, fontSize: 11 }}>
+                            {pts.length}日
                           </span>
                         </div>
-                        {idx.components.length > 0 ? (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                            {idx.components.map((c) => (
-                              <span
-                                key={c.code}
-                                style={{
-                                  display: "inline-block",
-                                  padding: "2px 8px",
-                                  borderRadius: 3,
-                                  fontSize: 11,
-                                  background: "#191a21",
-                                  color: D.fg,
-                                }}
+
+                        {/* SVG chart */}
+                        <svg
+                          width={W}
+                          height={H}
+                          style={{ display: "block", maxWidth: "100%" }}
+                          viewBox={`0 0 ${W} ${H}`}
+                        >
+                          {/* grid lines */}
+                          {yTicks.map((v, i) => (
+                            <g key={i}>
+                              <line
+                                x1={PAD_L} y1={yScale(v)}
+                                x2={W - PAD_R} y2={yScale(v)}
+                                stroke="#333" strokeDasharray="2,3"
+                              />
+                              <text
+                                x={PAD_L - 4} y={yScale(v) + 3}
+                                fill={D.comment} fontSize={9} textAnchor="end"
                               >
-                                <span style={{ color: D.cyan }}>{c.code}</span>
-                                {" "}
-                                <span style={{ color: chgColor(c.change_pct), fontWeight: 500 }}>
-                                  {fmtPct(c.change_pct)}
+                                {v.toFixed(1)}
+                              </text>
+                            </g>
+                          ))}
+
+                          {/* baseline 100 */}
+                          {baseInRange && (
+                            <line
+                              x1={PAD_L} y1={baseY}
+                              x2={W - PAD_R} y2={baseY}
+                              stroke={D.comment} strokeDasharray="4,3" strokeWidth={0.8}
+                            />
+                          )}
+
+                          {/* area fill */}
+                          <polygon points={area} fill={fillColor} />
+
+                          {/* line */}
+                          <polyline
+                            points={line}
+                            fill="none"
+                            stroke={lineColor}
+                            strokeWidth={1.5}
+                          />
+
+                          {/* end dot */}
+                          <circle
+                            cx={PAD_L + (pts.length - 1) * xStep}
+                            cy={yScale(lastVal)}
+                            r={3}
+                            fill={lineColor}
+                          />
+
+                          {/* x-axis date labels */}
+                          {xLabels.map((p) => {
+                            const i = pts.indexOf(p);
+                            return (
+                              <text
+                                key={p.date}
+                                x={PAD_L + i * xStep}
+                                y={H - 4}
+                                fill={D.comment}
+                                fontSize={9}
+                                textAnchor="middle"
+                              >
+                                {shortDate(p.date)}
+                              </text>
+                            );
+                          })}
+                        </svg>
+
+                        {/* component stocks */}
+                        <div style={{ marginTop: 8, borderTop: `1px solid #191a21`, paddingTop: 6 }}>
+                          <div style={{ color: D.comment, fontSize: 11, marginBottom: 4 }}>
+                            成分股 ({idx.stocks.length}):
+                            <span style={{ marginLeft: 8 }}>{idx.stocks.join(", ")}</span>
+                          </div>
+                          {idx.components.length > 0 ? (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                              {idx.components.map((c) => (
+                                <span
+                                  key={c.code}
+                                  style={{
+                                    display: "inline-block",
+                                    padding: "2px 8px",
+                                    borderRadius: 3,
+                                    fontSize: 11,
+                                    background: "#191a21",
+                                    color: D.fg,
+                                  }}
+                                >
+                                  <span style={{ color: D.cyan }}>{c.code}</span>
+                                  {" "}
+                                  <span style={{ color: chgColor(c.change_pct), fontWeight: 500 }}>
+                                    {fmtPct(c.change_pct)}
+                                  </span>
                                 </span>
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <div style={{ color: D.comment, fontSize: 11 }}>
-                            暂无今日成分股涨跌数据
-                          </div>
-                        )}
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ color: D.comment, fontSize: 11 }}>
+                              暂无今日成分股涨跌数据
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })()}
