@@ -55,7 +55,8 @@ const KIND_LABELS: Record<string, { label: string; color: string }> = {
 
 /** Parse display text into structured fields for cleaner rendering */
 function parseAlert(e: AlertEvent): {
-  stockLabel: string; // "海天味业 03288"
+  stockName: string;  // "海天味业"
+  stockCode: string;  // "03288"
   signal: string;     // actual signal name: "均线多排", "MACD底背离"
   signalColor: string;
   price: string;      // "33.84"
@@ -88,7 +89,8 @@ function parseAlert(e: AlertEvent): {
       const detailPart = mainMatch[3]?.trim() || "";
       const detail = [detailPart, tail].filter(Boolean).join(" ");
       return {
-        stockLabel: `${name} ${shortCode}`,
+        stockName: name,
+        stockCode: shortCode,
         signal,
         signalColor: getSignalColor(signal),
         price,
@@ -102,7 +104,8 @@ function parseAlert(e: AlertEvent): {
     const m = d.match(/^(?:HK)?\d+\s+(.+?)\s+(涨幅|跌幅)\s+([\d.]+)%(?:\s+现价([\d.]+))?/);
     if (m) {
       return {
-        stockLabel: `${m[1].trim()} ${shortCode}`,
+        stockName: m[1].trim(),
+        stockCode: shortCode,
         signal: m[2] === "涨幅" ? "大涨" : "大跌",
         signalColor: m[2] === "涨幅" ? D.red : D.green,
         price: m[4] || "",
@@ -115,7 +118,8 @@ function parseAlert(e: AlertEvent): {
     const m = d.match(/^(?:HK)?\d+\s+(.+?)\s+触价告警\s*(.*)/);
     if (m) {
       return {
-        stockLabel: `${m[1].trim()} ${shortCode}`,
+        stockName: m[1].trim(),
+        stockCode: shortCode,
         signal: "触价",
         signalColor: D.red,
         price: m[2]?.replace(/[! ]/g, "") || "",
@@ -125,11 +129,11 @@ function parseAlert(e: AlertEvent): {
   }
 
   if (e.kind === "portfolio") {
-    return { stockLabel: "组合", signal: "组合P&L", signalColor: D.purple, price: "", detail: d };
+    return { stockName: "组合", stockCode: "", signal: "组合P&L", signalColor: D.purple, price: "", detail: d };
   }
 
   // Fallback
-  return { stockLabel: sym ? `${shortCode}` : "", signal: e.kind, signalColor: D.comment, price: "", detail: d };
+  return { stockName: "", stockCode: shortCode, signal: e.kind, signalColor: D.comment, price: "", detail: d };
 }
 
 /** Color for signal names */
@@ -500,9 +504,9 @@ export default function AlertsPage() {
               <span style={{ color: parsed.signalColor, flexShrink: 0, width: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: isHighPriority ? 700 : 500 }}>
                 {parsed.signal}
               </span>
-              {/* Stock name + code */}
-              <span style={{ color: D.cyan, flexShrink: 0, width: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {parsed.stockLabel}
+              {/* Stock name */}
+              <span style={{ color: D.cyan, flexShrink: 0, width: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {parsed.stockName}
               </span>
               {/* Price */}
               <span style={{ color: D.fg, flexShrink: 0, width: 60, textAlign: "right" }}>
@@ -512,9 +516,9 @@ export default function AlertsPage() {
               <span style={{ color: chgColor, flexShrink: 0, width: 52, textAlign: "right" }}>
                 {e.change_pct ? `${e.change_pct >= 0 ? "+" : ""}${e.change_pct.toFixed(1)}%` : ""}
               </span>
-              {/* Detail */}
+              {/* Code + Detail */}
               <span style={{ color: isHighPriority ? D.yellow : D.comment, marginLeft: 10, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {parsed.detail}
+                {parsed.stockCode ? <span style={{ color: D.comment }}>{parsed.stockCode} </span> : null}{parsed.detail}
               </span>
             </div>
           );
