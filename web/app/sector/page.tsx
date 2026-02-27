@@ -576,7 +576,223 @@ export default function SectorPage() {
         {!loading && (
           <>
             {/* ════════════════════════════════════════════ */}
-            {/* Section 1: 板块轮动 (Rotation Matrix)       */}
+            {/* Section 1: 我的指数 (Custom Indices)         */}
+            {/* ════════════════════════════════════════════ */}
+            <div style={{ padding: "4px 0" }}>
+              <div
+                style={{
+                  color: D.comment,
+                  padding: "4px 0 2px",
+                  cursor: "pointer",
+                  userSelect: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <span onClick={() => setIndicesOpen((v) => !v)}>
+                  <span style={{ color: D.purple }}>{indicesOpen ? "▾" : "▸"}</span>
+                  {" "}# ── 我的指数 ({indices.length}) ──
+                </span>
+                <button
+                  style={{
+                    background: D.purple,
+                    border: "none",
+                    color: D.bg,
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "2px 10px",
+                    borderRadius: 3,
+                    cursor: "pointer",
+                  }}
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  + 新建
+                </button>
+              </div>
+
+              {indicesOpen && (
+                <>
+                  {indices.length > 0 ? (
+                    <>
+                      {/* table header */}
+                      <div
+                        style={{
+                          display: "flex",
+                          whiteSpace: "pre",
+                          color: D.pink,
+                          borderBottom: `1px solid ${D.currentLine}`,
+                          paddingBottom: 3,
+                          marginBottom: 2,
+                          fontWeight: 500,
+                          fontSize: 12,
+                        }}
+                      >
+                        <span style={{ width: "4ch", textAlign: "right" }}>#</span>
+                        <span style={{ width: "14ch", paddingLeft: 8 }}>板块</span>
+                        <span style={{ width: "10ch", textAlign: "right" }}>今日</span>
+                        <span style={{ width: "10ch", textAlign: "right" }}>3日</span>
+                        <span style={{ width: "10ch", textAlign: "right" }}>5日</span>
+                        <span style={{ width: "10ch", textAlign: "right" }}>10日</span>
+                        <span style={{ width: "10ch", textAlign: "right" }}>累涨</span>
+                        <span style={{ width: "10ch", textAlign: "center" }}>状态</span>
+                        <span style={{ width: "4ch" }}></span>
+                      </div>
+
+                      {indices.map((idx, i) => {
+                        const statusInfo = statusStyle(idx.status);
+                        const isExpanded = expandedIndex === idx.id;
+
+                        return (
+                          <div key={idx.id}>
+                            <div
+                              style={{
+                                display: "flex",
+                                whiteSpace: "pre",
+                                padding: "3px 0",
+                                borderBottom: isExpanded ? "none" : "1px solid #191a21",
+                                cursor: "pointer",
+                                alignItems: "center",
+                              }}
+                              onClick={() =>
+                                setExpandedIndex(isExpanded ? null : idx.id)
+                              }
+                            >
+                              <span style={{ width: "4ch", textAlign: "right", color: D.comment }}>
+                                {i + 1}
+                              </span>
+                              <span style={{ width: "14ch", paddingLeft: 8 }}>
+                                {/* star toggle */}
+                                <span
+                                  style={{
+                                    color: idx.star ? D.yellow : D.comment,
+                                    cursor: "pointer",
+                                    userSelect: "none",
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleStar(idx.id, idx.star);
+                                  }}
+                                  title={idx.star ? "取消关注" : "标记关注"}
+                                >
+                                  {idx.star ? "★" : "☆"}
+                                </span>
+                                <span style={{ color: D.fg }}>{idx.name}</span>
+                              </span>
+                              <span style={{ width: "10ch", textAlign: "right", color: chgColor(idx.today), fontWeight: 500 }}>
+                                {fmtPct(idx.today)}
+                              </span>
+                              <span style={{ width: "10ch", textAlign: "right", color: chgColor(idx.d3) }}>
+                                {fmtPct(idx.d3)}
+                              </span>
+                              <span style={{ width: "10ch", textAlign: "right", color: chgColor(idx.d5) }}>
+                                {fmtPct(idx.d5)}
+                              </span>
+                              <span style={{ width: "10ch", textAlign: "right", color: chgColor(idx.d10) }}>
+                                {fmtPct(idx.d10)}
+                              </span>
+                              <span style={{ width: "10ch", textAlign: "right", color: chgColor(idx.cumGain), fontWeight: 700 }}>
+                                {fmtPct(idx.cumGain)}
+                              </span>
+                              <span style={{ width: "10ch", textAlign: "center" }}>
+                                <span
+                                  style={{
+                                    display: "inline-block",
+                                    padding: "1px 8px",
+                                    borderRadius: 3,
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    background: statusInfo.bg,
+                                    color: statusInfo.fg,
+                                  }}
+                                >
+                                  {statusInfo.label}
+                                </span>
+                              </span>
+                              <span style={{ width: "4ch", textAlign: "center" }}>
+                                <span
+                                  style={{
+                                    color: D.red,
+                                    cursor: "pointer",
+                                    fontWeight: 700,
+                                    fontSize: 15,
+                                    userSelect: "none",
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(idx.id, idx.name);
+                                  }}
+                                  title="删除"
+                                >
+                                  ×
+                                </span>
+                              </span>
+                            </div>
+
+                            {/* expanded component stocks */}
+                            {isExpanded && (
+                              <div
+                                style={{
+                                  background: D.currentLine,
+                                  borderRadius: 4,
+                                  padding: "6px 12px",
+                                  marginBottom: 4,
+                                  borderBottom: "1px solid #191a21",
+                                }}
+                              >
+                                <div style={{ color: D.comment, fontSize: 11, marginBottom: 4 }}>
+                                  成分股 ({idx.stocks.length}):
+                                  <span style={{ color: D.comment, marginLeft: 8 }}>
+                                    {idx.stocks.join(", ")}
+                                  </span>
+                                </div>
+                                {idx.components.length > 0 ? (
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                                    {idx.components.map((c) => (
+                                      <span
+                                        key={c.code}
+                                        style={{
+                                          display: "inline-block",
+                                          padding: "2px 8px",
+                                          borderRadius: 3,
+                                          fontSize: 11,
+                                          background: "#191a21",
+                                          color: D.fg,
+                                        }}
+                                      >
+                                        <span style={{ color: D.cyan }}>{c.code}</span>
+                                        {" "}
+                                        <span style={{ color: chgColor(c.change), fontWeight: 500 }}>
+                                          {fmtPct(c.change)}
+                                        </span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div style={{ color: D.comment, fontSize: 11 }}>
+                                    暂无今日成分股涨跌数据
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    <div style={{ color: D.comment, padding: "8px 0" }}>
+                      # 暂无自定义指数。点击 [+ 新建] 创建。
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div style={{ height: 12 }} />
+
+            {/* ════════════════════════════════════════════ */}
+            {/* Section 2: 板块轮动 (Rotation Matrix)       */}
             {/* ════════════════════════════════════════════ */}
             <div style={{ padding: "4px 0" }}>
               <div
@@ -846,222 +1062,6 @@ export default function SectorPage() {
                           ))}
                         </div>
                       )}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div style={{ height: 12 }} />
-
-            {/* ════════════════════════════════════════════ */}
-            {/* Section 2: 我的指数 (Custom Indices)         */}
-            {/* ════════════════════════════════════════════ */}
-            <div style={{ padding: "4px 0" }}>
-              <div
-                style={{
-                  color: D.comment,
-                  padding: "4px 0 2px",
-                  cursor: "pointer",
-                  userSelect: "none",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                }}
-              >
-                <span onClick={() => setIndicesOpen((v) => !v)}>
-                  <span style={{ color: D.purple }}>{indicesOpen ? "▾" : "▸"}</span>
-                  {" "}# ── 我的指数 ({indices.length}) ──
-                </span>
-                <button
-                  style={{
-                    background: D.purple,
-                    border: "none",
-                    color: D.bg,
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    padding: "2px 10px",
-                    borderRadius: 3,
-                    cursor: "pointer",
-                  }}
-                  onClick={() => setShowCreateModal(true)}
-                >
-                  + 新建
-                </button>
-              </div>
-
-              {indicesOpen && (
-                <>
-                  {indices.length > 0 ? (
-                    <>
-                      {/* table header */}
-                      <div
-                        style={{
-                          display: "flex",
-                          whiteSpace: "pre",
-                          color: D.pink,
-                          borderBottom: `1px solid ${D.currentLine}`,
-                          paddingBottom: 3,
-                          marginBottom: 2,
-                          fontWeight: 500,
-                          fontSize: 12,
-                        }}
-                      >
-                        <span style={{ width: "4ch", textAlign: "right" }}>#</span>
-                        <span style={{ width: "14ch", paddingLeft: 8 }}>板块</span>
-                        <span style={{ width: "10ch", textAlign: "right" }}>今日</span>
-                        <span style={{ width: "10ch", textAlign: "right" }}>3日</span>
-                        <span style={{ width: "10ch", textAlign: "right" }}>5日</span>
-                        <span style={{ width: "10ch", textAlign: "right" }}>10日</span>
-                        <span style={{ width: "10ch", textAlign: "right" }}>累涨</span>
-                        <span style={{ width: "10ch", textAlign: "center" }}>状态</span>
-                        <span style={{ width: "4ch" }}></span>
-                      </div>
-
-                      {indices.map((idx, i) => {
-                        const statusInfo = statusStyle(idx.status);
-                        const isExpanded = expandedIndex === idx.id;
-
-                        return (
-                          <div key={idx.id}>
-                            <div
-                              style={{
-                                display: "flex",
-                                whiteSpace: "pre",
-                                padding: "3px 0",
-                                borderBottom: isExpanded ? "none" : "1px solid #191a21",
-                                cursor: "pointer",
-                                alignItems: "center",
-                              }}
-                              onClick={() =>
-                                setExpandedIndex(isExpanded ? null : idx.id)
-                              }
-                            >
-                              <span style={{ width: "4ch", textAlign: "right", color: D.comment }}>
-                                {i + 1}
-                              </span>
-                              <span style={{ width: "14ch", paddingLeft: 8 }}>
-                                {/* star toggle */}
-                                <span
-                                  style={{
-                                    color: idx.star ? D.yellow : D.comment,
-                                    cursor: "pointer",
-                                    userSelect: "none",
-                                  }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggleStar(idx.id, idx.star);
-                                  }}
-                                  title={idx.star ? "取消关注" : "标记关注"}
-                                >
-                                  {idx.star ? "★" : "☆"}
-                                </span>
-                                <span style={{ color: D.fg }}>{idx.name}</span>
-                              </span>
-                              <span style={{ width: "10ch", textAlign: "right", color: chgColor(idx.today), fontWeight: 500 }}>
-                                {fmtPct(idx.today)}
-                              </span>
-                              <span style={{ width: "10ch", textAlign: "right", color: chgColor(idx.d3) }}>
-                                {fmtPct(idx.d3)}
-                              </span>
-                              <span style={{ width: "10ch", textAlign: "right", color: chgColor(idx.d5) }}>
-                                {fmtPct(idx.d5)}
-                              </span>
-                              <span style={{ width: "10ch", textAlign: "right", color: chgColor(idx.d10) }}>
-                                {fmtPct(idx.d10)}
-                              </span>
-                              <span style={{ width: "10ch", textAlign: "right", color: chgColor(idx.cumGain), fontWeight: 700 }}>
-                                {fmtPct(idx.cumGain)}
-                              </span>
-                              <span style={{ width: "10ch", textAlign: "center" }}>
-                                <span
-                                  style={{
-                                    display: "inline-block",
-                                    padding: "1px 8px",
-                                    borderRadius: 3,
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    background: statusInfo.bg,
-                                    color: statusInfo.fg,
-                                  }}
-                                >
-                                  {statusInfo.label}
-                                </span>
-                              </span>
-                              <span style={{ width: "4ch", textAlign: "center" }}>
-                                <span
-                                  style={{
-                                    color: D.red,
-                                    cursor: "pointer",
-                                    fontWeight: 700,
-                                    fontSize: 15,
-                                    userSelect: "none",
-                                  }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDelete(idx.id, idx.name);
-                                  }}
-                                  title="删除"
-                                >
-                                  ×
-                                </span>
-                              </span>
-                            </div>
-
-                            {/* expanded component stocks */}
-                            {isExpanded && (
-                              <div
-                                style={{
-                                  background: D.currentLine,
-                                  borderRadius: 4,
-                                  padding: "6px 12px",
-                                  marginBottom: 4,
-                                  borderBottom: "1px solid #191a21",
-                                }}
-                              >
-                                <div style={{ color: D.comment, fontSize: 11, marginBottom: 4 }}>
-                                  成分股 ({idx.stocks.length}):
-                                  <span style={{ color: D.comment, marginLeft: 8 }}>
-                                    {idx.stocks.join(", ")}
-                                  </span>
-                                </div>
-                                {idx.components.length > 0 ? (
-                                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                                    {idx.components.map((c) => (
-                                      <span
-                                        key={c.code}
-                                        style={{
-                                          display: "inline-block",
-                                          padding: "2px 8px",
-                                          borderRadius: 3,
-                                          fontSize: 11,
-                                          background: "#191a21",
-                                          color: D.fg,
-                                        }}
-                                      >
-                                        <span style={{ color: D.cyan }}>{c.code}</span>
-                                        {" "}
-                                        <span style={{ color: chgColor(c.change), fontWeight: 500 }}>
-                                          {fmtPct(c.change)}
-                                        </span>
-                                      </span>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div style={{ color: D.comment, fontSize: 11 }}>
-                                    暂无今日成分股涨跌数据
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </>
-                  ) : (
-                    <div style={{ color: D.comment, padding: "8px 0" }}>
-                      # 暂无自定义指数。点击 [+ 新建] 创建。
                     </div>
                   )}
                 </>
