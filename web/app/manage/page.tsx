@@ -1,10 +1,70 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import Link from "next/link";
 import { D } from "../theme";
 
 import type { WatchEntry, MonitorConfig } from "../types";
+
+/* ── Trade Plan Types ── */
+
+interface PlanOrder {
+  id: string;
+  side: "buy" | "sell";
+  op: ">=" | "<=";
+  price: number;
+  sell_pct: number | null;
+  shares: number | null;
+  volume_min: number | null;
+  consecutive_days: number | null;
+  trailing: { pct: number; watermark: number | null; active: boolean } | null;
+  label: string;
+  triggered: boolean;
+  triggered_at: string | null;
+}
+
+interface PlanPosition {
+  cost: number | null;
+  shares: number | null;
+  price: number | null;
+  change_pct: number | null;
+  name: string;
+}
+
+interface TradePlan {
+  name: string;
+  symbol: string;
+  status: "active" | "paused";
+  created_at: string;
+  stop_loss: {
+    price: number;
+    action: string;
+    triggered: boolean;
+    trailing?: {
+      trail_pct: number;
+      activation_price: number;
+      high_watermark: number | null;
+      active: boolean;
+    };
+  };
+  orders: PlanOrder[];
+  position?: PlanPosition | null;
+  lot_size?: number | null;
+}
+
+/* ── Order type labels ── */
+const ORDER_TYPE_OPTIONS = [
+  { label: "到价卖出", side: "sell" as const, trailing: false },
+  { label: "到价买入", side: "buy" as const, trailing: false },
+  { label: "回落卖出", side: "sell" as const, trailing: true },
+  { label: "反弹买入", side: "buy" as const, trailing: true },
+];
+
+function orderTypeLabel(o: PlanOrder): string {
+  if (o.trailing) {
+    return o.side === "sell" ? "回落卖出" : "反弹买入";
+  }
+  return o.side === "sell" ? "到价卖出" : "到价买入";
+}
 
 /* ── Inline-editable cell ── */
 function EditableCell({
@@ -14,6 +74,7 @@ function EditableCell({
   placeholder,
   isNumber,
   step,
+  color,
 }: {
   value: string | number | null | undefined;
   onSave: (val: string) => void;
@@ -21,6 +82,7 @@ function EditableCell({
   placeholder?: string;
   isNumber?: boolean;
   step?: number | string;
+  color?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value ?? ""));
@@ -85,7 +147,7 @@ function EditableCell({
         width,
         display: "inline-block",
         cursor: "pointer",
-        color: value != null && value !== "" ? D.fg : D.comment,
+        color: color || (value != null && value !== "" ? D.fg : D.comment),
         borderBottom: `1px dashed ${D.currentLine}`,
         padding: "1px 2px",
       }}
@@ -150,7 +212,7 @@ function TitleBar() {
         ))}
       </div>
       <span style={{ color: D.comment, fontSize: 12 }}>
-        ✱ manage — watchlist
+        manage -- watchlist + trade plans
       </span>
     </div>
   );
@@ -170,23 +232,6 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
     >
       {children}
     </div>
-  );
-}
-
-/* ── Column header ── */
-function ColHeader({ children, width, align }: { children: React.ReactNode; width: string; align?: string }) {
-  return (
-    <span
-      style={{
-        width,
-        display: "inline-block",
-        color: D.pink,
-        fontWeight: 500,
-        textAlign: (align as React.CSSProperties["textAlign"]) || "left",
-      }}
-    >
-      {children}
-    </span>
   );
 }
 
@@ -333,7 +378,7 @@ function StockRow({
               onClick={() => { if (confirm(`Demote ${code} to watching?`)) onUpdateType(code, "holding"); }}
               title="Demote to watching"
             >
-              ↓ DEV
+              DEV
             </button>
           </>
         )}
@@ -351,11 +396,11 @@ function StockRow({
             }}
             title="Promote to holding"
           >
-            ↑ PROD
+            PROD
           </button>
         )}
         {/* alert thresholds */}
-        <span style={{ color: D.comment, fontSize: 11, paddingLeft: 4 }}>▲</span>
+        <span style={{ color: D.comment, fontSize: 11, paddingLeft: 4 }}>^</span>
         <EditableCell
           value={above}
           onSave={(v) => onUpdateField(code, "above", v)}
@@ -363,7 +408,7 @@ function StockRow({
           placeholder="-"
           isNumber
         />
-        <span style={{ color: D.comment, fontSize: 11 }}>▼</span>
+        <span style={{ color: D.comment, fontSize: 11 }}>v</span>
         <EditableCell
           value={below}
           onSave={(v) => onUpdateField(code, "below", v)}
@@ -388,9 +433,9 @@ function StockRow({
             userSelect: "none",
           }}
         >
-          ★
+          *
         </button>
-        {/* hide toggle — available for all types (CLI `svc hide` supports any) */}
+        {/* hide toggle */}
         <span
             onClick={() => onToggleHidden(code, !entry.hidden)}
             title={entry.hidden ? "Unhide (show on dashboard)" : "Hide (out of sight)"}
@@ -435,7 +480,7 @@ function StockRow({
             {entry.hidden ? "hidden" : "hide"}
           </span>
         <button style={deleteBtn} onClick={() => onRemove(code, entry.name)} title="Remove">
-          ×
+          x
         </button>
       </div>
       {/* inline promote form */}
@@ -450,7 +495,7 @@ function StockRow({
             fontSize: 12,
           }}
         >
-          <span style={{ color: D.orange }}>→</span>
+          <span style={{ color: D.orange }}>-&gt;</span>
           <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
             cost:
             <input
@@ -497,13 +542,560 @@ function StockRow({
   );
 }
 
+/* ── PlanCard ── */
+function PlanCard({
+  planId,
+  plan,
+  onToggle,
+  onDelete,
+  onUpdateStopLoss,
+  onUpdateTrailingStop,
+  onUpdateOrder,
+}: {
+  planId: string;
+  plan: TradePlan;
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
+  onUpdateStopLoss: (id: string, price: string) => void;
+  onUpdateTrailingStop: (id: string, trailing: { trail_pct: number; activation_price: number; high_watermark: number | null; active: boolean } | null) => void;
+  onUpdateOrder: (planId: string, orderId: string, field: string, val: string) => void;
+}) {
+  const pos = plan.position;
+  const lotSize = plan.lot_size || 1;
+  const posShares = pos?.shares ?? 0;
+  const posCost = pos?.cost ?? 0;
+  const posPrice = pos?.price ?? 0;
+  const pnlPct = posCost > 0 && posPrice > 0 ? ((posPrice - posCost) / posCost * 100) : null;
+  const pnlAmt = posCost > 0 && posPrice > 0 && posShares > 0 ? (posPrice - posCost) * posShares : null;
+  const trailing = plan.stop_loss.trailing;
+
+  // compute sell shares from sell_pct, aligned to lot size
+  function sellShares(pct: number): number {
+    if (!posShares || !pct) return 0;
+    const raw = Math.round(posShares * pct);
+    return Math.max(lotSize, Math.floor(raw / lotSize) * lotSize);
+  }
+
+  const cardBorder = plan.status === "active" ? D.green : D.comment;
+
+  return (
+    <div style={{
+      border: `1px solid ${cardBorder}`,
+      borderRadius: 4,
+      padding: "8px 12px",
+      marginBottom: 8,
+      background: D.bg,
+    }}>
+      {/* title row */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+        <span style={{
+          display: "inline-block",
+          padding: "1px 6px",
+          borderRadius: 3,
+          fontSize: 10,
+          fontWeight: 700,
+          background: plan.status === "active" ? D.green : D.comment,
+          color: D.bg,
+          cursor: "pointer",
+          userSelect: "none",
+        }} onClick={() => onToggle(planId)} title="Toggle active/paused">
+          {plan.status === "active" ? "ACTIVE" : "PAUSED"}
+        </span>
+        <span style={{ color: D.cyan, fontWeight: 700 }}>{plan.symbol}</span>
+        <span style={{ color: D.fg }}>{plan.name}</span>
+        {pos && posShares > 0 && (
+          <span style={{ color: D.comment, fontSize: 11 }}>
+            {posShares}股 @{posCost > 0 ? posCost.toFixed(2) : "-"}
+            {posPrice > 0 && <>{" "}now:{posPrice.toFixed(2)}</>}
+            {pnlPct != null && (
+              <span style={{ color: pnlPct >= 0 ? D.red : D.green, marginLeft: 4 }}>
+                {pnlPct >= 0 ? "+" : ""}{pnlPct.toFixed(1)}%
+              </span>
+            )}
+            {pnlAmt != null && (
+              <span style={{ color: pnlAmt >= 0 ? D.red : D.green, marginLeft: 4 }}>
+                {pnlAmt >= 0 ? "+" : ""}{pnlAmt.toFixed(0)}
+              </span>
+            )}
+          </span>
+        )}
+        <span style={{ marginLeft: "auto" }}>
+          <button
+            onClick={() => { if (confirm(`Delete plan ${planId}?`)) onDelete(planId); }}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: D.red,
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 700,
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+            title="Delete plan"
+          >x</button>
+        </span>
+      </div>
+
+      {/* stop loss row */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, marginBottom: 4 }}>
+        <span style={{ color: D.red, fontWeight: 700 }}>SL:</span>
+        <EditableCell
+          value={plan.stop_loss.price}
+          onSave={(v) => onUpdateStopLoss(planId, v)}
+          width="60px"
+          isNumber
+          color={D.red}
+        />
+        {trailing && (
+          <span style={{ color: D.orange, fontSize: 11 }}>
+            | trailing: {trailing.active ? "ON" : "OFF"} {trailing.activation_price.toFixed(2)} -{trailing.trail_pct}%
+            {trailing.high_watermark != null && <> hw:{trailing.high_watermark.toFixed(2)}</>}
+          </span>
+        )}
+        {!trailing && (
+          <button
+            onClick={() => {
+              const act = prompt("Activation price for trailing stop:");
+              if (!act) return;
+              const pct = prompt("Trail pct (e.g. 8 for 8%):");
+              if (!pct) return;
+              onUpdateTrailingStop(planId, {
+                trail_pct: Number(pct),
+                activation_price: Number(act),
+                high_watermark: null,
+                active: false,
+              });
+            }}
+            style={{
+              background: "transparent",
+              border: `1px solid ${D.comment}`,
+              color: D.comment,
+              cursor: "pointer",
+              fontSize: 10,
+              padding: "0 6px",
+              borderRadius: 2,
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+          >+trailing</button>
+        )}
+        {trailing && (
+          <button
+            onClick={() => onUpdateTrailingStop(planId, null)}
+            style={{
+              background: "transparent",
+              border: `1px solid ${D.comment}`,
+              color: D.comment,
+              cursor: "pointer",
+              fontSize: 10,
+              padding: "0 6px",
+              borderRadius: 2,
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+          >-trailing</button>
+        )}
+      </div>
+
+      {/* orders */}
+      {plan.orders.length > 0 && (
+        <div style={{ fontSize: 12, marginTop: 4 }}>
+          <div style={{ color: D.comment, fontSize: 11, marginBottom: 2 }}>-- orders --</div>
+          {plan.orders.map((o) => {
+            const isSell = o.side === "sell";
+            const sShares = isSell && o.sell_pct ? sellShares(o.sell_pct) : null;
+            return (
+              <div key={o.id} style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "2px 0",
+                opacity: o.triggered ? 0.5 : 1,
+                borderLeft: `2px solid ${isSell ? D.red : D.green}`,
+                paddingLeft: 8,
+                marginBottom: 2,
+              }}>
+                <span style={{
+                  fontSize: 10,
+                  color: D.bg,
+                  background: isSell ? D.red : D.green,
+                  padding: "0 4px",
+                  borderRadius: 2,
+                  fontWeight: 700,
+                }}>
+                  {orderTypeLabel(o)}
+                </span>
+                <span style={{ color: D.comment }}>{o.op}</span>
+                <EditableCell
+                  value={o.price}
+                  onSave={(v) => onUpdateOrder(planId, o.id, "price", v)}
+                  width="60px"
+                  isNumber
+                  color={isSell ? D.red : D.green}
+                />
+                {isSell && sShares != null && sShares > 0 && (
+                  <span style={{ color: D.orange, fontSize: 11 }}>
+                    {sShares}股
+                    <span style={{ color: D.comment }}> ({((o.sell_pct || 0) * 100).toFixed(0)}%)</span>
+                  </span>
+                )}
+                {!isSell && o.shares != null && (
+                  <span style={{ color: D.green, fontSize: 11 }}>
+                    {o.shares}股
+                  </span>
+                )}
+                {o.trailing && (
+                  <span style={{ color: D.purple, fontSize: 10 }}>[trail {o.trailing.pct}%]</span>
+                )}
+                <span style={{ color: D.comment, fontSize: 11 }}>{o.label}</span>
+                {o.triggered && (
+                  <span style={{ color: D.yellow, fontSize: 10 }}>[DONE {o.triggered_at?.slice(0, 10) || ""}]</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── AddPlanForm (modal) ── */
+function AddPlanForm({
+  watchlist,
+  onSubmit,
+  onClose,
+}: {
+  watchlist: Record<string, WatchEntry>;
+  onSubmit: (id: string, plan: Record<string, unknown>) => void;
+  onClose: () => void;
+}) {
+  const hkStocks = Object.entries(watchlist).filter(([c]) => c.startsWith("HK"));
+
+  const [symbol, setSymbol] = useState(hkStocks[0]?.[0] || "");
+  const [planName, setPlanName] = useState("");
+  const [stopLossPrice, setStopLossPrice] = useState("");
+  const [trailingEnabled, setTrailingEnabled] = useState(false);
+  const [trailPct, setTrailPct] = useState("");
+  const [activationPrice, setActivationPrice] = useState("");
+
+  // orders draft
+  interface OrderDraft {
+    typeIdx: number; // index into ORDER_TYPE_OPTIONS
+    price: string;
+    quantity: string; // sell_pct (0-100) or buy shares
+    trailPct: string;
+    label: string;
+  }
+  const [orders, setOrders] = useState<OrderDraft[]>([]);
+
+  function addOrderRow() {
+    setOrders((prev) => [...prev, { typeIdx: 0, price: "", quantity: "", trailPct: "", label: "" }]);
+  }
+
+  function updateOrder(idx: number, field: keyof OrderDraft, val: string | number) {
+    setOrders((prev) => prev.map((o, i) => i === idx ? { ...o, [field]: val } : o));
+  }
+
+  function removeOrder(idx: number) {
+    setOrders((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function handleSubmit() {
+    if (!symbol || !planName) return;
+    const id = `${symbol}_${Date.now().toString(36)}`;
+
+    const builtOrders = orders.map((o, i) => {
+      const opt = ORDER_TYPE_OPTIONS[o.typeIdx];
+      const isSell = opt.side === "sell";
+      const order: Record<string, unknown> = {
+        id: `o${i + 1}`,
+        side: opt.side,
+        op: isSell ? ">=" : (opt.trailing ? "<=" : ">="),
+        price: Number(o.price) || 0,
+        sell_pct: isSell ? (Number(o.quantity) || 0) / 100 : null,
+        shares: !isSell ? (Number(o.quantity) || 0) : null,
+        volume_min: null,
+        consecutive_days: null,
+        trailing: opt.trailing && o.trailPct ? { pct: Number(o.trailPct), watermark: null, active: false } : null,
+        label: o.label || "",
+        triggered: false,
+        triggered_at: null,
+      };
+      return order;
+    });
+
+    const plan: Record<string, unknown> = {
+      name: planName,
+      symbol,
+      status: "active",
+      created_at: new Date().toISOString().slice(0, 10),
+      stop_loss: {
+        price: Number(stopLossPrice) || 0,
+        action: "sell_all",
+        triggered: false,
+        ...(trailingEnabled && trailPct && activationPrice ? {
+          trailing: {
+            trail_pct: Number(trailPct),
+            activation_price: Number(activationPrice),
+            high_watermark: null,
+            active: false,
+          }
+        } : {}),
+      },
+      orders: builtOrders,
+    };
+
+    onSubmit(id, plan);
+  }
+
+  const inputS: React.CSSProperties = {
+    background: D.currentLine,
+    border: `1px solid ${D.comment}`,
+    color: D.fg,
+    fontFamily: "JetBrains Mono, monospace",
+    fontSize: 12,
+    padding: "4px 8px",
+    outline: "none",
+    borderRadius: 2,
+  };
+
+  const selectS: React.CSSProperties = {
+    ...inputS,
+    appearance: "auto" as const,
+  };
+
+  return (
+    <div style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.6)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 200,
+    }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{
+        background: D.bg,
+        border: `1px solid ${D.currentLine}`,
+        borderRadius: 6,
+        padding: "16px 20px",
+        width: 740,
+        maxHeight: "80vh",
+        overflow: "auto",
+        fontFamily: "JetBrains Mono, monospace",
+        fontSize: 12,
+        color: D.fg,
+      }}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: D.purple }}>
+          New Trade Plan
+        </div>
+
+        {/* -- section: basic info -- */}
+        <div style={{ color: D.comment, fontSize: 11, marginBottom: 6, borderBottom: `1px solid ${D.currentLine}`, paddingBottom: 4 }}>
+          -- basic --
+        </div>
+        <div style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "center" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 4, color: D.comment }}>
+            stock:
+            <select style={{ ...selectS, width: 180 }} value={symbol} onChange={(e) => setSymbol(e.target.value)}>
+              {hkStocks.map(([c, v]) => (
+                <option key={c} value={c}>{c} {v.name}</option>
+              ))}
+            </select>
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 4, color: D.comment }}>
+            name:
+            <input
+              style={{ ...inputS, width: 180 }}
+              value={planName}
+              onChange={(e) => setPlanName(e.target.value)}
+              placeholder="plan name"
+            />
+          </label>
+        </div>
+
+        {/* -- section: risk -- */}
+        <div style={{ color: D.comment, fontSize: 11, marginBottom: 6, borderBottom: `1px solid ${D.currentLine}`, paddingBottom: 4 }}>
+          -- risk --
+        </div>
+        <div style={{ display: "flex", gap: 12, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 4, color: D.red }}>
+            stop_loss:
+            <input
+              style={{ ...inputS, width: 80, color: D.red }}
+              type="number"
+              step="any"
+              value={stopLossPrice}
+              onChange={(e) => setStopLossPrice(e.target.value)}
+              placeholder="price"
+            />
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 4, color: D.comment, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={trailingEnabled}
+              onChange={(e) => setTrailingEnabled(e.target.checked)}
+              style={{ accentColor: D.orange }}
+            />
+            trailing stop
+          </label>
+          {trailingEnabled && (
+            <>
+              <label style={{ display: "flex", alignItems: "center", gap: 4, color: D.orange }}>
+                activation:
+                <input
+                  style={{ ...inputS, width: 80 }}
+                  type="number"
+                  step="any"
+                  value={activationPrice}
+                  onChange={(e) => setActivationPrice(e.target.value)}
+                  placeholder="price"
+                />
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 4, color: D.orange }}>
+                trail%:
+                <input
+                  style={{ ...inputS, width: 60 }}
+                  type="number"
+                  step="0.1"
+                  value={trailPct}
+                  onChange={(e) => setTrailPct(e.target.value)}
+                  placeholder="%"
+                />
+              </label>
+            </>
+          )}
+        </div>
+
+        {/* -- section: orders -- */}
+        <div style={{ color: D.comment, fontSize: 11, marginBottom: 6, borderBottom: `1px solid ${D.currentLine}`, paddingBottom: 4 }}>
+          -- orders --
+        </div>
+        {orders.map((o, idx) => {
+          const opt = ORDER_TYPE_OPTIONS[o.typeIdx];
+          const isSell = opt.side === "sell";
+          return (
+            <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
+              <select
+                style={{ ...selectS, width: 100 }}
+                value={o.typeIdx}
+                onChange={(e) => updateOrder(idx, "typeIdx", Number(e.target.value))}
+              >
+                {ORDER_TYPE_OPTIONS.map((t, ti) => (
+                  <option key={ti} value={ti}>{t.label}</option>
+                ))}
+              </select>
+              <label style={{ display: "flex", alignItems: "center", gap: 2, color: D.comment }}>
+                price:
+                <input
+                  style={{ ...inputS, width: 70 }}
+                  type="number"
+                  step="any"
+                  value={o.price}
+                  onChange={(e) => updateOrder(idx, "price", e.target.value)}
+                />
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 2, color: D.comment }}>
+                {isSell ? "sell%:" : "shares:"}
+                <input
+                  style={{ ...inputS, width: 60 }}
+                  type="number"
+                  step={isSell ? "1" : "100"}
+                  value={o.quantity}
+                  onChange={(e) => updateOrder(idx, "quantity", e.target.value)}
+                  placeholder={isSell ? "50" : "1000"}
+                />
+              </label>
+              {opt.trailing && (
+                <label style={{ display: "flex", alignItems: "center", gap: 2, color: D.purple }}>
+                  trail%:
+                  <input
+                    style={{ ...inputS, width: 50 }}
+                    type="number"
+                    step="0.1"
+                    value={o.trailPct}
+                    onChange={(e) => updateOrder(idx, "trailPct", e.target.value)}
+                  />
+                </label>
+              )}
+              <input
+                style={{ ...inputS, width: 120 }}
+                value={o.label}
+                onChange={(e) => updateOrder(idx, "label", e.target.value)}
+                placeholder="label"
+              />
+              <button
+                onClick={() => removeOrder(idx)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: D.red,
+                  cursor: "pointer",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  fontFamily: "JetBrains Mono, monospace",
+                }}
+              >x</button>
+            </div>
+          );
+        })}
+        <button
+          onClick={addOrderRow}
+          style={{
+            background: "transparent",
+            border: `1px dashed ${D.comment}`,
+            color: D.comment,
+            cursor: "pointer",
+            fontSize: 11,
+            padding: "2px 12px",
+            borderRadius: 3,
+            fontFamily: "JetBrains Mono, monospace",
+            marginBottom: 12,
+          }}
+        >+ add order</button>
+
+        {/* actions */}
+        <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+          <button
+            onClick={onClose}
+            style={{
+              background: "transparent",
+              border: `1px solid ${D.comment}`,
+              color: D.comment,
+              cursor: "pointer",
+              fontSize: 12,
+              padding: "4px 16px",
+              borderRadius: 3,
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+          >Cancel</button>
+          <button
+            onClick={handleSubmit}
+            disabled={!symbol || !planName}
+            style={{
+              background: symbol && planName ? D.purple : D.comment,
+              border: "none",
+              color: D.bg,
+              cursor: symbol && planName ? "pointer" : "not-allowed",
+              fontSize: 12,
+              fontWeight: 700,
+              padding: "4px 16px",
+              borderRadius: 3,
+              fontFamily: "JetBrains Mono, monospace",
+            }}
+          >Create</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Main page ── */
 export default function ManagePage() {
   const [config, setConfig] = useState<MonitorConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: "ok" | "err" } | null>(null);
 
-  // promote-to-holding inline form: { code: { cost, shares } }
+  // promote-to-holding inline form
   const [promoting, setPromoting] = useState<string | null>(null);
   const [promoCost, setPromoCost] = useState("");
   const [promoShares, setPromoShares] = useState("");
@@ -527,6 +1119,11 @@ export default function ManagePage() {
   const [prodETFOpen, setProdETFOpen] = useState(false);
   const [prodHKOpen, setProdHKOpen] = useState(true);
   const [watchOpen, setWatchOpen] = useState(true);
+
+  // trade plans
+  const [plans, setPlans] = useState<Record<string, TradePlan>>({});
+  const [plansOpen, setPlansOpen] = useState(true);
+  const [showAddPlan, setShowAddPlan] = useState(false);
 
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -562,9 +1159,20 @@ export default function ManagePage() {
     }
   }, []);
 
+  const fetchPlans = useCallback(async () => {
+    try {
+      const resp = await fetch("/api/trade-plans", { cache: "no-store" });
+      const data = await resp.json();
+      if (data.plans) setPlans(data.plans);
+    } catch {
+      // silent — plans are optional
+    }
+  }, []);
+
   useEffect(() => {
     fetchConfig();
-  }, [fetchConfig]);
+    fetchPlans();
+  }, [fetchConfig, fetchPlans]);
 
   async function apiPost(body: Record<string, unknown>) {
     try {
@@ -577,6 +1185,27 @@ export default function ManagePage() {
       if (result.success) {
         showToast(result.message);
         await fetchConfig();
+      } else {
+        showToast(result.message || "Failed", "err");
+      }
+      return result;
+    } catch (e) {
+      showToast(String(e), "err");
+      return null;
+    }
+  }
+
+  async function planPost(body: Record<string, unknown>) {
+    try {
+      const resp = await fetch("/api/trade-plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const result = await resp.json();
+      if (result.success) {
+        showToast(result.message);
+        await fetchPlans();
       } else {
         showToast(result.message || "Failed", "err");
       }
@@ -654,6 +1283,44 @@ export default function ManagePage() {
     await apiPost({ action: "settings", settings });
   }
 
+  // trade plan handlers
+  async function handlePlanCreate(id: string, plan: Record<string, unknown>) {
+    await planPost({ action: "create", id, plan });
+    setShowAddPlan(false);
+  }
+
+  async function handlePlanToggle(id: string) {
+    await planPost({ action: "toggle", id });
+  }
+
+  async function handlePlanDelete(id: string) {
+    await planPost({ action: "delete", id });
+  }
+
+  async function handlePlanUpdateStopLoss(id: string, priceStr: string) {
+    const price = Number(priceStr);
+    if (isNaN(price)) return;
+    await planPost({ action: "update", id, updates: { stop_loss: { price, action: "sell_all", triggered: false } } });
+  }
+
+  async function handlePlanTrailingStop(id: string, trailing: { trail_pct: number; activation_price: number; high_watermark: number | null; active: boolean } | null) {
+    await planPost({ action: "update", id, updates: { trailing_stop: trailing } });
+  }
+
+  async function handlePlanUpdateOrder(planId: string, orderId: string, field: string, val: string) {
+    const plan = plans[planId];
+    if (!plan) return;
+    const updatedOrders = plan.orders.map((o) => {
+      if (o.id !== orderId) return o;
+      const updated = { ...o };
+      if (field === "price") updated.price = Number(val) || 0;
+      if (field === "sell_pct") updated.sell_pct = Number(val) || 0;
+      if (field === "shares") updated.shares = Number(val) || 0;
+      return updated;
+    });
+    await planPost({ action: "update", id: planId, updates: { orders: updatedOrders } });
+  }
+
   if (loading) {
     return (
       <div style={{ height: "100vh", background: D.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -674,18 +1341,20 @@ export default function ManagePage() {
   const isHK = (code: string) => code.startsWith("HK");
   const isETF = (code: string) => !isHK(code) && /^(51|15|58)\d{4}$/.test(code);
 
-  // 搜索过滤
+  // search filter
   const q = search.trim().toLowerCase();
   const filtered = q
     ? entries.filter(([code, v]) => code.toLowerCase().includes(q) || v.name.toLowerCase().includes(q))
     : entries;
 
-  // 分组
+  // grouping
   const holdings = filtered.filter(([, v]) => v.type === "holding");
   const watching = filtered.filter(([, v]) => v.type !== "holding");
   const prodStock = holdings.filter(([c]) => !isHK(c) && !isETF(c));
   const prodETF = holdings.filter(([c]) => isETF(c));
   const prodHK = holdings.filter(([c]) => isHK(c));
+
+  const planEntries = Object.entries(plans);
 
   const inputStyle: React.CSSProperties = {
     background: D.currentLine,
@@ -727,6 +1396,14 @@ export default function ManagePage() {
 
       {toast && <Toast message={toast.message} type={toast.type} />}
 
+      {showAddPlan && config && (
+        <AddPlanForm
+          watchlist={config.watchlist}
+          onSubmit={handlePlanCreate}
+          onClose={() => setShowAddPlan(false)}
+        />
+      )}
+
       {/* nav bar */}
       <div
         style={{
@@ -740,7 +1417,7 @@ export default function ManagePage() {
         }}
       >
         <a href="/" style={{ color: D.cyan, textDecoration: "none" }}>
-          ← monitor
+          &lt;- monitor
         </a>
         <span style={{ color: D.comment }}>|</span>
         <a href="/alerts" style={{ color: D.comment, textDecoration: "none" }}>alerts</a>
@@ -748,7 +1425,7 @@ export default function ManagePage() {
         <a href="/sector" style={{ color: D.comment, textDecoration: "none" }}>sector</a>
         <span style={{ color: D.purple, fontWeight: 700 }}>manage</span>
         <input
-          placeholder="搜索代码或名称..."
+          placeholder="search..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{
@@ -777,13 +1454,52 @@ export default function ManagePage() {
           lineHeight: 1.7,
         }}
       >
-        {/* ── settings (默认折叠) ── */}
+        {/* ── trade plans ── */}
+        <div
+          style={{ color: D.comment, padding: "10px 0 6px", borderBottom: `1px solid ${D.currentLine}`, marginBottom: 4, fontSize: 13, cursor: "pointer", userSelect: "none", display: "flex", alignItems: "center", gap: 8 }}
+          onClick={() => setPlansOpen((v) => !v)}
+        >
+          <span style={{ color: D.purple }}>{plansOpen ? "v" : ">"}</span>
+          {" "}# -- trade plans ({planEntries.length}) --
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowAddPlan(true); }}
+            style={{
+              background: "transparent",
+              border: `1px solid ${D.green}`,
+              color: D.green,
+              cursor: "pointer",
+              fontSize: 11,
+              fontWeight: 700,
+              padding: "1px 8px",
+              borderRadius: 3,
+              fontFamily: "JetBrains Mono, monospace",
+              marginLeft: "auto",
+            }}
+          >+ new plan</button>
+        </div>
+        {plansOpen && planEntries.map(([id, plan]) => (
+          <PlanCard
+            key={id}
+            planId={id}
+            plan={plan}
+            onToggle={handlePlanToggle}
+            onDelete={handlePlanDelete}
+            onUpdateStopLoss={handlePlanUpdateStopLoss}
+            onUpdateTrailingStop={handlePlanTrailingStop}
+            onUpdateOrder={handlePlanUpdateOrder}
+          />
+        ))}
+        {plansOpen && planEntries.length === 0 && (
+          <div style={{ color: D.comment, padding: "6px 0", fontSize: 12 }}>No trade plans.</div>
+        )}
+
+        {/* ── settings (collapsed by default) ── */}
         <div
           style={{ color: D.comment, padding: "10px 0 6px", borderBottom: `1px solid ${D.currentLine}`, marginBottom: 4, fontSize: 13, cursor: "pointer", userSelect: "none" }}
           onClick={() => setSettingsOpen((v) => !v)}
         >
-          <span style={{ color: D.purple }}>{settingsOpen ? "▾" : "▸"}</span>
-          {" "}# ── settings ──
+          <span style={{ color: D.purple }}>{settingsOpen ? "v" : ">"}</span>
+          {" "}# -- settings --
         </div>
         {settingsOpen && (<>
         <div style={{ display: "flex", gap: 16, alignItems: "center", padding: "6px 0", flexWrap: "wrap" }}>
@@ -805,9 +1521,9 @@ export default function ManagePage() {
         </div>
 
         {/* ── alert levels ── */}
-        <SectionHeader># ── alert levels ──</SectionHeader>
+        <SectionHeader># -- alert levels --</SectionHeader>
         {([
-          { label: "L1 ★ Star", prefix: "l1", keys: ["trigger_pct", "delta_pct", "cooldown_min"], color: D.yellow },
+          { label: "L1 * Star", prefix: "l1", keys: ["trigger_pct", "delta_pct", "cooldown_min"], color: D.yellow },
           { label: "L2 Holding", prefix: "l2", keys: ["trigger_pct", "delta_pct", "cooldown_min"], color: D.orange },
           { label: "L3 Watching", prefix: "l3", keys: ["cooldown_min"], color: D.comment },
         ] as const).map((tier) => (
@@ -846,21 +1562,21 @@ export default function ManagePage() {
           <span style={{ width: 80 }}>cost</span>
           <span style={{ width: 80 }}>shares</span>
           <span style={{ width: 60 }}></span>
-          <span style={{ width: 75, color: D.orange }}>▲ above</span>
-          <span style={{ width: 75, color: D.cyan }}>▼ below</span>
-          <span style={{ width: 30 }}>★</span>
+          <span style={{ width: 75, color: D.orange }}>^ above</span>
+          <span style={{ width: 75, color: D.cyan }}>v below</span>
+          <span style={{ width: 30 }}>*</span>
           <span style={{ width: 40 }}>hide</span>
         </div>
 
-        {/* ── prod:A股个股 ── */}
+        {/* ── prod:A share stocks ── */}
         {prodStock.length > 0 && (
           <>
             <div
               style={{ color: D.comment, padding: "10px 0 6px", borderBottom: `1px solid ${D.currentLine}`, marginBottom: 4, fontSize: 13, cursor: "pointer", userSelect: "none" }}
               onClick={() => setProdStockOpen((v) => !v)}
             >
-              <span style={{ color: D.purple }}>{prodStockOpen ? "▾" : "▸"}</span>
-              {" "}# ── 持仓:A股个股 ({prodStock.length}) ──
+              <span style={{ color: D.purple }}>{prodStockOpen ? "v" : ">"}</span>
+              {" "}# -- A stocks ({prodStock.length}) --
             </div>
             {prodStockOpen && prodStock.map(([code, entry]) => (
               <StockRow
@@ -882,8 +1598,8 @@ export default function ManagePage() {
               style={{ color: D.comment, padding: "10px 0 6px", borderBottom: `1px solid ${D.currentLine}`, marginBottom: 4, fontSize: 13, cursor: "pointer", userSelect: "none" }}
               onClick={() => setProdETFOpen((v) => !v)}
             >
-              <span style={{ color: D.purple }}>{prodETFOpen ? "▾" : "▸"}</span>
-              {" "}# ── 持仓:ETF ({prodETF.length}) ──
+              <span style={{ color: D.purple }}>{prodETFOpen ? "v" : ">"}</span>
+              {" "}# -- ETF ({prodETF.length}) --
             </div>
             {prodETFOpen && prodETF.map(([code, entry]) => (
               <StockRow
@@ -898,15 +1614,15 @@ export default function ManagePage() {
           </>
         )}
 
-        {/* ── prod:港股 ── */}
+        {/* ── prod:HK ── */}
         {prodHK.length > 0 && (
           <>
             <div
               style={{ color: D.comment, padding: "10px 0 6px", borderBottom: `1px solid ${D.currentLine}`, marginBottom: 4, fontSize: 13, cursor: "pointer", userSelect: "none" }}
               onClick={() => setProdHKOpen((v) => !v)}
             >
-              <span style={{ color: D.purple }}>{prodHKOpen ? "▾" : "▸"}</span>
-              {" "}# ── 持仓:港股 ({prodHK.length}) ──
+              <span style={{ color: D.purple }}>{prodHKOpen ? "v" : ">"}</span>
+              {" "}# -- HK ({prodHK.length}) --
             </div>
             {prodHKOpen && prodHK.map(([code, entry]) => (
               <StockRow
@@ -925,15 +1641,15 @@ export default function ManagePage() {
           <div style={{ color: D.comment, padding: "6px 0" }}>No holdings.</div>
         )}
 
-        {/* ── staging ── */}
+        {/* ── watching ── */}
         {watching.length > 0 && (
           <>
             <div
               style={{ color: D.comment, padding: "10px 0 6px", borderBottom: `1px solid ${D.currentLine}`, marginBottom: 4, fontSize: 13, cursor: "pointer", userSelect: "none" }}
               onClick={() => setWatchOpen((v) => !v)}
             >
-              <span style={{ color: D.purple }}>{watchOpen ? "▾" : "▸"}</span>
-              {" "}# ── 自选 ({watching.length}) ──
+              <span style={{ color: D.purple }}>{watchOpen ? "v" : ">"}</span>
+              {" "}# -- watching ({watching.length}) --
             </div>
             {watchOpen && watching.map(([code, entry]) => (
               <StockRow
@@ -949,7 +1665,7 @@ export default function ManagePage() {
         )}
 
         {/* ── add stock ── */}
-        <SectionHeader># ── add stock ──</SectionHeader>
+        <SectionHeader># -- add stock --</SectionHeader>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", padding: "8px 0" }}>
           <label style={{ display: "flex", alignItems: "center", gap: 6, color: D.comment }}>
             code:

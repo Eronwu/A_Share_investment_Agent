@@ -114,21 +114,16 @@ interface LiveData {
   today_return: number;
 }
 
-interface TradePlanEntry {
+interface TradePlanOrder {
   id: string;
+  side: string;
+  op: string;
+  price: number;
+  sell_pct?: number | null;
+  shares?: number | null;
   label: string;
-  conditions: Record<string, number>;
-  shares?: number;
   triggered: boolean;
   triggered_at?: string | null;
-}
-
-interface TradePlanExit {
-  id: string;
-  label: string;
-  price: number;
-  sell_pct: number;
-  triggered: boolean;
 }
 
 interface TradePlan {
@@ -138,8 +133,7 @@ interface TradePlan {
   status: string;
   created_at: string;
   stop_loss?: { price: number; triggered: boolean };
-  entries: TradePlanEntry[];
-  exits: TradePlanExit[];
+  orders: TradePlanOrder[];
   current_price: number;
   current_name: string;
   current_change: number;
@@ -1280,33 +1274,20 @@ function TradePlanPanel({ plans }: { plans: TradePlan[] }) {
                 )}
               </div>
             )}
-            {/* 入场条件 */}
-            {plan.entries.map((e) => (
-              <div key={e.id} style={{ padding: "2px 0" }}>
-                <span style={{ color: e.triggered ? D.cyan : D.comment }}>
-                  {e.triggered ? "●" : "○"} 加仓: {e.label}
+            {/* 条件单 */}
+            {(plan.orders || []).map((o) => (
+              <div key={o.id} style={{ padding: "2px 0" }}>
+                <span style={{ color: o.triggered ? D.cyan : D.comment }}>
+                  {o.triggered ? "●" : "○"} {o.op} {o.price.toFixed(2)}
                 </span>
-                {e.shares && (
-                  <span style={{ color: D.fg, marginLeft: 8 }}>{e.shares}股</span>
-                )}
-                {e.triggered && e.triggered_at && (
+                <span style={{ color: o.side === "sell" ? D.pink : D.orange, marginLeft: 8 }}>
+                  {o.side === "sell" ? `卖出${Math.round((o.sell_pct || 0) * 100)}%` : `买入${o.shares || 0}股`}
+                </span>
+                <span style={{ color: D.comment, marginLeft: 8 }}>{o.label}</span>
+                {o.triggered && o.triggered_at && (
                   <span style={{ color: D.cyan, marginLeft: 8, fontSize: 11 }}>
-                    ✓ {e.triggered_at.slice(5, 16)}
+                    ✓ {o.triggered_at.slice(5, 16)}
                   </span>
-                )}
-              </div>
-            ))}
-            {/* 止盈条件 */}
-            {plan.exits.map((ex) => (
-              <div key={ex.id} style={{ padding: "2px 0" }}>
-                <span style={{ color: ex.triggered ? D.cyan : D.comment }}>
-                  {ex.triggered ? "●" : "○"} {ex.label}: {ex.price.toFixed(2)}
-                </span>
-                <span style={{ color: D.comment, marginLeft: 8 }}>
-                  卖{Math.round(ex.sell_pct * 100)}%
-                </span>
-                {ex.triggered && (
-                  <span style={{ color: D.cyan, marginLeft: 8, fontWeight: 700 }}>已触发</span>
                 )}
               </div>
             ))}

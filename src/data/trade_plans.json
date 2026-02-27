@@ -1,43 +1,133 @@
 {
   "plans": {
+    "HK02722_tp": {
+      "name": "重庆机电分批止盈",
+      "symbol": "HK02722",
+      "status": "active",
+      "created_at": "2026-02-27",
+      "stop_loss": {
+        "price": 3.40,
+        "action": "sell_all",
+        "triggered": false,
+        "trailing": {
+          "trail_pct": 8.2,
+          "activation_price": 3.80,
+          "high_watermark": null,
+          "active": false
+        }
+      },
+      "orders": [
+        {
+          "id": "o1",
+          "side": "sell",
+          "op": ">=",
+          "price": 3.90,
+          "sell_pct": 0.5,
+          "shares": null,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "减半 Fib2.0+惯性",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "o2",
+          "side": "sell",
+          "op": ">=",
+          "price": 4.10,
+          "sell_pct": 1.0,
+          "shares": null,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "清仓 整数关口4.0上方",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ]
+    },
     "HK02590_acc": {
       "name": "极智嘉分批建仓",
       "symbol": "HK02590",
       "status": "active",
       "created_at": "2026-02-27",
       "stop_loss": {
-        "price": 22.00,
+        "price": 22.0,
         "action": "sell_all",
         "triggered": false
       },
-      "entries": [
+      "orders": [
         {
-          "id": "e1",
-          "label": "放量阳线站上24.5",
-          "conditions": {
-            "price_above": 24.50,
-            "volume_min": 100000000
-          },
+          "id": "o1",
+          "side": "buy",
+          "op": ">=",
+          "price": 24.5,
+          "sell_pct": null,
           "shares": 1000,
+          "volume_min": 100000000,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "放量阳线站上24.5",
           "triggered": false,
           "triggered_at": null
         },
         {
-          "id": "e2",
-          "label": "站稳26三日",
-          "conditions": {
-            "price_above": 26.00,
-            "consecutive_days": 3
-          },
+          "id": "o2",
+          "side": "buy",
+          "op": ">=",
+          "price": 26.0,
+          "sell_pct": null,
           "shares": 800,
+          "volume_min": null,
+          "consecutive_days": 3,
+          "trailing": null,
+          "label": "站稳26三日",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "o3",
+          "side": "sell",
+          "op": ">=",
+          "price": 28.0,
+          "sell_pct": 0.33,
+          "shares": null,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止盈1",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "o4",
+          "side": "sell",
+          "op": ">=",
+          "price": 31.0,
+          "sell_pct": 0.33,
+          "shares": null,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止盈2",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "o5",
+          "side": "sell",
+          "op": ">=",
+          "price": 35.0,
+          "sell_pct": 1.0,
+          "shares": null,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "清仓",
           "triggered": false,
           "triggered_at": null
         }
-      ],
-      "exits": [
-        {"id": "tp1", "label": "止盈1", "price": 28.00, "sell_pct": 0.33, "triggered": false},
-        {"id": "tp2", "label": "止盈2", "price": 31.00, "sell_pct": 0.33, "triggered": false},
-        {"id": "tp3", "label": "清仓",  "price": 35.00, "sell_pct": 1.00, "triggered": false}
       ]
     }
   }

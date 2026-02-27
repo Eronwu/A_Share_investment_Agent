@@ -939,8 +939,44 @@ class TradePlanEngine:
             change = q.get("change_pct", 0) or q.get("change", 0)
             name = q.get("name", symbol)
 
-            # 1. 止损（最高优先级）
+            # 1. 移动止损（在固定止损之前检查）
             sl = plan.get("stop_loss")
+            ts = sl.get("trailing") if sl else None
+            if ts and ts.get("trail_pct") and sl and not sl.get("triggered"):
+                act_price = ts.get("activation_price", 0)
+                trail_pct = ts["trail_pct"]
+                hw = ts.get("high_watermark") or 0
+                is_active = ts.get("active", False)
+
+                if not is_active and price >= act_price:
+                    is_active = True
+                    hw = price
+                    logger.info(f"PLAN TS activated: {symbol} @ {price:.4f} (activation={act_price})")
+
+                if is_active:
+                    if price > hw:
+                        hw = price
+                    ts_stop = round(hw * (1 - trail_pct / 100), 4)
+                    if price <= ts_stop:
+                        drop_pct = (hw - price) / hw * 100
+                        alert = self._make_alert(
+                            plan_id, plan, "ts",
+                            f"移动止损: 峰{hw:.2f}→{price:.2f} (-{drop_pct:.1f}%)",
+                            price, name, change, event_type="ts_triggered",
+                        )
+                        alerts.append(alert)
+                        sl["triggered"] = True
+                        dirty = True
+                        self._write_plan_event(plan_id, "ts_triggered", "ts",
+                            f"移动止损 峰{hw:.2f} 回落{drop_pct:.1f}%", price, 0)
+                        logger.warning(f"PLAN TS {plan['name']}: {symbol} @ {price:.4f}, peak={hw:.4f}")
+
+                if is_active != ts.get("active") or hw != (ts.get("high_watermark") or 0):
+                    ts["active"] = is_active
+                    ts["high_watermark"] = round(hw, 4)
+                    dirty = True
+
+            # 2. 固定止损
             if sl and not sl.get("triggered") and price <= sl.get("price", 0):
                 alert = self._make_alert(
                     plan_id, plan, "sl", "止损触发", price, name, change,
@@ -952,65 +988,104 @@ class TradePlanEngine:
                 self._write_plan_event(plan_id, "sl_triggered", "sl", "止损触发", price, 0)
                 logger.warning(f"PLAN SL {plan['name']}: {symbol} @ {price:.2f} <= {sl['price']:.2f}")
 
-            # 2. 入场条件
-            for entry in plan.get("entries", []):
-                if entry.get("triggered"):
+            # 3. 条件单 (统一处理 buy/sell)
+            for order in plan.get("orders", []):
+                if order.get("triggered"):
                     continue
-                if self._check_entry_conditions(plan_id, entry, price, amount, q, today):
-                    shares = entry.get("shares", 0)
-                    alert = self._make_alert(
-                        plan_id, plan, entry["id"], f"加仓: {entry.get('label', '')}", price, name, change,
-                        event_type="entry_triggered", shares=shares,
-                    )
-                    alerts.append(alert)
-                    entry["triggered"] = True
-                    entry["triggered_at"] = datetime.now().isoformat()
-                    dirty = True
-                    self._write_plan_event(plan_id, "entry_triggered", entry["id"], entry.get("label", ""), price, shares)
-                    logger.info(f"PLAN ENTRY {plan['name']}: {entry['label']} @ {price:.2f} × {shares}")
-
-            # 3. 止盈条件
-            for ex in plan.get("exits", []):
-                if ex.get("triggered"):
+                if not self._check_order_conditions(plan_id, order, price, amount, today):
+                    if order.pop("_ts_dirty", False):
+                        dirty = True
                     continue
-                if price >= ex.get("price", float("inf")):
-                    alert = self._make_alert(
-                        plan_id, plan, ex["id"], f"止盈: {ex.get('label', '')}", price, name, change,
-                        event_type="exit_triggered",
-                    )
-                    alerts.append(alert)
-                    ex["triggered"] = True
-                    dirty = True
-                    self._write_plan_event(plan_id, "exit_triggered", ex["id"], ex.get("label", ""), price, 0)
-                    logger.info(f"PLAN EXIT {plan['name']}: {ex['label']} @ {price:.2f}")
+                side = order.get("side", "sell")
+                shares = order.get("shares", 0) or 0
+                sell_pct = order.get("sell_pct", 0) or 0
+                label = order.get("label", "")
+                if side == "buy":
+                    prefix = f"买入 {shares}股"
+                    event_type = "buy_triggered"
+                else:
+                    prefix = f"卖出 {int(sell_pct * 100)}%"
+                    event_type = "sell_triggered"
+                alert = self._make_alert(
+                    plan_id, plan, order["id"], f"{prefix}: {label}",
+                    price, name, change, event_type=event_type, shares=shares,
+                )
+                alerts.append(alert)
+                order["triggered"] = True
+                order["triggered_at"] = datetime.now().isoformat()
+                dirty = True
+                self._write_plan_event(plan_id, event_type, order["id"], label, price, shares)
+                logger.info(f"PLAN {side.upper()} {plan['name']}: {label} @ {price:.2f}")
 
         if dirty:
             self._save_plans()
         return alerts
 
-    def _check_entry_conditions(self, plan_id: str, entry: dict,
-                                price: float, amount: float, quote: dict,
+    def _check_order_conditions(self, plan_id: str, order: dict,
+                                price: float, amount: float,
                                 today: str) -> bool:
-        """Check all conditions for an entry. All must be satisfied."""
-        conds = entry.get("conditions", {})
+        """Check if an order's conditions are met. Supports trailing orders."""
+        op = order.get("op", ">=")
+        target = order.get("price", 0)
+        side = order.get("side", "sell")
 
-        if "price_above" in conds and price < conds["price_above"]:
-            return False
-        if "price_below" in conds and price > conds["price_below"]:
-            return False
-        if "volume_min" in conds and amount < conds["volume_min"]:
+        # ── Trailing order logic ──
+        ts = order.get("trailing")
+        if ts and ts.get("pct"):
+            pct = ts["pct"]
+            wm = ts.get("watermark") or 0
+            is_active = ts.get("active", False)
+
+            if not is_active:
+                activated = (price >= target) if op == ">=" else (price <= target)
+                if activated:
+                    is_active = True
+                    wm = price
+                    logger.info(f"Order trailing activated: {plan_id}:{order['id']} @ {price:.4f}")
+
+            if is_active:
+                if side == "sell":
+                    if price > wm:
+                        wm = price
+                    if wm > 0 and price <= wm * (1 - pct / 100):
+                        ts["active"] = is_active
+                        ts["watermark"] = round(wm, 4)
+                        return True
+                else:
+                    if wm == 0 or price < wm:
+                        wm = price
+                    if wm > 0 and price >= wm * (1 + pct / 100):
+                        ts["active"] = is_active
+                        ts["watermark"] = round(wm, 4)
+                        return True
+
+            if is_active != ts.get("active") or wm != (ts.get("watermark") or 0):
+                ts["active"] = is_active
+                ts["watermark"] = round(wm, 4)
+                order["_ts_dirty"] = True
+
             return False
 
-        # consecutive_days: price must stay above threshold for N distinct days
-        if "consecutive_days" in conds:
-            needed = conds["consecutive_days"]
-            key = f"{plan_id}:{entry['id']}"
+        # ── Normal price check ──
+        if op == ">=":
+            if price < target:
+                return False
+        else:
+            if price > target:
+                return False
+
+        vol_min = order.get("volume_min")
+        if vol_min and amount < vol_min:
+            return False
+
+        cons_days = order.get("consecutive_days")
+        if cons_days:
+            key = f"{plan_id}:{order['id']}"
             if key not in self._consecutive_tracker:
                 self._consecutive_tracker[key] = {"count": 0, "last_date": ""}
             tracker = self._consecutive_tracker[key]
 
-            threshold = conds.get("price_above", 0)
-            if price >= threshold:
+            if (op == ">=" and price >= target) or (op == "<=" and price <= target):
                 if tracker["last_date"] != today:
                     tracker["count"] += 1
                     tracker["last_date"] = today
@@ -1018,7 +1093,7 @@ class TradePlanEngine:
                 tracker["count"] = 0
                 tracker["last_date"] = ""
 
-            if tracker["count"] < needed:
+            if tracker["count"] < cons_days:
                 return False
 
         return True
