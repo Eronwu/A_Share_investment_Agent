@@ -372,6 +372,23 @@ tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
 
 **Stock data API rate limiting**: always use 1-2s delays between requests, max 5 stocks per batch. APIs throttle aggressively.
 
+### Daily Summary (`src/tools/daily_summary_generator.py`)
+
+收盘后自动生成 LLM 信号日报（16:05-16:15 由 notifier 触发），写入 `src/data/daily_summary.json`，web `/alerts` 页面展示。
+
+**数据流**: `l2_strategy_signals.json` (信号) + `alert_events` (告警) + `session_snapshots` + `signals` (微观聚合) → `_compute_l2_digest()` → LLM prompt → `daily_summary.json`
+
+**`_compute_l2_digest(date_str)`**: 从 `session_snapshots`（收盘最后一条 session）+ `signals` 表聚合日线微观结构，写入 `daily_l2_digest` 表。指标：大单净额/净比、tick imbalance、主力净流入、量价背离/大单翻转频次、综合方向评分（加权: 大单*3 + tick*2 + 资金流*1 + 背离*-2 + 翻转*-2）。
+
+**LLM prompt 结构**:
+- 持仓标的：按 ★star → 市值降序排列，每只标注 `[★重点, 持仓X.X万]`，附微观数据行
+- ★重点自选：star watching 股票独立区域，有完整微观数据（即使 0 信号也不过滤）
+- 自选标的：普通 watching，仅有信号的列出
+- LLM 必须在"重点关注"中深度分析所有 ★ 股票（持仓+自选）
+- 要求自然引用具体数字（"大单净买0.19亿, tick偏买12.4%"），禁止模糊表述
+
+**手动重新生成**: `poetry run python -c "from src.tools.daily_summary_generator import generate_daily_summary; generate_daily_summary()"`
+
 ### Architecture Rules
 
 - **Poller 是生产者，UI 是消费者，二者无耦合。** Poller (`src/tools/market_data_poller.py`) 只写行情数据到 `market_data.json`（price/change/vol/amount 等）；用户配置（type/cost/shares/hidden）只存 `monitor_config.json`；告警规则（above/below）独立存 `alert_config.json`；告警事件存 `sim_trading.db` 的 `alert_events` 表。`/api/metrics` 负责合并三 JSON + SQLite alert_events + 计算派生字段（pnl）。任何 UI 端操作立即生效，不依赖 poller 周期。
