@@ -211,7 +211,7 @@ async function main() {
       const divs = Array.from(document.querySelectorAll('div'));
       return divs.filter(d => {
         const t = d.textContent || '';
-        return /\[\d{2}:\d{2}:\d{2}\]/.test(t) && /\[L[1-3]\]/.test(t);
+        return /\d{2}:\d{2}:\d{2}/.test(t) && /L[1-3]/.test(t);
       }).length;
     });
     record('Alerts: events rendered', eventRows > 0, `${eventRows} event rows`);

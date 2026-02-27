@@ -53,61 +53,96 @@ const KIND_LABELS: Record<string, { label: string; color: string }> = {
   l2_strategy: { label: "L2信号", color: D.cyan },
 };
 
-/** Extract strategy sub-type from L2 display text for finer labels */
-function getL2Label(e: AlertEvent): { label: string; color: string } | null {
-  if (e.kind !== "l2_strategy") return null;
+/** Parse display text into structured fields for cleaner rendering */
+function parseAlert(e: AlertEvent): {
+  stockLabel: string; // "海天味业 03288"
+  signal: string;     // actual signal name: "均线多排", "MACD底背离"
+  signalColor: string;
+  price: string;      // "33.84"
+  detail: string;     // remaining detail stripped of redundancy
+} {
   const d = e.display || "";
-  if (d.includes("动量确认") || d.includes("动量卖出"))
-    return { label: "动量追踪", color: D.pink };
-  if (d.includes("放量加速") || d.includes("放量砸盘"))
-    return { label: "放量异动", color: D.pink };
-  if (d.includes("多头信号") || d.includes("空头信号"))
-    return { label: "多空研判", color: D.yellow };
-  if (d.includes("主买主卖失衡"))
-    return { label: "买卖失衡", color: D.orange };
-  if (d.includes("主买持续") || d.includes("主卖持续"))
-    return { label: "主力持续", color: D.pink };
-  if (d.includes("大单成交"))
-    return { label: "大单成交", color: D.orange };
-  if (d.includes("大单翻转"))
-    return { label: "大单翻转", color: D.red };
-  if (d.includes("盘口异动"))
-    return { label: "盘口异动", color: D.cyan };
-  if (d.includes("散户机构") || d.includes("主力出散户") || d.includes("主力进散户"))
-    return { label: "机构散户", color: D.orange };
-  if (d.includes("主力资金异动") || d.includes("资金异动"))
-    return { label: "资金异动", color: D.pink };
-  if (d.includes("量价背离"))
-    return { label: "量价背离", color: D.yellow };
-  if (d.includes("尾盘异动"))
-    return { label: "尾盘异动", color: D.yellow };
-  if (d.includes("RSI"))
-    return { label: "RSI超买卖", color: D.orange };
-  if (d.includes("MACD金叉"))
-    return { label: "MACD金叉", color: D.green };
-  if (d.includes("MACD死叉"))
-    return { label: "MACD死叉", color: "#ff6b6b" };
-  if (d.includes("MACD顶背离"))
-    return { label: "MACD顶背离", color: "#ff6b6b" };
-  if (d.includes("MACD底背离"))
-    return { label: "MACD底背离", color: D.green };
-  if (d.includes("MACD"))
-    return { label: "MACD信号", color: D.yellow };
-  if (d.includes("均线"))
-    return { label: "均线信号", color: D.cyan };
-  if (d.includes("布林"))
-    return { label: "布林突破", color: D.purple };
-  if (d.includes("ADX") || d.includes("趋势启动"))
-    return { label: "趋势启动", color: D.comment };
-  if (d.includes("放量突破") || d.includes("缩量"))
-    return { label: "量价配合", color: D.orange };
-  if (d.includes("吞没") || d.includes("星"))
-    return { label: "K线形态", color: D.yellow };
-  if (d.includes("突破回踩") || d.includes("破位"))
-    return { label: "关键位置", color: D.red };
-  if (d.includes("相对强弱"))
-    return { label: "相对强弱", color: D.cyan };
-  return null; // fallback to default L2_SIGNAL
+  const sym = e.symbol || "";
+  // Strip HK prefix for compact display
+  const shortCode = sym.replace(/^HK/, "");
+
+  if (e.kind === "l2_strategy") {
+    // L2 format: "{code} {name} {signal}: {detail} | 现价{price} 日涨{chg}% ..."
+    // or: "{code} {name} {signal} | 现价{price} ..."
+    // Split on " | 现价" first to isolate price
+    const priceSplit = d.split(/\s*\|\s*现价/);
+    const mainPart = priceSplit[0] || "";
+    const priceTail = priceSplit[1] || "";
+    const priceMatch = priceTail.match(/^([\d.]+)/);
+    const price = priceMatch?.[1] || "";
+    // Extract trailing info after price (净流入/净流出)
+    const tail = priceTail.replace(/^[\d.]+\s*/, "").replace(/^日[涨跌][+-]?[\d.]+%\s*/, "").trim();
+
+    // Parse main part: "{code} {name} {signal}: {detail}" or "{code} {name} {signal}"
+    // Name can contain full-width chars (－Ｗ), digits, latin — match greedily up to known signal keywords
+    const signalKeywords = "MACD|RSI|均线|布林|ADX|趋势|放量|缩量|突破|破位|吞没|看涨|看跌|星|盘口|委比|量价|相对|散户|机构|主力|主买|主卖|大单|动量|资金|尾盘|多头|空头";
+    const mainMatch = mainPart.match(new RegExp(`^(?:HK)?\\d+\\s+(.+?)\\s+((?:${signalKeywords})[^:：]*)(?:[:：]\\s*(.*))?$`));
+    if (mainMatch) {
+      const name = mainMatch[1].trim();
+      const signal = mainMatch[2].trim();
+      const detailPart = mainMatch[3]?.trim() || "";
+      const detail = [detailPart, tail].filter(Boolean).join(" ");
+      return {
+        stockLabel: `${name} ${shortCode}`,
+        signal,
+        signalColor: getSignalColor(signal),
+        price,
+        detail,
+      };
+    }
+  }
+
+  if (e.kind === "big_move") {
+    // big_move: "{code} {name} 涨幅/跌幅 X.X% 现价X.XX"
+    const m = d.match(/^(?:HK)?\d+\s+(.+?)\s+(涨幅|跌幅)\s+([\d.]+)%(?:\s+现价([\d.]+))?/);
+    if (m) {
+      return {
+        stockLabel: `${m[1].trim()} ${shortCode}`,
+        signal: m[2] === "涨幅" ? "大涨" : "大跌",
+        signalColor: m[2] === "涨幅" ? D.red : D.green,
+        price: m[4] || "",
+        detail: `${m[2]}${m[3]}%`,
+      };
+    }
+  }
+
+  if (e.kind === "threshold") {
+    const m = d.match(/^(?:HK)?\d+\s+(.+?)\s+触价告警\s*(.*)/);
+    if (m) {
+      return {
+        stockLabel: `${m[1].trim()} ${shortCode}`,
+        signal: "触价",
+        signalColor: D.red,
+        price: m[2]?.replace(/[! ]/g, "") || "",
+        detail: "触及阈值",
+      };
+    }
+  }
+
+  if (e.kind === "portfolio") {
+    return { stockLabel: "组合", signal: "组合P&L", signalColor: D.purple, price: "", detail: d };
+  }
+
+  // Fallback
+  return { stockLabel: sym ? `${shortCode}` : "", signal: e.kind, signalColor: D.comment, price: "", detail: d };
+}
+
+/** Color for signal names */
+function getSignalColor(signal: string): string {
+  // Bearish signals → red/orange
+  if (/空头|死叉|顶背离|破位|大跌|主卖|空排/.test(signal)) return "#ff6b6b";
+  // Bullish signals → green
+  if (/多头|金叉|底背离|多排|大涨|突破回踩/.test(signal)) return D.green;
+  // Divergence/reversal → yellow (warning)
+  if (/背离|翻转|失衡|超买|超卖/.test(signal)) return D.yellow;
+  // Neutral/info
+  if (/盘口|相对|趋势|RSI|布林|吞没/.test(signal)) return D.cyan;
+  return D.orange;
 }
 
 /** Strip **bold** markers from heading text (headings are already styled bold) */
@@ -439,8 +474,7 @@ export default function AlertsPage() {
         )}
 
         {sorted.map((e, i) => {
-          const l2Label = getL2Label(e);
-          const kinfo = l2Label || KIND_LABELS[e.kind] || { label: e.kind.toUpperCase(), color: D.comment };
+          const parsed = parseAlert(e);
           const chgColor = e.change_pct > 0 ? D.red : e.change_pct < 0 ? D.green : D.comment;
           const isHighPriority = (e.level ?? 2) <= 1;
 
@@ -456,21 +490,31 @@ export default function AlertsPage() {
                 borderLeft: isHighPriority ? `3px solid ${D.yellow}` : "3px solid transparent",
               }}
             >
-              <span style={{ color: D.comment, flexShrink: 0, width: 78, overflow: "hidden" }}>[{e.time}]</span>
-              <span style={{ color: LEVEL_COLORS[e.level ?? 2] || D.comment, flexShrink: 0, width: 36, fontWeight: isHighPriority ? 700 : 500 }}>
-                {`[L${e.level ?? 2}]`}
+              {/* Time */}
+              <span style={{ color: D.comment, flexShrink: 0, width: 72 }}>{e.time}</span>
+              {/* Level */}
+              <span style={{ color: LEVEL_COLORS[e.level ?? 2] || D.comment, flexShrink: 0, width: 28, fontWeight: isHighPriority ? 700 : 500 }}>
+                {`L${e.level ?? 2}`}
               </span>
-              <span style={{ color: kinfo.color, flexShrink: 0, width: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: isHighPriority ? 700 : 500 }}>
-                {kinfo.label}
+              {/* Signal name (actual strategy) */}
+              <span style={{ color: parsed.signalColor, flexShrink: 0, width: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: isHighPriority ? 700 : 500 }}>
+                {parsed.signal}
               </span>
-              <span style={{ color: D.cyan, flexShrink: 0, width: 80, overflow: "hidden" }}>
-                {e.symbol || ""}
+              {/* Stock name + code */}
+              <span style={{ color: D.cyan, flexShrink: 0, width: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {parsed.stockLabel}
               </span>
-              <span style={{ color: chgColor, flexShrink: 0, width: 56, textAlign: "right" }}>
+              {/* Price */}
+              <span style={{ color: D.fg, flexShrink: 0, width: 60, textAlign: "right" }}>
+                {parsed.price}
+              </span>
+              {/* Change% */}
+              <span style={{ color: chgColor, flexShrink: 0, width: 52, textAlign: "right" }}>
                 {e.change_pct ? `${e.change_pct >= 0 ? "+" : ""}${e.change_pct.toFixed(1)}%` : ""}
               </span>
-              <span style={{ color: isHighPriority ? D.yellow : D.fg, marginLeft: 12, fontWeight: isHighPriority ? 500 : 400, whiteSpace: "pre-wrap", wordBreak: "break-all" as const }}>
-                {e.display || e.message}
+              {/* Detail */}
+              <span style={{ color: isHighPriority ? D.yellow : D.comment, marginLeft: 10, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {parsed.detail}
               </span>
             </div>
           );
