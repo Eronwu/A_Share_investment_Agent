@@ -613,8 +613,8 @@ export default function SectorPage() {
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
                     >
-                      <option value="industry">行业</option>
-                      <option value="concept">概念</option>
+                      <option value="industry">行业(新浪49)</option>
+                      <option value="concept">行业(证监会84)</option>
                     </select>
                     <select
                       style={selectStyle}

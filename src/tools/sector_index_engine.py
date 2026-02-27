@@ -104,7 +104,8 @@ def _fetch_sina_boards(category: str) -> list[tuple[str, float]]:
     try:
         r = _requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
         r.raise_for_status()
-        m = re.search(r"=\s*(\{.*\})", r.text, re.DOTALL)
+        text = r.content.decode("gbk", errors="replace")
+        m = re.search(r"=\s*(\{.*\})", text, re.DOTALL)
         if not m:
             return []
         data = json.loads(m.group(1))
@@ -200,7 +201,7 @@ def compute_custom_indices(today=None):
 def _compute_single_index(conn, index_id: str, index_def: dict,
                           date_str: str, date_compact: str):
     """Compute one custom index for a single date."""
-    components = index_def.get("components", [])
+    components = index_def.get("stocks") or index_def.get("components", [])
     if not components:
         logger.warning("index %s has no components, skipping", index_id)
         return
@@ -226,8 +227,10 @@ def _compute_single_index(conn, index_id: str, index_def: dict,
             })
             logger.debug("  %s: change=%.2f%%", code, chg)
         else:
-            logger.warning("  %s: no data for %s", code, date_str)
-            comp_details.append({"code": code, "change_pct": None, "close": None})
+            # Fix 5: suspended/no-data stocks count as 0% change
+            logger.warning("  %s: no data for %s (using 0%%)", code, date_str)
+            changes.append(0.0)
+            comp_details.append({"code": code, "change_pct": 0.0, "close": None})
 
     if not changes:
         logger.warning("index %s: no component data for %s", index_id, date_str)
@@ -277,7 +280,7 @@ def backfill_index(index_id: str, days: int = 30):
         logger.error("index_id=%s not found in config", index_id)
         return
 
-    components = index_def.get("components", [])
+    components = index_def.get("stocks") or index_def.get("components", [])
     if not components:
         logger.error("index %s has no components", index_id)
         return
@@ -358,8 +361,10 @@ def backfill_index(index_id: str, days: int = 30):
                         "close": day_data["close"],
                     })
                 else:
+                    # Suspended/no-data stocks count as 0% change
+                    changes.append(0.0)
                     comp_details.append({
-                        "code": code, "change_pct": None, "close": None,
+                        "code": code, "change_pct": 0.0, "close": None,
                     })
 
             if not changes:
@@ -432,7 +437,8 @@ def detect_mainline(today=None):
     alert_rules = config.get("alert_rules", {})
 
     cum_gain_threshold = alert_rules.get("cumulative_gain_pct", 8)
-    slope_threshold = alert_rules.get("slope_threshold", 0.3)
+    slope_threshold = alert_rules.get("slope_threshold", 0.05)
+    r_squared_min = alert_rules.get("r_squared_min", 0.4)
     lookback_days = alert_rules.get("lookback_days", 10)
     min_days_since_create = alert_rules.get("min_days_since_create", 3)
 
@@ -441,8 +447,8 @@ def detect_mainline(today=None):
         return
 
     logger.info(
-        "detect_mainline for %s (threshold=%.1f%% slope>=%.2f lookback=%d)",
-        date_str, cum_gain_threshold, slope_threshold, lookback_days,
+        "detect_mainline for %s (threshold=%.1f%% slope>=%.3f R2>=%.2f lookback=%d)",
+        date_str, cum_gain_threshold, slope_threshold, r_squared_min, lookback_days,
     )
 
     conn = get_connection()
@@ -450,6 +456,10 @@ def detect_mainline(today=None):
         ts_now = int(time.time() * 1000)
 
         for index_id, index_def in indices.items():
+            # Fix 1: skip indices not being watched
+            if not index_def.get("watch", True):
+                continue
+
             index_name = index_def.get("name", index_id)
 
             # Get last N days of index values
@@ -476,7 +486,14 @@ def detect_mainline(today=None):
                 continue
 
             cum_gain = (values[-1] / baseline - 1) * 100
-            slope, r_squared = _linear_regression(values)
+
+            # Fix 2: regress on daily return% series, not absolute index values
+            # slope > 0 means trend accelerating, ~0 means steady, <0 decelerating
+            if len(values) < 3:
+                slope, r_squared = 0.0, 0.0
+            else:
+                returns = [(values[i] / values[i - 1] - 1) * 100 for i in range(1, len(values))]
+                slope, r_squared = _linear_regression(returns)
 
             logger.info(
                 "index %s (%s): cum_gain=%.2f%% slope=%.4f R2=%.4f",
@@ -488,21 +505,25 @@ def detect_mainline(today=None):
             message = None
             display = None
 
-            if cum_gain >= cum_gain_threshold and slope >= slope_threshold:
+            # Fix 4: mainline requires R² >= r_squared_min (trend must be reliable)
+            if (cum_gain >= cum_gain_threshold
+                    and slope >= slope_threshold
+                    and r_squared >= r_squared_min):
                 alert_type = "mainline"
                 message = (
                     f"{index_name}: mainline detected "
-                    f"(+{cum_gain:.1f}% in {len(rows)}d, slope={slope:.3f})"
+                    f"(+{cum_gain:.1f}% in {len(rows)}d, slope={slope:.3f}, R2={r_squared:.2f})"
                 )
                 display = (
                     f"[主线] {index_name} 累计涨幅 {cum_gain:.1f}%"
                     f"（{len(rows)}日），趋势斜率 {slope:.3f}，R2={r_squared:.2f}"
                 )
-            elif cum_gain >= cum_gain_threshold * 0.75:
+            # Fix 3: approaching also requires slope > 0 (at least not declining)
+            elif cum_gain >= cum_gain_threshold * 0.75 and slope > 0:
                 alert_type = "approaching"
                 message = (
                     f"{index_name}: approaching mainline "
-                    f"(+{cum_gain:.1f}% in {len(rows)}d, slope={slope:.3f})"
+                    f"(+{cum_gain:.1f}% in {len(rows)}d, slope={slope:.3f}, R2={r_squared:.2f})"
                 )
                 display = (
                     f"[接近主线] {index_name} 累计涨幅 {cum_gain:.1f}%"
