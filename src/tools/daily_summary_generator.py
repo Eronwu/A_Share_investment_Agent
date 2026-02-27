@@ -130,7 +130,8 @@ def _build_per_stock(
         signal_count = sig.get("count", 0)
         alert_count = alrt.get("count", 0)
 
-        if signal_count == 0 and alert_count == 0:
+        is_star = entry.get("star", False)
+        if signal_count == 0 and alert_count == 0 and not is_star:
             continue
 
         # Determine direction from signals
@@ -298,8 +299,9 @@ def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]
 - **严禁模糊表述**：不可写"资金流入显著"、"大单活跃"等空话，必须写"大单净买0.19亿"、"tick偏买12.4%"这样的具体数字
 - 数据要像专业研报一样自然融入文字中，不要堆砌成表格
 - 当大单方向与资金流向矛盾时（如大单净卖但主力净流入），需解读原因（算法拆单、对倒等）
-- 标注[★重点]的股票是用户最关注的，必须在"重点关注"中详细分析
+- 标注[★重点]的股票（包括持仓和自选）是用户最关注的，必须在"重点关注"中详细分析
 - 持仓市值大的股票对组合影响大，也应优先关注
+- ★重点自选标的同样需要深度分析微观数据，不能只给一句话
 - 风格：专业简洁，像给基金经理写的晨会纪要
 - 输出纯 Markdown，不要代码块包裹"""
 
@@ -350,9 +352,37 @@ def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]
             lines.append(line)
         lines.append("")
 
-    if watching:
+    # Star watching stocks get full analysis like holdings
+    star_watching = [ps for ps in watching if ps.get("star")]
+    other_watching = [ps for ps in watching if not ps.get("star")]
+
+    if star_watching:
+        lines.append("## ★ 重点自选")
+        for ps in star_watching:
+            sigs = ", ".join(ps["keySignals"]) if ps["keySignals"] else "无信号"
+            line = f"- {ps['code']} {ps['name']} [★重点] | 涨跌:{ps['change']:+.2f}% | 信号:{ps['signalCount']}条 | 方向:{ps['direction']} | {sigs}"
+            d = digest_map.get(ps["code"])
+            if d:
+                lo_net_yi = d["lo_net_amount"] / 1e8
+                cf_yi = d["cf_net_inflow"] / 1e8
+                tick_pct = d["tick_imbalance"] * 100
+                micro = f"  微观: 大单净额{lo_net_yi:+.2f}亿(净比{d['lo_net_ratio']:+.2f}) tick{tick_pct:+.1f}% 主力{cf_yi:+.2f}亿"
+                if d["vpd_count"] or d["lor_count"]:
+                    events_parts = []
+                    if d["vpd_count"]:
+                        events_parts.append(f"背离x{d['vpd_count']}")
+                    if d["lor_count"]:
+                        dir_label = "多" if d["lor_direction"] == "bullish" else "空" if d["lor_direction"] == "bearish" else "?"
+                        events_parts.append(f"翻转x{d['lor_count']}({dir_label})")
+                    micro += f" | {' '.join(events_parts)}"
+                micro += f" | 综合:{d['direction_score']:+d}({d['direction']})"
+                line += "\n" + micro
+            lines.append(line)
+        lines.append("")
+
+    if other_watching:
         lines.append("## 自选标的")
-        for ps in watching:
+        for ps in other_watching:
             if ps["signalCount"] > 0:
                 sigs = ", ".join(ps["keySignals"]) if ps["keySignals"] else ""
                 lines.append(f"- {ps['code']} {ps['name']} | {ps['change']:+.2f}% | 信号:{ps['signalCount']} | {sigs}")
