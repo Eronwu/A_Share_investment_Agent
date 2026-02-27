@@ -63,18 +63,36 @@ function getL2Label(e: AlertEvent): { label: string; color: string } | null {
     return { label: "放量异动", color: D.pink };
   if (d.includes("多头信号") || d.includes("空头信号"))
     return { label: "多空研判", color: D.yellow };
+  if (d.includes("主买主卖失衡"))
+    return { label: "买卖失衡", color: D.orange };
   if (d.includes("主买持续") || d.includes("主卖持续"))
     return { label: "主力持续", color: D.pink };
-  if (d.includes("散户机构"))
-    return { label: "机构散户", color: D.orange };
+  if (d.includes("大单成交"))
+    return { label: "大单成交", color: D.orange };
   if (d.includes("大单翻转"))
     return { label: "大单翻转", color: D.red };
+  if (d.includes("盘口异动"))
+    return { label: "盘口异动", color: D.cyan };
+  if (d.includes("散户机构") || d.includes("主力出散户") || d.includes("主力进散户"))
+    return { label: "机构散户", color: D.orange };
+  if (d.includes("主力资金异动") || d.includes("资金异动"))
+    return { label: "资金异动", color: D.pink };
+  if (d.includes("量价背离"))
+    return { label: "量价背离", color: D.yellow };
   if (d.includes("尾盘异动"))
     return { label: "尾盘异动", color: D.yellow };
   if (d.includes("RSI"))
     return { label: "RSI超买卖", color: D.orange };
+  if (d.includes("MACD金叉"))
+    return { label: "MACD金叉", color: D.green };
+  if (d.includes("MACD死叉"))
+    return { label: "MACD死叉", color: "#ff6b6b" };
+  if (d.includes("MACD顶背离"))
+    return { label: "MACD顶背离", color: "#ff6b6b" };
+  if (d.includes("MACD底背离"))
+    return { label: "MACD底背离", color: D.green };
   if (d.includes("MACD"))
-    return { label: "MACD交叉", color: D.green };
+    return { label: "MACD信号", color: D.yellow };
   if (d.includes("均线"))
     return { label: "均线信号", color: D.cyan };
   if (d.includes("布林"))
@@ -220,6 +238,7 @@ export default function AlertsPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(true);
+  const [showL3, setShowL3] = useState(false);
 
   const fetchData = useCallback(async () => {
     // Fetch events and summary in parallel
@@ -258,8 +277,14 @@ export default function AlertsPage() {
     return () => clearInterval(timer);
   }, [fetchData]);
 
-  // 按时间倒序（最新在前）
-  const sorted = [...events].reverse();
+  // Level counts
+  const l1Count = events.filter((e) => (e.level ?? 2) === 1).length;
+  const l2Count = events.filter((e) => (e.level ?? 2) === 2).length;
+  const l3Count = events.filter((e) => (e.level ?? 2) === 3).length;
+
+  // 按时间倒序（最新在前），默认隐藏 L3
+  const filtered = showL3 ? events : events.filter((e) => (e.level ?? 2) <= 2);
+  const sorted = [...filtered].reverse();
 
   const st = summary?.stats;
 
@@ -297,8 +322,25 @@ export default function AlertsPage() {
         <a href="/sim" style={{ color: D.comment, textDecoration: "none" }}>sim</a>
         <a href="/sector" style={{ color: D.comment, textDecoration: "none" }}>sector</a>
         <a href="/manage" style={{ color: D.comment, textDecoration: "none" }}>manage</a>
-        <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>
-          {sorted.length} events today | auto-refresh 30s
+        <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+          <span style={{ color: D.fg }}>{new Date().toISOString().slice(0, 10)}</span>
+          <span style={{ color: D.comment }}>|</span>
+          <span style={{ color: D.yellow }}>L1:{l1Count}</span>
+          <span style={{ color: D.orange }}>L2:{l2Count}</span>
+          <span
+            onClick={() => setShowL3(!showL3)}
+            style={{
+              color: showL3 ? D.comment : D.comment,
+              cursor: "pointer",
+              textDecoration: "underline",
+              textDecorationStyle: "dotted" as const,
+            }}
+            title={showL3 ? "Hide L3 signals" : "Show L3 signals"}
+          >
+            L3:{l3Count} {showL3 ? "(shown)" : "(hidden)"}
+          </span>
+          <span style={{ color: D.comment }}>|</span>
+          <span>{sorted.length} visible | 30s</span>
         </span>
       </div>
 
@@ -407,27 +449,27 @@ export default function AlertsPage() {
               key={`${e.ts}-${i}`}
               style={{
                 display: "flex",
-                whiteSpace: "pre",
-                padding: isHighPriority ? "4px 6px" : "2px 0",
+                alignItems: "baseline",
+                padding: "3px 6px",
                 borderBottom: "1px solid #191a21",
                 background: isHighPriority ? "#44475a" : "transparent",
                 borderLeft: isHighPriority ? `3px solid ${D.yellow}` : "3px solid transparent",
               }}
             >
-              <span style={{ color: D.comment, width: "10ch" }}>[{e.time}]</span>
-              <span style={{ color: LEVEL_COLORS[e.level ?? 2] || D.comment, width: "5ch", fontWeight: isHighPriority ? 700 : 500 }}>
+              <span style={{ color: D.comment, flexShrink: 0, width: 78, overflow: "hidden" }}>[{e.time}]</span>
+              <span style={{ color: LEVEL_COLORS[e.level ?? 2] || D.comment, flexShrink: 0, width: 36, fontWeight: isHighPriority ? 700 : 500 }}>
                 {`[L${e.level ?? 2}]`}
               </span>
-              <span style={{ color: kinfo.color, width: "12ch", fontWeight: isHighPriority ? 700 : 500 }}>
-                {kinfo.label.padEnd(11)}
+              <span style={{ color: kinfo.color, flexShrink: 0, width: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: isHighPriority ? 700 : 500 }}>
+                {kinfo.label}
               </span>
-              <span style={{ color: D.cyan, width: "10ch" }}>
-                {(e.symbol || "").padEnd(9)}
+              <span style={{ color: D.cyan, flexShrink: 0, width: 80, overflow: "hidden" }}>
+                {e.symbol || ""}
               </span>
-              <span style={{ color: chgColor, width: "8ch", textAlign: "right" }}>
+              <span style={{ color: chgColor, flexShrink: 0, width: 56, textAlign: "right" }}>
                 {e.change_pct ? `${e.change_pct >= 0 ? "+" : ""}${e.change_pct.toFixed(1)}%` : ""}
               </span>
-              <span style={{ color: isHighPriority ? D.yellow : D.fg, marginLeft: "2ch", fontWeight: isHighPriority ? 500 : 400 }}>
+              <span style={{ color: isHighPriority ? D.yellow : D.fg, marginLeft: 12, fontWeight: isHighPriority ? 500 : 400, whiteSpace: "pre-wrap", wordBreak: "break-all" as const }}>
                 {e.display || e.message}
               </span>
             </div>

@@ -2,38 +2,38 @@
   "enabled": true,
   "strategies": {
     "capital_flow_spike": {
-      "enabled": true,
+      "enabled": false,
       "description": "5分钟内主力净流入占比从<2%跳到>8%",
       "window_minutes": 5,
       "low_threshold_pct": 2,
       "high_threshold_pct": 8,
-      "cooldown_minutes": 15
+      "cooldown_minutes": 60
     },
     "large_order": {
-      "enabled": true,
+      "enabled": false,
       "description": "单笔成交金额超阈值（含买卖方向）",
-      "min_amount": 5000000,
-      "cooldown_minutes": 10
+      "min_amount": 15000000,
+      "cooldown_minutes": 60
     },
     "order_book_imbalance": {
-      "enabled": true,
+      "enabled": false,
       "description": "委比短时间内剧烈变化",
-      "delta_threshold": 40,
-      "cooldown_minutes": 20
+      "delta_threshold": 60,
+      "cooldown_minutes": 120
     },
     "volume_price_divergence": {
-      "enabled": true,
+      "enabled": false,
       "description": "价格新高但主力资金净流出",
       "lookback_minutes": 30,
-      "cooldown_minutes": 30
+      "cooldown_minutes": 120
     },
     "tick_imbalance": {
-      "enabled": true,
+      "enabled": false,
       "description": "逐笔主买主卖失衡",
       "window_minutes": 5,
-      "imbalance_threshold": 0.4,
-      "min_turnover": 10000000,
-      "cooldown_minutes": 10
+      "imbalance_threshold": 0.55,
+      "min_turnover": 30000000,
+      "cooldown_minutes": 60
     },
     "momentum_alert": {
       "enabled": true,
@@ -44,7 +44,7 @@
       "cooldown_minutes": 120
     },
     "volume_accel_alert": {
-      "enabled": true,
+      "enabled": false,
       "description": "成交额加速+tick持续偏买(捕捉算法拆单拉升)",
       "accel_ratio": 1.8,
       "imbalance_min": 0.35,
@@ -80,10 +80,10 @@
       "description": "散户机构分歧(主力进散户出/主力出散户进)",
       "institutional_min": 10000000,
       "retail_min": 5000000,
-      "cooldown_minutes": 30
+      "cooldown_minutes": 120
     },
     "large_order_reversal": {
-      "enabled": true,
+      "enabled": false,
       "description": "大单方向翻转(BUY→SELL或反向)",
       "min_prior_count": 2,
       "min_recent_count": 3,
@@ -91,7 +91,7 @@
       "cooldown_minutes": 120
     },
     "closing_surge": {
-      "enabled": true,
+      "enabled": false,
       "description": "尾盘信号密度异常(预测次日开盘方向)",
       "closing_start_time": "15:30",
       "min_signal_count": 5,

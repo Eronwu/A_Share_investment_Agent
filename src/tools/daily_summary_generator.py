@@ -172,7 +172,9 @@ def _build_per_stock(
                 "rsi_extreme": "RSI极值",
                 "rsi_overbought": "RSI超买",
                 "rsi_oversold": "RSI超卖",
-                "macd_cross": "MACD交叉",
+                "macd_cross": "MACD交叉",  # legacy fallback
+                "macd_golden_cross": "MACD金叉",
+                "macd_death_cross": "MACD死叉",
                 "macd_top_divergence": "MACD顶背离",
                 "macd_bottom_divergence": "MACD底背离",
                 "ma_alignment": "均线信号",
@@ -188,8 +190,6 @@ def _build_per_stock(
                 "relative_strength": "相对强弱",
                 "order_book_imbalance": "盘口失衡",
                 "capital_flow_spike": "资金异动",
-                "macd_golden_cross": "MACD金叉",
-                "macd_death_cross": "MACD死叉",
             }
             label = label_map.get(strat, strat)
             key_signals.append(f"{label}x{cnt}" if cnt > 1 else label)
@@ -248,9 +248,10 @@ def _build_stats(
     }
 
 
-def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]) -> list[dict]:
+def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str],
+                      l2_digest_map: dict | None = None) -> list[dict]:
     """Construct messages for LLM daily report generation."""
-    system = """你是一位资深量化工程师，专注 A 股和港股。根据今日 L2 策略信号和告警数据，生成简洁的持仓信号日报。
+    system = """你是一位资深量化工程师，专注 A 股和港股。根据今日 L2 策略信号、微观结构数据和告警数据，生成简洁的持仓信号日报。
 
 格式要求（严格遵守，不要偏离）：
 
@@ -264,7 +265,7 @@ def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]
 
 ## 逐股一句话
 - 代码 名称 — 总结
-（每只有信号的标的一句话）
+（每只有信号的标的一句话，结合微观结构数据）
 
 ## 操作建议
 1. ...
@@ -273,6 +274,8 @@ def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]
 规则：
 - 标题用 ## 不用 ###，标题上不要加 **加粗**
 - 正文中股票名称可以用 **加粗**
+- 参考微观结构数据中的"大单净额"和"资金净流入"判断机构动向
+- 大单净卖+资金净流入矛盾时需特别提醒
 - 风格专业简洁，使用量化术语（多空、主力、资金流向）
 - 输出纯 Markdown，不要代码块包裹"""
 
@@ -288,11 +291,31 @@ def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]
     lines.append(f"- 告警事件: {stats['totalAlerts']}")
     lines.append("")
 
+    digest_map = l2_digest_map or {}
+
     if holdings:
         lines.append("## 持仓标的")
         for ps in holdings:
             sigs = ", ".join(ps["keySignals"]) if ps["keySignals"] else "无信号"
-            lines.append(f"- {ps['code']} {ps['name']} | 涨跌:{ps['change']:+.2f}% | 信号:{ps['signalCount']}条 | 方向:{ps['direction']} | {sigs}")
+            line = f"- {ps['code']} {ps['name']} | 涨跌:{ps['change']:+.2f}% | 信号:{ps['signalCount']}条 | 方向:{ps['direction']} | {sigs}"
+            # Append L2 microstructure digest
+            d = digest_map.get(ps["code"])
+            if d:
+                lo_net_yi = d["lo_net_amount"] / 1e8
+                cf_yi = d["cf_net_inflow"] / 1e8
+                tick_pct = d["tick_imbalance"] * 100
+                micro = f"  微观: 大单净额{lo_net_yi:+.2f}亿(净比{d['lo_net_ratio']:+.2f}) tick{tick_pct:+.1f}% 主力{cf_yi:+.2f}亿"
+                if d["vpd_count"] or d["lor_count"]:
+                    events_parts = []
+                    if d["vpd_count"]:
+                        events_parts.append(f"背离x{d['vpd_count']}")
+                    if d["lor_count"]:
+                        dir_label = "多" if d["lor_direction"] == "bullish" else "空" if d["lor_direction"] == "bearish" else "?"
+                        events_parts.append(f"翻转x{d['lor_count']}({dir_label})")
+                    micro += f" | {' '.join(events_parts)}"
+                micro += f" | 综合:{d['direction_score']:+d}({d['direction']})"
+                line += "\n" + micro
+            lines.append(line)
         lines.append("")
 
     if watching:
@@ -314,6 +337,147 @@ def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]
         {"role": "system", "content": system},
         {"role": "user", "content": user_msg},
     ]
+
+
+def _compute_l2_digest(date_str: str) -> list[dict]:
+    """从 session_snapshots + signals 表聚合日线级 L2 微观结构指标。
+
+    写入 daily_l2_digest 表并返回 digest 列表。
+    """
+    from src.sim_trading.db import get_connection
+
+    conn = None
+    digests = []
+    try:
+        conn = get_connection()
+
+        # 1. 取每只股票当日最后一条 session_snapshot
+        rows = conn.execute(
+            "SELECT code, session_json FROM session_snapshots "
+            "WHERE date = ? AND ts = ("
+            "  SELECT MAX(ts) FROM session_snapshots ss "
+            "  WHERE ss.date = session_snapshots.date AND ss.code = session_snapshots.code"
+            ") ORDER BY code",
+            (date_str,),
+        ).fetchall()
+
+        if not rows:
+            logger.info(f"L2 digest: no session_snapshots for {date_str}")
+            return []
+
+        # 2. 从 signals 表聚合事件频次
+        sig_counts = {}
+        for strategy in ("volume_price_divergence", "large_order_reversal"):
+            cur = conn.execute(
+                "SELECT code, COUNT(*) as cnt FROM signals "
+                "WHERE date = ? AND strategy = ? GROUP BY code",
+                (date_str, strategy),
+            ).fetchall()
+            for r in cur:
+                sig_counts.setdefault(r["code"], {})[strategy] = r["cnt"]
+
+        # large_order_reversal 最后方向
+        lor_dirs = {}
+        lor_rows = conn.execute(
+            "SELECT code, direction FROM signals "
+            "WHERE date = ? AND strategy = 'large_order_reversal' "
+            "ORDER BY ts DESC",
+            (date_str,),
+        ).fetchall()
+        for r in lor_rows:
+            if r["code"] not in lor_dirs:
+                lor_dirs[r["code"]] = r["direction"]
+
+        # 3. 逐股计算 digest
+        insert_rows = []
+        for row in rows:
+            code = row["code"]
+            try:
+                session = json.loads(row["session_json"])
+            except (json.JSONDecodeError, TypeError):
+                continue
+
+            tick = session.get("tick", {})
+            lo = session.get("large_order", {})
+            cf = session.get("capital_flow", {})
+
+            lo_buy_amt = lo.get("buy_amount", 0)
+            lo_sell_amt = lo.get("sell_amount", 0)
+            lo_total = lo_buy_amt + lo_sell_amt
+            lo_net = lo_buy_amt - lo_sell_amt
+            lo_net_ratio = round(lo_net / lo_total, 3) if lo_total > 0 else 0
+
+            tick_imb = tick.get("imbalance", 0)
+            cf_inflow = cf.get("main_net_inflow", 0)
+            cf_pct = cf.get("main_net_inflow_pct", 0)
+
+            code_sigs = sig_counts.get(code, {})
+            vpd_count = code_sigs.get("volume_price_divergence", 0)
+            lor_count = code_sigs.get("large_order_reversal", 0)
+            lor_dir = lor_dirs.get(code)
+
+            # 加权方向评分: 大单*3 + tick*2 + 资金流*1 + 背离*-2 + 翻转*-2
+            score = 0
+            score += (1 if lo_net_ratio > 0.1 else -1 if lo_net_ratio < -0.1 else 0) * 3
+            score += (1 if tick_imb > 0.1 else -1 if tick_imb < -0.1 else 0) * 2
+            score += (1 if cf_pct > 5 else -1 if cf_pct < -5 else 0) * 1
+            score += (-1 if vpd_count >= 3 else 0) * 2
+            score += (-1 if lor_dir == "bearish" else 1 if lor_dir == "bullish" else 0) * 2
+
+            direction = "bullish" if score > 2 else "bearish" if score < -2 else "neutral"
+
+            digest = {
+                "code": code,
+                "lo_buy_count": lo.get("buy_count", 0),
+                "lo_sell_count": lo.get("sell_count", 0),
+                "lo_net_amount": round(lo_net, 0),
+                "lo_net_ratio": lo_net_ratio,
+                "tick_imbalance": round(tick_imb, 3),
+                "tick_buy_vol": tick.get("buy_vol", 0),
+                "tick_sell_vol": tick.get("sell_vol", 0),
+                "cf_net_inflow": round(cf_inflow, 0),
+                "cf_net_inflow_pct": round(cf_pct, 1),
+                "vpd_count": vpd_count,
+                "lor_count": lor_count,
+                "lor_direction": lor_dir,
+                "direction_score": score,
+                "direction": direction,
+            }
+            digests.append(digest)
+
+            insert_rows.append((
+                date_str, code,
+                digest["lo_buy_count"], digest["lo_sell_count"],
+                digest["lo_net_amount"], digest["lo_net_ratio"],
+                digest["tick_imbalance"], digest["tick_buy_vol"], digest["tick_sell_vol"],
+                digest["cf_net_inflow"], digest["cf_net_inflow_pct"],
+                vpd_count, lor_count, lor_dir,
+                score, direction,
+                row["session_json"],
+            ))
+
+        # 4. 批量写入
+        if insert_rows:
+            conn.executemany(
+                "INSERT OR REPLACE INTO daily_l2_digest "
+                "(date, code, lo_buy_count, lo_sell_count, lo_net_amount, lo_net_ratio, "
+                "tick_imbalance, tick_buy_vol, tick_sell_vol, "
+                "cf_net_inflow, cf_net_inflow_pct, "
+                "vpd_count, lor_count, lor_direction, "
+                "direction_score, direction, session_json) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                insert_rows,
+            )
+            conn.commit()
+            logger.info(f"L2 digest: {len(insert_rows)} stocks written for {date_str}")
+
+    except Exception as e:
+        logger.warning(f"L2 digest computation failed: {e}")
+    finally:
+        if conn:
+            conn.close()
+
+    return digests
 
 
 def generate_daily_summary(date_str: str | None = None) -> dict | None:
@@ -372,11 +536,15 @@ def generate_daily_summary(date_str: str | None = None) -> dict | None:
 
     market = _detect_market(signals, watchlist)
 
+    # ── Compute L2 daily digest (session aggregation → daily_l2_digest table) ──
+    l2_digests = _compute_l2_digest(today)
+    l2_digest_map = {d["code"]: d for d in l2_digests}
+
     # ── Call LLM ──
     from dotenv import load_dotenv
     load_dotenv(PROJECT_ROOT / ".env")
 
-    messages = _build_llm_prompt(stats, per_stock, l1_displays)
+    messages = _build_llm_prompt(stats, per_stock, l1_displays, l2_digest_map)
     report = None
     try:
         client = LLMClientFactory.create_client()

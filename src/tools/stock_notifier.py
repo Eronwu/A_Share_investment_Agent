@@ -220,6 +220,7 @@ def merge_data(market: dict, config: dict) -> dict:
             "price": price,
             "change_pct": change_pct,
             "chg_amt": chg_amt,
+            "amount": svc.get("amount", 0),
         }
 
     return quotes
@@ -934,8 +935,8 @@ class TradePlanEngine:
             price = q.get("price", 0)
             if price <= 0:
                 continue
-            amount = q.get("amount", 0)
-            change = q.get("change", 0)
+            amount = q.get("amount", 0) or q.get("_amount", 0)
+            change = q.get("change_pct", 0) or q.get("change", 0)
             name = q.get("name", symbol)
 
             # 1. 止损（最高优先级）

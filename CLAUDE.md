@@ -351,6 +351,7 @@ tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
 - `sector_rotation`: EM 板块每日排名 (date, category, board_name, change_pct, rank) — 90 天保留
 - `sector_daily`: 自定义指数日线 (date, index_id, avg_change_pct, index_value, components_json) — 180 天保留
 - `sector_alerts`: 主线告警 (date, index_id, alert_type, cumulative_pct, slope, message) — 30 天保留
+- `daily_l2_digest`: 日线微观结构聚合 (date, code, lo_net_amount, tick_imbalance, cf_net_inflow, direction_score, direction) — 收盘后计算
 
 **RT engine 日志**: logger 名 `l2_daemon.rt_sim`，继承 daemon handler，写入 `logs/l2_daemon.log`。
 
@@ -442,6 +443,52 @@ Lightweight macOS notification daemon. Reads poller output, never fetches data d
 | `l3_cooldown_min` | 30 | L3 冷却时间（分钟） |
 | `portfolio_delta_pct` | 2 | 组合级别 P&L 变化阈值% |
 | `poll_interval` | 30 | Poller 轮询间隔（秒） |
+
+#### L2 Signal Noise Reduction (中长线优化)
+
+用户策略为中长线（持仓数周到数月），对 L2 tick 级信号做了降噪优化。
+
+**关闭 8 个 tick/session 级信号** (`l2_strategy_config.json` → `enabled: false`)：
+
+| 信号 | 关闭理由 |
+|------|---------|
+| `capital_flow_spike` | 5 分钟资金脉冲，收盘时大概率被抹平，日内噪音 |
+| `large_order` | HK 大票每天数百笔 1500 万以上成交是常态，非方向信号 |
+| `order_book_imbalance` | 盘口挂单变化是毫秒级噪音，与中长线持仓决策无关 |
+| `volume_price_divergence` | 30 分钟窗口背离无统计意义，日线版 `macd_top_divergence` 已覆盖 |
+| `tick_imbalance` | 5 分钟 tick 方向偏移，信噪比低 |
+| `volume_accel_alert` | 算法拆单拉升信号，纯日内交易工具 |
+| `large_order_reversal` | v1 模拟盘惨案（17 笔全被反复平仓），信噪比最差 |
+| `closing_surge` | 尾盘异动预测次日开盘，与中长线无关 |
+
+**保留 5 个 session 级** (仍 enabled)：`momentum_alert`(L1)、`momentum_sell_alert`、`volume_accel_sell_alert`、`tick_persistence`、`institutional_retail_divergence`。v2 模拟盘不受影响（核心循环只依赖日线评分）。
+
+**升级 7 个日线信号到 L2 弹窗** (`DAILY_NOTIFY_STRATEGIES` 从 6 → 13)：
+
+| 信号 | 中长线意义 |
+|------|-----------|
+| `ma_bullish_align` | 均线多头排列，趋势确认基石 |
+| `ma_bearish_align` | 均线空头排列，趋势转空确认 |
+| `adx_trend_start` | ADX 上穿 25，震荡→趋势转换 |
+| `volume_breakout` | 放量突破新高，经典入场信号 |
+| `support_breakdown` | 放量跌破支撑/MA60，止损信号 |
+| `macd_golden_cross` | MACD 金叉，中长线买入信号 |
+| `macd_death_cross` | MACD 死叉，中长线风险预警 |
+
+这些日线信号每天最多触发 1 次（480min 冷却），弹窗增量可控（~1-3 条/天/股）。
+
+**静默采集 + 日线聚合**: 底层数据（ticker/capital/snapshot）始终获取，大单检测始终运行并喂入 `SessionAccumulator`，但 disabled 策略不产出 alert。收盘后 `_compute_l2_digest()` 从 `session_snapshots` + `signals` 表聚合日线摘要到 `daily_l2_digest` 表，注入 LLM 日报。
+
+**日线微观结构指标** (`daily_l2_digest` 表)：
+- 大单净额/净比 (lo_net_amount / lo_net_ratio) — 机构净买卖方向
+- Tick imbalance — 全天主动买/卖方力量对比
+- 主力资金净流入 (cf_net_inflow / cf_net_inflow_pct) — 资金流向
+- 量价背离/大单翻转频次 (vpd_count / lor_count) — 事件聚合
+- 综合方向评分 (direction_score) — 加权: 大单*3 + tick*2 + 资金流*1 + 背离*-2 + 翻转*-2
+
+**Notifier 降噪兜底**：
+- Per-stock daily cap = 8（`PER_STOCK_DAILY_CAP`），超出的 L2 信号不写入 `alert_events`
+- Alert 页面默认隐藏 L3，只显示 L1+L2，可点击 `L3:N (hidden)` 展开
 
 #### Config Write Safety
 

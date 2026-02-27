@@ -1119,15 +1119,20 @@ _STRATEGY_NAMES = {
     "relative_strength": "相对强弱",
 }
 
-# Daily strategies that trigger macOS notifications (L1)
+# Daily strategies that trigger macOS notifications (L1/L2)
+# 6 original high-priority + 7 mid-long-term trend signals
 DAILY_NOTIFY_STRATEGIES = {
-    "macd_golden_cross", "macd_death_cross",
+    # High priority
     "macd_top_divergence", "macd_bottom_divergence",
-    "ma_bullish_align", "ma_bearish_align",
     "bollinger_squeeze_breakout",
-    "volume_breakout", "morning_evening_star",
-    "breakout_pullback", "support_breakdown",
+    "breakout_pullback",
     "rsi_extreme_overbought", "rsi_extreme_oversold",
+    # Mid-long-term trend signals (upgraded from L3)
+    "ma_bullish_align", "ma_bearish_align",
+    "adx_trend_start",
+    "volume_breakout",
+    "support_breakdown",
+    "macd_golden_cross", "macd_death_cross",
 }
 
 
@@ -3168,24 +3173,12 @@ class L2StrategyEngine:
         raw_signals: list[dict] = []
 
         try:
-            # Fetch shared data once (strategies 1,3,4 share capital_flow / snapshot)
-            momentum_enabled = self._strategies.get("momentum_alert", {}).get("enabled", True)
+            # Always fetch all data sources — SessionAccumulator + session_snapshots
+            # need them regardless of individual strategy enabled state
             vol_accel_enabled = self._strategies.get("volume_accel_alert", {}).get("enabled", True)
-            need_capital = (
-                self._strategies.get("capital_flow_spike", {}).get("enabled", True)
-                or self._strategies.get("volume_price_divergence", {}).get("enabled", True)
-                or momentum_enabled
-                or vol_accel_enabled
-            )
-            need_snapshot = (
-                self._strategies.get("order_book_imbalance", {}).get("enabled", True)
-                or self._strategies.get("volume_price_divergence", {}).get("enabled", True)
-                or momentum_enabled
-                or vol_accel_enabled
-            )
-
-            capital_data = self._fetch_capital_flow() if need_capital else {}
-            snapshot_data = self._fetch_snapshots() if need_snapshot else {}
+            capital_data = self._fetch_capital_flow()
+            snapshot_data = self._fetch_snapshots()
+            ticker_data = self._fetch_rt_tickers()
 
             # ── 1. Capital flow spike ──
             if self._strategies.get("capital_flow_spike", {}).get("enabled", True):
@@ -3195,18 +3188,12 @@ class L2StrategyEngine:
                     if sig:
                         raw_signals.append(sig)
 
-            # Fetch ticker data (shared by large_order + tick_imbalance)
-            need_tickers = (
-                self._strategies.get("large_order", {}).get("enabled", True)
-                or self._strategies.get("tick_imbalance", {}).get("enabled", True)
-                or vol_accel_enabled
-            )
-            ticker_data = self._fetch_rt_tickers() if need_tickers else {}
-
-            # ── 2. Large order ──
-            if self._strategies.get("large_order", {}).get("enabled", True):
-                for code, ticks in ticker_data.items():
-                    sigs = self._large_order.check_tickers(code, ticks)
+            # ── 2. Large order (always detect for SessionAccumulator) ──
+            for code, ticks in ticker_data.items():
+                sigs = self._large_order.check_tickers(code, ticks)
+                for sig in sigs:
+                    self._session.feed_large_order(code, sig["detail"])
+                if self._strategies.get("large_order", {}).get("enabled", True):
                     raw_signals.extend(sigs)
 
             # ── 3. Order book imbalance ──
@@ -3259,11 +3246,6 @@ class L2StrategyEngine:
             self._last_fail_time = time.time()
             return [], {}
 
-        # Feed large orders to session accumulator (all, before cooldown filter)
-        for raw in raw_signals:
-            if raw["strategy"] == "large_order":
-                self._session.feed_large_order(raw["code"], raw["detail"])
-
         # Take session snapshot early — momentum evaluation needs latest state
         session_snapshot = self._session.snapshot()
 
@@ -3282,7 +3264,7 @@ class L2StrategyEngine:
                 sig = self._evaluate_momentum_sell(code, session_snapshot, capital_data, snapshot_data)
                 if sig and self._cooldown.can_trigger("momentum_sell_alert", code):
                     self._cooldown.record("momentum_sell_alert", code)
-                    signals.append(format_signal(sig, self._name_map, notify=True, snapshot_data=snapshot_data, capital_data=capital_data))
+                    signals.append(format_signal(sig, self._name_map, notify=False, snapshot_data=snapshot_data, capital_data=capital_data))
 
         # ── 7. Volume acceleration alert (session-level) ──
         if vol_accel_enabled:
@@ -3290,7 +3272,7 @@ class L2StrategyEngine:
                 sig = self._evaluate_volume_accel(code, session_snapshot, capital_data, snapshot_data)
                 if sig and self._cooldown.can_trigger("volume_accel_alert", code):
                     self._cooldown.record("volume_accel_alert", code)
-                    signals.append(format_signal(sig, self._name_map, notify=True, snapshot_data=snapshot_data, capital_data=capital_data))
+                    signals.append(format_signal(sig, self._name_map, notify=False, snapshot_data=snapshot_data, capital_data=capital_data))
 
         # ── 7b. Volume acceleration sell alert (bearish mirror) ──
         if self._strategies.get("volume_accel_sell_alert", {}).get("enabled", True):
@@ -3298,7 +3280,7 @@ class L2StrategyEngine:
                 sig = self._evaluate_volume_accel_sell(code, session_snapshot, capital_data, snapshot_data)
                 if sig and self._cooldown.can_trigger("volume_accel_sell_alert", code):
                     self._cooldown.record("volume_accel_sell_alert", code)
-                    signals.append(format_signal(sig, self._name_map, notify=True, snapshot_data=snapshot_data, capital_data=capital_data))
+                    signals.append(format_signal(sig, self._name_map, notify=False, snapshot_data=snapshot_data, capital_data=capital_data))
 
         # Apply cooldowns and format raw signals (notify=false, web only)
         accepted_raw = []
@@ -3319,7 +3301,7 @@ class L2StrategyEngine:
                 sig = self._tick_persistence.evaluate(code)
                 if sig and self._cooldown.can_trigger("tick_persistence", code):
                     self._cooldown.record("tick_persistence", code)
-                    signals.append(format_signal(sig, self._name_map, notify=True, snapshot_data=snapshot_data, capital_data=capital_data))
+                    signals.append(format_signal(sig, self._name_map, notify=False, snapshot_data=snapshot_data, capital_data=capital_data))
 
         # ── 9. Institutional retail divergence ──
         if self._strategies.get("institutional_retail_divergence", {}).get("enabled", True):
@@ -3335,7 +3317,7 @@ class L2StrategyEngine:
                 sig = self._evaluate_large_order_reversal(code, session_snapshot)
                 if sig and self._cooldown.can_trigger("large_order_reversal", code):
                     self._cooldown.record("large_order_reversal", code)
-                    signals.append(format_signal(sig, self._name_map, notify=True, snapshot_data=snapshot_data, capital_data=capital_data))
+                    signals.append(format_signal(sig, self._name_map, notify=False, snapshot_data=snapshot_data, capital_data=capital_data))
 
         # ── Track signal timestamps for closing_surge ──
         now_ts = time.time()
@@ -3356,7 +3338,7 @@ class L2StrategyEngine:
                     if sess_dir != "neutral":
                         sig["detail"]["direction"] = sess_dir
                     self._cooldown.record("closing_surge", code)
-                    signals.append(format_signal(sig, self._name_map, notify=True, snapshot_data=snapshot_data, capital_data=capital_data))
+                    signals.append(format_signal(sig, self._name_map, notify=False, snapshot_data=snapshot_data, capital_data=capital_data))
 
         # ── 12. Daily indicator signals (refresh every 30min) ──
         daily_cfg = self._config.get("daily_indicators", {})
@@ -3389,7 +3371,7 @@ class L2StrategyEngine:
             sess_dir = session_snapshot.get(comp_code, {}).get("direction", "neutral")
             comp_dir = "bullish" if "bullish" in comp_strategy else "bearish"
             session_aligned = (comp_dir == sess_dir)
-            comp_notify = comp_score >= 7 or (comp_score >= 5 and session_aligned)
+            comp_notify = comp_score >= 7
             signals.append(format_signal(comp, self._name_map, notify=comp_notify, snapshot_data=snapshot_data, capital_data=capital_data))
 
         return signals, session_snapshot

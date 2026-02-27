@@ -195,7 +195,7 @@ async function main() {
 
     const alertCount = await page.evaluate(() => {
       const spans = Array.from(document.querySelectorAll('span'));
-      const match = spans.find(s => (s.textContent || '').match(/(\d+) events today/));
+      const match = spans.find(s => (s.textContent || '').match(/(\d+) visible/));
       return match ? match.textContent.trim() : 'not found';
     });
     record('Alerts: event count shown', alertCount !== 'not found', alertCount);
