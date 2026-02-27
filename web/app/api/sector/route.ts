@@ -90,6 +90,7 @@ interface RawComponentEntry {
   code: string;
   change_pct: number;
   close: number | null;
+  name?: string;
 }
 
 /* ── Config helpers ── */
@@ -520,7 +521,7 @@ export async function GET(request: NextRequest) {
             code: c.code,
             change_pct: c.change_pct,
             close: c.close ?? null,
-            name: stockNameMap[c.code] || "",
+            name: c.name || stockNameMap[c.code] || "",
           }));
         } catch {
           /* invalid json */

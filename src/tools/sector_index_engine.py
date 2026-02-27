@@ -93,6 +93,49 @@ def _tencent_market_prefix(code: str) -> str:
     return "sz"
 
 
+# Name cache: persists for the process lifetime
+_stock_name_cache: dict[str, str] = {}
+
+
+def _fetch_stock_names(codes: list[str]) -> dict[str, str]:
+    """Batch fetch stock names from Tencent Finance qt API.
+
+    Returns {code: name} dict. Uses in-process cache.
+    """
+    result = {}
+    missing = []
+    for c in codes:
+        if c in _stock_name_cache:
+            result[c] = _stock_name_cache[c]
+        else:
+            missing.append(c)
+
+    if not missing:
+        return result
+
+    # Tencent qt batch API: comma-separated "sh600096,sz000792"
+    qt_codes = ",".join(f"{_tencent_market_prefix(c)}{c}" for c in missing)
+    try:
+        url = f"https://qt.gtimg.cn/q={qt_codes}"
+        r = _requests.get(url, timeout=10)
+        # Response: v_sz000792="51~盐湖股份~000792~38.20~...";
+        for line in r.text.strip().split(";"):
+            line = line.strip()
+            if not line or "~" not in line:
+                continue
+            parts = line.split("~")
+            if len(parts) >= 3:
+                name = parts[1]
+                raw_code = parts[2]
+                if name and raw_code:
+                    _stock_name_cache[raw_code] = name
+                    result[raw_code] = name
+    except Exception as exc:
+        logger.warning("Tencent qt name fetch failed: %s", exc)
+
+    return result
+
+
 def _fetch_tencent_kline(code: str, start: str, end: str) -> list[dict] | None:
     """Fetch QFQ daily kline from Tencent Finance.
 
@@ -305,6 +348,11 @@ def _compute_single_index(conn, index_id: str, index_def: dict,
         logger.warning("index %s: no component data for %s", index_id, date_str)
         return
 
+    # Enrich with stock names
+    names = _fetch_stock_names(components)
+    for cd in comp_details:
+        cd["name"] = names.get(cd["code"], "")
+
     avg_change = mean(changes)
     up_count = sum(1 for c in changes if c > 0)
     down_count = sum(1 for c in changes if c < 0)
@@ -434,6 +482,9 @@ def backfill_index(index_id: str, days: int = 30):
         if row:
             prev_value = row["index_value"]
 
+        # Fetch stock names once for all dates
+        names = _fetch_stock_names(components)
+
         for date_str in sorted_dates:
             changes = []
             comp_details = []
@@ -445,6 +496,7 @@ def backfill_index(index_id: str, days: int = 30):
                     changes.append(day_data["change_pct"])
                     comp_details.append({
                         "code": code,
+                        "name": names.get(code, ""),
                         "change_pct": day_data["change_pct"],
                         "close": day_data["close"],
                     })
@@ -452,7 +504,8 @@ def backfill_index(index_id: str, days: int = 30):
                     # Suspended/no-data stocks count as 0% change
                     changes.append(0.0)
                     comp_details.append({
-                        "code": code, "change_pct": 0.0, "close": None,
+                        "code": code, "name": names.get(code, ""),
+                        "change_pct": 0.0, "close": None,
                     })
 
             if not changes:
@@ -464,7 +517,7 @@ def backfill_index(index_id: str, days: int = 30):
             index_value = round(prev_value * (1 + avg_change / 100), 4)
 
             conn.execute(
-                "INSERT OR IGNORE INTO sector_daily"
+                "INSERT OR REPLACE INTO sector_daily"
                 " (date, index_id, avg_change_pct, index_value,"
                 "  up_count, down_count, components_json)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?)",
