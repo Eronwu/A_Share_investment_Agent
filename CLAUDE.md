@@ -92,6 +92,14 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 - `useCommand` — parses `svc add|update|rm|hide|unhide|star|unstar|ls|config|help` commands, manages terminal log entries. Returns `addLogs` for external log injection.
 - `useAlerts` — 读取 notifier 写入 SQLite `alert_events` 表的数据（经 `/api/metrics` 返回），展示在 web 日志区，不做任何告警计算（纯消费者）。用 `display` 字段展示中文详细格式。
 
+**Alerts 页面 (`/alerts`)**:
+- 列布局: `时间 | 级别 | 信号名 | 代码 | 价格 | 涨跌% | 名称+详情`
+- `parseAlert()` 从 `display` 文本中解析出结构化字段（信号名、股票名、代码、价格、详情），避免重复显示
+- 信号名列显示具体策略（`MACD底背离`、`均线多排`、`空头信号(分=5)`），不是泛化分类
+- `getSignalColor()` 按语义着色：绿=多头、红=空头、黄=预警、青=信息
+- 默认隐藏 L3，nav 栏显示 `日期 | L1:N L2:N L3:N(hidden) | N visible | 30s`
+- 日报卡片可折叠，点击标题收起/展开
+
 **模拟盘页面 (`/sim`)**:
 - `/api/sim` 读 `sim_trading.db`（better-sqlite3，只读），TS 端计算 Sharpe/MaxDD/归因
 - 摘要栏: 收益率/夏普/胜率/最大回撤/盈亏比/净值/交易笔数/手续费
