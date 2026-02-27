@@ -186,6 +186,16 @@ function round(n: number, d: number): number {
   return Math.round(n * f) / f;
 }
 
+/** HK market trading cost — mirrors SimulationEngine.calc_cost in Python */
+function calcHKCost(price: number, qty: number): number {
+  const notional = price * qty;
+  const commission = Math.max(notional * 0.0003, 3.0);
+  const stampDuty = Math.ceil(notional * 0.0013);
+  const exchangeFee = notional * 0.0000565;
+  const settlement = Math.min(Math.max(notional * 0.00002, 2.0), 100.0);
+  return commission + stampDuty + exchangeFee + settlement;
+}
+
 /* ── Route Handler ── */
 
 export async function GET() {
@@ -306,21 +316,28 @@ export async function GET() {
       (sum, p) => sum + (Number(p.entry_price) || 0) * (Number(p.quantity) || 0), 0,
     );
 
-    // Realized P&L from live closed trades
-    const realizedPnl = liveTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
-    const liveCommission = liveTrades.reduce((sum, t) => sum + (t.commission || 0), 0);
-    const liveWins = liveTrades.filter(t => t.pnl > 0);
-    const liveLosses = liveTrades.filter(t => t.pnl <= 0);
+    // Realized P&L from live closed trades (DB pnl only includes sell_cost)
+    // Must also subtract buy_cost for accurate accounting
+    const totalBuyCost = liveTrades.reduce(
+      (sum, t) => sum + calcHKCost(t.entry_price, t.quantity), 0,
+    );
+    const realizedPnlGross = liveTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+    const realizedPnl = realizedPnlGross - totalBuyCost;
+    const liveCommission = liveTrades.reduce((sum, t) => sum + (t.commission || 0), 0) + totalBuyCost;
+    const liveWins = liveTrades.filter(t => t.pnl - calcHKCost(t.entry_price, t.quantity) > 0);
+    const liveLosses = liveTrades.filter(t => t.pnl - calcHKCost(t.entry_price, t.quantity) <= 0);
     const liveWinRate = liveTrades.length > 0 ? liveWins.length / liveTrades.length : 0;
-    const liveProfitFactor = liveLosses.length > 0 && liveLosses.reduce((s, t) => s + t.pnl, 0) !== 0
-      ? Math.abs(liveWins.reduce((s, t) => s + t.pnl, 0) / liveLosses.reduce((s, t) => s + t.pnl, 0))
+    const liveWinSum = liveWins.reduce((s, t) => s + t.pnl - calcHKCost(t.entry_price, t.quantity), 0);
+    const liveLossSum = liveLosses.reduce((s, t) => s + t.pnl - calcHKCost(t.entry_price, t.quantity), 0);
+    const liveProfitFactor = liveLossSum !== 0
+      ? Math.abs(liveWinSum / liveLossSum)
       : (liveWins.length > 0 ? Infinity : 0);
 
-    // Total P&L = realized (closed trades) + unrealized (open positions)
+    // Total P&L = realized (closed trades with full costs) + unrealized (open positions)
     const totalPnl = realizedPnl + totalUnrealized;
     const totalReturn = initialCapital > 0 ? totalPnl / initialCapital : 0;
     const currentEquity = initialCapital + totalPnl;
-    const cashAvailable = initialCapital - totalCostBasis + realizedPnl - liveCommission;
+    const cashAvailable = currentEquity - totalMktVal;
 
     // Today's P&L = today's realized (closed today) + today's unrealized change (positions day pnl)
     const today = new Date().toISOString().slice(0, 10);
