@@ -83,6 +83,62 @@ def _today_compact(today=None) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Tencent Finance fallback for stock kline (when EM push2 is blocked)
+# ---------------------------------------------------------------------------
+
+def _tencent_market_prefix(code: str) -> str:
+    """Return Tencent market prefix: 'sh' for 6xx/68x, 'sz' for others."""
+    if code.startswith(("6", "9")):
+        return "sh"
+    return "sz"
+
+
+def _fetch_tencent_kline(code: str, start: str, end: str) -> list[dict] | None:
+    """Fetch QFQ daily kline from Tencent Finance.
+
+    Args:
+        code: stock code like '000792'
+        start: 'YYYY-MM-DD'
+        end: 'YYYY-MM-DD'
+
+    Returns list of {date, close, change_pct} or None on failure.
+    """
+    prefix = _tencent_market_prefix(code)
+    url = (
+        f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
+        f"?param={prefix}{code},day,{start},{end},250,qfq"
+    )
+    try:
+        r = _requests.get(url, timeout=15)
+        r.raise_for_status()
+        data = r.json()
+        # data format: {"code":0, "data":{"sz000792":{"qfqday":[[date,open,close,high,low,vol],...]}}}
+        stock_key = f"{prefix}{code}"
+        kline = data.get("data", {}).get(stock_key, {})
+        days = kline.get("qfqday") or kline.get("day", [])
+        if not days:
+            return None
+
+        result = []
+        prev_close = None
+        for row in days:
+            date_str = row[0]  # "YYYY-MM-DD"
+            close = float(row[2])
+            if prev_close and prev_close != 0:
+                change_pct = (close / prev_close - 1) * 100
+            else:
+                # First day: try to compute from open
+                open_price = float(row[1])
+                change_pct = (close / open_price - 1) * 100 if open_price else 0.0
+            result.append({"date": date_str, "close": close, "change_pct": round(change_pct, 4)})
+            prev_close = close
+        return result
+    except Exception as exc:
+        logger.warning("Tencent kline %s failed: %s", code, exc)
+        return None
+
+
+# ---------------------------------------------------------------------------
 # Sina Finance fallback (when EM push2 is blocked by corporate network)
 # ---------------------------------------------------------------------------
 
@@ -210,6 +266,10 @@ def _compute_single_index(conn, index_id: str, index_def: dict,
     comp_details = []
 
     for code in components:
+        chg = None
+        close = None
+
+        # Try akshare (EM push2) first
         df = _akshare_call(
             lambda c=code: ak.stock_zh_a_hist(
                 symbol=c, period="daily",
@@ -221,13 +281,22 @@ def _compute_single_index(conn, index_id: str, index_def: dict,
         if df is not None and not df.empty:
             chg = float(df.iloc[-1]["涨跌幅"])
             close = float(df.iloc[-1]["收盘"])
+        else:
+            # Fallback: Tencent Finance kline
+            logger.info("  %s: akshare failed, trying Tencent fallback", code)
+            tk = _fetch_tencent_kline(code, date_str, date_str)
+            if tk:
+                chg = tk[-1]["change_pct"]
+                close = tk[-1]["close"]
+
+        if chg is not None:
             changes.append(chg)
             comp_details.append({
                 "code": code, "change_pct": chg, "close": close,
             })
             logger.debug("  %s: change=%.2f%%", code, chg)
         else:
-            # Fix 5: suspended/no-data stocks count as 0% change
+            # Suspended/no-data stocks count as 0% change
             logger.warning("  %s: no data for %s (using 0%%)", code, date_str)
             changes.append(0.0)
             comp_details.append({"code": code, "change_pct": 0.0, "close": None})
@@ -299,7 +368,13 @@ def backfill_index(index_id: str, days: int = 30):
     hist_by_code: dict[str, dict[str, dict]] = {}  # code -> {date_str -> {close, change_pct}}
     all_dates: set[str] = set()
 
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
     for code in components:
+        code_hist: dict[str, dict] = {}
+
+        # Try akshare (EM push2) first
         df = _akshare_call(
             lambda c=code: ak.stock_zh_a_hist(
                 symbol=c, period="daily",
@@ -308,20 +383,33 @@ def backfill_index(index_id: str, days: int = 30):
             ),
             f"backfill_{code}",
         )
-        if df is None or df.empty:
-            logger.warning("backfill: %s returned no data", code)
+        if df is not None and not df.empty:
+            for _, row in df.iterrows():
+                d = str(row["日期"])[:10]  # YYYY-MM-DD
+                code_hist[d] = {
+                    "close": float(row["收盘"]),
+                    "change_pct": float(row["涨跌幅"]),
+                }
+            logger.info("backfill: %s fetched %d days via akshare", code, len(code_hist))
+        else:
+            # Fallback: Tencent Finance kline
+            logger.info("backfill: %s akshare failed, trying Tencent fallback", code)
+            tk = _fetch_tencent_kline(code, start_str, end_str)
+            if tk:
+                for item in tk:
+                    code_hist[item["date"]] = {
+                        "close": item["close"],
+                        "change_pct": item["change_pct"],
+                    }
+                logger.info("backfill: %s fetched %d days via Tencent", code, len(code_hist))
+
+        if not code_hist:
+            logger.warning("backfill: %s returned no data from any source", code)
             continue
 
-        code_hist = {}
-        for _, row in df.iterrows():
-            d = str(row["日期"])[:10]  # YYYY-MM-DD
-            code_hist[d] = {
-                "close": float(row["收盘"]),
-                "change_pct": float(row["涨跌幅"]),
-            }
+        for d in code_hist:
             all_dates.add(d)
         hist_by_code[code] = code_hist
-        logger.info("backfill: %s fetched %d days", code, len(code_hist))
 
     if not all_dates:
         logger.error("backfill: no data for any component")
