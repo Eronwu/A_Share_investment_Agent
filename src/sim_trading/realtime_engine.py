@@ -119,6 +119,31 @@ class RealtimeSimEngine:
         if rows:
             logger.info(f"Restored {len(rows)} live positions from DB")
 
+        # Restore cash from historical trades: replay all buy/sell cash flows.
+        # Each closed trade: cash -= entry_price * qty + buy_cost (open)
+        #                     cash += exit_price * qty - sell_cost (close)
+        # Since buy_cost isn't stored separately, recompute it.
+        conn = get_connection()
+        all_trades = conn.execute(
+            "SELECT entry_price, exit_price, quantity, commission "
+            "FROM trades WHERE param_version='live'"
+        ).fetchall()
+        conn.close()
+        if all_trades:
+            cash_delta = 0.0
+            for t in all_trades:
+                ep, xp, qty = t["entry_price"], t["exit_price"], t["quantity"]
+                sell_cost = t["commission"]
+                buy_cost_info = self._engine.calc_cost(ep, qty, "BUY")
+                buy_cost = buy_cost_info["total"]
+                # Net cash impact: (xp * qty - sell_cost) - (ep * qty + buy_cost)
+                cash_delta += (xp - ep) * qty - sell_cost - buy_cost
+            self._pos_mgr._cash += cash_delta
+            logger.info(
+                f"Restored cash from {len(all_trades)} historical trades: "
+                f"delta={cash_delta:+.2f}, cash={self._pos_mgr._cash:.2f}"
+            )
+
         # Restore daily counters from DB (restart safety)
         today = datetime.now().strftime("%Y-%m-%d")
         conn = get_connection()
