@@ -2476,12 +2476,12 @@ class L2StrategyEngine:
             for code, info in watchlist.items()
         }
 
-        # HK holding codes (only subscribe HK holdings)
+        # HK codes to monitor: all holdings + star watching (star = highest priority)
         self._hk_holdings = [
             code for code, info in watchlist.items()
             if code.startswith("HK")
-            and info.get("type") == "holding"
             and not info.get("hidden", False)
+            and (info.get("type") == "holding" or info.get("star", False))
         ]
 
         # Initialize trackers
