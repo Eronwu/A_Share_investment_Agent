@@ -468,6 +468,7 @@ export default function SectorPage() {
         <Link href="/sim" style={{ color: D.comment, textDecoration: "none" }}>sim</Link>
         <Link href="/manage" style={{ color: D.comment, textDecoration: "none" }}>manage</Link>
         <span style={{ color: D.purple, fontWeight: 700 }}>sector</span>
+        <Link href="/sector/rotation" style={{ color: D.comment, textDecoration: "none", fontSize: 11 }}>rotation</Link>
         <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>
           {indices.length} indices | {alerts.length} alerts | auto-refresh 60s
         </span>
