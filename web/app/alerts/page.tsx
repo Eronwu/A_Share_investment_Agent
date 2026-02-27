@@ -504,9 +504,9 @@ export default function AlertsPage() {
               <span style={{ color: parsed.signalColor, flexShrink: 0, width: 100, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: isHighPriority ? 700 : 500 }}>
                 {parsed.signal}
               </span>
-              {/* Stock name */}
-              <span style={{ color: D.cyan, flexShrink: 0, width: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {parsed.stockName}
+              {/* Stock code */}
+              <span style={{ color: D.cyan, flexShrink: 0, width: 72, overflow: "hidden", whiteSpace: "nowrap" }}>
+                {parsed.stockCode}
               </span>
               {/* Price */}
               <span style={{ color: D.fg, flexShrink: 0, width: 60, textAlign: "right" }}>
@@ -516,9 +516,9 @@ export default function AlertsPage() {
               <span style={{ color: chgColor, flexShrink: 0, width: 52, textAlign: "right" }}>
                 {e.change_pct ? `${e.change_pct >= 0 ? "+" : ""}${e.change_pct.toFixed(1)}%` : ""}
               </span>
-              {/* Code + Detail */}
+              {/* Name + Detail */}
               <span style={{ color: isHighPriority ? D.yellow : D.comment, marginLeft: 10, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {parsed.stockCode ? <span style={{ color: D.comment }}>{parsed.stockCode} </span> : null}{parsed.detail}
+                {parsed.stockName ? <span style={{ color: D.fg }}>{parsed.stockName} </span> : null}{parsed.detail}
               </span>
             </div>
           );
