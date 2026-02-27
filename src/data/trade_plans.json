@@ -1,0 +1,44 @@
+{
+  "plans": {
+    "HK02590_acc": {
+      "name": "极智嘉分批建仓",
+      "symbol": "HK02590",
+      "status": "active",
+      "created_at": "2026-02-27",
+      "stop_loss": {
+        "price": 22.00,
+        "action": "sell_all",
+        "triggered": false
+      },
+      "entries": [
+        {
+          "id": "e1",
+          "label": "放量阳线站上24.5",
+          "conditions": {
+            "price_above": 24.50,
+            "volume_min": 100000000
+          },
+          "shares": 1000,
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "e2",
+          "label": "站稳26三日",
+          "conditions": {
+            "price_above": 26.00,
+            "consecutive_days": 3
+          },
+          "shares": 800,
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "exits": [
+        {"id": "tp1", "label": "止盈1", "price": 28.00, "sell_pct": 0.33, "triggered": false},
+        {"id": "tp2", "label": "止盈2", "price": 31.00, "sell_pct": 0.33, "triggered": false},
+        {"id": "tp3", "label": "清仓",  "price": 35.00, "sell_pct": 1.00, "triggered": false}
+      ]
+    }
+  }
+}

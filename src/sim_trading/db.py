@@ -208,6 +208,47 @@ CREATE TABLE IF NOT EXISTS sector_alerts (
     UNIQUE(date, index_id, alert_type)
 );
 CREATE INDEX IF NOT EXISTS idx_sector_alerts_date ON sector_alerts(date);
+
+-- 日线 L2 微观结构聚合 (收盘后从 session_snapshots + signals 计算)
+CREATE TABLE IF NOT EXISTS daily_l2_digest (
+    date TEXT NOT NULL,
+    code TEXT NOT NULL,
+    lo_buy_count INTEGER DEFAULT 0,
+    lo_sell_count INTEGER DEFAULT 0,
+    lo_net_amount REAL DEFAULT 0,
+    lo_net_ratio REAL DEFAULT 0,
+    tick_imbalance REAL DEFAULT 0,
+    tick_buy_vol INTEGER DEFAULT 0,
+    tick_sell_vol INTEGER DEFAULT 0,
+    cf_net_inflow REAL DEFAULT 0,
+    cf_net_inflow_pct REAL DEFAULT 0,
+    vpd_count INTEGER DEFAULT 0,
+    lor_count INTEGER DEFAULT 0,
+    lor_direction TEXT,
+    direction_score INTEGER DEFAULT 0,
+    direction TEXT DEFAULT 'neutral',
+    session_json TEXT,
+    UNIQUE(date, code)
+);
+CREATE INDEX IF NOT EXISTS idx_l2_digest_date ON daily_l2_digest(date);
+
+-- 交易计划事件 (条件触发记录)
+CREATE TABLE IF NOT EXISTS trade_plan_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    plan_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    condition_id TEXT,
+    label TEXT,
+    price REAL,
+    shares INTEGER,
+    sim_executed INTEGER DEFAULT 0,
+    message TEXT,
+    UNIQUE(ts, plan_id, condition_id)
+);
+CREATE INDEX IF NOT EXISTS idx_tpe_date ON trade_plan_events(date);
+CREATE INDEX IF NOT EXISTS idx_tpe_plan ON trade_plan_events(plan_id);
 """
 
 

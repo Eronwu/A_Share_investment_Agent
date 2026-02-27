@@ -114,6 +114,37 @@ interface LiveData {
   today_return: number;
 }
 
+interface TradePlanEntry {
+  id: string;
+  label: string;
+  conditions: Record<string, number>;
+  shares?: number;
+  triggered: boolean;
+  triggered_at?: string | null;
+}
+
+interface TradePlanExit {
+  id: string;
+  label: string;
+  price: number;
+  sell_pct: number;
+  triggered: boolean;
+}
+
+interface TradePlan {
+  id: string;
+  name: string;
+  symbol: string;
+  status: string;
+  created_at: string;
+  stop_loss?: { price: number; triggered: boolean };
+  entries: TradePlanEntry[];
+  exits: TradePlanExit[];
+  current_price: number;
+  current_name: string;
+  current_change: number;
+}
+
 interface SimData {
   summary: Summary;
   trades: Trade[];
@@ -122,6 +153,7 @@ interface SimData {
   per_stock: Record<string, Attribution>;
   positions: Record<string, Record<string, PositionSnap>>;
   live: LiveData;
+  trade_plans?: TradePlan[];
   error?: string;
 }
 
@@ -1192,6 +1224,99 @@ function CompletedTradesTable({ trades }: { trades: Trade[] }) {
   );
 }
 
+function TradePlanPanel({ plans }: { plans: TradePlan[] }) {
+  const [open, setOpen] = useState(true);
+  const activePlans = plans.filter((p) => p.status === "active");
+  if (activePlans.length === 0) return null;
+
+  return (
+    <div style={{ padding: "4px 0" }}>
+      <div
+        style={{ color: D.comment, padding: "4px 0 2px", cursor: "pointer", userSelect: "none" }}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span style={{ color: D.purple }}>{open ? "▾" : "▸"}</span> # ──
+        交易计划 ({activePlans.length} active) ──
+      </div>
+      {open && activePlans.map((plan) => {
+        const pnlPct = plan.current_price > 0 && plan.stop_loss
+          ? ((plan.current_price - plan.stop_loss.price) / plan.current_price * 100)
+          : 0;
+        return (
+          <div
+            key={plan.id}
+            style={{
+              border: `1px solid ${D.currentLine}`,
+              borderRadius: 4,
+              padding: "8px 12px",
+              marginBottom: 8,
+              fontSize: 12,
+            }}
+          >
+            {/* 标题行 */}
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span>
+                <span style={{ color: D.cyan, fontWeight: 700 }}>{plan.name}</span>
+                <span style={{ color: D.comment }}> ({plan.symbol})</span>
+              </span>
+              <span>
+                <span style={{ color: D.fg }}>{plan.current_price.toFixed(2)}</span>
+                <span style={{ color: pnlColor(plan.current_change), marginLeft: 8 }}>
+                  {plan.current_change >= 0 ? "+" : ""}{plan.current_change.toFixed(2)}%
+                </span>
+              </span>
+            </div>
+            {/* 止损 */}
+            {plan.stop_loss && (
+              <div style={{ padding: "2px 0" }}>
+                <span style={{ color: plan.stop_loss.triggered ? D.red : D.comment, fontWeight: 500 }}>
+                  ◆ 止损 {plan.stop_loss.price.toFixed(2)}
+                </span>
+                <span style={{ color: D.comment, marginLeft: 8 }}>
+                  距 {pnlPct.toFixed(1)}%
+                </span>
+                {plan.stop_loss.triggered && (
+                  <span style={{ color: D.red, marginLeft: 8, fontWeight: 700 }}>已触发</span>
+                )}
+              </div>
+            )}
+            {/* 入场条件 */}
+            {plan.entries.map((e) => (
+              <div key={e.id} style={{ padding: "2px 0" }}>
+                <span style={{ color: e.triggered ? D.cyan : D.comment }}>
+                  {e.triggered ? "●" : "○"} 加仓: {e.label}
+                </span>
+                {e.shares && (
+                  <span style={{ color: D.fg, marginLeft: 8 }}>{e.shares}股</span>
+                )}
+                {e.triggered && e.triggered_at && (
+                  <span style={{ color: D.cyan, marginLeft: 8, fontSize: 11 }}>
+                    ✓ {e.triggered_at.slice(5, 16)}
+                  </span>
+                )}
+              </div>
+            ))}
+            {/* 止盈条件 */}
+            {plan.exits.map((ex) => (
+              <div key={ex.id} style={{ padding: "2px 0" }}>
+                <span style={{ color: ex.triggered ? D.cyan : D.comment }}>
+                  {ex.triggered ? "●" : "○"} {ex.label}: {ex.price.toFixed(2)}
+                </span>
+                <span style={{ color: D.comment, marginLeft: 8 }}>
+                  卖{Math.round(ex.sell_pct * 100)}%
+                </span>
+                {ex.triggered && (
+                  <span style={{ color: D.cyan, marginLeft: 8, fontWeight: 700 }}>已触发</span>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function HistorySection({ data }: { data: SimData }) {
   const [open, setOpen] = useState(false); // 默认折叠
 
@@ -1334,6 +1459,11 @@ export default function SimPage() {
           <>
             {/* ── 实时摘要（总盈亏/收益率/胜率一目了然） ── */}
             <LiveSummaryBar live={data.live} ts={lastUpdate} />
+
+            {/* ── 交易计划 ── */}
+            {data.trade_plans && data.trade_plans.length > 0 && (
+              <TradePlanPanel plans={data.trade_plans} />
+            )}
 
             {/* ── 实时持仓 ── */}
             {hasLive ? (

@@ -429,6 +429,7 @@ class DeltaAlertEngine:
                 "_kind": kind,
                 "_level": level,
                 "_change_pct": change_pct,
+                "_price": price,
                 "_stealth": _notify_line(name, change_pct, stealth_extra),
             })
 
@@ -526,7 +527,8 @@ def write_alert_events(alerts: list[dict]):
             display = f"组合盈亏 {change_pct:+.1f}%"
         else:
             direction = "涨幅" if change_pct > 0 else "跌幅"
-            display = f"{symbol} {name} {direction} {abs(change_pct):.1f}%"
+            p = a.get("_price", 0)
+            display = f"{symbol} {name} {direction} {abs(change_pct):.1f}% 现价{p:.2f}" if p else f"{symbol} {name} {direction} {abs(change_pct):.1f}%"
 
         message = a.get("_stealth", a.get("message", ""))
         rows.append((ts_base + i, today, t, symbol, kind, a.get("_level", 2),
@@ -553,11 +555,15 @@ def write_alert_events(alerts: list[dict]):
 # 5a. L2 strategy signal consumption
 # ══════════════════════════════════════════
 
+PER_STOCK_DAILY_CAP = 8  # max L2 alerts per stock per day (safety net)
+
+
 def check_l2_signals() -> list[dict]:
     """读取 l2_strategy_signals.json 中未处理的信号，转换为 alert 格式。
 
     L2 daemon 写信号 → notifier 消费 → 统一 dispatch。
     用 lastConsumed 时间戳避免重复处理。
+    Per-stock daily cap: 超过 PER_STOCK_DAILY_CAP 的信号不写入 alert_events。
     """
     data = read_json_safe(L2_SIGNALS_PATH)
     if data is None:
@@ -575,7 +581,7 @@ def check_l2_signals() -> list[dict]:
     # 更新消费位点
     check_l2_signals._last_consumed = max(s.get("ts", 0) for s in new_signals)
 
-    # 转换为 notifier alert 格式
+    # 转换为 notifier alert 格式, applying per-stock daily cap
     alerts = []
     for s in new_signals:
         strategy = s.get("strategy", "")
@@ -583,6 +589,12 @@ def check_l2_signals() -> list[dict]:
         message = s.get("message", "")
         code = s.get("code", "")
         should_notify = s.get("notify", False)
+
+        # Per-stock daily cap check
+        count = check_l2_signals._daily_counts.get(code, 0)
+        if count >= PER_STOCK_DAILY_CAP:
+            continue
+        check_l2_signals._daily_counts[code] = count + 1
 
         alerts.append({
             "symbol": code,
@@ -597,8 +609,9 @@ def check_l2_signals() -> list[dict]:
     return alerts
 
 
-# Initialize consumption watermark
+# Initialize consumption watermark and daily counters
 check_l2_signals._last_consumed = 0
+check_l2_signals._daily_counts = {}  # {code: count} — reset daily at 08:00
 
 
 def stealth_dispatch(alerts: list[dict], *, sound: str = ""):
@@ -859,7 +872,211 @@ def check_market_open_close(
 
 
 # ══════════════════════════════════════════
-# 6. Main loop
+# 6. Trade Plan Engine
+# ══════════════════════════════════════════
+
+TRADE_PLANS_PATH = PROJECT_ROOT / "src" / "data" / "trade_plans.json"
+
+
+class TradePlanEngine:
+    """检查交易计划条件，触发通知 + 模拟执行。
+
+    每 tick 调用 check()，返回触发的告警列表（格式兼容 write_alert_events）。
+    触发后自动更新 trade_plans.json（标记 triggered=True）并写入 trade_plan_events 表。
+    """
+
+    def __init__(self):
+        self._plans: dict = {}
+        self._consecutive_tracker: dict[str, dict] = {}  # {plan_id: {cond_id: {"count": N, "last_date": "YYYY-MM-DD"}}}
+        self._last_mtime: float = 0.0
+        self._reload_plans()
+
+    def _reload_plans(self):
+        """Load or reload plans from JSON (checks mtime for hot-reload)."""
+        try:
+            mtime = TRADE_PLANS_PATH.stat().st_mtime
+        except FileNotFoundError:
+            self._plans = {}
+            return
+        if mtime == self._last_mtime:
+            return
+        self._last_mtime = mtime
+        data = read_json_safe(TRADE_PLANS_PATH)
+        if data:
+            self._plans = data.get("plans", {})
+
+    def _save_plans(self):
+        """Atomic write back to trade_plans.json."""
+        tmp = TRADE_PLANS_PATH.with_suffix(".tmp")
+        data = {"plans": self._plans}
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        tmp.rename(TRADE_PLANS_PATH)
+        self._last_mtime = TRADE_PLANS_PATH.stat().st_mtime
+
+    def check(self, quotes: dict) -> list[dict]:
+        """Check all active plans against current quotes.
+
+        Returns list of alert dicts compatible with write_alert_events().
+        """
+        self._reload_plans()
+        alerts: list[dict] = []
+        dirty = False
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        for plan_id, plan in self._plans.items():
+            if plan.get("status") != "active":
+                continue
+            symbol = plan.get("symbol", "")
+            q = quotes.get(symbol)
+            if not q:
+                continue
+            price = q.get("price", 0)
+            if price <= 0:
+                continue
+            amount = q.get("amount", 0)
+            change = q.get("change", 0)
+            name = q.get("name", symbol)
+
+            # 1. 止损（最高优先级）
+            sl = plan.get("stop_loss")
+            if sl and not sl.get("triggered") and price <= sl.get("price", 0):
+                alert = self._make_alert(
+                    plan_id, plan, "sl", "止损触发", price, name, change,
+                    event_type="sl_triggered",
+                )
+                alerts.append(alert)
+                sl["triggered"] = True
+                dirty = True
+                self._write_plan_event(plan_id, "sl_triggered", "sl", "止损触发", price, 0)
+                logger.warning(f"PLAN SL {plan['name']}: {symbol} @ {price:.2f} <= {sl['price']:.2f}")
+
+            # 2. 入场条件
+            for entry in plan.get("entries", []):
+                if entry.get("triggered"):
+                    continue
+                if self._check_entry_conditions(plan_id, entry, price, amount, q, today):
+                    shares = entry.get("shares", 0)
+                    alert = self._make_alert(
+                        plan_id, plan, entry["id"], f"加仓: {entry.get('label', '')}", price, name, change,
+                        event_type="entry_triggered", shares=shares,
+                    )
+                    alerts.append(alert)
+                    entry["triggered"] = True
+                    entry["triggered_at"] = datetime.now().isoformat()
+                    dirty = True
+                    self._write_plan_event(plan_id, "entry_triggered", entry["id"], entry.get("label", ""), price, shares)
+                    logger.info(f"PLAN ENTRY {plan['name']}: {entry['label']} @ {price:.2f} × {shares}")
+
+            # 3. 止盈条件
+            for ex in plan.get("exits", []):
+                if ex.get("triggered"):
+                    continue
+                if price >= ex.get("price", float("inf")):
+                    alert = self._make_alert(
+                        plan_id, plan, ex["id"], f"止盈: {ex.get('label', '')}", price, name, change,
+                        event_type="exit_triggered",
+                    )
+                    alerts.append(alert)
+                    ex["triggered"] = True
+                    dirty = True
+                    self._write_plan_event(plan_id, "exit_triggered", ex["id"], ex.get("label", ""), price, 0)
+                    logger.info(f"PLAN EXIT {plan['name']}: {ex['label']} @ {price:.2f}")
+
+        if dirty:
+            self._save_plans()
+        return alerts
+
+    def _check_entry_conditions(self, plan_id: str, entry: dict,
+                                price: float, amount: float, quote: dict,
+                                today: str) -> bool:
+        """Check all conditions for an entry. All must be satisfied."""
+        conds = entry.get("conditions", {})
+
+        if "price_above" in conds and price < conds["price_above"]:
+            return False
+        if "price_below" in conds and price > conds["price_below"]:
+            return False
+        if "volume_min" in conds and amount < conds["volume_min"]:
+            return False
+
+        # consecutive_days: price must stay above threshold for N distinct days
+        if "consecutive_days" in conds:
+            needed = conds["consecutive_days"]
+            key = f"{plan_id}:{entry['id']}"
+            if key not in self._consecutive_tracker:
+                self._consecutive_tracker[key] = {"count": 0, "last_date": ""}
+            tracker = self._consecutive_tracker[key]
+
+            threshold = conds.get("price_above", 0)
+            if price >= threshold:
+                if tracker["last_date"] != today:
+                    tracker["count"] += 1
+                    tracker["last_date"] = today
+            else:
+                tracker["count"] = 0
+                tracker["last_date"] = ""
+
+            if tracker["count"] < needed:
+                return False
+
+        return True
+
+    def _make_alert(self, plan_id: str, plan: dict, cond_id: str,
+                    label: str, price: float, name: str, change: float,
+                    event_type: str = "", shares: int = 0) -> dict:
+        """Create alert dict compatible with write_alert_events + stealth_dispatch."""
+        symbol = plan.get("symbol", "")
+        plan_name = plan.get("name", plan_id)
+
+        if shares > 0:
+            action_text = f"买入 {shares} 股 @ {price:.2f}"
+        elif event_type == "sl_triggered":
+            action_text = f"止损 @ {price:.2f}"
+        else:
+            action_text = f"@ {price:.2f}"
+
+        return {
+            "symbol": symbol,
+            "title": f"{name} {label}",
+            "message": f"[PLAN] {name} {label} {action_text}",
+            "display": f"📋 {plan_name} | {label} | {action_text}",
+            "_kind": "trade_plan",
+            "_level": 1,  # L1: 交易计划 = 需要立即行动
+            "_change_pct": change,
+            "_stealth": f"{symbol} {label} {action_text}",
+            "_plan_id": plan_id,
+            "_condition_id": cond_id,
+            "_event_type": event_type,
+        }
+
+    def _write_plan_event(self, plan_id: str, event_type: str,
+                          condition_id: str, label: str,
+                          price: float, shares: int):
+        """Write to trade_plan_events SQLite table."""
+        try:
+            from src.sim_trading.db import get_connection
+            conn = get_connection()
+            conn.execute(
+                "INSERT OR IGNORE INTO trade_plan_events "
+                "(ts, date, plan_id, event_type, condition_id, label, price, shares, message) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    int(time.time() * 1000),
+                    datetime.now().strftime("%Y-%m-%d"),
+                    plan_id, event_type, condition_id, label,
+                    price, shares,
+                    f"{label} @ {price:.2f}",
+                ),
+            )
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Failed to write plan event: {e}")
+
+
+# ══════════════════════════════════════════
+# 7. Main loop
 # ══════════════════════════════════════════
 
 def run():
@@ -911,6 +1128,7 @@ def run():
     last_alert_date = _now.date() if _now.hour >= 8 else None
     last_checked_count = len(watchlist)
     engine = DeltaAlertEngine(config)
+    plan_engine = TradePlanEngine()
     sent_open_today = False
     sent_close_today = False
     sent_summary_today = False
@@ -931,6 +1149,7 @@ def run():
             latest_hkd_cny_rate = None
             last_alert_date = today
             engine.reset()  # clear delta tracking for new day
+            check_l2_signals._daily_counts = {}  # reset per-stock L2 cap
             # 归档昨日数据 + 清空（新交易日重新开始）
             _archive_and_reset(today)
             # Reload config at day boundary
@@ -987,6 +1206,12 @@ def run():
                             write_alert_events(l2_web_only)
                         # l2_notify 加入 all_alerts（后面统一写入+分发）
                         all_alerts.extend(l2_notify)
+
+                    # ── Trade plan conditions ──
+                    plan_alerts = plan_engine.check(quotes)
+                    if plan_alerts:
+                        write_alert_events(plan_alerts)
+                        all_alerts.extend(plan_alerts)
 
                     if all_alerts:
                         print()
