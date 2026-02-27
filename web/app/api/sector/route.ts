@@ -115,6 +115,82 @@ function round(n: number, d: number): number {
   return Math.round(n * f) / f;
 }
 
+/* ── Live Sina fetch (real-time board rankings during trading hours) ── */
+
+const SINA_URLS: Record<string, string> = {
+  industry: "https://vip.stock.finance.sina.com.cn/q/view/newSinaHy.php",
+  concept: "https://vip.stock.finance.sina.com.cn/q/view/newFLJK.php",
+};
+
+// Throttle: at most once per 60s per category
+const _liveCache: Record<string, { ts: number }> = {};
+const LIVE_INTERVAL_MS = 60_000;
+
+async function refreshLiveRotation(category: string): Promise<void> {
+  // Only during A-share trading hours (roughly 9:15-15:05 CST)
+  const now = new Date();
+  const hhmm = now.getHours() * 100 + now.getMinutes();
+  const weekday = now.getDay();
+  if (weekday === 0 || weekday === 6 || hhmm < 915 || hhmm > 1505) return;
+
+  // Throttle
+  const cacheKey = category;
+  const last = _liveCache[cacheKey]?.ts || 0;
+  if (Date.now() - last < LIVE_INTERVAL_MS) return;
+
+  const sinaUrl = SINA_URLS[category];
+  if (!sinaUrl) return;
+
+  try {
+    const resp = await fetch(sinaUrl, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!resp.ok) return;
+    // Sina returns GBK-encoded text, decode properly
+    const buf = await resp.arrayBuffer();
+    const text = new TextDecoder("gbk").decode(buf);
+    const match = text.match(/=\s*(\{[\s\S]*\})/);
+    if (!match) return;
+    const data: Record<string, string> = JSON.parse(match[1]);
+
+    // Parse boards: value = "code,name,count,avg_price,change_amt,change_pct,..."
+    const boards: Array<{ name: string; pct: number }> = [];
+    for (const val of Object.values(data)) {
+      const parts = val.split(",");
+      if (parts.length >= 6) {
+        boards.push({ name: parts[1], pct: parseFloat(parts[5]) || 0 });
+      }
+    }
+    if (boards.length === 0) return;
+
+    boards.sort((a, b) => b.pct - a.pct);
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+    // Write to DB (need writable connection)
+    const wdb = new Database(SIM_DB_PATH);
+    try {
+      // Delete today's data for this category and re-insert (ranks may have changed)
+      wdb.prepare("DELETE FROM sector_rotation WHERE date = ? AND category = ?").run(today, category);
+      const ins = wdb.prepare(
+        "INSERT OR IGNORE INTO sector_rotation (date, category, board_name, change_pct, rank) VALUES (?, ?, ?, ?, ?)"
+      );
+      const tx = wdb.transaction(() => {
+        for (let i = 0; i < boards.length; i++) {
+          ins.run(today, category, boards[i].name, Math.round(boards[i].pct * 10000) / 10000, i + 1);
+        }
+      });
+      tx();
+    } finally {
+      wdb.close();
+    }
+
+    _liveCache[cacheKey] = { ts: Date.now() };
+  } catch {
+    // Sina fetch failed — silently use stale SQLite data
+  }
+}
+
 /* ── GET /api/sector ── */
 
 export async function GET(request: NextRequest) {
@@ -125,6 +201,9 @@ export async function GET(request: NextRequest) {
     const sort = url.searchParams.get("sort") || "change_pct";
     const topN = Math.min(Math.max(parseInt(url.searchParams.get("top_n") || "10", 10) || 10, 1), 50);
     const boardFilter = url.searchParams.get("board") || null;
+
+    // Refresh live data from Sina (throttled, trading hours only)
+    await refreshLiveRotation(category);
 
     db = new Database(SIM_DB_PATH, { readonly: true });
 
