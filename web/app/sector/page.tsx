@@ -49,10 +49,21 @@ interface AlertEntry {
   display: string;
 }
 
+interface BoardStock {
+  code: string;
+  name: string;
+  price: number;
+  change: number;
+  changePct: number;
+  volume: number;
+  amount: number;
+}
+
 interface BoardDetail {
   name: string;
   top10Count: number;
   rankHistory: Array<{ date: string; rank: number }>;
+  stocks: BoardStock[];
 }
 
 interface SectorData {
@@ -753,40 +764,88 @@ export default function SectorPage() {
 
                   {/* board detail panel */}
                   {boardDetail && (
-                    <div
-                      style={{
-                        background: D.currentLine,
-                        borderRadius: 4,
-                        padding: "8px 14px",
-                        marginTop: 8,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 16,
-                        fontSize: 12,
-                      }}
-                    >
-                      <span style={{ color: D.purple }}>▸</span>
-                      <span style={{ color: D.yellow, fontWeight: 700 }}>
-                        {boardDetail.name}
-                      </span>
-                      {boardDetail.rankHistory.length > 0 && (
-                        <span style={{ color: chgColor(boardDetail.rankHistory[0].rank <= 5 ? 1 : -1) }}>
-                          排名{boardDetail.rankHistory[0].rank}
+                    <div style={{ marginTop: 8 }}>
+                      {/* summary row */}
+                      <div
+                        style={{
+                          background: D.currentLine,
+                          borderRadius: "4px 4px 0 0",
+                          padding: "8px 14px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 16,
+                          fontSize: 12,
+                        }}
+                      >
+                        <span style={{ color: D.purple }}>▸</span>
+                        <span style={{ color: D.yellow, fontWeight: 700 }}>
+                          {boardDetail.name}
                         </span>
-                      )}
-                      <span style={{ color: D.fg }}>
-                        近1月 <span style={{ color: D.orange }}>{boardDetail.top10Count}</span>次进前10
-                      </span>
-                      {/* mini rank history */}
-                      <span style={{ color: D.comment }}>
-                        历史排名:{" "}
-                        {boardDetail.rankHistory.slice(0, 7).map((h, i) => (
-                          <span key={i} style={{ color: h.rank <= 5 ? D.red : h.rank <= 10 ? D.orange : D.comment }}>
-                            {i > 0 ? " → " : ""}
-                            {h.rank}
+                        {boardDetail.rankHistory.length > 0 && (
+                          <span style={{ color: chgColor(boardDetail.rankHistory[0].rank <= 5 ? 1 : -1) }}>
+                            排名{boardDetail.rankHistory[0].rank}
                           </span>
-                        ))}
-                      </span>
+                        )}
+                        <span style={{ color: D.fg }}>
+                          近1月 <span style={{ color: D.orange }}>{boardDetail.top10Count}</span>次进前10
+                        </span>
+                        <span style={{ color: D.comment }}>
+                          历史排名:{" "}
+                          {boardDetail.rankHistory.slice(0, 7).map((h, i) => (
+                            <span key={i} style={{ color: h.rank <= 5 ? D.red : h.rank <= 10 ? D.orange : D.comment }}>
+                              {i > 0 ? " → " : ""}
+                              {h.rank}
+                            </span>
+                          ))}
+                        </span>
+                        {boardDetail.stocks.length > 0 && (
+                          <span style={{ color: D.comment, marginLeft: "auto" }}>
+                            {boardDetail.stocks.length}只成分股
+                          </span>
+                        )}
+                      </div>
+                      {/* constituent stocks grid */}
+                      {boardDetail.stocks.length > 0 && (
+                        <div
+                          style={{
+                            background: "#1e1f29",
+                            borderRadius: "0 0 4px 4px",
+                            padding: "6px 14px 8px",
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "2px 0",
+                            fontSize: 12,
+                            maxHeight: 200,
+                            overflowY: "auto",
+                          }}
+                        >
+                          {/* header */}
+                          <div style={{ width: "100%", display: "flex", whiteSpace: "pre", color: D.pink, paddingBottom: 3, marginBottom: 2, borderBottom: `1px solid ${D.currentLine}` }}>
+                            <span style={{ width: "10ch" }}>代码</span>
+                            <span style={{ width: "8ch" }}>名称</span>
+                            <span style={{ width: "9ch", textAlign: "right" }}>现价</span>
+                            <span style={{ width: "8ch", textAlign: "right" }}>涨跌幅</span>
+                            <span style={{ width: "9ch", textAlign: "right" }}>涨跌额</span>
+                            <span style={{ width: "10ch", textAlign: "right" }}>成交额</span>
+                          </div>
+                          {boardDetail.stocks.map((s) => (
+                            <div key={s.code} style={{ width: "100%", display: "flex", whiteSpace: "pre", padding: "1px 0", borderBottom: "1px solid #191a21" }}>
+                              <span style={{ color: D.cyan, width: "10ch" }}>{s.code}</span>
+                              <span style={{ color: D.fg, width: "8ch" }}>{s.name.slice(0, 6)}</span>
+                              <span style={{ color: D.fg, width: "9ch", textAlign: "right" }}>{s.price.toFixed(2)}</span>
+                              <span style={{ color: chgColor(s.changePct), width: "8ch", textAlign: "right", fontWeight: 500 }}>
+                                {s.changePct >= 0 ? "+" : ""}{s.changePct.toFixed(2)}%
+                              </span>
+                              <span style={{ color: chgColor(s.change), width: "9ch", textAlign: "right" }}>
+                                {s.change >= 0 ? "+" : ""}{s.change.toFixed(2)}
+                              </span>
+                              <span style={{ color: D.comment, width: "10ch", textAlign: "right" }}>
+                                {s.amount >= 1e8 ? (s.amount / 1e8).toFixed(1) + "亿" : s.amount >= 1e4 ? (s.amount / 1e4).toFixed(0) + "万" : s.amount.toFixed(0)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </>

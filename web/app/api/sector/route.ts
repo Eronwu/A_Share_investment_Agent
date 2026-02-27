@@ -115,12 +115,84 @@ function round(n: number, d: number): number {
   return Math.round(n * f) / f;
 }
 
-/* ── Live Sina fetch (real-time board rankings during trading hours) ── */
+/* ── Sina board helpers ── */
 
 const SINA_URLS: Record<string, string> = {
   industry: "https://vip.stock.finance.sina.com.cn/q/view/newSinaHy.php",
   concept: "https://vip.stock.finance.sina.com.cn/q/view/newFLJK.php",
 };
+
+const SINA_NODE_URL =
+  "https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeDataSimple";
+
+// Cache board name→code mapping (refreshed with live rotation)
+let _boardCodeMap: Record<string, Record<string, string>> = {}; // category → {name: code}
+
+interface BoardStock {
+  code: string;
+  name: string;
+  price: number;
+  change: number;
+  changePct: number;
+  volume: number;
+  amount: number;
+}
+
+async function fetchBoardStocks(boardName: string, category: string): Promise<BoardStock[]> {
+  // Find the Sina board code for this name
+  let codeMap = _boardCodeMap[category];
+  if (!codeMap || !codeMap[boardName]) {
+    // Refresh the code map from Sina board list
+    const sinaUrl = SINA_URLS[category];
+    if (!sinaUrl) return [];
+    try {
+      const resp = await fetch(sinaUrl, {
+        headers: { "User-Agent": "Mozilla/5.0" },
+        signal: AbortSignal.timeout(5000),
+      });
+      const buf = await resp.arrayBuffer();
+      const text = new TextDecoder("gbk").decode(buf);
+      const match = text.match(/=\s*(\{[\s\S]*\})/);
+      if (match) {
+        const data: Record<string, string> = JSON.parse(match[1]);
+        codeMap = {};
+        for (const [code, val] of Object.entries(data)) {
+          const name = val.split(",")[1];
+          if (name) codeMap[name] = code;
+        }
+        _boardCodeMap[category] = codeMap;
+      }
+    } catch {
+      return [];
+    }
+  }
+
+  const boardCode = codeMap?.[boardName];
+  if (!boardCode) return [];
+
+  // Fetch constituent stocks
+  try {
+    const resp = await fetch(
+      `${SINA_NODE_URL}?node=${encodeURIComponent(boardCode)}&page=1&num=40`,
+      { headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(5000) },
+    );
+    const text = await resp.text();
+    const stocks: Array<Record<string, string>> = JSON.parse(text);
+    return stocks.map((s) => ({
+      code: s.symbol || "",
+      name: s.name || "",
+      price: parseFloat(s.trade) || 0,
+      change: parseFloat(s.pricechange) || 0,
+      changePct: parseFloat(s.changepercent) || 0,
+      volume: parseFloat(s.volume) || 0,
+      amount: parseFloat(s.amount) || 0,
+    })).sort((a, b) => b.changePct - a.changePct);
+  } catch {
+    return [];
+  }
+}
+
+/* ── Live Sina fetch (real-time board rankings during trading hours) ── */
 
 // Throttle: at most once per 60s per category
 const _liveCache: Record<string, { ts: number }> = {};
@@ -290,6 +362,7 @@ export async function GET(request: NextRequest) {
       name: string;
       top10Count: number;
       rankHistory: Array<{ date: string; rank: number }>;
+      stocks: BoardStock[];
     } | null = null;
 
     if (boardFilter) {
@@ -306,6 +379,10 @@ export async function GET(request: NextRequest) {
       }[];
 
       const top10Count = boardRows.filter((r) => r.rank <= 10).length;
+
+      // Fetch constituent stocks from Sina
+      const stocks = await fetchBoardStocks(boardFilter, category);
+
       boardDetail = {
         name: boardFilter,
         top10Count,
@@ -313,6 +390,7 @@ export async function GET(request: NextRequest) {
           date: r.date,
           rank: r.rank,
         })),
+        stocks,
       };
     }
 
