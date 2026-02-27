@@ -527,7 +527,7 @@ export default function SectorPage() {
                     // Collect all unique dates across indices (chronological)
                     const allDates = Array.from(
                       new Set(indices.flatMap((idx) => idx.history.map((h) => h.date))),
-                    ).sort();
+                    ).sort().reverse();
 
                     // Build lookup: indexId -> { date -> DayPoint }
                     const lookup = new Map<string, Map<string, DayPoint>>();
