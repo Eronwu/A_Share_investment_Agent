@@ -18,7 +18,7 @@ interface RotationRow {
 
 interface ComponentEntry {
   code: string;
-  change: number;
+  change_pct: number;
 }
 
 interface IndexEntry {
@@ -701,8 +701,8 @@ export default function SectorPage() {
                                       >
                                         <span style={{ color: D.cyan }}>{c.code}</span>
                                         {" "}
-                                        <span style={{ color: chgColor(c.change), fontWeight: 500 }}>
-                                          {fmtPct(c.change)}
+                                        <span style={{ color: chgColor(c.change_pct), fontWeight: 500 }}>
+                                          {fmtPct(c.change_pct)}
                                         </span>
                                       </span>
                                     ))}
