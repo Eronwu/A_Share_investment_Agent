@@ -14,6 +14,20 @@ const SECTOR_CONFIG_PATH = join(
   "data",
   "sector_config.json",
 );
+const MONITOR_CONFIG_PATH = join(
+  process.cwd(),
+  "..",
+  "src",
+  "data",
+  "monitor_config.json",
+);
+const MARKET_DATA_PATH = join(
+  process.cwd(),
+  "..",
+  "src",
+  "data",
+  "market_data.json",
+);
 
 /* ── Types ── */
 
@@ -66,7 +80,16 @@ interface SectorConfig {
 
 interface ComponentEntry {
   code: string;
-  change: number;
+  change_pct: number;
+  close: number | null;
+  name: string;
+}
+
+/** Raw shape from Python engine's components_json in SQLite */
+interface RawComponentEntry {
+  code: string;
+  change_pct: number;
+  close: number | null;
 }
 
 /* ── Config helpers ── */
@@ -113,6 +136,33 @@ function writeSectorConfig(config: SectorConfig) {
 function round(n: number, d: number): number {
   const f = 10 ** d;
   return Math.round(n * f) / f;
+}
+
+/** Build code→name map from monitor_config.json + market_data.json (best effort) */
+function buildStockNameMap(): Record<string, string> {
+  const map: Record<string, string> = {};
+  try {
+    if (existsSync(MONITOR_CONFIG_PATH)) {
+      const cfg = JSON.parse(readFileSync(MONITOR_CONFIG_PATH, "utf-8"));
+      const wl = cfg.watchlist || {};
+      for (const [code, entry] of Object.entries(wl)) {
+        const e = entry as { name?: string };
+        if (e.name) map[code] = e.name;
+      }
+    }
+  } catch { /* ignore */ }
+  try {
+    if (existsSync(MARKET_DATA_PATH)) {
+      const md = JSON.parse(readFileSync(MARKET_DATA_PATH, "utf-8"));
+      const services = md.services;
+      if (Array.isArray(services)) {
+        for (const s of services) {
+          if (s.id && s.name && !map[s.id]) map[s.id] = s.name;
+        }
+      }
+    }
+  } catch { /* ignore */ }
+  return map;
 }
 
 /* ── Sina board helpers ── */
@@ -397,6 +447,7 @@ export async function GET(request: NextRequest) {
     // ── Custom indices ──
 
     const config = readSectorConfig();
+    const stockNameMap = buildStockNameMap();
     const indices: Array<{
       id: string;
       name: string;
@@ -460,11 +511,17 @@ export async function GET(request: NextRequest) {
         /* table may not exist */
       }
 
-      // Components from latest row
+      // Components from latest row, enriched with stock names
       let components: ComponentEntry[] = [];
       if (dailyRows.length > 0 && dailyRows[0].components_json) {
         try {
-          components = JSON.parse(dailyRows[0].components_json);
+          const raw: RawComponentEntry[] = JSON.parse(dailyRows[0].components_json);
+          components = raw.map((c) => ({
+            code: c.code,
+            change_pct: c.change_pct,
+            close: c.close ?? null,
+            name: stockNameMap[c.code] || "",
+          }));
         } catch {
           /* invalid json */
         }

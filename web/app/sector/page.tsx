@@ -9,6 +9,8 @@ import { D } from "../theme";
 interface ComponentEntry {
   code: string;
   change_pct: number;
+  close: number | null;
+  name: string;
 }
 
 interface DayPoint {
@@ -960,33 +962,90 @@ export default function SectorPage() {
                 })}
               </svg>
 
-              {/* component stocks */}
+              {/* component stocks table */}
               <div style={{ marginTop: 12, borderTop: `1px solid ${D.currentLine}`, paddingTop: 8 }}>
                 <div style={{ color: D.comment, fontSize: 11, marginBottom: 6 }}>
                   成分股 ({idx.stocks.length}):
                 </div>
                 {idx.components.length > 0 ? (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {idx.components.map((c) => (
-                      <span
-                        key={c.code}
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      fontSize: 12,
+                      fontFamily: "'JetBrains Mono', monospace",
+                    }}
+                  >
+                    <thead>
+                      <tr
                         style={{
-                          display: "inline-block",
-                          padding: "4px 10px",
-                          borderRadius: 4,
-                          fontSize: 12,
-                          background: D.currentLine,
-                          color: D.fg,
+                          borderBottom: `1px solid ${D.currentLine}`,
+                          color: D.comment,
+                          fontSize: 11,
                         }}
                       >
-                        <span style={{ color: D.cyan }}>{c.code}</span>
-                        {" "}
-                        <span style={{ color: chgColor(c.change_pct), fontWeight: 600 }}>
-                          {fmtPct(c.change_pct)}
-                        </span>
-                      </span>
-                    ))}
-                  </div>
+                        <th style={{ textAlign: "left", padding: "4px 8px 4px 0", fontWeight: 500 }}>代码</th>
+                        <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 500 }}>名称</th>
+                        <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 500 }}>最新价</th>
+                        <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 500 }}>涨跌幅</th>
+                        <th style={{ textAlign: "right", padding: "4px 0 4px 8px", fontWeight: 500 }}>涨跌额</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {idx.components.map((c) => {
+                        const chgAmt =
+                          c.close != null && c.change_pct !== 0
+                            ? c.close * c.change_pct / (100 + c.change_pct)
+                            : null;
+                        return (
+                          <tr
+                            key={c.code}
+                            style={{ borderBottom: `1px solid #191a21` }}
+                          >
+                            <td style={{ padding: "5px 8px 5px 0", color: D.cyan }}>
+                              {c.code}
+                            </td>
+                            <td
+                              style={{
+                                padding: "5px 8px",
+                                color: c.name ? D.fg : D.comment,
+                                maxWidth: 120,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {c.name || "-"}
+                            </td>
+                            <td style={{ padding: "5px 8px", textAlign: "right", color: D.fg }}>
+                              {c.close != null ? c.close.toFixed(2) : "-"}
+                            </td>
+                            <td
+                              style={{
+                                padding: "5px 8px",
+                                textAlign: "right",
+                                color: chgColor(c.change_pct),
+                                fontWeight: 600,
+                              }}
+                            >
+                              {fmtPct(c.change_pct)}
+                            </td>
+                            <td
+                              style={{
+                                padding: "5px 0 5px 8px",
+                                textAlign: "right",
+                                color: chgAmt != null ? chgColor(chgAmt) : D.comment,
+                              }}
+                            >
+                              {chgAmt != null
+                                ? `${chgAmt >= 0 ? "+" : ""}${chgAmt.toFixed(2)}`
+                                : "-"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 ) : (
                   <div style={{ color: D.comment, fontSize: 11 }}>
                     暂无今日成分股涨跌数据
