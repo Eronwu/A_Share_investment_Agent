@@ -202,20 +202,34 @@ def _build_per_stock(
             elif kind_label not in key_signals:
                 key_signals.append(kind_label)
 
+        # Position size (market value in CNY)
+        cost = entry.get("cost", 0) or 0
+        shares = entry.get("shares", 0) or 0
+        is_hk = code.startswith("HK")
+        mkt_val = price * shares * (0.92 if is_hk else 1) if price > 0 and shares > 0 else 0
+
         per_stock.append({
             "code": code,
             "name": name,
             "type": entry.get("type", "watching"),
+            "star": entry.get("star", False),
             "price": price,
             "change": round(change, 2),
+            "shares": shares,
+            "mkt_val": round(mkt_val, 0),
             "signalCount": signal_count,
             "alertCount": alert_count,
             "direction": direction,
             "keySignals": key_signals[:6],
         })
 
-    # Sort: holdings first, then by signal count desc
-    per_stock.sort(key=lambda x: (0 if x["type"] == "holding" else 1, -x["signalCount"]))
+    # Sort: star first, then holdings by market value desc, then watching by signal count
+    per_stock.sort(key=lambda x: (
+        0 if x.get("star") else 1,
+        0 if x["type"] == "holding" else 1,
+        -x["mkt_val"],
+        -x["signalCount"],
+    ))
     return per_stock
 
 
@@ -259,7 +273,7 @@ def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]
 （3-5句：今日多空氛围、资金面整体方向、板块分化。用具体数字描述，例如"持仓中X只大单净买入、X只tick偏买超过20%"、"整体主力资金净流入约X亿"等）
 
 ## 重点关注
-（选2-3只微观数据最有特征的标的，每只写2-3句深度分析）
+（优先选★重点标记和持仓市值大的标的，每只写2-3句深度分析。★重点股必须出现在此节）
 
 1. **代码 名称** — ...
    在分析中自然引用微观数据，例如：
@@ -284,6 +298,8 @@ def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]
 - **严禁模糊表述**：不可写"资金流入显著"、"大单活跃"等空话，必须写"大单净买0.19亿"、"tick偏买12.4%"这样的具体数字
 - 数据要像专业研报一样自然融入文字中，不要堆砌成表格
 - 当大单方向与资金流向矛盾时（如大单净卖但主力净流入），需解读原因（算法拆单、对倒等）
+- 标注[★重点]的股票是用户最关注的，必须在"重点关注"中详细分析
+- 持仓市值大的股票对组合影响大，也应优先关注
 - 风格：专业简洁，像给基金经理写的晨会纪要
 - 输出纯 Markdown，不要代码块包裹"""
 
@@ -305,7 +321,15 @@ def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]
         lines.append("## 持仓标的")
         for ps in holdings:
             sigs = ", ".join(ps["keySignals"]) if ps["keySignals"] else "无信号"
-            line = f"- {ps['code']} {ps['name']} | 涨跌:{ps['change']:+.2f}% | 信号:{ps['signalCount']}条 | 方向:{ps['direction']} | {sigs}"
+            # Star + position size tags
+            tags = []
+            if ps.get("star"):
+                tags.append("★重点")
+            if ps["mkt_val"] > 0:
+                val_wan = ps["mkt_val"] / 10000
+                tags.append(f"持仓{val_wan:.1f}万")
+            tag_str = f" [{', '.join(tags)}]" if tags else ""
+            line = f"- {ps['code']} {ps['name']}{tag_str} | 涨跌:{ps['change']:+.2f}% | 信号:{ps['signalCount']}条 | 方向:{ps['direction']} | {sigs}"
             # Append L2 microstructure digest
             d = digest_map.get(ps["code"])
             if d:
