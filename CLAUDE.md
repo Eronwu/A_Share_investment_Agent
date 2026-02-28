@@ -110,50 +110,63 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
 ### 板块轮动 & 自定义指数 (`/sector`)
 
-**概览**: 东方财富风格的板块排名矩阵 + 用户自定义板块指数 + 主线行情告警。用于分析 A 股板块轮动节奏、识别持续上涨的主线板块。
+**概览**: 自定义板块指数 + 主线行情告警（核心功能）。板块轮动矩阵在独立子页面 `/sector/rotation`。
+
+**页面结构**:
+- `/sector` — 我的指数（轮动矩阵风格）+ 主线告警 + K 线图弹窗
+- `/sector/rotation` — 板块排名矩阵（独立页面，后续开发）
 
 **数据流**:
 ```
-[每日 15:30 cron]
+[每日 15:30 cron，自动跳过周末]
 sector_index_engine.py
-  ├── 新浪财经 API (Sina fallback 优先，EM push2 被公司网封)
-  │   ├── 行业板块: vip.stock.finance.sina.com.cn/q/view/newSinaHy.php (49 板块)
-  │   └── 概念板块: vip.stock.finance.sina.com.cn/q/view/newFLJK.php (84 板块)
-  ├── akshare stock_zh_a_hist() → 自定义指数成分股日线
+  ├── akshare stock_zh_a_hist() → 成分股日线（EM push2）
+  │   └── fallback: 腾讯财经 web.ifzq.gtimg.cn（EM 被封时自动切换）
+  ├── 腾讯 qt API → 成分股名称（batch 获取，进程内缓存）
+  ├── 新浪财经 API → 板块排名（GBK 解码）
+  │   ├── 行业板块: newSinaHy.php (49 板块)
+  │   └── 证监会行业: newFLJK.php (84 板块)
   ├── 等权平均涨跌幅 → 自定义指数值
-  ├── 线性回归斜率 + 累涨检测 → 主线告警
+  ├── 日收益率线性回归 + R² 过滤 + 累涨检测 → 主线告警
   └── 写入 sim_trading.db: sector_rotation / sector_daily / sector_alerts
           ↓
 /api/sector (Next.js, GET 只读 + POST 管理)
+  ├── indices: 含 30d history 数组（日期+涨跌+指数值）用于矩阵和K线图
+  ├── components: 含 name/close/change_pct（名称从 DB 读取，fallback watchlist）
+  └── alerts: 主线/接近主线告警
           ↓
-/sector 页面 (轮动矩阵 + 我的指数 + 主线告警)
+/sector 页面 (矩阵 + K线弹窗 + 告警)
 ```
 
-**轮动矩阵**:
-- 排名网格: 行=排名(1-N)，列=日期(横向滚动)，每格=板块名+涨跌幅%
-- 筛选器: 行业/概念、涨幅/跌幅、前10/20/30名
-- Rank 徽章: 1=红 2=橙 3=黄，其余灰色；涨幅红色/跌幅绿色（A股惯例）
-- 点击板块名 → 底部详情面板（排名N + 近1月N次进前10 + 历史排名序列）
-- 数据源: 优先 akshare (EM push2)，失败时 fallback 到新浪财经 API
-
-**自定义指数**:
-- 用户从自选股分组创建，支持增删成分股
-- 指数值 = 等权平均涨跌幅，从 baseline 100 累积
-- 展示: 今日/3日/5日/10日涨幅 + 累涨(自创建起) + 状态
-- Star 指数排最前，主线告警触发后状态显示红色「主线」标签
+**自定义指数（`/sector` 主页面）**:
+- 轮动矩阵风格: 左列固定（名称/状态/累涨/星标/删除），右侧横向滚动日涨跌%+指数值
+- 日期排列: 最新日期在左，向右滚动看历史
+- 点击指数行 → 弹窗显示 K 线图（SVG 折线图 + 面积填充 + baseline 100 参考线）
+- K 线图下方: 成分股表格（代码/名称/最新价/涨跌幅/涨跌额）
+- 停牌股处理: 无数据时按 0% 涨跌计入指数（不排除，防止指数被小盘股主导）
+- components_json 存储: `{code, name, change_pct, close}` — 名称从腾讯 qt API 获取
 
 **主线行情检测**:
-- 规则: `累涨 >= cumulative_gain_pct (默认8%)` AND `线性回归斜率 >= slope_threshold (默认0.3)`
+- 规则: `累涨 >= 8%` AND `日收益率回归斜率 >= 0.05` AND `R² >= 0.4`
+- 斜率归一化: 对日收益率%序列做线性回归（非绝对指数值），scale-independent
+- R² 过滤: 趋势必须可靠（R²<0.4 说明波动大，不是稳定趋势）
+- 接近告警: `累涨 >= 75%阈值` AND `slope > 0`（必须上行，防止回调误报）
+- watch 过滤: `watch=false` 的指数跳过检测
 - 过滤: `min_days_since_create (默认3天)` 排除一日游
-- 接近告警: 累涨 >= 75% 阈值时提前预警
-- 告警写入 `sector_alerts` 表，同时可写入 `alert_events` 复用通知分级
+
+**轮动矩阵（`/sector/rotation`）**:
+- 排名网格: 行=排名(1-N)，列=日期(横向滚动)，每格=板块名+涨跌幅%
+- 筛选器: 行业(新浪49)/行业(证监会84)、涨幅/跌幅、前10/20/30名
+- Rank 徽章: 1=红 2=橙 3=黄；点击板块名 → 底部详情面板
+
+**交易日检测**: `_is_trading_day()` 检查周一至周五。周末运行 `--indices`/`--rotation`/`--detect` 自动跳过，不产生脏数据。节假日由数据源返回空数据处理（停牌逻辑兜底）。
 
 **运行方式**:
 ```bash
-poetry run python -m src.tools.sector_index_engine              # 全量运行
+poetry run python -m src.tools.sector_index_engine              # 全量运行（跳过周末）
 poetry run python -m src.tools.sector_index_engine --rotation    # 仅采集板块排名
 poetry run python -m src.tools.sector_index_engine --indices     # 仅计算自定义指数
-poetry run python -m src.tools.sector_index_engine --backfill ID # 回填指数30天历史
+poetry run python -m src.tools.sector_index_engine --backfill ID # 回填指数30天历史（不受交易日限制）
 poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主线信号
 ```
 
@@ -163,15 +176,16 @@ poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主�
   "indices": {
     "phosphorus": {
       "name": "磷化工",
-      "stocks": ["000792", "600096", "002895"],
-      "created_at": "2026-02-26",
+      "stocks": ["000792", "600096", "002895", "000902"],
+      "created_at": "2026-02-27",
       "baseline_value": 100,
       "watch": true, "star": false
     }
   },
   "alert_rules": {
     "cumulative_gain_pct": 8,
-    "slope_threshold": 0.3,
+    "slope_threshold": 0.05,
+    "r_squared_min": 0.4,
     "lookback_days": 10,
     "min_days_since_create": 3
   },
@@ -180,16 +194,19 @@ poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主�
 ```
 
 **API**:
-- `GET /api/sector?category=industry&sort=change_pct&top_n=10&board=陶瓷行业` → rotation matrix + indices + alerts + config
+- `GET /api/sector` → indices (含 history 数组 + 成分股含 name) + alerts + rotation
+- `GET /api/sector?category=industry&sort=change_pct&top_n=10&board=板块名` → 轮动矩阵 + 板块详情
 - `POST /api/sector` → `{action: "create"|"update"|"delete"|"watch"|"star"|"config", ...}`
 - 配置文件存储格式为 dict (`{id: {...}}`)，API 层自动 dict↔array 转换
 
 **SQLite 表** (in `sim_trading.db`):
 - `sector_rotation`: 板块每日排名 (date, category, board_name, change_pct, rank) — 90 天保留
 - `sector_daily`: 自定义指数日线 (date, index_id, avg_change_pct, index_value, components_json) — 180 天保留
-- `sector_alerts`: 主线告警 (date, index_id, alert_type, cumulative_pct, slope, message) — 30 天保留
+- `sector_alerts`: 主线告警 (date, index_id, alert_type, cumulative_pct, slope, r_squared, message) — 30 天保留
 
-**历史回填**: 新建指数时通过 `--backfill` 从 akshare 拉取成分股 30 天日线计算历史指数值。板块轮动历史通过新浪成分股日 K 反推（每板块取前 8 只成分股等权平均）。
+**数据源降级链**: akshare (EM push2) → 腾讯财经 kline (web.ifzq.gtimg.cn) → 新浪财经 (板块排名)。腾讯 API 同时提供股票名称（qt 批量接口）和 QFQ 日 K 线，是 EM 被封时的主要 fallback。
+
+**历史回填**: `--backfill ID` 从腾讯财经拉取成分股 30 天日线（akshare 失败时自动切换），INSERT OR REPLACE 覆盖旧数据。回填不受交易日限制。
 
 **管理页面 (`/manage`)**:
 - 列标题行: `type | code | name | cost | shares | ▲ above | ▼ below | ★ | hide`
@@ -402,7 +419,7 @@ tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
 - **Poller 是生产者，UI 是消费者，二者无耦合。** Poller (`src/tools/market_data_poller.py`) 只写行情数据到 `market_data.json`（price/change/vol/amount 等）；用户配置（type/cost/shares/hidden）只存 `monitor_config.json`；告警规则（above/below）独立存 `alert_config.json`；告警事件存 `sim_trading.db` 的 `alert_events` 表。`/api/metrics` 负责合并三 JSON + SQLite alert_events + 计算派生字段（pnl）。任何 UI 端操作立即生效，不依赖 poller 周期。
 - **All market data and FX rate fetching must happen in the Python poller script**, not in Next.js API routes. The web layer (`/api/metrics`) only reads from `market_data.json` written by the poller. This keeps the data pipeline centralized and avoids duplicate API calls from the frontend.
 - **Poller 降级不丢数据。** 东方财富不可用时 fallback 到新浪（价格刷新，但无量比/换手率）。Sina 降级时从上轮 `market_data.json` 继承 `volRatio`/`turnover`，避免用 0 覆盖。FX 汇率获取失败时同理继承上次值。
-- **板块轮动独立于 Poller。** `sector_index_engine.py` 是独立 cron，不嵌入 poller 循环。数据源优先 akshare (EM push2)，公司网络封锁时自动 fallback 新浪财经 API。Web 层 `/api/sector` 只读 SQLite + `sector_config.json`，不调用外部 API。
+- **板块轮动独立于 Poller。** `sector_index_engine.py` 是独立 cron，不嵌入 poller 循环。数据源降级链: akshare (EM push2) → 腾讯财经 kline → 新浪财经。Web 层 `/api/sector` 只读 SQLite + `sector_config.json` + `monitor_config.json`(名称查找)，不调用外部 API。周末自动跳过（`_is_trading_day()` 检查）。
 - **告警规则与持仓配置分离。** `above`/`below` 阈值存在 `alert_config.json`，不存在 `monitor_config.json` 的 watchlist 条目里。所有读写告警的代码（web API、CLI、notifier）统一从 `alert_config.json` 操作。删除股票时同步清理两个文件。
 - **告警计算单一数据源。** Notifier (`stock_notifier.py` DeltaAlertEngine) 是唯一的告警计算引擎，产出写入 `sim_trading.db` 的 `alert_events` 表。Web 前端 (`useAlerts`) 只读取展示，不做任何告警计算。确保 terminal 弹窗和 web 日志完全一致，不重复计算，不重复告警。
 
@@ -521,11 +538,43 @@ Lightweight macOS notification daemon. Reads poller output, never fetches data d
 
 #### Playwright Testing
 
-UI 修改后使用 `/playwright-test` skill 验证。脚本存放在 `web/screenshots/`，截图输出到子目录。关键测试模式：
+**强制规则：每个新功能或 UI 改动必须附带 E2E 测试。** 不写测试的功能视为未完成。
+
+脚本存放在 `web/screenshots/`，截图输出到同目录。命名规则：`test_<feature>.mjs`。
+
+**每次功能开发必须包含：**
+1. **功能测试脚本** — 模拟完整用户流程（点击、填表、提交、验证结果）
+2. **截图验证** — 每个关键步骤截图，用 Read 工具查看 UI 是否正确
+3. **API 验证** — 拦截 API 响应，确认数据正确写入/读取
+4. **清理** — 测试创建的数据在测试结束时删除，不污染生产数据
+
+**测试模式参考：**
+- **CRUD 全流程**: 创建→验证显示→编辑→验证更新→删除→验证消失（参考 `test_plan_e2e.mjs`）
+- **EditableCell**: 点击 `[title="Click to edit"]` → fill → Enter → 等待 API → 验证 toast
 - **Visual**: 截图对比（loading 态、错误态、正常态）
-- **EditableCell CRUD**: 点击→输入→Enter→reload 验证持久化
 - **Data consistency**: summary 汇总 vs 行级求和（tolerance ~500 for 万-level rounding）
 - **Route intercept**: `page.route()` 模拟 API 失败/延迟，验证 error banner 和 loading 状态
+
+**检查清单（commit 前）：**
+```bash
+# 1. 全量回归
+node screenshots/test_full_checkup.mjs
+
+# 2. 功能专项测试
+node screenshots/test_<feature>.mjs
+
+# 3. TypeScript 编译
+cd web && npx tsc --noEmit
+
+# 4. 截图审查（用 Read 工具查看每张截图）
+```
+
+**现有测试脚本：**
+| 脚本 | 覆盖范围 |
+|------|---------|
+| `test_full_checkup.mjs` | 全站 49 项回归（Dashboard/Alerts/Sim/Manage/API/Navigation） |
+| `test_plan_e2e.mjs` | 交易计划 CRUD（创建/编辑止损/编辑条件单/暂停/删除） |
+| `test_trade_plans.mjs` | 交易计划 PlanCard 渲染验证 |
 
 #### Hidden List
 
