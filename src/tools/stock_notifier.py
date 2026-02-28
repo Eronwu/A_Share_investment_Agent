@@ -939,56 +939,7 @@ class TradePlanEngine:
             change = q.get("change_pct", 0) or q.get("change", 0)
             name = q.get("name", symbol)
 
-            # 1. 移动止损（在固定止损之前检查）
-            sl = plan.get("stop_loss")
-            ts = sl.get("trailing") if sl else None
-            if ts and ts.get("trail_pct") and sl and not sl.get("triggered"):
-                act_price = ts.get("activation_price", 0)
-                trail_pct = ts["trail_pct"]
-                hw = ts.get("high_watermark") or 0
-                is_active = ts.get("active", False)
-
-                if not is_active and price >= act_price:
-                    is_active = True
-                    hw = price
-                    logger.info(f"PLAN TS activated: {symbol} @ {price:.4f} (activation={act_price})")
-
-                if is_active:
-                    if price > hw:
-                        hw = price
-                    ts_stop = round(hw * (1 - trail_pct / 100), 4)
-                    if price <= ts_stop:
-                        drop_pct = (hw - price) / hw * 100
-                        alert = self._make_alert(
-                            plan_id, plan, "ts",
-                            f"移动止损: 峰{hw:.2f}→{price:.2f} (-{drop_pct:.1f}%)",
-                            price, name, change, event_type="ts_triggered",
-                        )
-                        alerts.append(alert)
-                        sl["triggered"] = True
-                        dirty = True
-                        self._write_plan_event(plan_id, "ts_triggered", "ts",
-                            f"移动止损 峰{hw:.2f} 回落{drop_pct:.1f}%", price, 0)
-                        logger.warning(f"PLAN TS {plan['name']}: {symbol} @ {price:.4f}, peak={hw:.4f}")
-
-                if is_active != ts.get("active") or hw != (ts.get("high_watermark") or 0):
-                    ts["active"] = is_active
-                    ts["high_watermark"] = round(hw, 4)
-                    dirty = True
-
-            # 2. 固定止损
-            if sl and not sl.get("triggered") and price <= sl.get("price", 0):
-                alert = self._make_alert(
-                    plan_id, plan, "sl", "止损触发", price, name, change,
-                    event_type="sl_triggered",
-                )
-                alerts.append(alert)
-                sl["triggered"] = True
-                dirty = True
-                self._write_plan_event(plan_id, "sl_triggered", "sl", "止损触发", price, 0)
-                logger.warning(f"PLAN SL {plan['name']}: {symbol} @ {price:.2f} <= {sl['price']:.2f}")
-
-            # 3. 条件单 (统一处理 buy/sell)
+            # 条件单 (统一处理 buy/sell/止损/trailing)
             for order in plan.get("orders", []):
                 if order.get("triggered"):
                     continue
@@ -998,13 +949,12 @@ class TradePlanEngine:
                     continue
                 side = order.get("side", "sell")
                 shares = order.get("shares", 0) or 0
-                sell_pct = order.get("sell_pct", 0) or 0
                 label = order.get("label", "")
                 if side == "buy":
                     prefix = f"买入 {shares}股"
                     event_type = "buy_triggered"
                 else:
-                    prefix = f"卖出 {int(sell_pct * 100)}%"
+                    prefix = f"卖出 {shares}股"
                     event_type = "sell_triggered"
                 alert = self._make_alert(
                     plan_id, plan, order["id"], f"{prefix}: {label}",

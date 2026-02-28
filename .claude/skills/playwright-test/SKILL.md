@@ -10,8 +10,20 @@ user_invocable: true
 
 Run the automated 49-test checkup suite against the web dashboard at `http://localhost:3120`, then visually inspect screenshots and report findings. Optionally write targeted tests for specific changes.
 
+## Mandatory Rule
+
+**每个新功能或 UI 改动必须编写对应 E2E 测试。不写测试的功能视为未完成。**
+
+新功能测试脚本必须包含：
+1. **完整用户流程** — 模拟点击、填表、选择、提交等真实交互
+2. **每步截图** — 关键步骤截图并用 Read 工具审查 UI 是否正确
+3. **API 验证** — 拦截 API response 确认数据正确读写
+4. **数据清理** — 测试创建的数据在测试结束时删除，不污染生产环境
+5. **结果输出** — `[PASS]`/`[FAIL]` 格式，方便快速扫描
+
 ## When to Use
 
+- **必须**: 开发任何新功能或 UI 改动后（不可跳过）
 - After modifying any `web/app/**/*.tsx` component or API route
 - When verifying visual layout, data rendering, or interactive components
 - When checking data consistency (summary totals vs row-level values)
@@ -71,19 +83,84 @@ Summarize as a table:
 | ... | ... | ... |
 ```
 
-### Step 4 (optional): Targeted tests
+### Step 4: Feature E2E test (MANDATORY for new features)
 
-If specific verification is needed beyond the checkup, write a focused script at `web/screenshots/test_<name>.mjs` and run it.
+每个新功能必须编写 `web/screenshots/test_<feature>.mjs`，覆盖完整 CRUD 流程：
+
+```javascript
+// test_<feature>.mjs 模板
+import { chromium } from "playwright";
+
+const ok = (t) => console.log(`  [PASS] ${t}`);
+const ng = (t, d) => console.log(`  [FAIL] ${t}: ${d || ""}`);
+
+const browser = await chromium.launch({ headless: true });
+const p = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+
+// 拦截 API 验证
+p.on("response", async (resp) => {
+  if (resp.url().includes("/api/xxx") && resp.request().method() === "POST") {
+    console.log("  API:", (await resp.text()).substring(0, 150));
+  }
+});
+
+await p.goto("http://localhost:3120/xxx", { waitUntil: "networkidle" });
+
+// ═══ 1. CREATE ═══
+console.log("\n═══ 1. Create ═══");
+// ... 点击、填表、提交
+await p.screenshot({ path: "screenshots/<feature>_01_create.png" });
+// 验证: 页面包含新创建的内容
+const body = await p.textContent("body");
+body.includes("xxx") ? ok("Created") : ng("Not visible");
+
+// ═══ 2. EDIT ═══
+console.log("\n═══ 2. Edit ═══");
+// ... 点击 EditableCell、修改值、Enter
+await p.screenshot({ path: "screenshots/<feature>_02_edit.png" });
+
+// ═══ 3. DELETE / CLEANUP ═══
+console.log("\n═══ 3. Cleanup ═══");
+p.on("dialog", (d) => d.accept());
+// ... 删除测试数据
+await p.screenshot({ path: "screenshots/<feature>_03_cleanup.png" });
+
+await browser.close();
+```
+
+**关键交互模式：**
+
+| 交互 | 代码 |
+|------|------|
+| EditableCell 编辑 | `await p.click('[title="Click to edit"]'); await p.locator('input:focus').fill('val'); await p.keyboard.press('Enter');` |
+| Select 下拉 | `await p.locator('select').first().selectOption({ index: N });` |
+| Checkbox 勾选 | `await p.click('input[type=checkbox]');` |
+| 确认弹窗 | `p.on("dialog", d => d.accept());` |
+| 等待 API 完成 | `await p.waitForTimeout(1000);` (API POST 后) |
+| 验证 toast | `(await p.textContent("body")).includes("Updated")` |
 
 ## Test Script Location
 
-Scripts live in `web/screenshots/` (must be under `web/` for playwright module resolution):
+Scripts live in `web/screenshots/` (must be under `web/` for playwright module resolution).
 
-- **Full checkup**: `web/screenshots/test_full_checkup.mjs` (always run this first)
-- **Alerts**: `web/screenshots/test_alerts_page.mjs`
-- **Navigation**: `web/screenshots/test_navigation.mjs`
-- **Sim**: `web/screenshots/test_sim_page.mjs`
-- **Targeted tests**: `web/screenshots/test_<name>.mjs`
+**Commit 前必须执行：**
+```bash
+node screenshots/test_full_checkup.mjs        # 全站回归 (49 tests)
+node screenshots/test_<feature>.mjs            # 功能专项
+cd web && npx tsc --noEmit                      # TypeScript 编译
+# 用 Read 工具查看截图确认 UI 无异常
+```
+
+**现有脚本：**
+
+| 脚本 | 覆盖范围 | 必跑 |
+|------|---------|------|
+| `test_full_checkup.mjs` | 全站 49 项回归 | 每次 commit |
+| `test_plan_e2e.mjs` | 交易计划 CRUD（创建/编辑/暂停/删除） | 改 plan 相关代码时 |
+| `test_trade_plans.mjs` | PlanCard 渲染验证 | 改 manage 页面时 |
+| `test_alerts_page.mjs` | Alerts 页面 | 改告警相关代码时 |
+| `test_sim_page.mjs` | Sim 页面 | 改模拟盘相关代码时 |
+| `test_navigation.mjs` | 全站路由 | 改路由/导航时 |
 
 ## Quick Reference
 

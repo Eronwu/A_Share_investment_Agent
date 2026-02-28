@@ -9,19 +9,11 @@ const MARKET_PATH = join(DATA_DIR, "market_data.json");
 
 /* ── Types ── */
 
-interface TrailingConfig {
-  trail_pct: number;
-  activation_price: number;
-  high_watermark: number | null;
-  active: boolean;
-}
-
 interface Order {
   id: string;
   side: "buy" | "sell";
   op: ">=" | "<=";
   price: number;
-  sell_pct: number | null;
   shares: number | null;
   volume_min: number | null;
   consecutive_days: number | null;
@@ -36,12 +28,6 @@ interface TradePlan {
   symbol: string;
   status: "active" | "paused";
   created_at: string;
-  stop_loss: {
-    price: number;
-    action: string;
-    triggered: boolean;
-    trailing?: TrailingConfig;
-  };
   orders: Order[];
 }
 
@@ -151,25 +137,14 @@ export async function POST(request: Request) {
           return NextResponse.json({ success: false, message: `Plan ${id} already exists` }, { status: 400 });
         }
 
-        // validate trailing_stop on stop_loss
-        if (plan.stop_loss?.trailing) {
-          const t = plan.stop_loss.trailing;
-          if (t.trail_pct <= 0 || t.trail_pct > 100) {
-            return NextResponse.json({ success: false, message: "trail_pct must be 0-100" }, { status: 400 });
-          }
-          if (t.activation_price <= 0) {
-            return NextResponse.json({ success: false, message: "activation_price must be > 0" }, { status: 400 });
-          }
-        }
-
         // validate orders
         if (plan.orders) {
           for (const o of plan.orders) {
             if (o.side === "buy" && (o.shares == null || o.shares <= 0)) {
               return NextResponse.json({ success: false, message: `Buy order ${o.id} needs shares > 0` }, { status: 400 });
             }
-            if (o.side === "sell" && (o.sell_pct == null || o.sell_pct <= 0 || o.sell_pct > 1)) {
-              return NextResponse.json({ success: false, message: `Sell order ${o.id} needs sell_pct 0-1` }, { status: 400 });
+            if (o.side === "sell" && (o.shares == null || o.shares <= 0)) {
+              return NextResponse.json({ success: false, message: `Sell order ${o.id} needs shares > 0` }, { status: 400 });
             }
           }
         }
@@ -179,7 +154,6 @@ export async function POST(request: Request) {
           symbol: plan.symbol,
           status: plan.status || "active",
           created_at: plan.created_at || new Date().toISOString().slice(0, 10),
-          stop_loss: plan.stop_loss || { price: 0, action: "sell_all", triggered: false },
           orders: plan.orders || [],
         };
 
@@ -190,7 +164,7 @@ export async function POST(request: Request) {
 
       /* ── update ── */
       case "update": {
-        const { id, updates } = body as { id: string; updates: Partial<TradePlan> & { trailing_stop?: TrailingConfig | null } };
+        const { id, updates } = body as { id: string; updates: Partial<TradePlan> };
         if (!id || !data.plans[id]) {
           return NextResponse.json({ success: false, message: `Plan ${id} not found` }, { status: 400 });
         }
@@ -200,28 +174,6 @@ export async function POST(request: Request) {
         if (updates.name !== undefined) plan.name = updates.name;
         if (updates.status !== undefined) plan.status = updates.status;
 
-        // stop_loss price update
-        if (updates.stop_loss !== undefined) {
-          if (updates.stop_loss.price !== undefined) plan.stop_loss.price = updates.stop_loss.price;
-          if (updates.stop_loss.triggered !== undefined) plan.stop_loss.triggered = updates.stop_loss.triggered;
-          if (updates.stop_loss.trailing !== undefined) plan.stop_loss.trailing = updates.stop_loss.trailing;
-        }
-
-        // trailing_stop shortcut (top-level)
-        if (updates.trailing_stop !== undefined) {
-          if (updates.trailing_stop === null) {
-            delete plan.stop_loss.trailing;
-          } else {
-            if (updates.trailing_stop.trail_pct <= 0 || updates.trailing_stop.trail_pct > 100) {
-              return NextResponse.json({ success: false, message: "trail_pct must be 0-100" }, { status: 400 });
-            }
-            if (updates.trailing_stop.activation_price <= 0) {
-              return NextResponse.json({ success: false, message: "activation_price must be > 0" }, { status: 400 });
-            }
-            plan.stop_loss.trailing = updates.trailing_stop;
-          }
-        }
-
         // orders replacement
         if (updates.orders !== undefined) {
           // validate
@@ -229,8 +181,8 @@ export async function POST(request: Request) {
             if (o.side === "buy" && (o.shares == null || o.shares <= 0)) {
               return NextResponse.json({ success: false, message: `Buy order ${o.id} needs shares > 0` }, { status: 400 });
             }
-            if (o.side === "sell" && (o.sell_pct == null || o.sell_pct <= 0 || o.sell_pct > 1)) {
-              return NextResponse.json({ success: false, message: `Sell order ${o.id} needs sell_pct 0-1` }, { status: 400 });
+            if (o.side === "sell" && (o.shares == null || o.shares <= 0)) {
+              return NextResponse.json({ success: false, message: `Sell order ${o.id} needs shares > 0` }, { status: 400 });
             }
           }
           plan.orders = updates.orders;

@@ -119,7 +119,6 @@ interface TradePlanOrder {
   side: string;
   op: string;
   price: number;
-  sell_pct?: number | null;
   shares?: number | null;
   label: string;
   triggered: boolean;
@@ -132,7 +131,6 @@ interface TradePlan {
   symbol: string;
   status: string;
   created_at: string;
-  stop_loss?: { price: number; triggered: boolean };
   orders: TradePlanOrder[];
   current_price: number;
   current_name: string;
@@ -1233,9 +1231,6 @@ function TradePlanPanel({ plans }: { plans: TradePlan[] }) {
         交易计划 ({activePlans.length} active) ──
       </div>
       {open && activePlans.map((plan) => {
-        const pnlPct = plan.current_price > 0 && plan.stop_loss
-          ? ((plan.current_price - plan.stop_loss.price) / plan.current_price * 100)
-          : 0;
         return (
           <div
             key={plan.id}
@@ -1260,20 +1255,6 @@ function TradePlanPanel({ plans }: { plans: TradePlan[] }) {
                 </span>
               </span>
             </div>
-            {/* 止损 */}
-            {plan.stop_loss && (
-              <div style={{ padding: "2px 0" }}>
-                <span style={{ color: plan.stop_loss.triggered ? D.red : D.comment, fontWeight: 500 }}>
-                  ◆ 止损 {plan.stop_loss.price.toFixed(2)}
-                </span>
-                <span style={{ color: D.comment, marginLeft: 8 }}>
-                  距 {pnlPct.toFixed(1)}%
-                </span>
-                {plan.stop_loss.triggered && (
-                  <span style={{ color: D.red, marginLeft: 8, fontWeight: 700 }}>已触发</span>
-                )}
-              </div>
-            )}
             {/* 条件单 */}
             {(plan.orders || []).map((o) => (
               <div key={o.id} style={{ padding: "2px 0" }}>
@@ -1281,7 +1262,7 @@ function TradePlanPanel({ plans }: { plans: TradePlan[] }) {
                   {o.triggered ? "●" : "○"} {o.op} {o.price.toFixed(2)}
                 </span>
                 <span style={{ color: o.side === "sell" ? D.pink : D.orange, marginLeft: 8 }}>
-                  {o.side === "sell" ? `卖出${Math.round((o.sell_pct || 0) * 100)}%` : `买入${o.shares || 0}股`}
+                  {o.side === "sell" ? `卖出${o.shares || 0}股` : `买入${o.shares || 0}股`}
                 </span>
                 <span style={{ color: D.comment, marginLeft: 8 }}>{o.label}</span>
                 {o.triggered && o.triggered_at && (

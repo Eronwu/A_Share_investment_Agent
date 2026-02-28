@@ -12,7 +12,6 @@ interface PlanOrder {
   side: "buy" | "sell";
   op: ">=" | "<=";
   price: number;
-  sell_pct: number | null;
   shares: number | null;
   volume_min: number | null;
   consecutive_days: number | null;
@@ -35,17 +34,6 @@ interface TradePlan {
   symbol: string;
   status: "active" | "paused";
   created_at: string;
-  stop_loss: {
-    price: number;
-    action: string;
-    triggered: boolean;
-    trailing?: {
-      trail_pct: number;
-      activation_price: number;
-      high_watermark: number | null;
-      active: boolean;
-    };
-  };
   orders: PlanOrder[];
   position?: PlanPosition | null;
   lot_size?: number | null;
@@ -53,10 +41,10 @@ interface TradePlan {
 
 /* ── Order type labels ── */
 const ORDER_TYPE_OPTIONS = [
-  { label: "到价卖出", side: "sell" as const, trailing: false },
-  { label: "到价买入", side: "buy" as const, trailing: false },
-  { label: "回落卖出", side: "sell" as const, trailing: true },
-  { label: "反弹买入", side: "buy" as const, trailing: true },
+  { label: "到价卖出", side: "sell" as const, op: ">=" as const, trailing: false },
+  { label: "到价买入", side: "buy" as const, op: ">=" as const, trailing: false },
+  { label: "回落卖出", side: "sell" as const, op: ">=" as const, trailing: true },
+  { label: "反弹买入", side: "buy" as const, op: "<=" as const, trailing: true },
 ];
 
 function orderTypeLabel(o: PlanOrder): string {
@@ -212,7 +200,7 @@ function TitleBar() {
         ))}
       </div>
       <span style={{ color: D.comment, fontSize: 12 }}>
-        manage -- watchlist + trade plans
+        manage -- 持仓管理 + 交易计划
       </span>
     </div>
   );
@@ -548,16 +536,12 @@ function PlanCard({
   plan,
   onToggle,
   onDelete,
-  onUpdateStopLoss,
-  onUpdateTrailingStop,
   onUpdateOrder,
 }: {
   planId: string;
   plan: TradePlan;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
-  onUpdateStopLoss: (id: string, price: string) => void;
-  onUpdateTrailingStop: (id: string, trailing: { trail_pct: number; activation_price: number; high_watermark: number | null; active: boolean } | null) => void;
   onUpdateOrder: (planId: string, orderId: string, field: string, val: string) => void;
 }) {
   const pos = plan.position;
@@ -567,14 +551,8 @@ function PlanCard({
   const posPrice = pos?.price ?? 0;
   const pnlPct = posCost > 0 && posPrice > 0 ? ((posPrice - posCost) / posCost * 100) : null;
   const pnlAmt = posCost > 0 && posPrice > 0 && posShares > 0 ? (posPrice - posCost) * posShares : null;
-  const trailing = plan.stop_loss.trailing;
 
-  // compute sell shares from sell_pct, aligned to lot size
-  function sellShares(pct: number): number {
-    if (!posShares || !pct) return 0;
-    const raw = Math.round(posShares * pct);
-    return Math.max(lotSize, Math.floor(raw / lotSize) * lotSize);
-  }
+
 
   const cardBorder = plan.status === "active" ? D.green : D.comment;
 
@@ -599,7 +577,7 @@ function PlanCard({
           cursor: "pointer",
           userSelect: "none",
         }} onClick={() => onToggle(planId)} title="Toggle active/paused">
-          {plan.status === "active" ? "ACTIVE" : "PAUSED"}
+          {plan.status === "active" ? "运行中" : "已暂停"}
         </span>
         <span style={{ color: D.cyan, fontWeight: 700 }}>{plan.symbol}</span>
         <span style={{ color: D.fg }}>{plan.name}</span>
@@ -636,72 +614,12 @@ function PlanCard({
         </span>
       </div>
 
-      {/* stop loss row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, marginBottom: 4 }}>
-        <span style={{ color: D.red, fontWeight: 700 }}>SL:</span>
-        <EditableCell
-          value={plan.stop_loss.price}
-          onSave={(v) => onUpdateStopLoss(planId, v)}
-          width="60px"
-          isNumber
-          color={D.red}
-        />
-        {trailing && (
-          <span style={{ color: D.orange, fontSize: 11 }}>
-            | trailing: {trailing.active ? "ON" : "OFF"} {trailing.activation_price.toFixed(2)} -{trailing.trail_pct}%
-            {trailing.high_watermark != null && <> hw:{trailing.high_watermark.toFixed(2)}</>}
-          </span>
-        )}
-        {!trailing && (
-          <button
-            onClick={() => {
-              const act = prompt("Activation price for trailing stop:");
-              if (!act) return;
-              const pct = prompt("Trail pct (e.g. 8 for 8%):");
-              if (!pct) return;
-              onUpdateTrailingStop(planId, {
-                trail_pct: Number(pct),
-                activation_price: Number(act),
-                high_watermark: null,
-                active: false,
-              });
-            }}
-            style={{
-              background: "transparent",
-              border: `1px solid ${D.comment}`,
-              color: D.comment,
-              cursor: "pointer",
-              fontSize: 10,
-              padding: "0 6px",
-              borderRadius: 2,
-              fontFamily: "JetBrains Mono, monospace",
-            }}
-          >+trailing</button>
-        )}
-        {trailing && (
-          <button
-            onClick={() => onUpdateTrailingStop(planId, null)}
-            style={{
-              background: "transparent",
-              border: `1px solid ${D.comment}`,
-              color: D.comment,
-              cursor: "pointer",
-              fontSize: 10,
-              padding: "0 6px",
-              borderRadius: 2,
-              fontFamily: "JetBrains Mono, monospace",
-            }}
-          >-trailing</button>
-        )}
-      </div>
-
       {/* orders */}
       {plan.orders.length > 0 && (
         <div style={{ fontSize: 12, marginTop: 4 }}>
-          <div style={{ color: D.comment, fontSize: 11, marginBottom: 2 }}>-- orders --</div>
+          <div style={{ color: D.comment, fontSize: 11, marginBottom: 2 }}>-- 条件单 --</div>
           {plan.orders.map((o) => {
             const isSell = o.side === "sell";
-            const sShares = isSell && o.sell_pct ? sellShares(o.sell_pct) : null;
             return (
               <div key={o.id} style={{
                 display: "flex",
@@ -731,23 +649,22 @@ function PlanCard({
                   isNumber
                   color={isSell ? D.red : D.green}
                 />
-                {isSell && sShares != null && sShares > 0 && (
-                  <span style={{ color: D.orange, fontSize: 11 }}>
-                    {sShares}股
-                    <span style={{ color: D.comment }}> ({((o.sell_pct || 0) * 100).toFixed(0)}%)</span>
-                  </span>
+                {o.shares != null && o.shares > 0 && (
+                  <EditableCell
+                    value={o.shares}
+                    onSave={(v) => onUpdateOrder(planId, o.id, "shares", v)}
+                    width="56px"
+                    isNumber
+                    color={isSell ? D.orange : D.green}
+                  />
                 )}
-                {!isSell && o.shares != null && (
-                  <span style={{ color: D.green, fontSize: 11 }}>
-                    {o.shares}股
-                  </span>
-                )}
+                <span style={{ color: isSell ? D.orange : D.green, fontSize: 11 }}>股</span>
                 {o.trailing && (
-                  <span style={{ color: D.purple, fontSize: 10 }}>[trail {o.trailing.pct}%]</span>
+                  <span style={{ color: D.purple, fontSize: 10 }}>回落{o.trailing.pct}%</span>
                 )}
                 <span style={{ color: D.comment, fontSize: 11 }}>{o.label}</span>
                 {o.triggered && (
-                  <span style={{ color: D.yellow, fontSize: 10 }}>[DONE {o.triggered_at?.slice(0, 10) || ""}]</span>
+                  <span style={{ color: D.yellow, fontSize: 10 }}>已触发 {o.triggered_at?.slice(0, 10) || ""}</span>
                 )}
               </div>
             );
@@ -772,16 +689,12 @@ function AddPlanForm({
 
   const [symbol, setSymbol] = useState(hkStocks[0]?.[0] || "");
   const [planName, setPlanName] = useState("");
-  const [stopLossPrice, setStopLossPrice] = useState("");
-  const [trailingEnabled, setTrailingEnabled] = useState(false);
-  const [trailPct, setTrailPct] = useState("");
-  const [activationPrice, setActivationPrice] = useState("");
 
   // orders draft
   interface OrderDraft {
     typeIdx: number; // index into ORDER_TYPE_OPTIONS
     price: string;
-    quantity: string; // sell_pct (0-100) or buy shares
+    quantity: string; // shares count
     trailPct: string;
     label: string;
   }
@@ -806,13 +719,13 @@ function AddPlanForm({
     const builtOrders = orders.map((o, i) => {
       const opt = ORDER_TYPE_OPTIONS[o.typeIdx];
       const isSell = opt.side === "sell";
+      const qty = Number(o.quantity) || 0;
       const order: Record<string, unknown> = {
         id: `o${i + 1}`,
         side: opt.side,
-        op: isSell ? ">=" : (opt.trailing ? "<=" : ">="),
+        op: opt.op,
         price: Number(o.price) || 0,
-        sell_pct: isSell ? (Number(o.quantity) || 0) / 100 : null,
-        shares: !isSell ? (Number(o.quantity) || 0) : null,
+        shares: qty || null,
         volume_min: null,
         consecutive_days: null,
         trailing: opt.trailing && o.trailPct ? { pct: Number(o.trailPct), watermark: null, active: false } : null,
@@ -828,19 +741,6 @@ function AddPlanForm({
       symbol,
       status: "active",
       created_at: new Date().toISOString().slice(0, 10),
-      stop_loss: {
-        price: Number(stopLossPrice) || 0,
-        action: "sell_all",
-        triggered: false,
-        ...(trailingEnabled && trailPct && activationPrice ? {
-          trailing: {
-            trail_pct: Number(trailPct),
-            activation_price: Number(activationPrice),
-            high_watermark: null,
-            active: false,
-          }
-        } : {}),
-      },
       orders: builtOrders,
     };
 
@@ -886,16 +786,16 @@ function AddPlanForm({
         color: D.fg,
       }}>
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: D.purple }}>
-          New Trade Plan
+          新建交易计划
         </div>
 
         {/* -- section: basic info -- */}
         <div style={{ color: D.comment, fontSize: 11, marginBottom: 6, borderBottom: `1px solid ${D.currentLine}`, paddingBottom: 4 }}>
-          -- basic --
+          -- 基本信息 --
         </div>
         <div style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "center" }}>
           <label style={{ display: "flex", alignItems: "center", gap: 4, color: D.comment }}>
-            stock:
+            股票:
             <select style={{ ...selectS, width: 180 }} value={symbol} onChange={(e) => setSymbol(e.target.value)}>
               {hkStocks.map(([c, v]) => (
                 <option key={c} value={c}>{c} {v.name}</option>
@@ -903,72 +803,21 @@ function AddPlanForm({
             </select>
           </label>
           <label style={{ display: "flex", alignItems: "center", gap: 4, color: D.comment }}>
-            name:
+            计划名:
             <input
               style={{ ...inputS, width: 180 }}
               value={planName}
               onChange={(e) => setPlanName(e.target.value)}
-              placeholder="plan name"
+              placeholder="分批建仓"
             />
           </label>
         </div>
 
-        {/* -- section: risk -- */}
-        <div style={{ color: D.comment, fontSize: 11, marginBottom: 6, borderBottom: `1px solid ${D.currentLine}`, paddingBottom: 4 }}>
-          -- risk --
-        </div>
-        <div style={{ display: "flex", gap: 12, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 4, color: D.red }}>
-            stop_loss:
-            <input
-              style={{ ...inputS, width: 80, color: D.red }}
-              type="number"
-              step="any"
-              value={stopLossPrice}
-              onChange={(e) => setStopLossPrice(e.target.value)}
-              placeholder="price"
-            />
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: 4, color: D.comment, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={trailingEnabled}
-              onChange={(e) => setTrailingEnabled(e.target.checked)}
-              style={{ accentColor: D.orange }}
-            />
-            trailing stop
-          </label>
-          {trailingEnabled && (
-            <>
-              <label style={{ display: "flex", alignItems: "center", gap: 4, color: D.orange }}>
-                activation:
-                <input
-                  style={{ ...inputS, width: 80 }}
-                  type="number"
-                  step="any"
-                  value={activationPrice}
-                  onChange={(e) => setActivationPrice(e.target.value)}
-                  placeholder="price"
-                />
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 4, color: D.orange }}>
-                trail%:
-                <input
-                  style={{ ...inputS, width: 60 }}
-                  type="number"
-                  step="0.1"
-                  value={trailPct}
-                  onChange={(e) => setTrailPct(e.target.value)}
-                  placeholder="%"
-                />
-              </label>
-            </>
-          )}
-        </div>
+
 
         {/* -- section: orders -- */}
         <div style={{ color: D.comment, fontSize: 11, marginBottom: 6, borderBottom: `1px solid ${D.currentLine}`, paddingBottom: 4 }}>
-          -- orders --
+          -- 条件单 --
         </div>
         {orders.map((o, idx) => {
           const opt = ORDER_TYPE_OPTIONS[o.typeIdx];
@@ -985,7 +834,7 @@ function AddPlanForm({
                 ))}
               </select>
               <label style={{ display: "flex", alignItems: "center", gap: 2, color: D.comment }}>
-                price:
+                价格:
                 <input
                   style={{ ...inputS, width: 70 }}
                   type="number"
@@ -995,19 +844,19 @@ function AddPlanForm({
                 />
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: 2, color: D.comment }}>
-                {isSell ? "sell%:" : "shares:"}
+                {"股数:"}
                 <input
                   style={{ ...inputS, width: 60 }}
                   type="number"
-                  step={isSell ? "1" : "100"}
+                  step="100"
                   value={o.quantity}
                   onChange={(e) => updateOrder(idx, "quantity", e.target.value)}
-                  placeholder={isSell ? "50" : "1000"}
+                  placeholder="1000"
                 />
               </label>
               {opt.trailing && (
                 <label style={{ display: "flex", alignItems: "center", gap: 2, color: D.purple }}>
-                  trail%:
+                  回落%:
                   <input
                     style={{ ...inputS, width: 50 }}
                     type="number"
@@ -1021,7 +870,7 @@ function AddPlanForm({
                 style={{ ...inputS, width: 120 }}
                 value={o.label}
                 onChange={(e) => updateOrder(idx, "label", e.target.value)}
-                placeholder="label"
+                placeholder="标签"
               />
               <button
                 onClick={() => removeOrder(idx)}
@@ -1051,7 +900,7 @@ function AddPlanForm({
             fontFamily: "JetBrains Mono, monospace",
             marginBottom: 12,
           }}
-        >+ add order</button>
+        >+ 添加条件</button>
 
         {/* actions */}
         <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
@@ -1067,7 +916,7 @@ function AddPlanForm({
               borderRadius: 3,
               fontFamily: "JetBrains Mono, monospace",
             }}
-          >Cancel</button>
+          >取消</button>
           <button
             onClick={handleSubmit}
             disabled={!symbol || !planName}
@@ -1082,7 +931,7 @@ function AddPlanForm({
               borderRadius: 3,
               fontFamily: "JetBrains Mono, monospace",
             }}
-          >Create</button>
+          >创建</button>
         </div>
       </div>
     </div>
@@ -1297,15 +1146,6 @@ export default function ManagePage() {
     await planPost({ action: "delete", id });
   }
 
-  async function handlePlanUpdateStopLoss(id: string, priceStr: string) {
-    const price = Number(priceStr);
-    if (isNaN(price)) return;
-    await planPost({ action: "update", id, updates: { stop_loss: { price, action: "sell_all", triggered: false } } });
-  }
-
-  async function handlePlanTrailingStop(id: string, trailing: { trail_pct: number; activation_price: number; high_watermark: number | null; active: boolean } | null) {
-    await planPost({ action: "update", id, updates: { trailing_stop: trailing } });
-  }
 
   async function handlePlanUpdateOrder(planId: string, orderId: string, field: string, val: string) {
     const plan = plans[planId];
@@ -1314,7 +1154,6 @@ export default function ManagePage() {
       if (o.id !== orderId) return o;
       const updated = { ...o };
       if (field === "price") updated.price = Number(val) || 0;
-      if (field === "sell_pct") updated.sell_pct = Number(val) || 0;
       if (field === "shares") updated.shares = Number(val) || 0;
       return updated;
     });
@@ -1460,7 +1299,7 @@ export default function ManagePage() {
           onClick={() => setPlansOpen((v) => !v)}
         >
           <span style={{ color: D.purple }}>{plansOpen ? "v" : ">"}</span>
-          {" "}# -- trade plans ({planEntries.length}) --
+          {" "}# -- 交易计划 ({planEntries.length}) --
           <button
             onClick={(e) => { e.stopPropagation(); setShowAddPlan(true); }}
             style={{
@@ -1475,7 +1314,7 @@ export default function ManagePage() {
               fontFamily: "JetBrains Mono, monospace",
               marginLeft: "auto",
             }}
-          >+ new plan</button>
+          >+ 新建计划</button>
         </div>
         {plansOpen && planEntries.map(([id, plan]) => (
           <PlanCard
@@ -1484,13 +1323,11 @@ export default function ManagePage() {
             plan={plan}
             onToggle={handlePlanToggle}
             onDelete={handlePlanDelete}
-            onUpdateStopLoss={handlePlanUpdateStopLoss}
-            onUpdateTrailingStop={handlePlanTrailingStop}
             onUpdateOrder={handlePlanUpdateOrder}
           />
         ))}
         {plansOpen && planEntries.length === 0 && (
-          <div style={{ color: D.comment, padding: "6px 0", fontSize: 12 }}>No trade plans.</div>
+          <div style={{ color: D.comment, padding: "6px 0", fontSize: 12 }}>暂无交易计划</div>
         )}
 
         {/* ── settings (collapsed by default) ── */}
