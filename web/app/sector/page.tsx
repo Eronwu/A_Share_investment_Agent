@@ -343,8 +343,9 @@ export default function SectorPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // expanded index row
+  // expanded index row + hover highlight
   const [expandedIndex, setExpandedIndex] = useState<string | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<string | null>(null);
 
   // section collapse
   const [indicesOpen, setIndicesOpen] = useState(true);
@@ -401,6 +402,18 @@ export default function SectorPage() {
     if (!confirm(`删除指数 ${name}?`)) return;
     await postAction({ action: "delete", id });
   }
+
+  // Escape key closes modals
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        if (expandedIndex) setExpandedIndex(null);
+        else if (showCreateModal) setShowCreateModal(false);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [expandedIndex, showCreateModal]);
 
   /* ── Render ── */
 
@@ -576,11 +589,11 @@ export default function SectorPage() {
                                   alignItems: "center",
                                   borderBottom: "1px solid #191a21",
                                   gap: 2,
-                                  cursor: "pointer",
+                                  background: hoverIndex === idx.id ? "#2a2b36" : "transparent",
+                                  transition: "background 0.1s",
                                 }}
-                                onClick={() =>
-                                  setExpandedIndex(expandedIndex === idx.id ? null : idx.id)
-                                }
+                                onMouseEnter={() => setHoverIndex(idx.id)}
+                                onMouseLeave={() => setHoverIndex(null)}
                               >
                                 {/* star */}
                                 <span
@@ -592,16 +605,16 @@ export default function SectorPage() {
                                     fontSize: 12,
                                     textAlign: "center",
                                   }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggleStar(idx.id, idx.star);
-                                  }}
+                                  onClick={() => handleToggleStar(idx.id, idx.star)}
                                 >
                                   {idx.star ? "★" : "☆"}
                                 </span>
-                                {/* name + status */}
-                                <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
-                                  <div style={{ fontSize: 12, color: D.fg, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {/* name — click to open chart modal */}
+                                <div
+                                  style={{ flex: 1, minWidth: 0, overflow: "hidden", cursor: "pointer" }}
+                                  onClick={() => setExpandedIndex(idx.id)}
+                                >
+                                  <div style={{ fontSize: 12, color: D.cyan, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                     {idx.name}
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 1 }}>
@@ -630,7 +643,7 @@ export default function SectorPage() {
                                     fontSize: 12,
                                     fontWeight: 700,
                                     color: chgColor(idx.cumGain),
-                                    paddingRight: 6,
+                                    paddingRight: 4,
                                     whiteSpace: "nowrap",
                                   }}
                                 >
@@ -642,14 +655,12 @@ export default function SectorPage() {
                                     color: D.comment,
                                     cursor: "pointer",
                                     fontWeight: 700,
-                                    fontSize: 13,
+                                    fontSize: 14,
                                     userSelect: "none",
-                                    paddingRight: 4,
+                                    padding: "0 4px",
+                                    lineHeight: 1,
                                   }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDelete(idx.id, idx.name);
-                                  }}
+                                  onClick={() => handleDelete(idx.id, idx.name)}
                                   title="删除"
                                 >
                                   ×
@@ -687,7 +698,18 @@ export default function SectorPage() {
                           {indices.map((idx) => {
                             const idxLookup = lookup.get(idx.id)!;
                             return (
-                              <div key={idx.id} style={{ display: "flex" }}>
+                              <div
+                                key={idx.id}
+                                style={{
+                                  display: "flex",
+                                  cursor: "pointer",
+                                  background: hoverIndex === idx.id ? "#2a2b36" : "transparent",
+                                  transition: "background 0.1s",
+                                }}
+                                onClick={() => setExpandedIndex(idx.id)}
+                                onMouseEnter={() => setHoverIndex(idx.id)}
+                                onMouseLeave={() => setHoverIndex(null)}
+                              >
                                 {allDates.map((d) => {
                                   const pt = idxLookup.get(d);
                                   return (
