@@ -110,11 +110,10 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
 ### 板块轮动 & 自定义指数 (`/sector`)
 
-**概览**: 自定义板块指数 + 主线行情告警（核心功能）。板块轮动矩阵在独立子页面 `/sector/rotation`。
+**概览**: 自定义板块指数 + 主线行情告警。板块轮动功能已归档（前端页面删除，DB 数据保留，代码在 git 历史 `4eeacb8` 中）。
 
 **页面结构**:
 - `/sector` — 我的指数（轮动矩阵风格）+ 主线告警 + K 线图弹窗
-- `/sector/rotation` — 板块排名矩阵（独立页面，后续开发）
 
 **数据流**:
 ```
@@ -154,10 +153,7 @@ sector_index_engine.py
 - watch 过滤: `watch=false` 的指数跳过检测
 - 过滤: `min_days_since_create (默认3天)` 排除一日游
 
-**轮动矩阵（`/sector/rotation`）**:
-- 排名网格: 行=排名(1-N)，列=日期(横向滚动)，每格=板块名+涨跌幅%
-- 筛选器: 行业(新浪49)/行业(证监会84)、涨幅/跌幅、前10/20/30名
-- Rank 徽章: 1=红 2=橙 3=黄；点击板块名 → 底部详情面板
+**板块轮动（已归档）**: 前端页面已删除，`sector_rotation` 表数据保留（90 天自动清理）。`--rotation` 命令仍可采集数据。恢复前端: `git show 4eeacb8:web/app/sector/rotation/page.tsx`。
 
 **交易日检测**: `_is_trading_day()` 检查周一至周五。周末运行 `--indices`/`--rotation`/`--detect` 自动跳过，不产生脏数据。节假日由数据源返回空数据处理（停牌逻辑兜底）。
 
