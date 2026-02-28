@@ -15,7 +15,7 @@ poetry run python src/backtester.py --ticker 301157 --start-date 2024-12-11 --en
 poetry run python run_with_backend.py                   # FastAPI on :8000 (Swagger at /docs)
 poetry run python run_with_backend.py --ticker 002848   # API server + immediate analysis
 poetry run python -m src.sim_trading.replay_runner       # sim trading replay (writes to sim_trading.db)
-poetry run pytest src/sim_trading/test_sim_trading.py -v # sim trading tests (54 tests)
+poetry run pytest src/sim_trading/test_sim_trading.py -v # sim trading tests (62 tests)
 ```
 
 ### Web Dashboard (Next.js)
@@ -101,12 +101,12 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 - 日报卡片可折叠，点击标题收起/展开
 
 **模拟盘页面 (`/sim`)**:
-- `/api/sim` 读 `sim_trading.db`（better-sqlite3，只读），TS 端计算 Sharpe/MaxDD/归因
-- 摘要栏: 收益率/夏普/胜率/最大回撤/盈亏比/净值/交易笔数/手续费
-- 净值曲线: 内联 SVG 折线图 (760×130)，<2 个数据点时显示文字
-- 模拟持仓: 与主页 `HoldRow` 风格一致 (SIM 类型标签，代码/现价/成本/盈亏%/市值/浮盈/止损/止盈)
-- 交易记录: 可折叠表格，退出原因和策略名中文翻译
-- 归因面板: 按策略 + 按股票，PnL 降序
+- `/api/sim` 读 `sim_trading.db`（better-sqlite3，只读），TS 端计算 Sharpe/MaxDD/归因。手续费由 Python 端计算写入 DB，TS 直接读取不重算。
+- 摘要栏: 收益率/夏普/胜率/最大回撤/盈亏比/总市值/总资产/可用/交易笔数/手续费
+- 交易计划: 显示所有激活计划的条件单状态和当前价格
+- 操作记录: 分页表格（每页 2 条），显示开仓/平仓/评分退出等事件
+- 模拟持仓: 与主页 `HoldRow` 风格一致 (SIM 类型标签，代码/评分/现价/成本/盈亏%/市值/浮盈/止损/止盈)
+- 已完成交易 + 净值曲线(SVG) + 回测归因（按策略+按股票）
 
 ### 板块轮动 & 自定义指数 (`/sector`)
 
@@ -205,7 +205,8 @@ poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主�
 **历史回填**: `--backfill ID` 从腾讯财经拉取成分股 30 天日线（akshare 失败时自动切换），INSERT OR REPLACE 覆盖旧数据。回填不受交易日限制。
 
 **管理页面 (`/manage`)**:
-- 列标题行: `type | code | name | cost | shares | ▲ above | ▼ below | ★ | hide`
+- 交易计划管理: 创建/编辑/暂停/删除计划，支持条件单（到价买卖/移动止损/反弹买入）
+- 持仓管理: `type | code | name | cost | shares | ▲ above | ▼ below | ★ | hide`
 - `above`/`below` 告警阈值通过 `EditableCell` 内联编辑，保存到 `alert_config.json`（适用于 holding 和 watching）
 - `hide` 开关对 holding 和 watching 类型都可用（与 CLI `svc hide` 一致）
 - Promote (watching→holding) 必须填写 cost 和 shares 才能 Confirm
@@ -219,6 +220,8 @@ poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主�
 | `monitor_config.json` | UI (/api/config) | 持仓配置 (name/type/cost/shares/hidden) |
 | `alert_config.json` | UI (/api/config) | 告警规则 (above/below，按股票代码索引) |
 | `sim_trading.db` → `alert_events` | Notifier (Python) | 告警事件流 (message/display 双格式) |
+| `trade_plans.json` | UI (/api/trade-plans) + TradePlanEngine | 交易计划条件单 (orders 统一模型) |
+| `sim_trading.db` → `trade_plan_events` | TradePlanEngine (Python) | 交易计划触发事件 |
 | `sector_config.json` | UI (/api/sector) | 自定义指数定义 + 告警规则 + 轮动配置 |
 | `sim_trading.db` → `sector_*` | sector_index_engine (Python) | 板块轮动排名 + 自定义指数日线 + 主线告警 |
 
@@ -230,7 +233,7 @@ poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主�
 ```json
 {
   "watchlist": {
-    "HK09988": { "name": "...", "type": "holding", "cost": 155, "shares": 200 }
+    "HK09988": { "name": "...", "type": "holding", "cost": 155, "shares": 200, "lot": 100 }
   },
   "settings": { "poll_interval": 30, "big_move_pct": 3, "cooldown_minutes": 10 }
 }
@@ -258,7 +261,8 @@ poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主�
 |------|------|
 | `monitor_config.json` | 持仓配置（用户手动维护） |
 | `alert_config.json` | 告警规则（用户手动维护） |
-| `sim_trading.db` | SQLite 数据库（信号归档、交易记录、alert_events、实时持仓） |
+| `trade_plans.json` | 交易计划条件单（TradePlanEngine + UI 维护） |
+| `sim_trading.db` | SQLite 数据库（信号归档、交易记录、alert_events、trade_plan_events、实时持仓） |
 | `market_data.json` | 最新行情快照（poller 写入，提交保留最后状态） |
 | `l2_strategy_signals.json` | L2 信号 + session 上下文（资金流快照、盘口状态）。daemon 每 3s 覆盖，**每日 08:00 自动归档到 `archive/`**，防止 session 数据丢失 |
 | `signal_rules.json` | 信号规则配置 |
@@ -358,7 +362,7 @@ nohup poetry run python src/tools/l2_strategy_daemon.py >> logs/l2_daemon_out.lo
 tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
 ```
 
-**测试**: `poetry run pytest src/sim_trading/test_sim_trading.py -v` (54 tests)
+**测试**: `poetry run pytest src/sim_trading/test_sim_trading.py -v` (62 tests)
 
 **SQLite 数据库 (`src/data/sim_trading.db`)**:
 - `signals`: 归档的 L2 信号 (strategy, code, direction, price_at_signal) — 180 天保留
@@ -369,6 +373,7 @@ tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
 - `live_state`: 实时持仓 (entry_price, SL/TP, daily_score, unrealized_pnl)
 - `param_versions`: 参数版本配置
 - `alert_events`: 告警事件 (ts, date, symbol, kind, level, message, display, change_pct) — 30 天保留
+- `trade_plan_events`: 交易计划触发事件 (ts, date, plan_id, event_type, condition_id, label, price, shares) — 30 天保留
 - `sector_rotation`: EM 板块每日排名 (date, category, board_name, change_pct, rank) — 90 天保留
 - `sector_daily`: 自定义指数日线 (date, index_id, avg_change_pct, index_value, components_json) — 180 天保留
 - `sector_alerts`: 主线告警 (date, index_id, alert_type, cumulative_pct, slope, message) — 30 天保留
@@ -381,7 +386,7 @@ tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
 - 实时持仓表: 类型/代码/名称/**评分**/现价/涨跌幅/成本/盈亏%/市值/浮盈/止损/距止损/止盈
 - 评分列着色: >= 70 绿色 (BUY), 40-69 橙色 (HOLD), < 40 红色 (SELL)
 - 摘要栏: 收益率/夏普/胜率/回撤/盈亏比/总市值/总资产/可用/交易笔数/手续费
-- 页面布局: 摘要栏 → 实时持仓 → 操作记录 → 已完成交易 → 净值曲线(SVG) → 回测归因
+- 页面布局: 摘要栏 → 交易计划 → 实时持仓 → 操作记录(分页) → 已完成交易 → 净值曲线(SVG) → 回测归因
 - 全中文标签，Dracula 终端风格
 
 ### Data Sources & Tools (`src/tools/`)
@@ -410,6 +415,44 @@ tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
 
 **手动重新生成**: `poetry run python -c "from src.tools.daily_summary_generator import generate_daily_summary; generate_daily_summary()"`
 
+### 交易计划系统 (`src/data/trade_plans.json`)
+
+条件单引擎，管理分批建仓/止盈/止损/移动止损计划。统一 `orders` 模型，没有单独的 `stop_loss`/`entries`/`exits` 字段——止损只是 `side=sell, op=<=` 的普通条件单。
+
+**数据结构**:
+```json
+{
+  "plans": {
+    "HK02722_tp": {
+      "name": "重庆机电分批止盈",
+      "symbol": "HK02722",
+      "status": "active",
+      "created_at": "2026-02-27",
+      "orders": [
+        { "id": "sl1", "side": "sell", "op": "<=", "price": 3.4, "shares": 4000,
+          "volume_min": null, "consecutive_days": null, "trailing": null,
+          "label": "固定止损", "triggered": false, "triggered_at": null },
+        { "id": "sl2", "side": "sell", "op": ">=", "price": 3.8, "shares": 4000,
+          "trailing": { "pct": 8.2, "watermark": null, "active": false },
+          "label": "移动止损", "triggered": false, "triggered_at": null }
+      ]
+    }
+  }
+}
+```
+
+Order 字段: `side` (buy/sell), `op` (>=/<= 价格方向), `price` (触发价), `shares` (股数, 按 lot 对齐), `volume_min` (成交额条件), `consecutive_days` (连续满足天数), `trailing` (移动止损: `{pct, watermark, active}`), `label`, `triggered`/`triggered_at`。
+
+**引擎**: `TradePlanEngine` (`src/tools/stock_notifier.py`)
+- 每 tick 检查所有 `status=active` 的计划
+- 支持: 到价买卖、移动止损（回落卖出）、反弹买入、成交额过滤、连续天数
+- 触发后标记 `triggered=true`，写入 `trade_plan_events` SQLite 表
+- 告警结果与 `DeltaAlertEngine` 合并后统一派发
+
+**Web API** (`web/app/api/trade-plans/route.ts`):
+- `GET` → 所有计划 + 持仓数据 (cost/shares/price) + lot_size
+- `POST` → create/update/delete/toggle/reset
+
 ### Architecture Rules
 
 - **Poller 是生产者，UI 是消费者，二者无耦合。** Poller (`src/tools/market_data_poller.py`) 只写行情数据到 `market_data.json`（price/change/vol/amount 等）；用户配置（type/cost/shares/hidden）只存 `monitor_config.json`；告警规则（above/below）独立存 `alert_config.json`；告警事件存 `sim_trading.db` 的 `alert_events` 表。`/api/metrics` 负责合并三 JSON + SQLite alert_events + 计算派生字段（pnl）。任何 UI 端操作立即生效，不依赖 poller 周期。
@@ -418,6 +461,7 @@ tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
 - **板块轮动独立于 Poller。** `sector_index_engine.py` 是独立 cron，不嵌入 poller 循环。数据源降级链: akshare (EM push2) → 腾讯财经 kline → 新浪财经。Web 层 `/api/sector` 只读 SQLite + `sector_config.json` + `monitor_config.json`(名称查找)，不调用外部 API。周末自动跳过（`_is_trading_day()` 检查）。
 - **告警规则与持仓配置分离。** `above`/`below` 阈值存在 `alert_config.json`，不存在 `monitor_config.json` 的 watchlist 条目里。所有读写告警的代码（web API、CLI、notifier）统一从 `alert_config.json` 操作。删除股票时同步清理两个文件。
 - **告警计算单一数据源。** Notifier (`stock_notifier.py` DeltaAlertEngine) 是唯一的告警计算引擎，产出写入 `sim_trading.db` 的 `alert_events` 表。Web 前端 (`useAlerts`) 只读取展示，不做任何告警计算。确保 terminal 弹窗和 web 日志完全一致，不重复计算，不重复告警。
+- **手续费单一计算源。** 交易成本只在 Python `SimulationEngine.calc_cost()` 中计算，`position_manager.close_position` 写入 DB 的 `pnl` 字段已包含买卖双边手续费（`buy_cost_per_share` 按比例分配）。Web `/api/sim` 直接读 DB pnl，不重新计算手续费。
 
 ### HK Stock Codes
 
@@ -441,7 +485,7 @@ Hong Kong stocks use `HK` prefix (e.g., `HK09988`). The web metrics API strips t
 
 Lightweight macOS notification daemon. Reads poller output, never fetches data directly.
 
-**Data flow**: `market_data.json` (poller) + `monitor_config.json` (config) + `alert_config.json` (thresholds) → DeltaAlertEngine → stealth_dispatch → terminal-notifier + `sim_trading.db:alert_events` → web
+**Data flow**: `market_data.json` (poller) + `monitor_config.json` (config) + `alert_config.json` (thresholds) → DeltaAlertEngine + TradePlanEngine → stealth_dispatch → terminal-notifier + `sim_trading.db:alert_events` → web
 
 **启动**: `./start_monitor.sh` 一键启动 Poller + Notifier + Web，或单独运行 `poetry run python src/tools/stock_notifier.py`。修改代码后必须重启进程（kill old pid → restart）。
 
@@ -565,12 +609,16 @@ cd web && npx tsc --noEmit
 # 4. 截图审查（用 Read 工具查看每张截图）
 ```
 
-**现有测试脚本：**
-| 脚本 | 覆盖范围 |
-|------|---------|
-| `test_full_checkup.mjs` | 全站 49 项回归（Dashboard/Alerts/Sim/Manage/API/Navigation） |
-| `test_plan_e2e.mjs` | 交易计划 CRUD（创建/编辑止损/编辑条件单/暂停/删除） |
-| `test_trade_plans.mjs` | 交易计划 PlanCard 渲染验证 |
+**现有测试脚本（~315 tests 总计）：**
+| 脚本 | 测试数 | 覆盖范围 |
+|------|--------|---------|
+| `test_full_checkup.mjs` | 49 | 全站回归（Dashboard/Alerts/Sim/Manage/API/Navigation） |
+| `test_dashboard_e2e.mjs` | 55 | Dashboard 交互（折叠/排序/星标/EditableCell/FX/摘要栏） |
+| `test_manage_stocks_e2e.mjs` | 32 | Manage 持仓表（above/below/hide/star/promote/demote/搜索） |
+| `test_plan_e2e.mjs` | ~15 | 交易计划 CRUD（创建/编辑/暂停/删除） |
+| `test_sim_alerts_e2e.mjs` | 60 | Sim+Alerts（交易计划/分页/L3切换/日报折叠/自动刷新） |
+| `test_sector_e2e.mjs` | 46 | Sector（K线弹窗/新建删除指数/星标关注/横向滚动/折叠） |
+| `test_navigation.mjs` | 18 | 全站路由+跨页导航 |
 
 #### Hidden List
 

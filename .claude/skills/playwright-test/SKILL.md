@@ -8,7 +8,7 @@ user_invocable: true
 
 ## Overview
 
-Run the automated 49-test checkup suite against the web dashboard at `http://localhost:3120`, then visually inspect screenshots and report findings. Optionally write targeted tests for specific changes.
+Run the automated test suites (~315 total tests) against the web dashboard at `http://localhost:3120`, then visually inspect screenshots and report findings. The full checkup (49 tests) is a quick regression; per-page E2E tests cover all interactive features.
 
 ## Mandatory Rule
 
@@ -153,24 +153,29 @@ cd web && npx tsc --noEmit                      # TypeScript 编译
 
 **现有脚本：**
 
-| 脚本 | 覆盖范围 | 必跑 |
-|------|---------|------|
-| `test_full_checkup.mjs` | 全站 49 项回归 | 每次 commit |
-| `test_plan_e2e.mjs` | 交易计划 CRUD（创建/编辑/暂停/删除） | 改 plan 相关代码时 |
-| `test_trade_plans.mjs` | PlanCard 渲染验证 | 改 manage 页面时 |
-| `test_alerts_page.mjs` | Alerts 页面 | 改告警相关代码时 |
-| `test_sim_page.mjs` | Sim 页面 | 改模拟盘相关代码时 |
-| `test_navigation.mjs` | 全站路由 | 改路由/导航时 |
+| 脚本 | 测试数 | 覆盖范围 | 必跑 |
+|------|--------|---------|------|
+| `test_full_checkup.mjs` | 49 | 全站回归（Dashboard/Alerts/Sim/Manage/API/Navigation） | 每次 commit |
+| `test_dashboard_e2e.mjs` | 55 | Dashboard 交互（折叠/排序/星标/EditableCell/FX/摘要栏） | 改 dashboard 时 |
+| `test_manage_stocks_e2e.mjs` | 32 | Manage 持仓表（above/below/hide/star/promote/demote/搜索） | 改 manage 持仓时 |
+| `test_plan_e2e.mjs` | ~15 | 交易计划 CRUD（创建/编辑/暂停/删除） | 改 plan 相关代码时 |
+| `test_sim_alerts_e2e.mjs` | 60 | Sim+Alerts（交易计划/分页/L3切换/日报折叠/自动刷新） | 改 sim/alerts 时 |
+| `test_sector_e2e.mjs` | 46 | Sector（K线弹窗/新建删除指数/星标关注/横向滚动/折叠） | 改 sector 时 |
+| `test_trade_plans.mjs` | ~10 | PlanCard 渲染验证 | 改 manage 页面时 |
+| `test_navigation.mjs` | 18 | 全站路由+跨页导航 | 改路由/导航时 |
+| `test_alerts_page.mjs` | ~15 | Alerts 页面渲染 | 改告警相关代码时 |
+| `test_sim_page.mjs` | ~15 | Sim 页面渲染 | 改模拟盘相关代码时 |
 
 ## Quick Reference
 
 | Page | URL | Key Selectors |
 |------|-----|---------------|
-| Dashboard A | `/?tab=A` | Summary: `Nodes:`, `position:`. Rows: `★PROD`/` PROD`. |
+| Dashboard A | `/?tab=A` | Summary: `Nodes:`, `position:`. Rows: `★PROD`/` PROD`. Sort headers. |
 | Dashboard HK | `/?tab=HK` | FX: `FX`/`WARN FX`/`0.92`. HK-prefixed codes. |
-| Alerts | `/alerts` | Path: `~/projects/alerts`. Events: `[HH:MM:SS]` + `[L1-3]`. |
-| Sim | `/sim` | Summary: 收益率/夏普/胜率/总市值/总资产. Positions: `SIM` badge. |
-| Manage | `/manage` | Headers: type/code/name/cost/shares/above/below/hide. |
+| Alerts | `/alerts` | Path: `~/projects/alerts`. Events: `[HH:MM:SS]` + `[L1-3]`. L3 toggle: `L3:N (hidden)`. |
+| Sim | `/sim` | Summary: 收益率/夏普/胜率/总市值/总资产. Trade plans + 操作记录(分页). |
+| Manage | `/manage` | Plans: `+ 新建计划`/`运行中`/`已暂停`. Stocks: type/code/above/below/hide. `title="Promote"/"Demote"`. |
+| Sector | `/sector` | Indices matrix: 板块名+累涨+日涨跌%. K线弹窗: SVG polyline. `+ 新建`/`title="删除"`. |
 
 ## UI Selector Patterns
 
@@ -180,6 +185,12 @@ cd web && npx tsc --noEmit                      # TypeScript 编译
 - **PROD/DEV badge**: `span` with `width: 6ch`, text `★PROD` / ` PROD` / `  DEV`
 - **Money display**: `+1.2万`, `-3,456`, `+0.5亿` — Unicode minus: `\u2212`, `\u2013`, `\uff0d`
 - **量比/换手率**: Shows `-` when value is 0 (API unavailable)
+- **Sector index row**: 48px height div with cyan-colored name, `getComputedStyle` for color detection
+- **Sector K-line modal**: Fixed overlay `z-index: 100`, SVG `polyline`, close via Escape/×/backdrop
+- **Sector star/delete**: `title="删除"` for delete, star icon `☆`/`★` toggle
+- **Manage promote/demote**: `title="Promote to holding"`, `title="Demote to watching"`
+- **Manage hide toggle**: `title="Hide (out of sight)"`, `title="Unhide (show on dashboard)"`
+- **Manage star**: `title="Mark as L1 priority"`, `title="Remove L1 priority"`
 
 ## parseMoney Helper
 
