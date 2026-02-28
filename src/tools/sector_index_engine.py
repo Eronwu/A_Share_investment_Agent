@@ -82,6 +82,16 @@ def _today_compact(today=None) -> str:
     return d.replace("-", "")
 
 
+def _is_trading_day(date_str: str | None = None) -> bool:
+    """Check if date is a potential A-share trading day (Mon-Fri).
+
+    Does NOT check holidays — but data sources will return no new data
+    on holidays, and the suspended-stock logic treats that as 0% change.
+    """
+    d = datetime.strptime(date_str, "%Y-%m-%d") if date_str else datetime.now()
+    return d.weekday() < 5  # 0=Mon .. 4=Fri
+
+
 # ---------------------------------------------------------------------------
 # Tencent Finance fallback for stock kline (when EM push2 is blocked)
 # ---------------------------------------------------------------------------
@@ -229,6 +239,11 @@ def _fetch_sina_boards(category: str) -> list[tuple[str, float]]:
 def collect_rotation(today=None):
     """Fetch board rankings (EM first, Sina fallback) and store in sector_rotation."""
     date_str = _today_str(today)
+
+    if not _is_trading_day(date_str):
+        logger.info("collect_rotation: %s is not a trading day, skipping", date_str)
+        return
+
     logger.info("collect_rotation for %s", date_str)
 
     conn = get_connection()
@@ -278,6 +293,11 @@ def collect_rotation(today=None):
 def compute_custom_indices(today=None):
     """Compute equal-weight custom indices from sector_config.json definitions."""
     date_str = _today_str(today)
+
+    if not _is_trading_day(date_str):
+        logger.info("compute_custom_indices: %s is not a trading day, skipping", date_str)
+        return
+
     date_compact = _today_compact(today)
     config = _load_config()
     indices = config.get("indices", {})
@@ -573,6 +593,11 @@ def _linear_regression(ys: list[float]):
 def detect_mainline(today=None):
     """Detect mainline themes: sustained upward trend in custom indices."""
     date_str = _today_str(today)
+
+    if not _is_trading_day(date_str):
+        logger.info("detect_mainline: %s is not a trading day, skipping", date_str)
+        return
+
     config = _load_config()
     indices = config.get("indices", {})
     alert_rules = config.get("alert_rules", {})
