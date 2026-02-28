@@ -98,6 +98,15 @@ class RealtimeSimEngine:
             except (json.JSONDecodeError, TypeError):
                 pass
 
+            # Restore buy_cost_per_share (may not exist in old schema)
+            buy_cps = 0.0
+            try:
+                buy_cps = float(r["buy_cost_per_share"] or 0)
+            except (KeyError, TypeError):
+                # Old schema: recompute from entry_price + quantity
+                info = self._engine.calc_cost(r["entry_price"], r["quantity"], "BUY")
+                buy_cps = info["total"] / r["quantity"] if r["quantity"] > 0 else 0
+
             pos = Position(
                 code=r["code"],
                 entry_price=r["entry_price"],
@@ -112,6 +121,7 @@ class RealtimeSimEngine:
                 entry_strategy=r["entry_strategy"] or "",
                 highest_price=max(r["entry_price"], r["current_price"] or 0),
                 entry_day_index=0,
+                buy_cost_per_share=buy_cps,
             )
             self._pos_mgr._positions[r["code"]] = pos
             self._pos_mgr._cash -= r["entry_price"] * r["quantity"]
@@ -122,10 +132,11 @@ class RealtimeSimEngine:
         # Restore cash from historical trades: replay all buy/sell cash flows.
         # Each closed trade: cash -= entry_price * qty + buy_cost (open)
         #                     cash += exit_price * qty - sell_cost (close)
-        # Since buy_cost isn't stored separately, recompute it.
+        # total_cost column = buy_cost + sell_cost (for new trades)
+        # For old trades where total_cost == commission (sell-only), recompute buy_cost.
         conn = get_connection()
         all_trades = conn.execute(
-            "SELECT entry_price, exit_price, quantity, commission "
+            "SELECT entry_price, exit_price, quantity, commission, total_cost "
             "FROM trades WHERE param_version='live'"
         ).fetchall()
         conn.close()
@@ -134,8 +145,14 @@ class RealtimeSimEngine:
             for t in all_trades:
                 ep, xp, qty = t["entry_price"], t["exit_price"], t["quantity"]
                 sell_cost = t["commission"]
-                buy_cost_info = self._engine.calc_cost(ep, qty, "BUY")
-                buy_cost = buy_cost_info["total"]
+                total_cost = t["total_cost"] or sell_cost
+                if abs(total_cost - sell_cost) < 0.01:
+                    # Old trade: total_cost == sell_cost, need to recompute buy_cost
+                    buy_cost_info = self._engine.calc_cost(ep, qty, "BUY")
+                    buy_cost = buy_cost_info["total"]
+                else:
+                    # New trade: total_cost = buy_cost + sell_cost
+                    buy_cost = total_cost - sell_cost
                 # Net cash impact: (xp * qty - sell_cost) - (ep * qty + buy_cost)
                 cash_delta += (xp - ep) * qty - sell_cost - buy_cost
             self._pos_mgr._cash += cash_delta
@@ -198,15 +215,17 @@ class RealtimeSimEngine:
                 """INSERT OR REPLACE INTO live_state
                    (code, entry_price, quantity, current_price, entry_time, entry_date,
                     stop_loss, take_profit, max_hold_days, entry_strategy, confidence,
-                    trigger_signals, unrealized_pnl, pnl_pct, daily_score, last_updated)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    trigger_signals, unrealized_pnl, pnl_pct, daily_score,
+                    buy_cost_per_share, last_updated)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     code, pos.entry_price, pos.quantity, round(current_price, 4),
                     pos.entry_time, pos.entry_date,
                     round(pos.stop_loss, 4), round(pos.take_profit, 4) if pos.take_profit else None,
                     pos.max_hold_days, pos.entry_strategy, pos.confidence,
                     json.dumps(pos.trigger_signals),
-                    round(unrealized, 2), round(pnl_pct, 6), daily_score, now_ts,
+                    round(unrealized, 2), round(pnl_pct, 6), daily_score,
+                    round(pos.buy_cost_per_share, 6), now_ts,
                 ),
             )
 
@@ -232,7 +251,7 @@ class RealtimeSimEngine:
                     trade["entry_time"], trade["exit_time"],
                     trade["entry_date"], trade["exit_date"],
                     trade.get("hold_days", 0), trade["pnl"], trade["pnl_pct"],
-                    trade["commission"], trade.get("commission", 0),
+                    trade["commission"], trade.get("total_cost", trade["commission"]),
                     trade["confidence"],
                     json.dumps(trade.get("trigger_signals", [])),
                     trade["exit_reason"], trade.get("notes", ""),

@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS live_state (
     unrealized_pnl REAL,
     pnl_pct REAL,
     daily_score INTEGER DEFAULT 0,
+    buy_cost_per_share REAL DEFAULT 0,
     last_updated INTEGER
 );
 

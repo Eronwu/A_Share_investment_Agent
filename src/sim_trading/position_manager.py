@@ -30,6 +30,7 @@ class Position:
     # Tracking
     highest_price: float = 0.0  # for trailing stop
     entry_day_index: int = 0  # trading day index since entry
+    buy_cost_per_share: float = 0.0  # buy-side cost / quantity, for proportional allocation on partial close
 
 
 class PositionManager:
@@ -124,6 +125,7 @@ class PositionManager:
             entry_strategy=decision.reason,
             highest_price=price,
             entry_day_index=day_index,
+            buy_cost_per_share=trade_cost / shares if shares > 0 else 0.0,
         )
         self._positions[code] = pos
         logger.info(
@@ -158,7 +160,12 @@ class PositionManager:
         proceeds = close_qty * price - trade_cost
         self._cash += proceeds
 
-        pnl = (price - pos.entry_price) * close_qty - trade_cost
+        # Proportional buy cost for this slice of the position
+        buy_cost = pos.buy_cost_per_share * close_qty
+        sell_cost = trade_cost
+        total_cost = buy_cost + sell_cost
+
+        pnl = (price - pos.entry_price) * close_qty - total_cost
         pnl_pct = (price - pos.entry_price) / pos.entry_price if pos.entry_price > 0 else 0
 
         hold_days = day_index - pos.entry_day_index
@@ -178,7 +185,8 @@ class PositionManager:
             "hold_days": hold_days,
             "pnl": round(pnl, 2),
             "pnl_pct": round(pnl_pct, 6),
-            "commission": round(trade_cost, 2),
+            "commission": round(total_cost, 2),
+            "total_cost": round(total_cost, 2),
             "confidence": pos.confidence,
             "trigger_signals": pos.trigger_signals,
             "exit_reason": reason,
