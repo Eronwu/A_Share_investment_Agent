@@ -239,8 +239,11 @@ export default function RotationPage() {
           ← monitor
         </Link>
         <span style={{ color: D.comment }}>|</span>
+        <Link href="/alerts" style={{ color: D.comment, textDecoration: "none" }}>alerts</Link>
+        <Link href="/sim" style={{ color: D.comment, textDecoration: "none" }}>sim</Link>
         <Link href="/sector" style={{ color: D.comment, textDecoration: "none" }}>sector</Link>
         <span style={{ color: D.purple, fontWeight: 700 }}>rotation</span>
+        <Link href="/manage" style={{ color: D.comment, textDecoration: "none" }}>manage</Link>
         <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>
           {category} | top {topN} | auto-refresh 60s
         </span>
