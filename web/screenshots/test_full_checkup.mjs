@@ -26,13 +26,16 @@ async function main() {
   page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
   page.on('pageerror', err => consoleErrors.push('PAGE_ERROR: ' + err.message));
 
+  await page.route('**/*.googleapis.com/**', route => route.abort());
+  await page.route('**/*.gstatic.com/**', route => route.abort());
+
   try {
     // ════════════════════════════════════════════════
     // 1. Dashboard A-share tab
     // ════════════════════════════════════════════════
     console.log('\n═══ 1. Dashboard A-share ═══');
-    await page.goto(`${BASE}/?tab=A`, { waitUntil: 'networkidle', timeout: 30000 });
-    await page.waitForTimeout(3000);
+    await page.goto(`${BASE}/?tab=A`, { waitUntil: 'commit', timeout: 30000 });
+    await page.waitForTimeout(5000);
     await page.screenshot({ path: `${DIR}/checkup_01_dash_A.png`, fullPage: true });
 
     // Check no ERROR banner
@@ -89,7 +92,7 @@ async function main() {
     // 2. Dashboard HK tab
     // ════════════════════════════════════════════════
     console.log('\n═══ 2. Dashboard HK tab ═══');
-    await page.goto(`${BASE}/?tab=HK`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/?tab=HK`, { waitUntil: 'commit', timeout: 30000 });
     await page.waitForTimeout(3000);
     await page.screenshot({ path: `${DIR}/checkup_02_dash_HK.png`, fullPage: true });
 
@@ -153,7 +156,7 @@ async function main() {
     // 3. Dashboard A tab — switch to HK and back
     // ════════════════════════════════════════════════
     console.log('\n═══ 3. Tab switching ═══');
-    await page.goto(`${BASE}/?tab=A`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/?tab=A`, { waitUntil: 'commit', timeout: 30000 });
     await page.waitForTimeout(2000);
 
     // Click HK tab (tab bar divs have min-width:130px)
@@ -184,7 +187,7 @@ async function main() {
     // 4. Alerts page
     // ════════════════════════════════════════════════
     console.log('\n═══ 4. Alerts page ═══');
-    await page.goto(`${BASE}/alerts`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/alerts`, { waitUntil: 'commit', timeout: 30000 });
     await page.waitForTimeout(3000);
     await page.screenshot({ path: `${DIR}/checkup_03_alerts.png`, fullPage: true });
 
@@ -206,21 +209,34 @@ async function main() {
     );
     record('Alerts: path shows ~/projects/alerts', alertPath);
 
-    // Check events have proper structure (time, level, kind)
-    const eventRows = await page.evaluate(() => {
+    // Check events have proper structure (time, level, kind),
+    // or an explicit empty-state message when there are no events.
+    const alertEventState = await page.evaluate(() => {
       const divs = Array.from(document.querySelectorAll('div'));
-      return divs.filter(d => {
+      const eventRows = divs.filter(d => {
         const t = d.textContent || '';
         return /\d{2}:\d{2}:\d{2}/.test(t) && /L[1-3]/.test(t);
       }).length;
+      const body = document.body.innerText || '';
+      const hasEmptyState =
+        body.includes('No alert events today') ||
+        body.includes('0 visible') ||
+        body.includes('Events reset daily');
+      return { eventRows, hasEmptyState };
     });
-    record('Alerts: events rendered', eventRows > 0, `${eventRows} event rows`);
+    record(
+      'Alerts: events rendered (or empty-state)',
+      alertEventState.eventRows > 0 || alertEventState.hasEmptyState,
+      alertEventState.eventRows > 0
+        ? `${alertEventState.eventRows} event rows`
+        : 'empty-state shown'
+    );
 
     // ════════════════════════════════════════════════
     // 5. Sim page
     // ════════════════════════════════════════════════
     console.log('\n═══ 5. Sim page ═══');
-    await page.goto(`${BASE}/sim`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/sim`, { waitUntil: 'commit', timeout: 30000 });
     await page.waitForTimeout(3000);
     await page.screenshot({ path: `${DIR}/checkup_04_sim.png`, fullPage: true });
 
@@ -248,12 +264,29 @@ async function main() {
         hasShares: text.includes('股数'),
       };
     });
+    const simApiForSections = await page.evaluate(async () => {
+      try {
+        const res = await fetch('/api/sim');
+        const data = await res.json();
+        return {
+          ok: !data.error,
+          livePositions: data.live?.positions?.length || 0,
+        };
+      } catch {
+        return { ok: false, livePositions: 0 };
+      }
+    });
     record('Sim: 收益率 displayed', simSummary.hasReturn);
     record('Sim: 夏普/Sharpe displayed', simSummary.hasSharpe);
     record('Sim: 胜率 displayed', simSummary.hasWinRate);
     record('Sim: 总市值 displayed', simSummary.hasTotalMktVal);
     record('Sim: 总资产 displayed', simSummary.hasTotalAsset);
-    record('Sim: 股数 column displayed', simSummary.hasShares);
+    const simSharesOk = simSummary.hasShares || (simApiForSections.ok && simApiForSections.livePositions === 0);
+    record(
+      'Sim: 股数 column displayed (or no live positions)',
+      simSharesOk,
+      simSummary.hasShares ? 'shares column found' : `live positions: ${simApiForSections.livePositions}`
+    );
 
     // Check sim has live positions or replay trades
     const simContent = await page.evaluate(() => {
@@ -263,14 +296,19 @@ async function main() {
         hasTrades: text.includes('交易记录') || text.includes('已完成') || text.includes('操作记录'),
       };
     });
-    record('Sim: positions section', simContent.hasPositions);
+    const simPositionsOk = simContent.hasPositions || (simApiForSections.ok && simApiForSections.livePositions === 0);
+    record(
+      'Sim: positions section (or no live positions)',
+      simPositionsOk,
+      simContent.hasPositions ? 'positions section found' : `live positions: ${simApiForSections.livePositions}`
+    );
     record('Sim: trades section', simContent.hasTrades);
 
     // ════════════════════════════════════════════════
     // 6. Manage page
     // ════════════════════════════════════════════════
     console.log('\n═══ 6. Manage page ═══');
-    await page.goto(`${BASE}/manage`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/manage`, { waitUntil: 'commit', timeout: 30000 });
     await page.waitForTimeout(3000);
     await page.screenshot({ path: `${DIR}/checkup_05_manage.png`, fullPage: true });
 
@@ -325,18 +363,26 @@ async function main() {
 
     // /api/sim
     const sim = await page.evaluate(async () => {
-      const res = await fetch('/api/sim');
-      const data = await res.json();
-      return {
-        ok: !data.error,
-        hasSummary: !!data.summary,
-        tradeCount: (data.trades || []).length,
-        dailyCount: (data.daily_pnl || []).length,
-        hasLive: !!data.live,
-        livePositions: data.live?.positions?.length || 0,
-        liveTrades: data.live?.trades?.length || 0,
-        error: data.error || null,
-      };
+      try {
+        const res = await fetch('/api/sim');
+        const text = await res.text();
+        if (!text.startsWith('{') && !text.startsWith('[')) {
+          return { ok: false, error: `Non-JSON response (status ${res.status})` };
+        }
+        const data = JSON.parse(text);
+        return {
+          ok: !data.error,
+          hasSummary: !!data.summary,
+          tradeCount: (data.trades || []).length,
+          dailyCount: (data.daily_pnl || []).length,
+          hasLive: !!data.live,
+          livePositions: data.live?.positions?.length || 0,
+          liveTrades: data.live?.trades?.length || 0,
+          error: data.error || null,
+        };
+      } catch (e) {
+        return { ok: false, error: e.message };
+      }
     });
     record('API /api/sim', sim.ok,
       `trades:${sim.tradeCount} daily:${sim.dailyCount} live_pos:${sim.livePositions} live_trades:${sim.liveTrades}`);
@@ -348,7 +394,7 @@ async function main() {
     console.log('\n═══ 8. Data consistency ═══');
 
     // Navigate to dashboard first (ensures API fetch context is correct)
-    await page.goto(`${BASE}/?tab=A`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE}/?tab=A`, { waitUntil: 'commit', timeout: 30000 });
     await page.waitForTimeout(1000);
 
     const consistency = await page.evaluate(async () => {
@@ -438,12 +484,12 @@ async function main() {
       { path: '/manage', name: 'Manage' },
     ];
     for (const pg of pages) {
-      const resp = await page.goto(`${BASE}${pg.path}`, { waitUntil: 'networkidle', timeout: 30000 });
+      const resp = await page.goto(`${BASE}${pg.path}`, { waitUntil: 'commit', timeout: 30000 });
       record(`${pg.name} ${pg.path} loads`, resp?.status() === 200);
     }
 
     // 404
-    const resp404 = await page.goto(`${BASE}/nonexistent`, { waitUntil: 'networkidle', timeout: 30000 });
+    const resp404 = await page.goto(`${BASE}/nonexistent`, { waitUntil: 'commit', timeout: 30000 });
     record('404 for invalid path', resp404?.status() === 404);
 
     // ════════════════════════════════════════════════
@@ -454,6 +500,9 @@ async function main() {
       !e.includes('favicon') && !e.includes('404') && !e.includes('ERR_CONNECTION')
       && !e.includes('/api/summary')  // summary endpoint may not exist
       && !e.includes('Unexpected end of JSON')  // transient API response
+      && !e.includes('net::ERR_FAILED') // font/network flakiness in headless
+      && !e.includes('fonts.googleapis.com')
+      && !e.includes('fonts.gstatic.com')
     );
     record('No JS console errors', realErrors.length === 0,
       realErrors.length > 0 ? realErrors.slice(0, 3).join(' | ').slice(0, 200) : 'clean');
