@@ -17,6 +17,7 @@ import os
 import sys
 import time
 from datetime import datetime, timedelta
+from typing import Optional
 
 import akshare as ak
 import numpy as np
@@ -491,7 +492,7 @@ def render_analysis_table(all_data: list[dict]):
     console.print(table)
 
 
-def _calc_value_score(d: dict) -> float | None:
+def _calc_value_score(d: dict) -> Optional[float]:
     """
     简易性价比评分 (0-10)
     - 成长性 (利润增速 + 营收增速) 40%
