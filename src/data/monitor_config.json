@@ -1,12 +1,102 @@
 {
   "watchlist": {
+    "000001": {
+      "name": "平安银行",
+      "type": "holding",
+      "cost": 12.212,
+      "shares": 800
+    },
+    "000063": {
+      "name": "中兴通讯",
+      "type": "holding",
+      "cost": 48.881,
+      "shares": 600
+    },
+    "000338": {
+      "name": "潍柴动力",
+      "type": "holding",
+      "cost": 25.733,
+      "shares": 1000
+    },
+    "000875": {
+      "name": "电投绿能",
+      "type": "holding",
+      "cost": 7.008,
+      "shares": 800
+    },
+    "001696": {
+      "name": "宗申动力",
+      "type": "holding",
+      "cost": 22.292,
+      "shares": 400
+    },
+    "002050": {
+      "name": "三花智控",
+      "cost": 50.279,
+      "shares": 300
+    },
+    "002074": {
+      "name": "国轩高科",
+      "type": "holding",
+      "cost": 41.801,
+      "shares": 400
+    },
+    "002085": {
+      "name": "万丰奥威",
+      "type": "holding",
+      "cost": 17.811,
+      "shares": 200
+    },
+    "002121": {
+      "name": "科陆电子"
+    },
+    "002156": {
+      "name": "通富微电",
+      "type": "holding",
+      "cost": 49.778,
+      "shares": 800
+    },
+    "002202": {
+      "name": "金风科技",
+      "cost": 4.815,
+      "shares": 100
+    },
+    "002312": {
+      "name": "川发龙蟒",
+      "type": "holding",
+      "cost": 13.509,
+      "shares": 200
+    },
+    "002335": {
+      "name": "科华数据"
+    },
+    "002364": {
+      "name": "中恒电气",
+      "cost": 30.172,
+      "shares": 100
+    },
+    "002475": {
+      "name": "立讯精密",
+      "type": "holding",
+      "cost": 43.42,
+      "shares": 1100
+    },
+    "002648": {
+      "name": "卫星化学",
+      "cost": 22.906,
+      "shares": 800
+    },
+    "002920": {
+      "name": "德赛西威",
+      "type": "holding",
+      "cost": 127.843,
+      "shares": 500
+    },
     "159227": {
       "name": "航空航天ETF",
       "type": "holding",
       "cost": 1.519,
-      "shares": 2000,
-      "hidden": false,
-      "star": false
+      "shares": 2000
     },
     "159326": {
       "name": "电网设备ETF"
@@ -15,8 +105,7 @@
       "name": "半导设备",
       "type": "holding",
       "cost": 1.813,
-      "shares": 200,
-      "hidden": false
+      "shares": 200
     },
     "159691": {
       "name": "港股红利ETF"
@@ -167,7 +256,6 @@
     },
     "600309": {
       "name": "万华化学",
-      "type": "watching",
       "cost": 88.078,
       "shares": 100
     },
@@ -179,7 +267,6 @@
     },
     "600550": {
       "name": "保变电气",
-      "type": "watching",
       "cost": 16.098,
       "shares": 200
     },
@@ -187,8 +274,7 @@
       "name": "东阳光",
       "type": "holding",
       "cost": 27.715,
-      "shares": 600,
-      "hidden": false
+      "shares": 600
     },
     "601088": {
       "name": "中国神华"
@@ -237,7 +323,6 @@
     },
     "603019": {
       "name": "中科曙光",
-      "type": "watching",
       "cost": 91.331,
       "shares": 200
     },
@@ -252,7 +337,6 @@
     },
     "603533": {
       "name": "掌阅科技",
-      "type": "watching",
       "cost": 23.551,
       "shares": 600
     },
@@ -265,55 +349,18 @@
     "688676": {
       "name": "金盘科技"
     },
-    "002335": {
-      "name": "科华数据"
-    },
-    "002121": {
-      "name": "科陆电子"
+    "HK00325": {
+      "name": "布鲁可",
+      "type": "holding",
+      "cost": 120.031,
+      "shares": 300,
+      "lot": 100
     },
     "HK00700": {
       "name": "腾讯控股",
       "type": "holding",
       "cost": 642.31,
       "shares": 100,
-      "hidden": false,
-      "lot": 100
-    },
-    "HK09988": {
-      "name": "阿里巴巴－Ｗ",
-      "type": "holding",
-      "cost": 156.016,
-      "shares": 600,
-      "lot": 100
-    },
-    "HK01810": {
-      "name": "小米集团－Ｗ",
-      "type": "holding",
-      "cost": 51.311,
-      "shares": 600,
-      "lot": 200
-    },
-    "HK03690": {
-      "name": "美团－Ｗ",
-      "type": "holding",
-      "cost": 119.048,
-      "shares": 1200,
-      "hidden": true,
-      "lot": 100
-    },
-    "HK01211": {
-      "name": "比亚迪股份",
-      "type": "holding",
-      "cost": 128.678,
-      "shares": 1000,
-      "lot": 500
-    },
-    "HK06809": {
-      "name": "澜起科技",
-      "type": "holding",
-      "cost": 109.9,
-      "shares": 100,
-      "star": true,
       "lot": 100
     },
     "HK01060": {
@@ -323,19 +370,12 @@
       "shares": 30000,
       "lot": 10000
     },
-    "HK02359": {
-      "name": "药明康德",
+    "HK01211": {
+      "name": "比亚迪股份",
       "type": "holding",
-      "cost": -48.888,
-      "shares": 100,
-      "lot": 100
-    },
-    "HK06060": {
-      "name": "众安在线",
-      "type": "holding",
-      "cost": 17.686,
-      "shares": 300,
-      "lot": 100
+      "cost": 128.678,
+      "shares": 1000,
+      "lot": 500
     },
     "HK01357": {
       "name": "美图公司",
@@ -344,111 +384,18 @@
       "shares": 6000,
       "lot": 2000
     },
-    "HK00325": {
-      "name": "布鲁可",
+    "HK01810": {
+      "name": "小米集团－Ｗ",
       "type": "holding",
-      "cost": 120.031,
-      "shares": 300,
-      "lot": 100
+      "cost": 51.311,
+      "shares": 600,
+      "lot": 200
     },
-    "HK03896": {
-      "name": "金山云",
-      "lot": 2000
-    },
-    "002050": {
-      "name": "三花智控",
-      "type": "watching",
-      "cost": 50.279,
-      "shares": 300
-    },
-    "002364": {
-      "name": "中恒电气",
-      "type": "watching",
-      "cost": 30.172,
-      "shares": 100
-    },
-    "002085": {
-      "name": "万丰奥威",
+    "HK02359": {
+      "name": "药明康德",
       "type": "holding",
-      "cost": 17.811,
-      "shares": 200
-    },
-    "001696": {
-      "name": "宗申动力",
-      "type": "holding",
-      "cost": 22.292,
-      "shares": 400
-    },
-    "000063": {
-      "name": "中兴通讯",
-      "type": "holding",
-      "cost": 48.881,
-      "shares": 600
-    },
-    "000338": {
-      "name": "潍柴动力",
-      "type": "holding",
-      "cost": 25.733,
-      "shares": 1000
-    },
-    "002475": {
-      "name": "立讯精密",
-      "type": "holding",
-      "cost": 43.42,
-      "shares": 1100
-    },
-    "000001": {
-      "name": "平安银行",
-      "type": "holding",
-      "cost": 12.212,
-      "shares": 800
-    },
-    "002648": {
-      "name": "卫星化学",
-      "type": "watching",
-      "cost": 22.906,
-      "shares": 800
-    },
-    "002920": {
-      "name": "德赛西威",
-      "type": "holding",
-      "cost": 127.843,
-      "shares": 500
-    },
-    "002074": {
-      "name": "国轩高科",
-      "type": "holding",
-      "cost": 41.801,
-      "shares": 400
-    },
-    "002312": {
-      "name": "川发龙蟒",
-      "type": "holding",
-      "cost": 13.509,
-      "shares": 200
-    },
-    "002156": {
-      "name": "通富微电",
-      "type": "holding",
-      "cost": 49.778,
-      "shares": 800
-    },
-    "002202": {
-      "name": "金风科技",
-      "type": "watching",
-      "cost": 4.815,
-      "shares": 100
-    },
-    "000875": {
-      "name": "电投绿能",
-      "type": "holding",
-      "cost": 7.008,
-      "shares": 800
-    },
-    "HK03986": {
-      "name": "兆易创新",
-      "type": "watching",
-      "star": true,
+      "cost": -48.888,
+      "shares": 100,
       "lot": 100
     },
     "HK02590": {
@@ -456,8 +403,61 @@
       "type": "holding",
       "cost": 26.267,
       "shares": 2200,
-      "star": true,
-      "lot": 200
+      "lot": 200,
+      "star": true
+    },
+    "HK02722": {
+      "name": "HK02722",
+      "type": "holding",
+      "cost": 3.395,
+      "shares": 4000,
+      "lot": 2000
+    },
+    "HK03288": {
+      "name": "海天味业",
+      "type": "holding",
+      "cost": 40.843,
+      "shares": 200,
+      "lot": 100
+    },
+    "HK03690": {
+      "name": "美团－Ｗ",
+      "type": "holding",
+      "cost": 119.048,
+      "shares": 1200,
+      "lot": 100,
+      "hidden": true
+    },
+    "HK03896": {
+      "name": "金山云",
+      "lot": 2000
+    },
+    "HK03986": {
+      "name": "兆易创新",
+      "lot": 100,
+      "star": true
+    },
+    "HK06060": {
+      "name": "众安在线",
+      "type": "holding",
+      "cost": 17.686,
+      "shares": 300,
+      "lot": 100
+    },
+    "HK06809": {
+      "name": "澜起科技",
+      "type": "holding",
+      "cost": 109.9,
+      "shares": 100,
+      "lot": 100,
+      "star": true
+    },
+    "HK07262": {
+      "name": "XL二南方看多日经",
+      "type": "holding",
+      "cost": 152.25,
+      "shares": 30,
+      "lot": 10
     },
     "HK07709": {
       "name": "XL二南方海力士",
@@ -480,38 +480,453 @@
       "shares": 100,
       "lot": 50
     },
+    "HK09988": {
+      "name": "阿里巴巴－Ｗ",
+      "type": "holding",
+      "cost": 156.016,
+      "shares": 600,
+      "lot": 100
+    }
+  },
+  "holdings": {
+    "000001": {
+      "name": "平安银行",
+      "cost": 12.212,
+      "shares": 800
+    },
+    "000063": {
+      "name": "中兴通讯",
+      "cost": 48.881,
+      "shares": 600
+    },
+    "000338": {
+      "name": "潍柴动力",
+      "cost": 25.733,
+      "shares": 1000
+    },
+    "000875": {
+      "name": "电投绿能",
+      "cost": 7.008,
+      "shares": 800
+    },
+    "001696": {
+      "name": "宗申动力",
+      "cost": 22.292,
+      "shares": 400
+    },
+    "002074": {
+      "name": "国轩高科",
+      "cost": 41.801,
+      "shares": 400
+    },
+    "002085": {
+      "name": "万丰奥威",
+      "cost": 17.811,
+      "shares": 200
+    },
+    "002156": {
+      "name": "通富微电",
+      "cost": 49.778,
+      "shares": 800
+    },
+    "002312": {
+      "name": "川发龙蟒",
+      "cost": 13.509,
+      "shares": 200
+    },
+    "002475": {
+      "name": "立讯精密",
+      "cost": 43.42,
+      "shares": 1100
+    },
+    "002920": {
+      "name": "德赛西威",
+      "cost": 127.843,
+      "shares": 500
+    },
+    "159227": {
+      "name": "航空航天ETF",
+      "cost": 1.519,
+      "shares": 2000
+    },
+    "159516": {
+      "name": "半导设备",
+      "cost": 1.813,
+      "shares": 200
+    },
+    "159736": {
+      "name": "饮食ETF",
+      "cost": 0.757,
+      "shares": 2500
+    },
+    "159755": {
+      "name": "电池ETF",
+      "cost": 1.129,
+      "shares": 2500
+    },
+    "159819": {
+      "name": "AI智能",
+      "cost": 0.435,
+      "shares": 3000
+    },
+    "159851": {
+      "name": "金科ETF",
+      "cost": 0.893,
+      "shares": 23800
+    },
+    "159852": {
+      "name": "软件ETF",
+      "cost": 0.966,
+      "shares": 6400
+    },
+    "159915": {
+      "name": "创业板",
+      "cost": 2.157,
+      "shares": 12000
+    },
+    "159941": {
+      "name": "纳指ETF",
+      "cost": 1.441,
+      "shares": 5300
+    },
+    "159995": {
+      "name": "芯片ETF",
+      "cost": 2.015,
+      "shares": 600
+    },
+    "511130": {
+      "name": "30年国债ETF",
+      "cost": 107.281,
+      "shares": 200
+    },
+    "512690": {
+      "name": "酒ETF",
+      "cost": 0.605,
+      "shares": 12000
+    },
+    "512800": {
+      "name": "银行ETF",
+      "cost": 0.876,
+      "shares": 7600
+    },
+    "512880": {
+      "name": "证券ETF",
+      "cost": 1.292,
+      "shares": 100
+    },
+    "513120": {
+      "name": "HK创新药",
+      "cost": 1.385,
+      "shares": 2800
+    },
+    "513730": {
+      "name": "东南亚科技ETF",
+      "cost": 1.452,
+      "shares": 2000
+    },
+    "515100": {
+      "name": "红利低波100ETF",
+      "cost": 1.48,
+      "shares": 9000
+    },
+    "515450": {
+      "name": "红利低波50ETF",
+      "cost": 1.445,
+      "shares": 3300
+    },
+    "515880": {
+      "name": "通信ETF",
+      "cost": 0.426,
+      "shares": 4800
+    },
+    "518880": {
+      "name": "黄金ETF",
+      "cost": 6.596,
+      "shares": 700
+    },
+    "588000": {
+      "name": "科创50",
+      "cost": 1.274,
+      "shares": 5500
+    },
+    "588170": {
+      "name": "科创半导体ETF",
+      "cost": 1.577,
+      "shares": 15400
+    },
+    "600016": {
+      "name": "民生银行",
+      "cost": 4.928,
+      "shares": 2200
+    },
+    "600036": {
+      "name": "招商银行",
+      "cost": 43.496,
+      "shares": 400
+    },
+    "600673": {
+      "name": "东阳光",
+      "cost": 27.715,
+      "shares": 600
+    },
+    "601138": {
+      "name": "工业富联",
+      "cost": 65.62,
+      "shares": 800
+    },
+    "601166": {
+      "name": "兴业银行",
+      "cost": 23.167,
+      "shares": 300
+    },
+    "601288": {
+      "name": "农业银行",
+      "cost": 6.847,
+      "shares": 2700
+    },
+    "601689": {
+      "name": "拓普集团",
+      "cost": 73.772,
+      "shares": 200
+    },
+    "601698": {
+      "name": "中国卫通",
+      "cost": 40.821,
+      "shares": 100
+    },
+    "601899": {
+      "name": "紫金矿业",
+      "cost": 12.063,
+      "shares": 300
+    },
+    "603163": {
+      "name": "圣晖集成",
+      "cost": 138.917,
+      "shares": 400
+    },
+    "603778": {
+      "name": "国晟科技",
+      "cost": 22.842,
+      "shares": 100
+    },
+    "HK00325": {
+      "name": "布鲁可",
+      "cost": 120.031,
+      "shares": 300,
+      "lot": 100
+    },
+    "HK00700": {
+      "name": "腾讯控股",
+      "cost": 642.31,
+      "shares": 100,
+      "lot": 100
+    },
+    "HK01060": {
+      "name": "大麦娱乐",
+      "cost": 1.101,
+      "shares": 30000,
+      "lot": 10000
+    },
+    "HK01211": {
+      "name": "比亚迪股份",
+      "cost": 128.678,
+      "shares": 1000,
+      "lot": 500
+    },
+    "HK01357": {
+      "name": "美图公司",
+      "cost": 9.582,
+      "shares": 6000,
+      "lot": 2000
+    },
+    "HK01810": {
+      "name": "小米集团－Ｗ",
+      "cost": 51.311,
+      "shares": 600,
+      "lot": 200
+    },
+    "HK02359": {
+      "name": "药明康德",
+      "cost": -48.888,
+      "shares": 100,
+      "lot": 100
+    },
+    "HK02590": {
+      "name": "极智嘉-W",
+      "cost": 26.267,
+      "shares": 2200,
+      "lot": 200,
+      "star": true
+    },
+    "HK02722": {
+      "name": "HK02722",
+      "cost": 3.395,
+      "shares": 4000,
+      "lot": 2000
+    },
     "HK03288": {
       "name": "海天味业",
-      "type": "holding",
       "cost": 40.843,
       "shares": 200,
       "lot": 100
     },
+    "HK03690": {
+      "name": "美团－Ｗ",
+      "cost": 119.048,
+      "shares": 1200,
+      "lot": 100,
+      "hidden": true
+    },
+    "HK06060": {
+      "name": "众安在线",
+      "cost": 17.686,
+      "shares": 300,
+      "lot": 100
+    },
+    "HK06809": {
+      "name": "澜起科技",
+      "cost": 109.9,
+      "shares": 100,
+      "lot": 100,
+      "star": true
+    },
     "HK07262": {
       "name": "XL二南方看多日经",
-      "type": "holding",
       "cost": 152.25,
       "shares": 30,
       "lot": 10
     },
-    "HK02722": {
-      "name": "HK02722",
-      "type": "holding",
-      "cost": 3.395,
-      "shares": 4000,
+    "HK07709": {
+      "name": "XL二南方海力士",
+      "cost": 24.565,
+      "shares": 1100,
+      "lot": 10
+    },
+    "HK09618": {
+      "name": "京东-SW",
+      "cost": 113.38,
+      "shares": 250,
+      "lot": 50
+    },
+    "HK09927": {
+      "name": "赛力斯",
+      "cost": 131.5,
+      "shares": 100,
+      "lot": 50
+    },
+    "HK09988": {
+      "name": "阿里巴巴－Ｗ",
+      "cost": 156.016,
+      "shares": 600,
+      "lot": 100
+    }
+  },
+  "watching": {
+    "002050": {
+      "name": "三花智控",
+      "cost": 50.279,
+      "shares": 300
+    },
+    "002121": {
+      "name": "科陆电子"
+    },
+    "002202": {
+      "name": "金风科技",
+      "cost": 4.815,
+      "shares": 100
+    },
+    "002335": {
+      "name": "科华数据"
+    },
+    "002364": {
+      "name": "中恒电气",
+      "cost": 30.172,
+      "shares": 100
+    },
+    "002648": {
+      "name": "卫星化学",
+      "cost": 22.906,
+      "shares": 800
+    },
+    "159326": {
+      "name": "电网设备ETF"
+    },
+    "159691": {
+      "name": "港股红利ETF"
+    },
+    "300376": {
+      "name": "易事特"
+    },
+    "301388": {
+      "name": "欣灵电气"
+    },
+    "600089": {
+      "name": "特变电工"
+    },
+    "600268": {
+      "name": "国电南自"
+    },
+    "600309": {
+      "name": "万华化学",
+      "cost": 88.078,
+      "shares": 100
+    },
+    "600312": {
+      "name": "平高电气"
+    },
+    "600517": {
+      "name": "国网英大"
+    },
+    "600550": {
+      "name": "保变电气",
+      "cost": 16.098,
+      "shares": 200
+    },
+    "601088": {
+      "name": "中国神华"
+    },
+    "601179": {
+      "name": "中国西电"
+    },
+    "601318": {
+      "name": "中国平安"
+    },
+    "603019": {
+      "name": "中科曙光",
+      "cost": 91.331,
+      "shares": 200
+    },
+    "603063": {
+      "name": "禾望电气"
+    },
+    "603533": {
+      "name": "掌阅科技",
+      "cost": 23.551,
+      "shares": 600
+    },
+    "688676": {
+      "name": "金盘科技"
+    },
+    "HK03896": {
+      "name": "金山云",
       "lot": 2000
+    },
+    "HK03986": {
+      "name": "兆易创新",
+      "lot": 100,
+      "star": true
     }
   },
   "settings": {
-    "poll_interval": 30,
     "big_move_pct": 5,
     "cooldown_minutes": 10,
-    "l1_trigger_pct": 4,
-    "l1_delta_pct": 3,
     "l1_cooldown_min": 5,
-    "l2_trigger_pct": 6,
-    "l2_delta_pct": 5,
+    "l1_delta_pct": 3,
+    "l1_trigger_pct": 4,
     "l2_cooldown_min": 15,
-    "l3_cooldown_min": 30
+    "l2_delta_pct": 5,
+    "l2_trigger_pct": 6,
+    "l3_cooldown_min": 30,
+    "poll_interval": 30
   }
 }

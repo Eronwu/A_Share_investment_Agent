@@ -298,6 +298,9 @@ function NavBar({ data }: { data: SimData | null }) {
       <Link href="/sector" style={{ color: D.comment, textDecoration: "none" }}>
         sector
       </Link>
+      <Link href="/watching" style={{ color: D.comment, textDecoration: "none" }}>
+        watching
+      </Link>
       <Link href="/manage" style={{ color: D.comment, textDecoration: "none" }}>
         manage
       </Link>

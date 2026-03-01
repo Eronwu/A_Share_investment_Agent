@@ -452,6 +452,7 @@ export default function SectorPage() {
         <span style={{ color: D.comment }}>|</span>
         <Link href="/alerts" style={{ color: D.comment, textDecoration: "none" }}>alerts</Link>
         <Link href="/sim" style={{ color: D.comment, textDecoration: "none" }}>sim</Link>
+        <Link href="/watching" style={{ color: D.comment, textDecoration: "none" }}>watching</Link>
         <span style={{ color: D.purple, fontWeight: 700 }}>sector</span>
         <Link href="/manage" style={{ color: D.comment, textDecoration: "none" }}>manage</Link>
         <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>

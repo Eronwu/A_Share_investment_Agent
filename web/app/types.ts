@@ -5,12 +5,15 @@ export interface WatchEntry {
   type?: string;
   cost?: number | null;
   shares?: number | null;
+  lot?: number | null;
   hidden?: boolean;
   star?: boolean;
 }
 
 export interface MonitorConfig {
   watchlist: Record<string, WatchEntry>;
+  holdings?: Record<string, WatchEntry>;
+  watching?: Record<string, WatchEntry>;
   settings: Record<string, number>;
 }
 

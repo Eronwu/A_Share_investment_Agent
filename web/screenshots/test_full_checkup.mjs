@@ -159,24 +159,20 @@ async function main() {
     await page.goto(`${BASE}/?tab=A`, { waitUntil: 'commit', timeout: 30000 });
     await page.waitForTimeout(2000);
 
-    // Click HK tab (tab bar divs have min-width:130px)
+    // Click market switch button: HK
     const clickedHK = await page.evaluate(() => {
-      const divs = Array.from(document.querySelectorAll('div'));
-      const hk = divs.find(d =>
-        d.style.cursor === 'pointer' && d.style.minWidth === '130px' && d.textContent.includes('HK')
-      );
+      const btns = Array.from(document.querySelectorAll('button'));
+      const hk = btns.find(b => (b.textContent || '').trim() === 'HK');
       if (hk) { hk.click(); return true; }
       return false;
     });
     await page.waitForTimeout(2000);
     record('Tab switch: A → HK', clickedHK && page.url().includes('tab=HK'));
 
-    // Click back to A
+    // Click back to A-share
     const clickedA = await page.evaluate(() => {
-      const divs = Array.from(document.querySelectorAll('div'));
-      const a = divs.find(d =>
-        d.style.cursor === 'pointer' && d.style.minWidth === '130px' && d.textContent.includes('A-share')
-      );
+      const btns = Array.from(document.querySelectorAll('button'));
+      const a = btns.find(b => (b.textContent || '').trim() === 'A-share');
       if (a) { a.click(); return true; }
       return false;
     });
@@ -309,7 +305,8 @@ async function main() {
     // ════════════════════════════════════════════════
     console.log('\n═══ 6. Manage page ═══');
     await page.goto(`${BASE}/manage`, { waitUntil: 'commit', timeout: 30000 });
-    await page.waitForTimeout(3000);
+    await page.waitForFunction(() => !document.body.innerText.includes('Loading config...'), { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(1000);
     await page.screenshot({ path: `${DIR}/checkup_05_manage.png`, fullPage: true });
 
     const hasError_manage = await page.evaluate(() =>
@@ -340,6 +337,32 @@ async function main() {
       ).length
     );
     record('Manage: rows rendered', manageRows > 0, `${manageRows} rows`);
+
+    // ════════════════════════════════════════════════
+    // 6.5 Watching page
+    // ════════════════════════════════════════════════
+    console.log('\n═══ 6.5 Watching page ═══');
+    await page.goto(`${BASE}/watching?tab=A`, { waitUntil: 'commit', timeout: 30000 });
+    await page.waitForTimeout(3000);
+    await page.screenshot({ path: `${DIR}/checkup_06_watching.png`, fullPage: true });
+
+    const hasError_watching = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('div')).some(d => d.textContent.includes('[ERROR]'))
+    );
+    record('Watching: no [ERROR] banner', !hasError_watching);
+
+    const watchingRows = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('span')).filter(s =>
+        s.textContent.trim() === 'DEV' || s.textContent.trim() === '★ DEV' || s.textContent.trim() === '★DEV'
+      ).length
+    );
+    record('Watching: DEV rows rendered', watchingRows > 0, `${watchingRows} rows`);
+
+    const watchingHasSections = await page.evaluate(() => {
+      const txt = document.body.innerText;
+      return txt.includes('watching:stocks') || txt.includes('watching:ETF');
+    });
+    record('Watching: section headers present', watchingHasSections);
 
     // ════════════════════════════════════════════════
     // 7. API health checks
@@ -481,6 +504,7 @@ async function main() {
       { path: '/', name: 'Dashboard' },
       { path: '/alerts', name: 'Alerts' },
       { path: '/sim', name: 'Sim' },
+      { path: '/watching', name: 'Watching' },
       { path: '/manage', name: 'Manage' },
     ];
     for (const pg of pages) {

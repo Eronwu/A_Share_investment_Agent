@@ -10,6 +10,95 @@ const ALERT_PATH = join(process.cwd(), "..", "src", "data", "alert_config.json")
 
 const EMPTY = { services: [], ts: 0, settings: {} };
 
+function getConfigSource(): "db" | "json" {
+  return process.env.CONFIG_SOURCE === "json" ? "json" : "db";
+}
+
+type DbWatchRow = {
+  symbol: string;
+  name: string;
+  list_type: "holding" | "watching";
+  cost: number | null;
+  shares: number | null;
+  hidden: number;
+  star: number;
+};
+
+function mergeSplitLists(
+  holdings: Record<string, Record<string, unknown>>,
+  watching: Record<string, Record<string, unknown>>,
+): Record<string, Record<string, unknown>> {
+  const merged: Record<string, Record<string, unknown>> = {};
+  for (const [code, entry] of Object.entries(holdings || {})) {
+    merged[code] = { ...entry, type: "holding" };
+  }
+  for (const [code, entry] of Object.entries(watching || {})) {
+    if (!merged[code]) merged[code] = { ...entry, type: "watching" };
+  }
+  return merged;
+}
+
+function parseJsonConfig(raw: string): {
+  watchlist: Record<string, Record<string, unknown>>;
+  settings: Record<string, number>;
+} {
+  const cfg = JSON.parse(raw) as {
+    watchlist?: Record<string, Record<string, unknown>>;
+    holdings?: Record<string, Record<string, unknown>>;
+    watching?: Record<string, Record<string, unknown>>;
+    settings?: Record<string, number>;
+  };
+  const watchlist =
+    cfg.watchlist && Object.keys(cfg.watchlist).length > 0
+      ? cfg.watchlist
+      : mergeSplitLists(cfg.holdings || {}, cfg.watching || {});
+  return { watchlist, settings: cfg.settings || {} };
+}
+
+function readMonitorConfigFromDb(): {
+  watchlist: Record<string, Record<string, unknown>>;
+  settings: Record<string, number>;
+  empty: boolean;
+} {
+  const db = new Database(SIM_DB_PATH, { readonly: true });
+  try {
+    const watchRows = db
+      .prepare(
+        `SELECT symbol, name, list_type, cost, shares, hidden, star
+         FROM monitor_watchlist`,
+      )
+      .all() as DbWatchRow[];
+    const settingsRows = db
+      .prepare("SELECT key, value FROM monitor_settings")
+      .all() as { key: string; value: number }[];
+
+    const watchlist: Record<string, Record<string, unknown>> = {};
+    for (const r of watchRows) {
+      watchlist[r.symbol] = {
+        name: r.name,
+        type: r.list_type,
+        cost: r.cost,
+        shares: r.shares,
+        hidden: Boolean(r.hidden),
+        star: Boolean(r.star),
+      };
+    }
+
+    const settings: Record<string, number> = {};
+    for (const r of settingsRows) {
+      settings[r.key] = Number(r.value);
+    }
+
+    return {
+      watchlist,
+      settings,
+      empty: watchRows.length === 0 && settingsRows.length === 0,
+    };
+  } finally {
+    db.close();
+  }
+}
+
 /**
  * GET /api/metrics
  *
@@ -23,14 +112,27 @@ export async function GET() {
     const raw = readFileSync(DATA_PATH, "utf-8");
     const data = JSON.parse(raw);
 
-    // 读 config
+    // 读 config（CONFIG_SOURCE=json 时强制文件源）
     let watchlist: Record<string, Record<string, unknown>> = {};
     let settings: Record<string, number> = {};
     try {
-      const cfgRaw = readFileSync(CONFIG_PATH, "utf-8");
-      const cfg = JSON.parse(cfgRaw);
-      watchlist = cfg.watchlist || {};
-      settings = cfg.settings || {};
+      if (getConfigSource() === "json") {
+        const cfgRaw = readFileSync(CONFIG_PATH, "utf-8");
+        const cfg = parseJsonConfig(cfgRaw);
+        watchlist = cfg.watchlist;
+        settings = cfg.settings;
+      } else {
+        const dbCfg = readMonitorConfigFromDb();
+        if (!dbCfg.empty) {
+          watchlist = dbCfg.watchlist;
+          settings = dbCfg.settings;
+        } else {
+          const cfgRaw = readFileSync(CONFIG_PATH, "utf-8");
+          const cfg = parseJsonConfig(cfgRaw);
+          watchlist = cfg.watchlist;
+          settings = cfg.settings;
+        }
+      }
     } catch { /* */ }
 
     // 读 alert config

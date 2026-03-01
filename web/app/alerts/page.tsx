@@ -360,6 +360,7 @@ export default function AlertsPage() {
         <span style={{ color: D.purple, fontWeight: 700 }}>alerts</span>
         <Link href="/sim" style={{ color: D.comment, textDecoration: "none" }}>sim</Link>
         <Link href="/sector" style={{ color: D.comment, textDecoration: "none" }}>sector</Link>
+        <Link href="/watching" style={{ color: D.comment, textDecoration: "none" }}>watching</Link>
         <Link href="/manage" style={{ color: D.comment, textDecoration: "none" }}>manage</Link>
         <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
           <span style={{ color: D.fg }}>{new Date().toISOString().slice(0, 10)}</span>

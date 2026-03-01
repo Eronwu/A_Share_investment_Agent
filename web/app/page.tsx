@@ -71,13 +71,13 @@ function TitleBar() {
 /* ── iTerm2 Tab Bar ── */
 type MarketTab = "A" | "HK";
 
-function TabBar({ activeTab, onTabChange }: { activeTab: MarketTab; onTabChange: (t: MarketTab) => void }) {
-  const tabs: { label: string; key: MarketTab | null; href?: string }[] = [
-    { label: "Claude Code (node)", key: null },
-    { label: "A-share (node)", key: "A" },
-    { label: "HK (node)", key: "HK" },
-    { label: "Sector (node)", key: null, href: "/sector" },
-    { label: "~ (-zsh)", key: null },
+function TabBar() {
+  const tabs: { label: string; href?: string; active?: boolean }[] = [
+    { label: "Claude Code (node)" },
+    { label: "holdings (node)", active: true },
+    { label: "watching (node)", href: "/watching" },
+    { label: "Sector (node)", href: "/sector" },
+    { label: "~ (-zsh)" },
   ];
   return (
     <div
@@ -90,12 +90,11 @@ function TabBar({ activeTab, onTabChange }: { activeTab: MarketTab; onTabChange:
       }}
     >
       {tabs.map((t, i) => {
-        const isActive = t.key !== null && t.key === activeTab;
-        const clickable = t.key !== null || !!t.href;
+        const isActive = Boolean(t.active);
+        const clickable = !!t.href;
         const inner = (
           <div
             key={i}
-            onClick={() => t.key && onTabChange(t.key)}
             style={{
               padding: "5px 16px",
               background: isActive ? D.bg : "#21222c",
@@ -134,6 +133,9 @@ function TabBar({ activeTab, onTabChange }: { activeTab: MarketTab; onTabChange:
       <Link href="/sector" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
         sector
       </Link>
+      <Link href="/watching" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
+        watching
+      </Link>
       <Link href="/manage" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
         manage
       </Link>
@@ -151,6 +153,34 @@ function Prompt({ cmd }: { cmd: string }) {
       <span style={{ color: D.red }}>main</span>
       <span style={{ color: D.purple }}>) </span>
       <span style={{ color: D.fg }}>{cmd}</span>
+    </div>
+  );
+}
+
+function MarketSwitch({ activeTab, onTabChange }: { activeTab: MarketTab; onTabChange: (t: MarketTab) => void }) {
+  return (
+    <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
+      <span style={{ color: D.comment, fontSize: 12 }}>market:</span>
+      {(["A", "HK"] as MarketTab[]).map((t) => (
+        <button
+          key={t}
+          onClick={() => onTabChange(t)}
+          style={{
+            background: activeTab === t ? D.purple : "transparent",
+            color: activeTab === t ? D.bg : D.comment,
+            border: `1px solid ${activeTab === t ? D.purple : D.currentLine}`,
+            borderRadius: 3,
+            padding: "2px 10px",
+            cursor: "pointer",
+            fontFamily: "JetBrains Mono, monospace",
+            fontSize: 12,
+            fontWeight: 700,
+          }}
+          title={`Switch to ${t === "A" ? "A-share" : "HK"} market`}
+        >
+          {t === "A" ? "A-share" : "HK"}
+        </button>
+      ))}
     </div>
   );
 }
@@ -295,7 +325,7 @@ function Home() {
   const prodETF = applySortList(tabServices.filter((s) => s.type === "holding" && !s.hidden && isETF(s)), holdSort);
   const stageStock = applySortList(tabServices.filter((s) => s.type !== "holding" && !s.hidden && !isETF(s)), watchSort);
   const stageETF = applySortList(tabServices.filter((s) => s.type !== "holding" && !s.hidden && isETF(s)), watchSort);
-  const hiddenList = applySortList(tabServices.filter((s) => s.hidden), holdSort);
+  const hiddenList = applySortList(tabServices.filter((s) => s.hidden && s.type === "holding"), holdSort);
   const hasHold = prodStock.length > 0 || prodETF.length > 0;
 
   const now = ts
@@ -465,7 +495,7 @@ function Home() {
       }}
     >
       <TitleBar />
-      <TabBar activeTab={activeTab} onTabChange={switchTab} />
+      <TabBar />
 
       {/* Terminal body */}
       <div
@@ -479,6 +509,7 @@ function Home() {
       >
         <Prompt cmd={`watch -n ${pollMs / 1000} ./svc-monitor --format table`} />
         <div style={{ height: 8 }} />
+        <MarketSwitch activeTab={activeTab} onTabChange={switchTab} />
 
         {loading && (
           <div style={{ color: D.comment, padding: "16px 0" }}>
@@ -650,41 +681,21 @@ function Home() {
                 </>
               )}
 
-              {/* ── stage:stocks ── */}
-              {stageStock.length > 0 && (
-                <>
-                  {secTitle("stage:stocks", stageStock.length, stageStockOpen, setStageStockOpen)}
-                  {stageStockOpen && <>{watchHeader}{stageStock.map((s) => <WatchRow key={s.id} s={s} />)}</>}
-                </>
-              )}
-
-              {/* ── stage:ETF ── */}
-              {stageETF.length > 0 && (
-                <>
-                  {secTitle("stage:ETF", stageETF.length, stageETFOpen, setStageETFOpen)}
-                  {stageETFOpen && <>{watchHeader}{stageETF.map((s) => <WatchRow key={s.id} s={s} />)}</>}
-                </>
-              )}
-
               {/* ── hidden ── */}
               {hiddenList.length > 0 && (
                 <>
                   {secTitle("hidden", hiddenList.length, hiddenOpen, setHiddenOpen, 0.6)}
                   {hiddenOpen && (
                     <>
-                      {hiddenList.map((s) =>
-                        s.type === "holding"
-                          ? <HoldRow key={s.id} s={s} />
-                          : <WatchRow key={s.id} s={s} />
-                      )}
+                      {hiddenList.map((s) => <HoldRow key={s.id} s={s} />)}
                     </>
                   )}
                 </>
               )}
 
-              {prodStock.length === 0 && prodETF.length === 0 && stageStock.length === 0 && stageETF.length === 0 && hiddenList.length === 0 && (
+              {prodStock.length === 0 && prodETF.length === 0 && hiddenList.length === 0 && (
                 <div style={{ color: D.comment, padding: "8px 0" }}>
-                  # no services in {activeTab === "HK" ? "HK" : "A-share"} tab
+                  # no holdings in {activeTab === "HK" ? "HK" : "A-share"} tab
                 </div>
               )}
             </>

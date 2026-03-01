@@ -250,6 +250,28 @@ CREATE TABLE IF NOT EXISTS trade_plan_events (
 );
 CREATE INDEX IF NOT EXISTS idx_tpe_date ON trade_plan_events(date);
 CREATE INDEX IF NOT EXISTS idx_tpe_plan ON trade_plan_events(plan_id);
+
+-- Monitor 配置（DB 为主，JSON 为快照）
+CREATE TABLE IF NOT EXISTS monitor_watchlist (
+    symbol TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    list_type TEXT NOT NULL CHECK (list_type IN ('holding', 'watching')),
+    cost REAL,
+    shares INTEGER,
+    lot INTEGER,
+    hidden INTEGER NOT NULL DEFAULT 0,
+    star INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_monitor_watchlist_type ON monitor_watchlist(list_type);
+CREATE INDEX IF NOT EXISTS idx_monitor_watchlist_updated ON monitor_watchlist(updated_at);
+
+CREATE TABLE IF NOT EXISTS monitor_settings (
+    key TEXT PRIMARY KEY,
+    value REAL NOT NULL,
+    updated_at INTEGER NOT NULL
+);
 """
 
 
