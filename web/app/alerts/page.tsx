@@ -353,14 +353,14 @@ export default function AlertsPage() {
           fontSize: 13,
         }}
       >
-        <a href="/" style={{ color: D.cyan, textDecoration: "none" }}>
+        <Link href="/" style={{ color: D.cyan, textDecoration: "none" }}>
           ← monitor
-        </a>
+        </Link>
         <span style={{ color: D.comment }}>|</span>
         <span style={{ color: D.purple, fontWeight: 700 }}>alerts</span>
-        <a href="/sim" style={{ color: D.comment, textDecoration: "none" }}>sim</a>
-        <a href="/sector" style={{ color: D.comment, textDecoration: "none" }}>sector</a>
-        <a href="/manage" style={{ color: D.comment, textDecoration: "none" }}>manage</a>
+        <Link href="/sim" style={{ color: D.comment, textDecoration: "none" }}>sim</Link>
+        <Link href="/sector" style={{ color: D.comment, textDecoration: "none" }}>sector</Link>
+        <Link href="/manage" style={{ color: D.comment, textDecoration: "none" }}>manage</Link>
         <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
           <span style={{ color: D.fg }}>{new Date().toISOString().slice(0, 10)}</span>
           <span style={{ color: D.comment }}>|</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import Link from "next/link";
 import { D } from "../theme";
 
 import type { WatchEntry, MonitorConfig } from "../types";
@@ -170,6 +171,20 @@ function Toast({ message, type }: { message: string; type: "ok" | "err" }) {
   );
 }
 
+/* ── Prompt (terminal style, matches other pages) ── */
+function Prompt({ cmd }: { cmd: string }) {
+  return (
+    <div>
+      <span style={{ color: D.green }}>➜ </span>
+      <span style={{ color: D.cyan }}>~/projects/manage</span>
+      <span style={{ color: D.purple }}> git:(</span>
+      <span style={{ color: D.red }}>main</span>
+      <span style={{ color: D.purple }}>) </span>
+      <span style={{ color: D.fg }}>{cmd}</span>
+    </div>
+  );
+}
+
 /* ── TitleBar ── */
 function TitleBar() {
   return (
@@ -200,7 +215,7 @@ function TitleBar() {
         ))}
       </div>
       <span style={{ color: D.comment, fontSize: 12 }}>
-        manage -- 持仓管理 + 交易计划
+        ✱ manage — 持仓管理
       </span>
     </div>
   );
@@ -1160,23 +1175,7 @@ export default function ManagePage() {
     await planPost({ action: "update", id: planId, updates: { orders: updatedOrders } });
   }
 
-  if (loading) {
-    return (
-      <div style={{ height: "100vh", background: D.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ color: D.comment, fontFamily: "JetBrains Mono, monospace", fontSize: 14 }}>Loading...</span>
-      </div>
-    );
-  }
-
-  if (!config) {
-    return (
-      <div style={{ height: "100vh", background: D.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ color: D.red, fontFamily: "JetBrains Mono, monospace", fontSize: 14 }}>Failed to load config</span>
-      </div>
-    );
-  }
-
-  const entries = Object.entries(config.watchlist);
+  const entries = config ? Object.entries(config.watchlist) : [];
   const isHK = (code: string) => code.startsWith("HK");
   const isETF = (code: string) => !isHK(code) && /^(51|15|58)\d{4}$/.test(code);
 
@@ -1223,12 +1222,13 @@ export default function ManagePage() {
   return (
     <div
       style={{
+        background: D.bg,
+        color: D.fg,
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: 13,
         height: "100vh",
         display: "flex",
         flexDirection: "column",
-        background: D.bg,
-        fontFamily: "JetBrains Mono, monospace",
-        color: D.fg,
       }}
     >
       <TitleBar />
@@ -1255,32 +1255,17 @@ export default function ManagePage() {
           fontSize: 13,
         }}
       >
-        <a href="/" style={{ color: D.cyan, textDecoration: "none" }}>
-          &lt;- monitor
-        </a>
+        <Link href="/" style={{ color: D.cyan, textDecoration: "none" }}>
+          ← monitor
+        </Link>
         <span style={{ color: D.comment }}>|</span>
-        <a href="/alerts" style={{ color: D.comment, textDecoration: "none" }}>alerts</a>
-        <a href="/sim" style={{ color: D.comment, textDecoration: "none" }}>sim</a>
-        <a href="/sector" style={{ color: D.comment, textDecoration: "none" }}>sector</a>
+        <Link href="/alerts" style={{ color: D.comment, textDecoration: "none" }}>alerts</Link>
+        <Link href="/sim" style={{ color: D.comment, textDecoration: "none" }}>sim</Link>
+        <Link href="/sector" style={{ color: D.comment, textDecoration: "none" }}>sector</Link>
         <span style={{ color: D.purple, fontWeight: 700 }}>manage</span>
-        <input
-          placeholder="search..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{
-            marginLeft: "auto",
-            background: D.currentLine,
-            border: `1px solid ${D.comment}`,
-            color: D.fg,
-            fontFamily: "JetBrains Mono, monospace",
-            fontSize: 12,
-            padding: "3px 10px",
-            outline: "none",
-            borderRadius: 3,
-            width: 180,
-          }}
-        />
-        <span style={{ color: D.comment, fontSize: 11 }}>{filtered.length}/{entries.length}</span>
+        <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>
+          {holdings.length} holdings | {watching.length} watching | {planEntries.length} plans
+        </span>
       </div>
 
       {/* scrollable body */}
@@ -1288,11 +1273,51 @@ export default function ManagePage() {
         style={{
           flex: 1,
           overflow: "auto",
-          padding: "10px 20px 40px",
+          padding: "8px 16px 24px",
           fontSize: 13,
-          lineHeight: 1.7,
+          lineHeight: 1.55,
         }}
       >
+        <Prompt cmd="cat manage.conf" />
+        <div style={{ height: 6 }} />
+
+        {/* inline search */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <span style={{ color: D.comment }}>filter:</span>
+          <input
+            placeholder="code or name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              background: D.currentLine,
+              border: `1px solid ${D.comment}`,
+              color: D.fg,
+              fontFamily: "JetBrains Mono, monospace",
+              fontSize: 12,
+              padding: "2px 8px",
+              outline: "none",
+              borderRadius: 2,
+              width: 160,
+            }}
+          />
+          {search && (
+            <span style={{ color: D.comment, fontSize: 11 }}>
+              {filtered.length}/{entries.length} matched
+            </span>
+          )}
+        </div>
+
+        {loading && (
+          <div style={{ color: D.comment, padding: "8px 0" }}>
+            <span style={{ color: D.cyan }}>info</span> Loading config...
+          </div>
+        )}
+
+        {!loading && !config && (
+          <div style={{ color: D.red, padding: "8px 0" }}>Failed to load config</div>
+        )}
+
+        {!loading && config && (<>
         {/* ── trade plans ── */}
         <div
           style={{ color: D.comment, padding: "10px 0 6px", borderBottom: `1px solid ${D.currentLine}`, marginBottom: 4, fontSize: 13, cursor: "pointer", userSelect: "none", display: "flex", alignItems: "center", gap: 8 }}
@@ -1560,7 +1585,29 @@ export default function ManagePage() {
             Add
           </button>
         </div>
+        </>)}
+
+        {/* blinking cursor */}
+        <div style={{ paddingTop: 16 }}>
+          <span style={{ color: D.green }}>➜ </span>
+          <span style={{ color: D.cyan }}>~/projects/manage</span>
+          <span style={{ color: D.purple }}> git:(</span>
+          <span style={{ color: D.red }}>main</span>
+          <span style={{ color: D.purple }}>)</span>
+          <span
+            style={{
+              display: "inline-block",
+              width: 8,
+              height: 15,
+              background: D.fg,
+              verticalAlign: "text-bottom",
+              animation: "blink 1s step-end infinite",
+            }}
+          />
+        </div>
       </div>
+
+      <style>{`@keyframes blink { 50% { opacity: 0; } }`}</style>
     </div>
   );
 }
