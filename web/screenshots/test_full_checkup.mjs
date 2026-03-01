@@ -58,6 +58,24 @@ async function main() {
     });
     record('A tab: summary bar has content', summaryText_A.length > 20, summaryText_A.slice(0, 80));
 
+    const summaryHoldingsA = await page.evaluate(async () => {
+      const txt = document.body.innerText || '';
+      const m = txt.match(/Nodes:\s*(\d+)[\s\S]*?holdings:\s*(\d+)(?:\(\+(\d+)\s+hidden\))?/);
+      if (!m) return { ok: false, detail: 'summary parse failed' };
+      const uiNodes = Number(m[1]);
+      const uiVisible = Number(m[2]);
+      const uiHidden = Number(m[3] || '0');
+      const res = await fetch('/api/metrics');
+      const data = await res.json();
+      const holdings = (data.services || []).filter(s => !String(s.id).startsWith('HK') && s.type === 'holding');
+      const apiNodes = holdings.length;
+      const apiVisible = holdings.filter(s => !s.hidden).length;
+      const apiHidden = apiNodes - apiVisible;
+      const ok = uiNodes === apiNodes && uiVisible === apiVisible && uiHidden === apiHidden;
+      return { ok, detail: `ui ${uiNodes}/${uiVisible}/${uiHidden} vs api ${apiNodes}/${apiVisible}/${apiHidden}` };
+    });
+    record('A tab: summary uses holdings-only stats', summaryHoldingsA.ok, summaryHoldingsA.detail);
+
     // Check no "0.00" in 量比 column for A-share (should be "-" after close)
     const volRatioValues_A = await page.evaluate(() => {
       const spans = Array.from(document.querySelectorAll('span'));
@@ -119,6 +137,24 @@ async function main() {
       return text.includes('FX') || text.includes('HKD') || text.includes('hkd') || text.includes('0.92');
     });
     record('HK tab: FX rate displayed', hasFx);
+
+    const summaryHoldingsHK = await page.evaluate(async () => {
+      const txt = document.body.innerText || '';
+      const m = txt.match(/Nodes:\s*(\d+)[\s\S]*?holdings:\s*(\d+)(?:\(\+(\d+)\s+hidden\))?/);
+      if (!m) return { ok: false, detail: 'summary parse failed' };
+      const uiNodes = Number(m[1]);
+      const uiVisible = Number(m[2]);
+      const uiHidden = Number(m[3] || '0');
+      const res = await fetch('/api/metrics');
+      const data = await res.json();
+      const holdings = (data.services || []).filter(s => String(s.id).startsWith('HK') && s.type === 'holding');
+      const apiNodes = holdings.length;
+      const apiVisible = holdings.filter(s => !s.hidden).length;
+      const apiHidden = apiNodes - apiVisible;
+      const ok = uiNodes === apiNodes && uiVisible === apiVisible && uiHidden === apiHidden;
+      return { ok, detail: `ui ${uiNodes}/${uiVisible}/${uiHidden} vs api ${apiNodes}/${apiVisible}/${apiHidden}` };
+    });
+    record('HK tab: summary uses holdings-only stats', summaryHoldingsHK.ok, summaryHoldingsHK.detail);
 
     // Hidden section — should only show HK hidden stocks
     const hiddenSection = await page.evaluate(() => {

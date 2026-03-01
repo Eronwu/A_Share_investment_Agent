@@ -133,7 +133,15 @@ export async function GET() {
           settings = cfg.settings;
         }
       }
-    } catch { /* */ }
+    } catch {
+      // DB/read error fallback: never return empty watchlist silently.
+      try {
+        const cfgRaw = readFileSync(CONFIG_PATH, "utf-8");
+        const cfg = parseJsonConfig(cfgRaw);
+        watchlist = cfg.watchlist;
+        settings = cfg.settings;
+      } catch { /* */ }
+    }
 
     // 读 alert config
     let alerts: Record<string, Record<string, number>> = {};

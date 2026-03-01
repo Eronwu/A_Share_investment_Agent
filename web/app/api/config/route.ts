@@ -594,7 +594,7 @@ export async function POST(request: Request) {
         let shares = existing.shares;
         let hidden = Boolean(existing.hidden);
         let star = Boolean(existing.star);
-        const lot = existing.lot;
+        let lot = existing.lot;
 
         if (data?.type !== undefined) {
           listType = data.type === "holding" ? "holding" : "watching";
@@ -604,6 +604,9 @@ export async function POST(request: Request) {
         }
         if (data?.shares !== undefined) {
           shares = data.shares == null ? null : Number(data.shares);
+        }
+        if ((data as WatchEntry & { lot?: number | null } | undefined)?.lot !== undefined) {
+          lot = (data as WatchEntry & { lot?: number | null }).lot ?? null;
         }
         if (data?.hidden !== undefined) hidden = Boolean(data.hidden);
         if (data?.star !== undefined) star = Boolean(data.star);
@@ -650,6 +653,9 @@ export async function POST(request: Request) {
         if (data?.below !== undefined) changed.push(`below:${data.below}`);
         if (data?.hidden !== undefined) changed.push(`hidden:${data.hidden}`);
         if (data?.star !== undefined) changed.push(`star:${data.star}`);
+        if ((data as WatchEntry & { lot?: number | null } | undefined)?.lot !== undefined) {
+          changed.push(`lot:${(data as WatchEntry & { lot?: number | null }).lot}`);
+        }
 
         return NextResponse.json({
           success: true,

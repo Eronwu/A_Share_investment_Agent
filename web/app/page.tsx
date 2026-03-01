@@ -321,6 +321,7 @@ function Home() {
   const isETF = (s: Service) => !isHK(s) && /^(51|15|58)\d{4}$/.test(s.id);
   const inTab = (s: Service) => activeTab === "HK" ? isHK(s) : !isHK(s);
   const tabServices = services.filter((s) => inTab(s));
+  const tabHoldingAll = tabServices.filter((s) => s.type === "holding");
   const prodStock = applySortList(tabServices.filter((s) => s.type === "holding" && !s.hidden && !isETF(s)), holdSort);
   const prodETF = applySortList(tabServices.filter((s) => s.type === "holding" && !s.hidden && isETF(s)), holdSort);
   const stageStock = applySortList(tabServices.filter((s) => s.type !== "holding" && !s.hidden && !isETF(s)), watchSort);
@@ -337,12 +338,12 @@ function Home() {
   const fxRate = hkdCnyRate ?? FALLBACK_HKD_CNY;
 
   // ── 当前 Tab 统计 ──
-  const tabUp = tabServices.filter((s) => s.change > 0).length;
-  const tabDn = tabServices.filter((s) => s.change < 0).length;
-  const tabAmt = tabServices.reduce((a, s) => a + s.amount, 0);
-  const tabAvgChg = tabServices.length > 0
-    ? tabServices.reduce((a, s) => a + s.change, 0) / tabServices.length : 0;
-  const tabHoldCount = tabServices.filter((s) => s.type === "holding" && !s.hidden).length;
+  const tabUp = tabHoldingAll.filter((s) => s.change > 0).length;
+  const tabDn = tabHoldingAll.filter((s) => s.change < 0).length;
+  const tabAmt = tabHoldingAll.reduce((a, s) => a + s.amount, 0);
+  const tabAvgChg = tabHoldingAll.length > 0
+    ? tabHoldingAll.reduce((a, s) => a + s.change, 0) / tabHoldingAll.length : 0;
+  const tabHoldCount = tabHoldingAll.filter((s) => !s.hidden).length;
 
   // ── 当前 Tab P&L ──
   const tabHoldings = tabServices.filter((s) => s.type === "holding" && s.pnl !== null && s.cost && s.shares);
@@ -545,12 +546,12 @@ function Home() {
         {/* summary bar — current tab */}
         <div style={{ color: D.comment, marginBottom: 6 }}>
           <span style={{ color: D.fg }}>
-            Nodes: <span style={{ color: D.purple }}>{tabServices.length}</span>
+            Nodes: <span style={{ color: D.purple }}>{tabHoldingAll.length}</span>
           </span>
           {"  "}
           holdings:<span style={{ color: D.orange }}>{tabHoldCount}</span>
-          {tabHoldings.length > tabHoldCount && (
-            <span style={{ color: D.comment, fontSize: 11 }}>(+{tabHoldings.length - tabHoldCount} hidden)</span>
+          {tabHoldingAll.length > tabHoldCount && (
+            <span style={{ color: D.comment, fontSize: 11 }}>(+{tabHoldingAll.length - tabHoldCount} hidden)</span>
           )}
           {"  "}
           up:<span style={{ color: D.red }}>{tabUp}</span>
