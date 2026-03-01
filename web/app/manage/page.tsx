@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import Link from "next/link";
 import { D } from "../theme";
+import { AppTabs } from "../components/AppTabs";
+import { AppTitleBar } from "../components/AppTitleBar";
 
 import type { WatchEntry, MonitorConfig } from "../types";
 
@@ -171,53 +172,16 @@ function Toast({ message, type }: { message: string; type: "ok" | "err" }) {
   );
 }
 
-/* ── Prompt (terminal style, matches other pages) ── */
-function Prompt({ cmd }: { cmd: string }) {
+function TabBar({ holdingsCount, watchingCount, plansCount }: { holdingsCount: number; watchingCount: number; plansCount: number }) {
   return (
-    <div>
-      <span style={{ color: D.green }}>➜ </span>
-      <span style={{ color: D.cyan }}>~/projects/manage</span>
-      <span style={{ color: D.purple }}> git:(</span>
-      <span style={{ color: D.red }}>main</span>
-      <span style={{ color: D.purple }}>) </span>
-      <span style={{ color: D.fg }}>{cmd}</span>
-    </div>
-  );
-}
-
-/* ── TitleBar ── */
-function TitleBar() {
-  return (
-    <div
-      style={{
-        background: "#21222c",
-        height: 30,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        borderBottom: "1px solid #191a21",
-        userSelect: "none",
-      }}
-    >
-      <div style={{ position: "absolute", left: 12, display: "flex", gap: 8 }}>
-        {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
-          <span
-            key={c}
-            style={{
-              width: 12,
-              height: 12,
-              borderRadius: "50%",
-              background: c,
-              display: "inline-block",
-            }}
-          />
-        ))}
-      </div>
-      <span style={{ color: D.comment, fontSize: 12 }}>
-        ✱ manage — 持仓管理
-      </span>
-    </div>
+    <AppTabs
+      active="manage"
+      rightSlot={(
+        <span style={{ color: D.comment, fontSize: 11, marginLeft: 12, marginRight: 16, display: "flex", alignItems: "center" }}>
+          {holdingsCount} holdings | {watchingCount} watching | {plansCount} plans
+        </span>
+      )}
+    />
   );
 }
 
@@ -1231,7 +1195,7 @@ export default function ManagePage() {
         flexDirection: "column",
       }}
     >
-      <TitleBar />
+      <AppTitleBar title="manage — 持仓管理" />
 
       {toast && <Toast message={toast.message} type={toast.type} />}
 
@@ -1243,31 +1207,7 @@ export default function ManagePage() {
         />
       )}
 
-      {/* nav bar */}
-      <div
-        style={{
-          background: "#21222c",
-          padding: "6px 16px",
-          display: "flex",
-          gap: 16,
-          alignItems: "center",
-          borderBottom: "1px solid #191a21",
-          fontSize: 13,
-        }}
-      >
-        <Link href="/" style={{ color: D.cyan, textDecoration: "none" }}>
-          ← monitor
-        </Link>
-        <span style={{ color: D.comment }}>|</span>
-        <Link href="/alerts" style={{ color: D.comment, textDecoration: "none" }}>alerts</Link>
-        <Link href="/sim" style={{ color: D.comment, textDecoration: "none" }}>sim</Link>
-        <Link href="/sector" style={{ color: D.comment, textDecoration: "none" }}>sector</Link>
-        <Link href="/watching" style={{ color: D.comment, textDecoration: "none" }}>watching</Link>
-        <span style={{ color: D.purple, fontWeight: 700 }}>manage</span>
-        <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>
-          {holdings.length} holdings | {watching.length} watching | {planEntries.length} plans
-        </span>
-      </div>
+      <TabBar holdingsCount={holdings.length} watchingCount={watching.length} plansCount={planEntries.length} />
 
       {/* scrollable body */}
       <div
@@ -1279,7 +1219,6 @@ export default function ManagePage() {
           lineHeight: 1.55,
         }}
       >
-        <Prompt cmd="cat manage.conf" />
         <div style={{ height: 6 }} />
 
         {/* inline search */}
@@ -1588,27 +1527,7 @@ export default function ManagePage() {
         </div>
         </>)}
 
-        {/* blinking cursor */}
-        <div style={{ paddingTop: 16 }}>
-          <span style={{ color: D.green }}>➜ </span>
-          <span style={{ color: D.cyan }}>~/projects/manage</span>
-          <span style={{ color: D.purple }}> git:(</span>
-          <span style={{ color: D.red }}>main</span>
-          <span style={{ color: D.purple }}>)</span>
-          <span
-            style={{
-              display: "inline-block",
-              width: 8,
-              height: 15,
-              background: D.fg,
-              verticalAlign: "text-bottom",
-              animation: "blink 1s step-end infinite",
-            }}
-          />
-        </div>
       </div>
-
-      <style>{`@keyframes blink { 50% { opacity: 0; } }`}</style>
     </div>
   );
 }

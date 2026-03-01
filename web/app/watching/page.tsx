@@ -2,14 +2,15 @@
 
 import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { useAlerts } from "../hooks/useAlerts";
 import { useLogEntries } from "../hooks/useCommand";
 import type { Service, AlertSettings } from "../types";
 import { D } from "../theme";
+import { AppTabs } from "../components/AppTabs";
+import { AppTitleBar } from "../components/AppTitleBar";
+import { MarketSwitch, type MarketTab } from "../components/MarketSwitch";
 
 const DEFAULT_POLL_SEC = 30;
-type MarketTab = "A" | "HK";
 
 function chgColor(v: number) {
   return v > 0 ? D.red : v < 0 ? D.green : D.comment;
@@ -25,116 +26,6 @@ function fmtAmt(n: number): string {
   if (abs >= 1e8) return sign + (abs / 1e8).toFixed(1) + "亿";
   if (abs >= 1e4) return sign + (abs / 1e4).toFixed(0) + "万";
   return n.toFixed(0);
-}
-
-function TitleBar() {
-  return (
-    <div
-      style={{
-        background: "#21222c",
-        height: 30,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        borderBottom: "1px solid #191a21",
-        userSelect: "none",
-      }}
-    >
-      <div style={{ position: "absolute", left: 12, display: "flex", gap: 8 }}>
-        {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
-          <span key={c} style={{ width: 12, height: 12, borderRadius: "50%", background: c, display: "inline-block" }} />
-        ))}
-      </div>
-      <span style={{ color: D.comment, fontSize: 12 }}>✱ watching (node)</span>
-    </div>
-  );
-}
-
-function TabBar() {
-  return (
-    <div style={{ display: "flex", background: "#21222c", borderBottom: "1px solid #191a21", fontSize: 11, userSelect: "none" }}>
-      {[
-        { label: "Claude Code (node)" },
-        { label: "holdings (node)", href: "/" },
-        { label: "watching (node)", active: true },
-        { label: "Sector (node)", href: "/sector" },
-        { label: "~ (-zsh)" },
-      ].map((t, i) => {
-        const inner = (
-          <div
-            key={i}
-            style={{
-              padding: "5px 16px",
-              background: t.active ? D.bg : "#21222c",
-              color: t.active ? D.fg : D.comment,
-              borderRight: "1px solid #191a21",
-              borderTop: t.active ? `2px solid ${D.purple}` : "2px solid transparent",
-              minWidth: 130,
-              cursor: t.href ? "pointer" : "default",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <span style={{ fontSize: 8, color: t.active ? D.green : "#555" }}>{t.active ? "✱" : "●"}</span>
-            <span>{t.label}</span>
-            <span style={{ marginLeft: "auto", color: D.comment, fontSize: 10 }}>⌘{i + 1}</span>
-          </div>
-        );
-        return t.href
-          ? <Link key={i} href={t.href} style={{ textDecoration: "none" }}>{inner}</Link>
-          : inner;
-      })}
-      <div style={{ flex: 1 }} />
-      <Link href="/" style={{ padding: "5px 10px", color: D.comment, textDecoration: "none", fontSize: 11 }}>monitor</Link>
-      <Link href="/alerts" style={{ padding: "5px 10px", color: D.comment, textDecoration: "none", fontSize: 11 }}>alerts</Link>
-      <Link href="/sim" style={{ padding: "5px 10px", color: D.comment, textDecoration: "none", fontSize: 11 }}>sim</Link>
-      <Link href="/sector" style={{ padding: "5px 10px", color: D.comment, textDecoration: "none", fontSize: 11 }}>sector</Link>
-      <Link href="/manage" style={{ padding: "5px 10px", color: D.comment, textDecoration: "none", fontSize: 11 }}>manage</Link>
-    </div>
-  );
-}
-
-function MarketSwitch({ activeTab, onTabChange }: { activeTab: MarketTab; onTabChange: (t: MarketTab) => void }) {
-  return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
-      <span style={{ color: D.comment, fontSize: 12 }}>market:</span>
-      {(["A", "HK"] as MarketTab[]).map((t) => (
-        <button
-          key={t}
-          onClick={() => onTabChange(t)}
-          style={{
-            background: activeTab === t ? D.purple : "transparent",
-            color: activeTab === t ? D.bg : D.comment,
-            border: `1px solid ${activeTab === t ? D.purple : D.currentLine}`,
-            borderRadius: 3,
-            padding: "2px 10px",
-            cursor: "pointer",
-            fontFamily: "JetBrains Mono, monospace",
-            fontSize: 12,
-            fontWeight: 700,
-          }}
-          title={`Switch to ${t === "A" ? "A-share" : "HK"} market`}
-        >
-          {t === "A" ? "A-share" : "HK"}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function Prompt() {
-  return (
-    <div>
-      <span style={{ color: D.green }}>➜ </span>
-      <span style={{ color: D.cyan }}>~/projects/watching</span>
-      <span style={{ color: D.purple }}> git:(</span>
-      <span style={{ color: D.red }}>main</span>
-      <span style={{ color: D.purple }}>) </span>
-      <span style={{ color: D.fg }}>watch -n 30 ./svc-monitor --watching</span>
-    </div>
-  );
 }
 
 export default function WatchingPage() {
@@ -163,6 +54,9 @@ function WatchingContent() {
   const [watchStockOpen, setWatchStockOpen] = useState(true);
   const [watchETFOpen, setWatchETFOpen] = useState(true);
   const [hiddenOpen, setHiddenOpen] = useState(false);
+  type SortKey = keyof Service;
+  type SortState = { key: SortKey | null; asc: boolean };
+  const [watchSort, setWatchSort] = useState<SortState>({ key: null, asc: false });
   const { logs, addLogs, clearLogs } = useLogEntries();
   const [alertEvents, setAlertEvents] = useState<unknown[]>([]);
 
@@ -207,10 +101,27 @@ function WatchingContent() {
   const isHK = (s: Service) => s.id.startsWith("HK");
   const isETF = (s: Service) => !isHK(s) && /^(51|15|58)\d{4}$/.test(s.id);
   const inTab = (s: Service) => activeTab === "HK" ? isHK(s) : !isHK(s);
+  function toggleWatchSort(key: SortKey) {
+    setWatchSort((prev) =>
+      prev.key === key ? { key, asc: !prev.asc } : { key, asc: false }
+    );
+  }
+  function derivedVal(s: Service, key: SortKey): number {
+    return (s[key] as number | null | undefined) ?? -Infinity;
+  }
+  function applySortList(list: Service[]): Service[] {
+    if (!watchSort.key) return list.slice().sort((a, b) => b.change - a.change);
+    return list.slice().sort((a, b) => {
+      const av = derivedVal(a, watchSort.key!);
+      const bv = derivedVal(b, watchSort.key!);
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return watchSort.asc ? cmp : -cmp;
+    });
+  }
   const tabServices = services.filter((s) => inTab(s) && s.type !== "holding");
-  const watchStock = tabServices.filter((s) => !s.hidden && !isETF(s)).sort((a, b) => b.change - a.change);
-  const watchETF = tabServices.filter((s) => !s.hidden && isETF(s)).sort((a, b) => b.change - a.change);
-  const hiddenList = tabServices.filter((s) => s.hidden).sort((a, b) => b.change - a.change);
+  const watchStock = applySortList(tabServices.filter((s) => !s.hidden && !isETF(s)));
+  const watchETF = applySortList(tabServices.filter((s) => !s.hidden && isETF(s)));
+  const hiddenList = applySortList(tabServices.filter((s) => s.hidden));
 
   const now = ts ? new Date(ts).toLocaleTimeString("zh-CN", { hour12: false }) : "--:--:--";
   const isStale = (ts > 0 && Date.now() - ts > pollMs * 3) || fetchError !== null;
@@ -238,27 +149,35 @@ function WatchingContent() {
     );
   }
 
+  const mkArrow = (k: SortKey) => (watchSort.key === k ? (watchSort.asc ? " ▲" : " ▼") : "");
+  const mkHStyle = (w: string, k: SortKey, right = false) => ({
+    width: w,
+    textAlign: right ? "right" as const : "left" as const,
+    cursor: "pointer",
+    userSelect: "none" as const,
+    color: watchSort.key === k ? D.yellow : D.pink,
+  });
+
   const header = (
     <div style={{ display: "flex", whiteSpace: "pre", color: D.pink, borderBottom: `1px solid ${D.currentLine}`, paddingBottom: 3, marginBottom: 2, fontWeight: 500 }}>
       <span style={{ width: "6ch" }}> 类型</span>
-      <span style={{ width: "10ch" }}>代码</span>
+      <span style={mkHStyle("10ch", "id")} onClick={() => toggleWatchSort("id")}>代码{mkArrow("id")}</span>
       <span style={{ width: "10ch" }}>名称</span>
-      <span style={{ width: "10ch", textAlign: "right" }}>{pad("现价", 9, true)}</span>
-      <span style={{ width: "9ch", textAlign: "right" }}>{pad("涨跌幅", 8, true)}</span>
-      <span style={{ width: "8ch", textAlign: "right" }}>{pad("涨跌", 7, true)}</span>
-      <span style={{ width: "7ch", textAlign: "right" }}>{pad("量比", 6, true)}</span>
-      <span style={{ width: "8ch", textAlign: "right" }}>{pad("换手%", 7, true)}</span>
-      <span style={{ width: "9ch", textAlign: "right" }}>{pad("成交额", 8, true)}</span>
+      <span style={mkHStyle("10ch", "price", true)} onClick={() => toggleWatchSort("price")}>{pad("现价" + mkArrow("price"), 9, true)}</span>
+      <span style={mkHStyle("9ch", "change", true)} onClick={() => toggleWatchSort("change")}>{pad("涨跌幅" + mkArrow("change"), 8, true)}</span>
+      <span style={mkHStyle("8ch", "chgAmt", true)} onClick={() => toggleWatchSort("chgAmt")}>{pad("涨跌" + mkArrow("chgAmt"), 7, true)}</span>
+      <span style={mkHStyle("7ch", "volRatio", true)} onClick={() => toggleWatchSort("volRatio")}>{pad("量比" + mkArrow("volRatio"), 6, true)}</span>
+      <span style={mkHStyle("8ch", "turnover", true)} onClick={() => toggleWatchSort("turnover")}>{pad("换手%" + mkArrow("turnover"), 7, true)}</span>
+      <span style={mkHStyle("9ch", "amount", true)} onClick={() => toggleWatchSort("amount")}>{pad("成交额" + mkArrow("amount"), 8, true)}</span>
       <span style={{ width: "13ch", textAlign: "right" }}>{pad("高低", 12, true)}</span>
     </div>
   );
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: D.bg }}>
-      <TitleBar />
-      <TabBar />
+      <AppTitleBar title="watching" />
+      <AppTabs active="watching" />
       <div style={{ flex: 1, padding: "10px 16px", overflow: "auto", fontSize: 13, lineHeight: 1.55 }}>
-        <Prompt />
         <div style={{ height: 8 }} />
         <MarketSwitch activeTab={activeTab} onTabChange={switchTab} />
 

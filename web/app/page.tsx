@@ -2,9 +2,11 @@
 
 import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { useAlerts } from "./hooks/useAlerts";
 import { useLogEntries } from "./hooks/useCommand";
+import { AppTabs } from "./components/AppTabs";
+import { AppTitleBar } from "./components/AppTitleBar";
+import { MarketSwitch, type MarketTab } from "./components/MarketSwitch";
 
 import type { Service, AlertSettings } from "./types";
 
@@ -33,156 +35,6 @@ function fmtMoney(n: number): string {
   const abs = Math.abs(n);
   if (abs >= 1e4) return `${sign}${(n / 1e4).toFixed(1)}万`;
   return `${sign}${Math.round(n).toLocaleString("en-US")}`;
-}
-
-/* ── macOS Title Bar ── */
-function TitleBar() {
-  return (
-    <div
-      style={{
-        background: "#21222c",
-        height: 30,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        borderBottom: `1px solid #191a21`,
-        userSelect: "none",
-      }}
-    >
-      <div style={{ position: "absolute", left: 12, display: "flex", gap: 8 }}>
-        {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
-          <span
-            key={c}
-            style={{
-              width: 12, height: 12, borderRadius: "50%",
-              background: c, display: "inline-block",
-            }}
-          />
-        ))}
-      </div>
-      <span style={{ color: D.comment, fontSize: 12 }}>
-        ✱ monitor (node)
-      </span>
-    </div>
-  );
-}
-
-/* ── iTerm2 Tab Bar ── */
-type MarketTab = "A" | "HK";
-
-function TabBar() {
-  const tabs: { label: string; href?: string; active?: boolean }[] = [
-    { label: "Claude Code (node)" },
-    { label: "holdings (node)", active: true },
-    { label: "watching (node)", href: "/watching" },
-    { label: "Sector (node)", href: "/sector" },
-    { label: "~ (-zsh)" },
-  ];
-  return (
-    <div
-      style={{
-        display: "flex",
-        background: "#21222c",
-        borderBottom: `1px solid #191a21`,
-        fontSize: 11,
-        userSelect: "none",
-      }}
-    >
-      {tabs.map((t, i) => {
-        const isActive = Boolean(t.active);
-        const clickable = !!t.href;
-        const inner = (
-          <div
-            key={i}
-            style={{
-              padding: "5px 16px",
-              background: isActive ? D.bg : "#21222c",
-              color: isActive ? D.fg : D.comment,
-              borderRight: "1px solid #191a21",
-              borderTop: isActive
-                ? `2px solid ${D.purple}`
-                : "2px solid transparent",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              minWidth: 130,
-              cursor: clickable ? "pointer" : "default",
-            }}
-          >
-            <span style={{ fontSize: 8, color: isActive ? D.green : "#555" }}>
-              {isActive ? "✱" : "●"}
-            </span>
-            <span>{t.label}</span>
-            <span style={{ marginLeft: "auto", color: D.comment, fontSize: 10 }}>
-              ⌘{i + 1}
-            </span>
-          </div>
-        );
-        return t.href
-          ? <Link key={i} href={t.href} style={{ textDecoration: "none" }}>{inner}</Link>
-          : inner;
-      })}
-      <div style={{ flex: 1, background: "#21222c" }} />
-      <Link href="/alerts" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
-        alerts
-      </Link>
-      <Link href="/sim" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
-        sim
-      </Link>
-      <Link href="/sector" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
-        sector
-      </Link>
-      <Link href="/watching" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
-        watching
-      </Link>
-      <Link href="/manage" style={{ padding: "5px 10px", color: D.comment, background: "#21222c", textDecoration: "none", fontSize: 11 }}>
-        manage
-      </Link>
-    </div>
-  );
-}
-
-/* ── Prompt ── */
-function Prompt({ cmd }: { cmd: string }) {
-  return (
-    <div>
-      <span style={{ color: D.green }}>➜ </span>
-      <span style={{ color: D.cyan }}>~/projects/monitor</span>
-      <span style={{ color: D.purple }}> git:(</span>
-      <span style={{ color: D.red }}>main</span>
-      <span style={{ color: D.purple }}>) </span>
-      <span style={{ color: D.fg }}>{cmd}</span>
-    </div>
-  );
-}
-
-function MarketSwitch({ activeTab, onTabChange }: { activeTab: MarketTab; onTabChange: (t: MarketTab) => void }) {
-  return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
-      <span style={{ color: D.comment, fontSize: 12 }}>market:</span>
-      {(["A", "HK"] as MarketTab[]).map((t) => (
-        <button
-          key={t}
-          onClick={() => onTabChange(t)}
-          style={{
-            background: activeTab === t ? D.purple : "transparent",
-            color: activeTab === t ? D.bg : D.comment,
-            border: `1px solid ${activeTab === t ? D.purple : D.currentLine}`,
-            borderRadius: 3,
-            padding: "2px 10px",
-            cursor: "pointer",
-            fontFamily: "JetBrains Mono, monospace",
-            fontSize: 12,
-            fontWeight: 700,
-          }}
-          title={`Switch to ${t === "A" ? "A-share" : "HK"} market`}
-        >
-          {t === "A" ? "A-share" : "HK"}
-        </button>
-      ))}
-    </div>
-  );
 }
 
 /* ── Main ── */
@@ -220,8 +72,6 @@ function Home() {
   }
   const [prodStockOpen, setProdStockOpen] = useState(true);
   const [prodETFOpen, setProdETFOpen] = useState(true);
-  const [stageStockOpen, setStageStockOpen] = useState(true);
-  const [stageETFOpen, setStageETFOpen] = useState(true);
   const [hiddenOpen, setHiddenOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -271,20 +121,13 @@ function Home() {
     return () => clearInterval(timer);
   }, [fetchData, pollMs]);
 
-  // 持仓和自选独立排序状态，支持虚拟字段 mktVal / totalPnl / dayPnl
+  // 持仓排序状态，支持虚拟字段 mktVal / totalPnl / dayPnl
   type SortKey = keyof Service | "mktVal" | "totalPnl" | "dayPnl";
   type SortState = { key: SortKey | null; asc: boolean };
   const [holdSort, setHoldSort] = useState<SortState>({ key: null, asc: false });
-  const [watchSort, setWatchSort] = useState<SortState>({ key: null, asc: false });
 
   function toggleHoldSort(key: SortKey) {
     setHoldSort((prev) =>
-      prev.key === key ? { key, asc: !prev.asc } : { key, asc: false }
-    );
-  }
-
-  function toggleWatchSort(key: SortKey) {
-    setWatchSort((prev) =>
       prev.key === key ? { key, asc: !prev.asc } : { key, asc: false }
     );
   }
@@ -324,8 +167,6 @@ function Home() {
   const tabHoldingAll = tabServices.filter((s) => s.type === "holding");
   const prodStock = applySortList(tabServices.filter((s) => s.type === "holding" && !s.hidden && !isETF(s)), holdSort);
   const prodETF = applySortList(tabServices.filter((s) => s.type === "holding" && !s.hidden && isETF(s)), holdSort);
-  const stageStock = applySortList(tabServices.filter((s) => s.type !== "holding" && !s.hidden && !isETF(s)), watchSort);
-  const stageETF = applySortList(tabServices.filter((s) => s.type !== "holding" && !s.hidden && isETF(s)), watchSort);
   const hiddenList = applySortList(tabServices.filter((s) => s.hidden && s.type === "holding"), holdSort);
   const hasHold = prodStock.length > 0 || prodETF.length > 0;
 
@@ -495,8 +336,8 @@ function Home() {
         background: D.bg,
       }}
     >
-      <TitleBar />
-      <TabBar />
+      <AppTitleBar title="monitor" />
+      <AppTabs active="holdings" />
 
       {/* Terminal body */}
       <div
@@ -508,7 +349,6 @@ function Home() {
           lineHeight: 1.55,
         }}
       >
-        <Prompt cmd={`watch -n ${pollMs / 1000} ./svc-monitor --format table`} />
         <div style={{ height: 8 }} />
         <MarketSwitch activeTab={activeTab} onTabChange={switchTab} />
 
@@ -606,9 +446,6 @@ function Home() {
           const ha = mkArrow(holdSort);
           const hs = mkHStyle(holdSort);
           const ht = toggleHoldSort;
-          const wa = mkArrow(watchSort);
-          const ws = mkHStyle(watchSort);
-          const wt = toggleWatchSort;
 
           const holdHeader = (
             <div style={{ display: "flex", whiteSpace: "pre", color: D.pink, borderBottom: `1px solid ${D.currentLine}`, paddingBottom: 3, marginBottom: 2, fontWeight: 500 }}>
@@ -628,23 +465,6 @@ function Home() {
               <span style={hs("9ch", "amount", true)} onClick={() => ht("amount")}>{pad("成交额" + ha("amount"), 8, true)}</span>
               <span style={hs("9ch", "mainNetInflow" as SortKey, true)} onClick={() => ht("mainNetInflow" as SortKey)}>{pad("主力" + ha("mainNetInflow" as SortKey), 8, true)}</span>
               <span style={hs("7ch", "mainNetInflowPct" as SortKey, true)} onClick={() => ht("mainNetInflowPct" as SortKey)}>{pad("主力%" + ha("mainNetInflowPct" as SortKey), 6, true)}</span>
-            </div>
-          );
-
-          const watchHeader = (
-            <div style={{ display: "flex", whiteSpace: "pre", color: D.pink, borderBottom: `1px solid ${D.currentLine}`, paddingBottom: 3, marginBottom: 2, fontWeight: 500 }}>
-              <span style={{ width: "6ch" }}> 类型</span>
-              <span style={ws("10ch", "id")} onClick={() => wt("id")}>代码{wa("id")}</span>
-              <span style={{ width: "10ch" }}>名称</span>
-              <span style={ws("10ch", "price", true)} onClick={() => wt("price")}>{pad("现价" + wa("price"), 9, true)}</span>
-              <span style={ws("9ch", "change", true)} onClick={() => wt("change")}>{pad("涨跌幅" + wa("change"), 8, true)}</span>
-              <span style={ws("8ch", "chgAmt", true)} onClick={() => wt("chgAmt")}>{pad("涨跌" + wa("chgAmt"), 7, true)}</span>
-              <span style={ws("7ch", "volRatio", true)} onClick={() => wt("volRatio")}>{pad("量比" + wa("volRatio"), 6, true)}</span>
-              <span style={ws("8ch", "turnover", true)} onClick={() => wt("turnover")}>{pad("换手%" + wa("turnover"), 7, true)}</span>
-              <span style={ws("9ch", "amount", true)} onClick={() => wt("amount")}>{pad("成交额" + wa("amount"), 8, true)}</span>
-              <span style={{ width: "13ch", textAlign: "right", color: D.pink }}>{pad("高低", 12, true)}</span>
-              <span style={ws("9ch", "mainNetInflow" as SortKey, true)} onClick={() => wt("mainNetInflow" as SortKey)}>{pad("主力" + wa("mainNetInflow" as SortKey), 8, true)}</span>
-              <span style={ws("7ch", "mainNetInflowPct" as SortKey, true)} onClick={() => wt("mainNetInflowPct" as SortKey)}>{pad("主力%" + wa("mainNetInflowPct" as SortKey), 6, true)}</span>
             </div>
           );
 
@@ -734,15 +554,6 @@ function Home() {
           </div>
         )}
 
-        {/* static prompt */}
-        <div style={{ marginTop: 6 }}>
-          <span style={{ color: D.green }}>➜ </span>
-          <span style={{ color: D.cyan }}>~/projects/monitor</span>
-          <span style={{ color: D.purple }}> git:(</span>
-          <span style={{ color: D.red }}>main</span>
-          <span style={{ color: D.purple }}>)</span>
-          <span style={{ display: "inline-block", width: 8, height: 15, background: D.fg, animation: "blink 1s step-end infinite", verticalAlign: "middle", marginLeft: 4 }} />
-        </div>
       </div>
 
       <style>{`

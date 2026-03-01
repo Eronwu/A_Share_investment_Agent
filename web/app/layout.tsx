@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "node — ~/projects/monitor — -zsh — 120×40",
+  title: "A Share Investment Agent",
   description: "",
 };
 

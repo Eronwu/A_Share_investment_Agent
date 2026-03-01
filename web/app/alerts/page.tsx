@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
 import { D } from "../theme";
+import { AppTabs } from "../components/AppTabs";
+import { AppTitleBar } from "../components/AppTitleBar";
 
 interface AlertEvent {
   ts: number;
@@ -239,35 +240,47 @@ function MarkdownInline({ text }: { text: string }) {
   );
 }
 
-function TitleBar() {
+function TabBar({
+  l1Count,
+  l2Count,
+  l3Count,
+  showL3,
+  onToggleL3,
+  visibleCount,
+}: {
+  l1Count: number;
+  l2Count: number;
+  l3Count: number;
+  showL3: boolean;
+  onToggleL3: () => void;
+  visibleCount: number;
+}) {
   return (
-    <div
-      style={{
-        background: "#21222c",
-        height: 30,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        borderBottom: "1px solid #191a21",
-        userSelect: "none",
-      }}
-    >
-      <div style={{ position: "absolute", left: 12, display: "flex", gap: 8 }}>
-        {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
+    <AppTabs
+      active="alerts"
+      rightSlot={(
+        <span style={{ color: D.comment, fontSize: 11, marginLeft: 12, marginRight: 16, display: "flex", gap: 8, alignItems: "center" }}>
+          <span style={{ color: D.fg }}>{new Date().toISOString().slice(0, 10)}</span>
+          <span style={{ color: D.comment }}>|</span>
+          <span style={{ color: D.yellow }}>L1:{l1Count}</span>
+          <span style={{ color: D.orange }}>L2:{l2Count}</span>
           <span
-            key={c}
+            onClick={onToggleL3}
             style={{
-              width: 12, height: 12, borderRadius: "50%",
-              background: c, display: "inline-block",
+              color: D.comment,
+              cursor: "pointer",
+              textDecoration: "underline",
+              textDecorationStyle: "dotted" as const,
             }}
-          />
-        ))}
-      </div>
-      <span style={{ color: D.comment, fontSize: 12 }}>
-        ✱ alerts — event log
-      </span>
-    </div>
+            title={showL3 ? "Hide L3 signals" : "Show L3 signals"}
+          >
+            L3:{l3Count} {showL3 ? "(shown)" : "(hidden)"}
+          </span>
+          <span style={{ color: D.comment }}>|</span>
+          <span>{visibleCount} visible | 30s</span>
+        </span>
+      )}
+    />
   );
 }
 
@@ -339,50 +352,16 @@ export default function AlertsPage() {
         fontSize: 13,
       }}
     >
-      <TitleBar />
+      <AppTitleBar title="alerts — event log" />
 
-      {/* nav bar */}
-      <div
-        style={{
-          background: "#21222c",
-          padding: "6px 16px",
-          display: "flex",
-          gap: 16,
-          alignItems: "center",
-          borderBottom: "1px solid #191a21",
-          fontSize: 13,
-        }}
-      >
-        <Link href="/" style={{ color: D.cyan, textDecoration: "none" }}>
-          ← monitor
-        </Link>
-        <span style={{ color: D.comment }}>|</span>
-        <span style={{ color: D.purple, fontWeight: 700 }}>alerts</span>
-        <Link href="/sim" style={{ color: D.comment, textDecoration: "none" }}>sim</Link>
-        <Link href="/sector" style={{ color: D.comment, textDecoration: "none" }}>sector</Link>
-        <Link href="/watching" style={{ color: D.comment, textDecoration: "none" }}>watching</Link>
-        <Link href="/manage" style={{ color: D.comment, textDecoration: "none" }}>manage</Link>
-        <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
-          <span style={{ color: D.fg }}>{new Date().toISOString().slice(0, 10)}</span>
-          <span style={{ color: D.comment }}>|</span>
-          <span style={{ color: D.yellow }}>L1:{l1Count}</span>
-          <span style={{ color: D.orange }}>L2:{l2Count}</span>
-          <span
-            onClick={() => setShowL3(!showL3)}
-            style={{
-              color: showL3 ? D.comment : D.comment,
-              cursor: "pointer",
-              textDecoration: "underline",
-              textDecorationStyle: "dotted" as const,
-            }}
-            title={showL3 ? "Hide L3 signals" : "Show L3 signals"}
-          >
-            L3:{l3Count} {showL3 ? "(shown)" : "(hidden)"}
-          </span>
-          <span style={{ color: D.comment }}>|</span>
-          <span>{sorted.length} visible | 30s</span>
-        </span>
-      </div>
+      <TabBar
+        l1Count={l1Count}
+        l2Count={l2Count}
+        l3Count={l3Count}
+        showL3={showL3}
+        onToggleL3={() => setShowL3(!showL3)}
+        visibleCount={sorted.length}
+      />
 
       {/* event list */}
       <div
@@ -393,16 +372,6 @@ export default function AlertsPage() {
           lineHeight: 1.6,
         }}
       >
-        {/* prompt */}
-        <div style={{ marginBottom: 8 }}>
-          <span style={{ color: D.green }}>➜ </span>
-          <span style={{ color: D.cyan }}>~/projects/alerts</span>
-          <span style={{ color: D.purple }}> git:(</span>
-          <span style={{ color: D.red }}>main</span>
-          <span style={{ color: D.purple }}>) </span>
-          <span style={{ color: D.fg }}>cat alert_events.log | sort -r</span>
-        </div>
-
         {/* ── Daily Summary Card ── */}
         {summary && (
           <div
@@ -525,32 +494,7 @@ export default function AlertsPage() {
           );
         })}
 
-        {/* bottom prompt */}
-        <div style={{ height: 16 }} />
-        <div>
-          <span style={{ color: D.green }}>➜ </span>
-          <span style={{ color: D.cyan }}>~/projects/alerts</span>
-          <span style={{ color: D.purple }}> git:(</span>
-          <span style={{ color: D.red }}>main</span>
-          <span style={{ color: D.purple }}>) </span>
-          <span
-            style={{
-              display: "inline-block",
-              width: 8,
-              height: 15,
-              background: D.fg,
-              verticalAlign: "text-bottom",
-              animation: "blink 1s step-end infinite",
-            }}
-          />
-        </div>
       </div>
-
-      <style>{`
-        @keyframes blink {
-          50% { opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 }

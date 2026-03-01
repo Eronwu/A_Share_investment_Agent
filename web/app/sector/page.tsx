@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
 import { D } from "../theme";
+import { AppTabs } from "../components/AppTabs";
+import { AppTitleBar } from "../components/AppTitleBar";
 
 /* ── Types ── */
 
@@ -92,73 +93,16 @@ function statusStyle(status: string): { label: string; bg: string; fg: string } 
 
 /* ── Reusable UI ── */
 
-function TitleBar() {
+function TabBar({ indicesCount, alertsCount }: { indicesCount: number; alertsCount: number }) {
   return (
-    <div
-      style={{
-        background: "#21222c",
-        height: 30,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        borderBottom: "1px solid #191a21",
-        userSelect: "none",
-      }}
-    >
-      <div style={{ position: "absolute", left: 12, display: "flex", gap: 8 }}>
-        {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
-          <span
-            key={c}
-            style={{
-              width: 12,
-              height: 12,
-              borderRadius: "50%",
-              background: c,
-              display: "inline-block",
-            }}
-          />
-        ))}
-      </div>
-      <span style={{ color: D.comment, fontSize: 12 }}>
-        ✱ sector — indices
-      </span>
-    </div>
-  );
-}
-
-function Prompt({ cmd }: { cmd: string }) {
-  return (
-    <div>
-      <span style={{ color: D.green }}>➜ </span>
-      <span style={{ color: D.cyan }}>~/projects/sector</span>
-      <span style={{ color: D.purple }}> git:(</span>
-      <span style={{ color: D.red }}>main</span>
-      <span style={{ color: D.purple }}>) </span>
-      <span style={{ color: D.fg }}>{cmd}</span>
-    </div>
-  );
-}
-
-function BlinkCursor() {
-  return (
-    <div style={{ paddingTop: 16 }}>
-      <span style={{ color: D.green }}>➜ </span>
-      <span style={{ color: D.cyan }}>~/projects/sector</span>
-      <span style={{ color: D.purple }}> git:(</span>
-      <span style={{ color: D.red }}>main</span>
-      <span style={{ color: D.purple }}>) </span>
-      <span
-        style={{
-          display: "inline-block",
-          width: 8,
-          height: 15,
-          background: D.fg,
-          verticalAlign: "text-bottom",
-          animation: "blink 1s step-end infinite",
-        }}
-      />
-    </div>
+    <AppTabs
+      active="sector"
+      rightSlot={(
+        <span style={{ color: D.comment, fontSize: 11, marginLeft: 12, marginRight: 16 }}>
+          {indicesCount} indices | {alertsCount} alerts | auto-refresh 60s
+        </span>
+      )}
+    />
   );
 }
 
@@ -432,33 +376,9 @@ export default function SectorPage() {
         flexDirection: "column",
       }}
     >
-      <TitleBar />
+      <AppTitleBar title="sector — indices" />
 
-      {/* nav bar */}
-      <div
-        style={{
-          background: "#21222c",
-          padding: "6px 16px",
-          display: "flex",
-          gap: 16,
-          alignItems: "center",
-          borderBottom: "1px solid #191a21",
-          fontSize: 13,
-        }}
-      >
-        <Link href="/" style={{ color: D.cyan, textDecoration: "none" }}>
-          ← monitor
-        </Link>
-        <span style={{ color: D.comment }}>|</span>
-        <Link href="/alerts" style={{ color: D.comment, textDecoration: "none" }}>alerts</Link>
-        <Link href="/sim" style={{ color: D.comment, textDecoration: "none" }}>sim</Link>
-        <Link href="/watching" style={{ color: D.comment, textDecoration: "none" }}>watching</Link>
-        <span style={{ color: D.purple, fontWeight: 700 }}>sector</span>
-        <Link href="/manage" style={{ color: D.comment, textDecoration: "none" }}>manage</Link>
-        <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>
-          {indices.length} indices | {alerts.length} alerts | auto-refresh 60s
-        </span>
-      </div>
+      <TabBar indicesCount={indices.length} alertsCount={alerts.length} />
 
       {/* scrollable body */}
       <div
@@ -469,7 +389,6 @@ export default function SectorPage() {
           lineHeight: 1.55,
         }}
       >
-        <Prompt cmd="cat sector_indices.log" />
         <div style={{ height: 8 }} />
 
         {/* loading */}
@@ -813,7 +732,6 @@ export default function SectorPage() {
           </>
         )}
 
-        <BlinkCursor />
       </div>
 
       {/* create modal */}

@@ -8,16 +8,6 @@ function record(name, ok, detail = '') {
   console.log(`  [${ok ? 'PASS' : 'FAIL'}] ${name}${detail ? ' -- ' + detail : ''}`);
 }
 
-function parseMoney(s) {
-  if (!s || s === '-') return NaN;
-  let t = s.trim().replace(/[¥,\s]/g, '').replace(/[\u2212\u2013\uff0d]/g, '-');
-  let m = 1;
-  if (t.includes('亿')) { m = 1e8; t = t.replace('亿', ''); }
-  else if (t.includes('万')) { m = 1e4; t = t.replace('万', ''); }
-  const n = parseFloat(t);
-  return isNaN(n) ? NaN : n * m;
-}
-
 async function main() {
   const browser = await chromium.launch({ headless: true });
   const page = await (await browser.newContext({ viewport: { width: 1600, height: 1000 } })).newPage();
@@ -59,7 +49,7 @@ async function main() {
     record('A tab: summary bar has content', summaryText_A.length > 20, summaryText_A.slice(0, 80));
 
     const summaryHoldingsA = await page.evaluate(async () => {
-      const txt = document.body.innerText || '';
+      const txt = document.body?.innerText || '';
       const m = txt.match(/Nodes:\s*(\d+)[\s\S]*?holdings:\s*(\d+)(?:\(\+(\d+)\s+hidden\))?/);
       if (!m) return { ok: false, detail: 'summary parse failed' };
       const uiNodes = Number(m[1]);
@@ -133,13 +123,13 @@ async function main() {
 
     // Check FX rate in summary (may show as "FX:" or "WARN FX unavailable")
     const hasFx = await page.evaluate(() => {
-      const text = document.body.innerText;
+      const text = document.body?.innerText || '';
       return text.includes('FX') || text.includes('HKD') || text.includes('hkd') || text.includes('0.92');
     });
     record('HK tab: FX rate displayed', hasFx);
 
     const summaryHoldingsHK = await page.evaluate(async () => {
-      const txt = document.body.innerText || '';
+      const txt = document.body?.innerText || '';
       const m = txt.match(/Nodes:\s*(\d+)[\s\S]*?holdings:\s*(\d+)(?:\(\+(\d+)\s+hidden\))?/);
       if (!m) return { ok: false, detail: 'summary parse failed' };
       const uiNodes = Number(m[1]);
@@ -235,11 +225,11 @@ async function main() {
     });
     record('Alerts: event count shown', alertCount !== 'not found', alertCount);
 
-    // Check terminal path shows ~/projects/alerts
-    const alertPath = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('span')).some(s => s.textContent.includes('~/projects/alerts'))
-    );
-    record('Alerts: path shows ~/projects/alerts', alertPath);
+    const alertsHasUnifiedTabs = await page.evaluate(() => {
+      const txt = document.body?.innerText || '';
+      return txt.includes('holdings') && txt.includes('watching');
+    });
+    record('Alerts: unified holdings/watching tabs', alertsHasUnifiedTabs);
 
     // Check events have proper structure (time, level, kind),
     // or an explicit empty-state message when there are no events.
@@ -249,7 +239,7 @@ async function main() {
         const t = d.textContent || '';
         return /\d{2}:\d{2}:\d{2}/.test(t) && /L[1-3]/.test(t);
       }).length;
-      const body = document.body.innerText || '';
+      const body = document.body?.innerText || '';
       const hasEmptyState =
         body.includes('No alert events today') ||
         body.includes('0 visible') ||
@@ -286,7 +276,7 @@ async function main() {
 
     // Check summary stats present
     const simSummary = await page.evaluate(() => {
-      const text = document.body.innerText;
+      const text = document.body?.innerText || '';
       return {
         hasReturn: text.includes('收益率') || text.includes('total_return') || text.includes('收益'),
         hasSharpe: text.includes('夏普') || text.includes('Sharpe') || text.includes('sharpe'),
@@ -322,11 +312,15 @@ async function main() {
 
     // Check sim has live positions or replay trades
     const simContent = await page.evaluate(() => {
-      const text = document.body.innerText;
+      const text = document.body?.innerText || '';
       return {
         hasPositions: text.includes('实时持仓') || text.includes('SIM'),
         hasTrades: text.includes('交易记录') || text.includes('已完成') || text.includes('操作记录'),
       };
+    });
+    const simHasUnifiedTabs = await page.evaluate(() => {
+      const txt = document.body?.innerText || '';
+      return txt.includes('holdings') && txt.includes('watching');
     });
     const simPositionsOk = simContent.hasPositions || (simApiForSections.ok && simApiForSections.livePositions === 0);
     record(
@@ -335,13 +329,14 @@ async function main() {
       simContent.hasPositions ? 'positions section found' : `live positions: ${simApiForSections.livePositions}`
     );
     record('Sim: trades section', simContent.hasTrades);
+    record('Sim: unified holdings/watching tabs', simHasUnifiedTabs);
 
     // ════════════════════════════════════════════════
     // 6. Manage page
     // ════════════════════════════════════════════════
     console.log('\n═══ 6. Manage page ═══');
     await page.goto(`${BASE}/manage`, { waitUntil: 'commit', timeout: 30000 });
-    await page.waitForFunction(() => !document.body.innerText.includes('Loading config...'), { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction(() => !(document.body?.innerText || '').includes('Loading config...'), { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(1000);
     await page.screenshot({ path: `${DIR}/checkup_05_manage.png`, fullPage: true });
 
@@ -352,7 +347,7 @@ async function main() {
 
     // Check table headers
     const manageHeaders = await page.evaluate(() => {
-      const text = document.body.innerText;
+      const text = document.body?.innerText || '';
       return {
         hasType: text.includes('type'),
         hasCode: text.includes('code'),
@@ -373,6 +368,11 @@ async function main() {
       ).length
     );
     record('Manage: rows rendered', manageRows > 0, `${manageRows} rows`);
+    const manageHasUnifiedTabs = await page.evaluate(() => {
+      const txt = document.body?.innerText || '';
+      return txt.includes('holdings') && txt.includes('watching');
+    });
+    record('Manage: unified holdings/watching tabs', manageHasUnifiedTabs);
 
     // ════════════════════════════════════════════════
     // 6.5 Watching page
@@ -395,10 +395,103 @@ async function main() {
     record('Watching: DEV rows rendered', watchingRows > 0, `${watchingRows} rows`);
 
     const watchingHasSections = await page.evaluate(() => {
-      const txt = document.body.innerText;
+      const txt = document.body?.innerText || '';
       return txt.includes('watching:stocks') || txt.includes('watching:ETF');
     });
     record('Watching: section headers present', watchingHasSections);
+
+    const getWatchingColumnValues = async (colIdx, parserKind = 'number') => page.evaluate(({ colIdx, parserKind }) => {
+      const parseCell = (txt) => {
+        const raw = String(txt || '').trim();
+        if (!raw || raw === '-') return NaN;
+        if (parserKind === 'pct') {
+          const n = Number(raw.replace('%', '').replace(/\s/g, ''));
+          return Number.isFinite(n) ? n : NaN;
+        }
+        if (parserKind === 'money') {
+          let t = raw.replace(/[¥,\s]/g, '').replace(/[\u2212\u2013\uff0d]/g, '-');
+          let m = 1;
+          if (t.includes('亿')) { m = 1e8; t = t.replace('亿', ''); }
+          else if (t.includes('万')) { m = 1e4; t = t.replace('万', ''); }
+          const n = Number(t);
+          return Number.isFinite(n) ? n * m : NaN;
+        }
+        const n = Number(raw.replace(/\s/g, ''));
+        return Number.isFinite(n) ? n : NaN;
+      };
+      const rows = Array.from(document.querySelectorAll('span'))
+        .filter((s) => {
+          const t = (s.textContent || '').trim();
+          return t === 'DEV' || t === '★ DEV' || t === '★DEV';
+        })
+        .map((s) => s.parentElement)
+        .filter(Boolean);
+      return rows
+        .slice(0, 8)
+        .map((row) => {
+          const spans = row.querySelectorAll('span');
+          return parseCell(spans[colIdx]?.textContent || '');
+        })
+        .filter((v) => Number.isFinite(v));
+    }, { colIdx, parserKind });
+    const isAsc = (arr) => arr.length >= 2 && arr.every((v, i) => i === 0 || arr[i - 1] <= v);
+    const isDesc = (arr) => arr.length >= 2 && arr.every((v, i) => i === 0 || arr[i - 1] >= v);
+    const sameHead = (a, b, n = 4) => a.slice(0, n).every((v, i) => v === b[i]);
+
+    async function verifyWatchingSort(label, colIdx, parserKind) {
+      let clicked = false;
+      try {
+        await page.locator('span', { hasText: label }).first().click();
+        await page.waitForTimeout(120);
+        clicked = true;
+      } catch { clicked = false; }
+      const first = await getWatchingColumnValues(colIdx, parserKind);
+      if (clicked) {
+        await page.locator('span', { hasText: label }).first().click();
+        await page.waitForTimeout(120);
+      }
+      const second = await getWatchingColumnValues(colIdx, parserKind);
+      return {
+        clicked,
+        toggled: clicked && isDesc(first) && isAsc(second),
+        ascOk: isAsc(second),
+        first,
+        second,
+      };
+    }
+
+    // watching sort: 涨跌幅
+    const sortChange = await verifyWatchingSort('涨跌幅', 4, 'pct');
+    record('Watching sort[涨跌幅]: header clickable', sortChange.clicked, `first=${sortChange.first.slice(0,4).join(',')}`);
+    record('Watching sort[涨跌幅]: direction toggles', sortChange.toggled, `first=${sortChange.first.slice(0,4).join(',')} second=${sortChange.second.slice(0,4).join(',')}`);
+    record('Watching sort[涨跌幅]: second click ascending', sortChange.ascOk, `second=${sortChange.second.slice(0,4).join(',')}`);
+
+    // watching sort: 成交额
+    const sortAmount = await verifyWatchingSort('成交额', 8, 'money');
+    record('Watching sort[成交额]: direction toggles', sortAmount.toggled, `first=${sortAmount.first.slice(0,4).join(',')} second=${sortAmount.second.slice(0,4).join(',')}`);
+
+    // watching sort: 量比
+    const sortVolRatio = await verifyWatchingSort('量比', 6, 'number');
+    record('Watching sort[量比]: direction toggles', sortVolRatio.toggled, `first=${sortVolRatio.first.slice(0,4).join(',')} second=${sortVolRatio.second.slice(0,4).join(',')}`);
+
+    // collapse/expand should not destroy current sort
+    const beforeCollapse = await getWatchingColumnValues(6, 'number');
+    const stockSectionToggle = page.locator('div', { hasText: 'watching:stocks' }).first();
+    await stockSectionToggle.click();
+    await page.waitForTimeout(120);
+    await stockSectionToggle.click();
+    await page.waitForTimeout(120);
+    const afterExpand = await getWatchingColumnValues(6, 'number');
+    record('Watching: collapse/expand keeps sort order', sameHead(beforeCollapse, afterExpand), `before=${beforeCollapse.slice(0,4).join(',')} after=${afterExpand.slice(0,4).join(',')}`);
+
+    // tab switch should keep watching sort state
+    const beforeTabSwitch = await getWatchingColumnValues(8, 'money');
+    await page.locator('button', { hasText: 'HK' }).first().click();
+    await page.waitForTimeout(250);
+    await page.locator('button', { hasText: 'A-share' }).first().click();
+    await page.waitForTimeout(250);
+    const afterTabSwitch = await getWatchingColumnValues(8, 'money');
+    record('Watching: sort persists across A/HK switch', sameHead(beforeTabSwitch, afterTabSwitch), `before=${beforeTabSwitch.slice(0,4).join(',')} after=${afterTabSwitch.slice(0,4).join(',')}`);
 
     // ════════════════════════════════════════════════
     // 7. API health checks
@@ -540,6 +633,7 @@ async function main() {
       { path: '/', name: 'Dashboard' },
       { path: '/alerts', name: 'Alerts' },
       { path: '/sim', name: 'Sim' },
+      { path: '/sector', name: 'Sector' },
       { path: '/watching', name: 'Watching' },
       { path: '/manage', name: 'Manage' },
     ];

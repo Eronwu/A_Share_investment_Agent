@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
 import { D } from "../theme";
+import { AppTabs } from "../components/AppTabs";
+import { AppTitleBar } from "../components/AppTitleBar";
 
 /* ── Types ── */
 
@@ -239,73 +240,12 @@ function signalCN(s: string): string {
 
 /* ── Components ── */
 
-function TitleBar() {
-  return (
-    <div
-      style={{
-        background: "#21222c",
-        height: 30,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        borderBottom: "1px solid #191a21",
-        userSelect: "none",
-      }}
-    >
-      <div style={{ position: "absolute", left: 12, display: "flex", gap: 8 }}>
-        {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
-          <span
-            key={c}
-            style={{
-              width: 12,
-              height: 12,
-              borderRadius: "50%",
-              background: c,
-              display: "inline-block",
-            }}
-          />
-        ))}
-      </div>
-      <span style={{ color: D.comment, fontSize: 12 }}>
-        ✱ sim — trading
-      </span>
-    </div>
-  );
-}
-
 function NavBar({ data }: { data: SimData | null }) {
   return (
-    <div
-      style={{
-        background: "#21222c",
-        padding: "6px 16px",
-        display: "flex",
-        gap: 16,
-        alignItems: "center",
-        borderBottom: "1px solid #191a21",
-        fontSize: 13,
-      }}
-    >
-      <Link href="/" style={{ color: D.cyan, textDecoration: "none" }}>
-        ← monitor
-      </Link>
-      <span style={{ color: D.comment }}>|</span>
-      <Link href="/alerts" style={{ color: D.comment, textDecoration: "none" }}>
-        alerts
-      </Link>
-      <span style={{ color: D.purple, fontWeight: 700 }}>sim</span>
-      <Link href="/sector" style={{ color: D.comment, textDecoration: "none" }}>
-        sector
-      </Link>
-      <Link href="/watching" style={{ color: D.comment, textDecoration: "none" }}>
-        watching
-      </Link>
-      <Link href="/manage" style={{ color: D.comment, textDecoration: "none" }}>
-        manage
-      </Link>
-      {data && (
-        <span style={{ color: D.comment, fontSize: 11, marginLeft: "auto" }}>
+    <AppTabs
+      active="sim"
+      rightSlot={data ? (
+        <span style={{ color: D.comment, fontSize: 11, marginLeft: 12, marginRight: 16 }}>
           {data.live.n_positions > 0 && (
             <>
               {data.live.n_positions} positions |{" "}
@@ -317,21 +257,8 @@ function NavBar({ data }: { data: SimData | null }) {
           )}
           {data.summary.total_trades} trades | {data.summary.trading_days} days
         </span>
-      )}
-    </div>
-  );
-}
-
-function Prompt({ cmd }: { cmd: string }) {
-  return (
-    <div style={{ padding: "4px 0" }}>
-      <span style={{ color: D.green }}>➜ </span>
-      <span style={{ color: D.cyan }}>~/projects/sim</span>
-      <span style={{ color: D.purple }}> git:(</span>
-      <span style={{ color: D.red }}>main</span>
-      <span style={{ color: D.purple }}>) </span>
-      <span style={{ color: D.fg }}>{cmd}</span>
-    </div>
+      ) : undefined}
+    />
   );
 }
 
@@ -1332,25 +1259,6 @@ function HistorySection({ data }: { data: SimData }) {
   );
 }
 
-function BlinkCursor() {
-  return (
-    <div style={{ paddingTop: 16 }}>
-      <span style={{ color: D.green }}>➜ </span>
-      <span style={{ color: D.cyan }}>~/projects/sim</span>
-      <span style={{ color: D.purple }}> git:(</span>
-      <span style={{ color: D.red }}>main</span>
-      <span style={{ color: D.purple }}>) </span>
-      <span
-        style={{
-          display: "inline-block", width: 8, height: 15,
-          background: D.fg, verticalAlign: "text-bottom",
-          animation: "blink 1s step-end infinite",
-        }}
-      />
-    </div>
-  );
-}
-
 /* ── Page ── */
 
 export default function SimPage() {
@@ -1394,12 +1302,10 @@ export default function SimPage() {
         display: "flex", flexDirection: "column",
       }}
     >
-      <TitleBar />
+      <AppTitleBar title="sim — trading" />
       <NavBar data={data} />
 
       <div style={{ flex: 1, overflow: "auto", padding: "8px 16px 24px" }}>
-        <Prompt cmd="cat sim_trading.log" />
-
         {/* 加载中 */}
         {loading && (
           <div style={{ color: D.comment, padding: "8px 0" }}>
@@ -1446,10 +1352,8 @@ export default function SimPage() {
           </>
         )}
 
-        <BlinkCursor />
       </div>
 
-      <style>{`@keyframes blink { 50% { opacity: 0; } }`}</style>
     </div>
   );
 }
