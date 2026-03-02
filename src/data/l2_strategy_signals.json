@@ -1,734 +1,6 @@
 {
   "signals": [
     {
-      "ts": 1772083295823,
-      "time": "13:21:35",
-      "strategy": "tick_imbalance",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 主买主卖失衡",
-      "display": "HK01211 比亚迪股份 主买主卖失衡: 主卖占优 imbalance=-0.479 窗口成交额1041万 | 现价96.05 日跌-2.7%",
-      "detail": {
-        "imbalance": -0.479,
-        "buy_vol": 27400,
-        "sell_vol": 77700,
-        "turnover": 10412683.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1772083303317,
-      "time": "13:21:43",
-      "strategy": "tick_imbalance",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 主买主卖失衡",
-      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主卖占优 imbalance=-0.405 窗口成交额11123万 | 现价144.80 日跌-2.4% 量比1.6",
-      "detail": {
-        "imbalance": -0.405,
-        "buy_vol": 206800,
-        "sell_vol": 488700,
-        "turnover": 111231186.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1772083399855,
-      "time": "13:23:19",
-      "strategy": "large_order",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 大单成交",
-      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 864万 @ 144.80 (主买) | 现价144.80 日跌-2.4% 量比1.5",
-      "detail": {
-        "amount": 8644560.0,
-        "price": 144.8,
-        "volume": 59700,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1772083399855,
-      "time": "13:23:19",
-      "strategy": "order_book_imbalance",
-      "code": "HK09927",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "赛力斯 盘口异动",
-      "display": "HK09927 赛力斯 盘口异动: 委比 46 → -11 (变化 -57) | 现价94.00 日跌-2.8% 量比1.6",
-      "detail": {
-        "prev_ratio": 46.01,
-        "curr_ratio": -10.69,
-        "delta": -56.7
-      }
-    },
-    {
-      "ts": 1772083441586,
-      "time": "13:24:01",
-      "strategy": "order_book_imbalance",
-      "code": "HK06809",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "澜起科技 盘口异动",
-      "display": "HK06809 澜起科技 盘口异动: 委比 34 → -8 (变化 -42) | 现价187.50 日跌-2.4%",
-      "detail": {
-        "prev_ratio": 34.22,
-        "curr_ratio": -8.27,
-        "delta": -42.49
-      }
-    },
-    {
-      "ts": 1772083477237,
-      "time": "13:24:37",
-      "strategy": "order_book_imbalance",
-      "code": "HK07262",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方看多日经 盘口异动",
-      "display": "HK07262 XL二南方看多日经 盘口异动: 委比 21 → 71 (变化 +50) | 现价156.05 日跌-0.5% 量比1.8",
-      "detail": {
-        "prev_ratio": 21.05,
-        "curr_ratio": 71.39,
-        "delta": 50.34
-      }
-    },
-    {
-      "ts": 1772083477237,
-      "time": "13:24:37",
-      "strategy": "tick_imbalance",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 主买主卖失衡",
-      "display": "HK00700 腾讯控股 主买主卖失衡: 主卖占优 imbalance=-0.495 窗口成交额8319万 | 现价516.00 日跌-1.2% 净流出21774万",
-      "detail": {
-        "imbalance": -0.495,
-        "buy_vol": 34700,
-        "sell_vol": 102600,
-        "turnover": 83191931.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1772083505290,
-      "time": "13:25:05",
-      "strategy": "order_book_imbalance",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方海力士 盘口异动",
-      "display": "HK07709 XL二南方海力士 盘口异动: 委比 16 → -30 (变化 -46) | 现价39.84 日涨+6.5% 净流入9349万",
-      "detail": {
-        "prev_ratio": 16.08,
-        "curr_ratio": -29.98,
-        "delta": -46.06
-      }
-    },
-    {
-      "ts": 1772083509043,
-      "time": "13:25:09",
-      "strategy": "large_order",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 大单成交",
-      "display": "HK00700 腾讯控股 大单成交: 成交 516万 @ 516.50 (主买) | 现价516.50 日跌-1.1% 净流出21774万",
-      "detail": {
-        "amount": 5165000.0,
-        "price": 516.5,
-        "volume": 10000,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1772083651308,
-      "time": "13:27:31",
-      "strategy": "order_book_imbalance",
-      "code": "HK00325",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "布鲁可 盘口异动",
-      "display": "HK00325 布鲁可 盘口异动: 委比 43 → 91 (变化 +48) | 现价64.90 日跌-0.2%",
-      "detail": {
-        "prev_ratio": 42.59,
-        "curr_ratio": 90.7,
-        "delta": 48.11
-      }
-    },
-    {
-      "ts": 1772083668357,
-      "time": "13:27:48",
-      "strategy": "large_order",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 大单成交",
-      "display": "HK01810 小米集团－Ｗ 大单成交: 成交 519万 @ 35.44 (主卖) | 现价35.42 日跌-0.5%",
-      "detail": {
-        "amount": 5188416.0,
-        "price": 35.44,
-        "volume": 146400,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1772083836379,
-      "time": "13:30:36",
-      "strategy": "rsi_oversold",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 RSI超卖",
-      "display": "HK00700 腾讯控股 RSI超卖: RSI=29.8 (前日31.6) 跌破30 | 现价515.00 日跌-1.4%",
-      "detail": {
-        "rsi": 29.8,
-        "prev_rsi": 31.6,
-        "threshold": 30
-      }
-    },
-    {
-      "ts": 1772083840628,
-      "time": "13:30:40",
-      "strategy": "morning_evening_star",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "大麦娱乐 晨暮星",
-      "display": "HK01060 大麦娱乐 晨星形态 | 现价0.85 日涨+2.4%",
-      "detail": {
-        "direction": "bullish",
-        "pattern": "morning_star",
-        "day1_body": -0.05,
-        "day2_body": 0.0,
-        "day3_body": 0.02
-      }
-    },
-    {
-      "ts": 1772083853908,
-      "time": "13:30:53",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK09618",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "京东-SW 散户机构分歧",
-      "display": "HK09618 京东-SW 散户机构分歧: 主力进散户出 | 机构净+4018万 散户净-5194万 | 现价104.40 日跌-2.2% 净流入4018万",
-      "detail": {
-        "direction": "bullish",
-        "institutional_net": 40183270.0,
-        "retail_net": -51938855.0,
-        "super_net": 9893855.0,
-        "big_net": 30289415.0
-      }
-    },
-    {
-      "ts": 1772083898127,
-      "time": "13:31:38",
-      "strategy": "tick_imbalance",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 主买主卖失衡",
-      "display": "HK01810 小米集团－Ｗ 主买主卖失衡: 主卖占优 imbalance=-0.487 窗口成交额4938万 | 现价35.36 日跌-0.7%",
-      "detail": {
-        "imbalance": -0.487,
-        "buy_vol": 338600,
-        "sell_vol": 981800,
-        "turnover": 49376448.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1772083905570,
-      "time": "13:31:45",
-      "strategy": "tick_imbalance",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 主买主卖失衡",
-      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主卖占优 imbalance=-0.518 窗口成交额9690万 | 现价144.80 日跌-2.4%",
-      "detail": {
-        "imbalance": -0.518,
-        "buy_vol": 147000,
-        "sell_vol": 462600,
-        "turnover": 96902237.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1772084029896,
-      "time": "13:33:49",
-      "strategy": "large_order",
-      "code": "HK09618",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "京东-SW 大单成交",
-      "display": "HK09618 京东-SW 大单成交: 成交 731万 @ 104.40 (主卖) | 现价104.50 日跌-2.2%",
-      "detail": {
-        "amount": 7308000.0,
-        "price": 104.4,
-        "volume": 70000,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1772084112456,
-      "time": "13:35:12",
-      "strategy": "large_order",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 大单成交",
-      "display": "HK00700 腾讯控股 大单成交: 成交 1397万 @ 515.50 (主卖) | 现价515.50 日跌-1.3%",
-      "detail": {
-        "amount": 13970050.0,
-        "price": 515.5,
-        "volume": 27100,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1772084112456,
-      "time": "13:35:12",
-      "strategy": "large_order",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 大单成交",
-      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 864万 @ 144.80 (主卖) | 现价144.80 日跌-2.4%",
-      "detail": {
-        "amount": 8644560.0,
-        "price": 144.8,
-        "volume": 59700,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1772084210600,
-      "time": "13:36:50",
-      "strategy": "tick_imbalance",
-      "code": "HK09618",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "京东-SW 主买主卖失衡",
-      "display": "HK09618 京东-SW 主买主卖失衡: 主卖占优 imbalance=-0.441 窗口成交额2285万 | 现价104.40 日跌-2.2% 净流入3640万",
-      "detail": {
-        "imbalance": -0.441,
-        "buy_vol": 54700,
-        "sell_vol": 141150,
-        "turnover": 22847865.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1772084253131,
-      "time": "13:37:33",
-      "strategy": "tick_imbalance",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 主买主卖失衡",
-      "display": "HK00700 腾讯控股 主买主卖失衡: 主卖占优 imbalance=-0.512 窗口成交额19588万 | 现价515.00 日跌-1.4% 净流出26740万",
-      "detail": {
-        "imbalance": -0.512,
-        "buy_vol": 80800,
-        "sell_vol": 250200,
-        "turnover": 195878116.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1772084304174,
-      "time": "13:38:24",
-      "strategy": "large_order",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 大单成交",
-      "display": "HK01810 小米集团－Ｗ 大单成交: 成交 1353万 @ 35.36 (主卖) | 现价35.34 日跌-0.7% 净流出2984万",
-      "detail": {
-        "amount": 13528736.0,
-        "price": 35.36,
-        "volume": 382600,
-        "direction": "SELL"
-      }
-    },
-    {
-      "ts": 1772084316812,
-      "time": "13:38:36",
-      "strategy": "tick_imbalance",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方海力士 主买主卖失衡",
-      "display": "HK07709 XL二南方海力士 主买主卖失衡: 主买占优 imbalance=+0.482 窗口成交额3824万 | 现价39.66 日涨+6.0% 净流入8409万",
-      "detail": {
-        "imbalance": 0.482,
-        "buy_vol": 700900,
-        "sell_vol": 245200,
-        "turnover": 38243534.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1772084464016,
-      "time": "13:41:04",
-      "strategy": "large_order_reversal",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "腾讯控股 大单翻转",
-      "display": "HK00700 腾讯控股 大单翻转: 大单翻多(SELL→BUY) | 近期净额+2157万 | 现价514.50 日跌-1.5% 净流出30578万",
-      "detail": {
-        "direction": "bullish",
-        "prior_direction": "SELL",
-        "recent_direction": "BUY",
-        "prior_net_amount": -254708600.0,
-        "recent_net_amount": 21566750.0,
-        "prior_count": 89,
-        "recent_count": 3
-      }
-    },
-    {
-      "ts": 1772084479699,
-      "time": "13:41:19",
-      "strategy": "large_order",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方海力士 大单成交",
-      "display": "HK07709 XL二南方海力士 大单成交: 成交 839万 @ 40.00 (主买) | 现价40.06 日涨+7.1%",
-      "detail": {
-        "amount": 8392000.0,
-        "price": 40.0,
-        "volume": 209800,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1772084479937,
-      "time": "13:41:19",
-      "strategy": "composite_bullish",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "XL二南方海力士 多头信号",
-      "display": "HK07709 XL二南方海力士 多头信号(分=5): 大单成交 + 主买主卖失衡 | 现价40.06 日涨+7.1%",
-      "detail": {
-        "signals": [
-          "large_order",
-          "tick_imbalance"
-        ],
-        "count": 2,
-        "score": 5
-      }
-    },
-    {
-      "ts": 1772084506317,
-      "time": "13:41:46",
-      "strategy": "tick_imbalance",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 主买主卖失衡",
-      "display": "HK01810 小米集团－Ｗ 主买主卖失衡: 主卖占优 imbalance=-0.504 窗口成交额8790万 | 现价35.30 日跌-0.8% 净流出4879万",
-      "detail": {
-        "imbalance": -0.504,
-        "buy_vol": 567800,
-        "sell_vol": 1719600,
-        "turnover": 87897768.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1772084514400,
-      "time": "13:41:54",
-      "strategy": "tick_imbalance",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 主买主卖失衡",
-      "display": "HK09988 阿里巴巴－Ｗ 主买主卖失衡: 主卖占优 imbalance=-0.403 窗口成交额22698万 | 现价144.60 日跌-2.5%",
-      "detail": {
-        "imbalance": -0.403,
-        "buy_vol": 444600,
-        "sell_vol": 1045400,
-        "turnover": 226976230.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1772084632239,
-      "time": "13:43:52",
-      "strategy": "capital_flow_spike",
-      "code": "HK02359",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "药明康德 主力资金异动",
-      "display": "HK02359 药明康德 主力资金异动: 净流入占比 0.0% → 111.9% | 现价118.20 日跌-2.2% 净流入588万",
-      "detail": {
-        "from_pct": 0,
-        "to_pct": 111.88,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1772084730647,
-      "time": "13:45:30",
-      "strategy": "large_order",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 大单成交",
-      "display": "HK00700 腾讯控股 大单成交: 成交 772万 @ 515.00 (主买) | 现价515.00 日跌-1.4%",
-      "detail": {
-        "amount": 7725000.0,
-        "price": 515.0,
-        "volume": 15000,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1772084757217,
-      "time": "13:45:57",
-      "strategy": "large_order",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 大单成交",
-      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 724万 @ 144.60 (主买) | 现价144.60 日跌-2.5% 净流出47591万",
-      "detail": {
-        "amount": 7244460.0,
-        "price": 144.6,
-        "volume": 50100,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1772084776273,
-      "time": "13:46:16",
-      "strategy": "order_book_imbalance",
-      "code": "HK06809",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "澜起科技 盘口异动",
-      "display": "HK06809 澜起科技 盘口异动: 委比 20 → -29 (变化 -49) | 现价187.70 日跌-2.3%",
-      "detail": {
-        "prev_ratio": 20.0,
-        "curr_ratio": -28.71,
-        "delta": -48.71
-      }
-    },
-    {
-      "ts": 1772084776273,
-      "time": "13:46:16",
-      "strategy": "volume_price_divergence",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "比亚迪股份 量价背离",
-      "display": "HK01211 比亚迪股份 量价背离: 价格 96.25 (窗口最高) 主力净流入 -3986万 | 现价96.25 日跌-2.5% 净流出3986万",
-      "detail": {
-        "price": 96.25,
-        "window_high": 96.25,
-        "main_net_inflow": -39859095.0
-      }
-    },
-    {
-      "ts": 1772084990673,
-      "time": "13:49:50",
-      "strategy": "order_book_imbalance",
-      "code": "HK07262",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方看多日经 盘口异动",
-      "display": "HK07262 XL二南方看多日经 盘口异动: 委比 -19 → 24 (变化 +43) | 现价156.05 日跌-0.5% 量比2.0",
-      "detail": {
-        "prev_ratio": -19.16,
-        "curr_ratio": 23.86,
-        "delta": 43.02
-      }
-    },
-    {
-      "ts": 1772085152287,
-      "time": "13:52:32",
-      "strategy": "tick_imbalance",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 主买主卖失衡",
-      "display": "HK00700 腾讯控股 主买主卖失衡: 主卖占优 imbalance=-0.420 窗口成交额20766万 | 现价513.00 日跌-1.8% 净流出28202万",
-      "detail": {
-        "imbalance": -0.42,
-        "buy_vol": 106100,
-        "sell_vol": 259800,
-        "turnover": 207664750.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1772085173851,
-      "time": "13:52:53",
-      "strategy": "volume_price_divergence",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 量价背离",
-      "display": "HK01810 小米集团－Ｗ 量价背离: 价格 35.46 (窗口最高) 主力净流入 -5326万 | 现价35.46 日跌-0.4% 净流出5326万",
-      "detail": {
-        "price": 35.46,
-        "window_high": 35.46,
-        "main_net_inflow": -53255692.0
-      }
-    },
-    {
-      "ts": 1772085315473,
-      "time": "13:55:15",
-      "strategy": "large_order",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 大单成交",
-      "display": "HK01810 小米集团－Ｗ 大单成交: 成交 525万 @ 35.50 (主买) | 现价35.54 日跌-0.2% 净流出5326万",
-      "detail": {
-        "amount": 5246900.0,
-        "price": 35.5,
-        "volume": 147800,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1772085315473,
-      "time": "13:55:15",
-      "strategy": "large_order",
-      "code": "HK09618",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "京东-SW 大单成交",
-      "display": "HK09618 京东-SW 大单成交: 成交 599万 @ 104.40 (主买) | 现价104.50 日跌-2.2% 净流入4273万",
-      "detail": {
-        "amount": 5992560.0,
-        "price": 104.4,
-        "volume": 57400,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1772085315473,
-      "time": "13:55:15",
-      "strategy": "volume_price_divergence",
-      "code": "HK03288",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "海天味业 量价背离",
-      "display": "HK03288 海天味业 量价背离: 价格 34.56 (窗口最高) 主力净流入 -857万 | 现价34.56 日跌-0.7% 净流出857万",
-      "detail": {
-        "price": 34.56,
-        "window_high": 34.56,
-        "main_net_inflow": -8573886.0
-      }
-    },
-    {
-      "ts": 1772085315473,
-      "time": "13:55:15",
-      "strategy": "tick_imbalance",
-      "code": "HK09618",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "京东-SW 主买主卖失衡",
-      "display": "HK09618 京东-SW 主买主卖失衡: 主买占优 imbalance=+0.444 窗口成交额1694万 | 现价104.50 日跌-2.2% 净流入4273万",
-      "detail": {
-        "imbalance": 0.444,
-        "buy_vol": 116950,
-        "sell_vol": 45050,
-        "turnover": 16938936.0,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1772085315473,
-      "time": "13:55:15",
-      "strategy": "large_order_reversal",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ 大单翻转",
-      "display": "HK09988 阿里巴巴－Ｗ 大单翻转: 大单翻多(SELL→BUY) | 近期净额+2857万 | 现价144.50 日跌-2.6% 净流出46867万",
-      "detail": {
-        "direction": "bullish",
-        "prior_direction": "SELL",
-        "recent_direction": "BUY",
-        "prior_net_amount": -192601920.0,
-        "recent_net_amount": 28574740.0,
-        "prior_count": 56,
-        "recent_count": 3
-      }
-    },
-    {
-      "ts": 1772085329758,
-      "time": "13:55:29",
-      "strategy": "capital_flow_spike",
-      "code": "HK09618",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "京东-SW 主力资金异动",
-      "display": "HK09618 京东-SW 主力资金异动: 净流入占比 0.0% → 637.6% | 现价104.60 日跌-2.1% 净流入4872万",
-      "detail": {
-        "from_pct": 0,
-        "to_pct": 637.6,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1772085359230,
-      "time": "13:55:59",
-      "strategy": "large_order",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 大单成交",
-      "display": "HK00700 腾讯控股 大单成交: 成交 1028万 @ 514.00 (主买) | 现价514.00 日跌-1.6% 净流出25214万",
-      "detail": {
-        "amount": 10280000.0,
-        "price": 514.0,
-        "volume": 20000,
-        "direction": "BUY"
-      }
-    },
-    {
-      "ts": 1772085379954,
-      "time": "13:56:19",
-      "strategy": "capital_flow_spike",
-      "code": "HK02590",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "极智嘉-W 主力资金异动",
-      "display": "HK02590 极智嘉-W 主力资金异动: 净流入占比 0.0% → 33.8% | 现价23.58 日跌-3.8% 净流出172万",
-      "detail": {
-        "from_pct": 0,
-        "to_pct": 33.8,
-        "window_sec": 300
-      }
-    },
-    {
-      "ts": 1772085391280,
-      "time": "13:56:31",
-      "strategy": "large_order",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 大单成交",
-      "display": "HK09988 阿里巴巴－Ｗ 大单成交: 成交 1084万 @ 144.50 (主买) | 现价144.50 日跌-2.6% 净流出43307万",
-      "detail": {
-        "amount": 10837500.0,
-        "price": 144.5,
-        "volume": 75000,
-        "direction": "BUY"
-      }
-    },
-    {
       "ts": 1772085391280,
       "time": "13:56:31",
       "strategy": "tick_imbalance",
@@ -3272,40 +2544,756 @@
         "prior_dif": -1.3487,
         "lookback": 20
       }
+    },
+    {
+      "ts": 1772414129513,
+      "time": "09:15:29",
+      "strategy": "macd_bottom_divergence",
+      "code": "HK00325",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "布鲁可 MACD底背离",
+      "display": "HK00325 布鲁可 MACD底背离: 价格63.14<66.95 但DIF-2.0408>-2.8424 | 现价63.25 日涨+0.1%",
+      "detail": {
+        "price": 63.14,
+        "prior_low": 66.95,
+        "dif": -2.0408,
+        "prior_dif": -2.8424,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1772414129513,
+      "time": "09:15:29",
+      "strategy": "ma_bearish_align",
+      "code": "HK00325",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "布鲁可 均线空头排列",
+      "display": "HK00325 布鲁可 均线空头排列: MA5=64.63 MA10=67.25 MA20=69.55 MA60=70.26 斜率-3.83% | 现价63.25 日涨+0.1%",
+      "detail": {
+        "ma5": 64.63,
+        "ma10": 67.25,
+        "ma20": 69.55,
+        "ma60": 70.26,
+        "ma20_slope_pct": -3.83
+      }
+    },
+    {
+      "ts": 1772414129513,
+      "time": "09:15:29",
+      "strategy": "relative_strength",
+      "code": "HK00325",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "布鲁可 相对强弱",
+      "display": "HK00325 布鲁可 相对强弱: 60日弱于恒指 个股-14.2% 恒指+2.3% 超额-16.4% | 现价63.25 日涨+0.1%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -14.2,
+        "index_return_60d": 2.3,
+        "excess_return": -16.4
+      }
+    },
+    {
+      "ts": 1772414129590,
+      "time": "09:15:29",
+      "strategy": "ma_bearish_align",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "腾讯控股 均线空头排列",
+      "display": "HK00700 腾讯控股 均线空头排列: MA5=518.26 MA10=525.18 MA20=549.12 MA60=590.11 斜率-3.10% | 现价510.50 日跌-1.4%",
+      "detail": {
+        "ma5": 518.26,
+        "ma10": 525.18,
+        "ma20": 549.12,
+        "ma60": 590.11,
+        "ma20_slope_pct": -3.1
+      }
+    },
+    {
+      "ts": 1772414129590,
+      "time": "09:15:29",
+      "strategy": "relative_strength",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 相对强弱",
+      "display": "HK00700 腾讯控股 相对强弱: 60日弱于恒指 个股-16.3% 恒指+2.3% 超额-18.5% | 现价510.50 日跌-1.4%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -16.3,
+        "index_return_60d": 2.3,
+        "excess_return": -18.5
+      }
+    },
+    {
+      "ts": 1772414129840,
+      "time": "09:15:29",
+      "strategy": "macd_death_cross",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "比亚迪股份 MACD死叉",
+      "display": "HK01211 比亚迪股份 MACD死叉: DIF=-0.1157 DEA=-0.0184 | 现价92.15 日跌-2.9%",
+      "detail": {
+        "hist": -0.1946,
+        "prev_hist": 0.0472,
+        "dif": -0.1157,
+        "dea": -0.0184
+      }
+    },
+    {
+      "ts": 1772414129908,
+      "time": "09:15:29",
+      "strategy": "ma_bearish_align",
+      "code": "HK01357",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "美图公司 均线空头排列",
+      "display": "HK01357 美图公司 均线空头排列: MA5=5.69 MA10=5.96 MA20=6.45 MA60=7.32 斜率-7.04% | 现价5.40 日跌-4.6%",
+      "detail": {
+        "ma5": 5.69,
+        "ma10": 5.96,
+        "ma20": 6.45,
+        "ma60": 7.32,
+        "ma20_slope_pct": -7.04
+      }
+    },
+    {
+      "ts": 1772414129908,
+      "time": "09:15:29",
+      "strategy": "relative_strength",
+      "code": "HK01357",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "美图公司 相对强弱",
+      "display": "HK01357 美图公司 相对强弱: 60日弱于恒指 个股-30.7% 恒指+2.3% 超额-33.0% | 现价5.40 日跌-4.6%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -30.7,
+        "index_return_60d": 2.3,
+        "excess_return": -33.0
+      }
+    },
+    {
+      "ts": 1772414129984,
+      "time": "09:15:29",
+      "strategy": "macd_bottom_divergence",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "小米集团－Ｗ MACD底背离",
+      "display": "HK01810 小米集团－Ｗ MACD底背离: 价格34.90<35.22 但DIF-0.4843>-1.3491 | 现价34.20 日跌-2.0%",
+      "detail": {
+        "price": 34.9,
+        "prior_low": 35.22,
+        "dif": -0.4843,
+        "prior_dif": -1.3491,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1772414129985,
+      "time": "09:15:29",
+      "strategy": "relative_strength",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 相对强弱",
+      "display": "HK01810 小米集团－Ｗ 相对强弱: 60日弱于恒指 个股-13.4% 恒指+2.3% 超额-15.7% | 现价34.20 日跌-2.0%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -13.4,
+        "index_return_60d": 2.3,
+        "excess_return": -15.7
+      }
+    },
+    {
+      "ts": 1772414130295,
+      "time": "09:15:30",
+      "strategy": "ma_bullish_align",
+      "code": "HK02722",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "HK02722 均线多头排列",
+      "display": "HK02722 HK02722 均线多头排列: MA5=3.39 MA10=3.15 MA20=2.81 MA60=2.31 斜率+8.00% | 现价3.40 日跌-7.6%",
+      "detail": {
+        "ma5": 3.39,
+        "ma10": 3.15,
+        "ma20": 2.81,
+        "ma60": 2.31,
+        "ma20_slope_pct": 8.0
+      }
+    },
+    {
+      "ts": 1772414130295,
+      "time": "09:15:30",
+      "strategy": "volume_divergence_top",
+      "code": "HK02722",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "HK02722 缩量创高",
+      "display": "HK02722 HK02722 缩量创高: 价格新高3.68 但成交量萎缩至前高量0% | 现价3.40 日跌-7.6%",
+      "detail": {
+        "close": 3.68,
+        "prev_high": 3.68,
+        "volume": 2000.0,
+        "prev_high_volume": 39189415.0,
+        "vol_shrink_ratio": 0.0
+      }
+    },
+    {
+      "ts": 1772414130295,
+      "time": "09:15:30",
+      "strategy": "relative_strength",
+      "code": "HK02722",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "HK02722 相对强弱",
+      "display": "HK02722 HK02722 相对强弱: 60日强于恒指 个股+89.8% 恒指+2.3% 超额+87.5% | 现价3.40 日跌-7.6%",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 89.8,
+        "index_return_60d": 2.3,
+        "excess_return": 87.5
+      }
+    },
+    {
+      "ts": 1772414130363,
+      "time": "09:15:30",
+      "strategy": "ma_bullish_align",
+      "code": "HK03288",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "海天味业 均线多头排列",
+      "display": "HK03288 海天味业 均线多头排列: MA5=34.31 MA10=33.77 MA20=32.86 MA60=32.46 斜率+1.55% | 现价34.10 日涨+0.9%",
+      "detail": {
+        "ma5": 34.31,
+        "ma10": 33.77,
+        "ma20": 32.86,
+        "ma60": 32.46,
+        "ma20_slope_pct": 1.55
+      }
+    },
+    {
+      "ts": 1772414130363,
+      "time": "09:15:30",
+      "strategy": "breakout_pullback",
+      "code": "HK03288",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "海天味业 突破回踩",
+      "display": "HK03288 海天味业 突破回踩: 回踩支撑34.12 现价33.78 缩量0.52x | 现价34.10 日涨+0.9%",
+      "detail": {
+        "close": 33.78,
+        "support_level": 34.12,
+        "breakout_close": 34.98,
+        "vol_shrink": 0.52
+      }
+    },
+    {
+      "ts": 1772414130473,
+      "time": "09:15:30",
+      "strategy": "ma_bearish_align",
+      "code": "HK06060",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "众安在线 均线空头排列",
+      "display": "HK06060 众安在线 均线空头排列: MA5=15.65 MA10=15.93 MA20=16.03 MA60=16.14 斜率-1.70% | 现价15.02 日跌-2.0%",
+      "detail": {
+        "ma5": 15.65,
+        "ma10": 15.93,
+        "ma20": 16.03,
+        "ma60": 16.14,
+        "ma20_slope_pct": -1.7
+      }
+    },
+    {
+      "ts": 1772414130598,
+      "time": "09:15:30",
+      "strategy": "rsi_overbought",
+      "code": "HK07262",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方看多日经 RSI超买",
+      "display": "HK07262 XL二南方看多日经 RSI超买: RSI=71.2 (前日69.9) 突破70 | 现价158.50 日涨+0.0%",
+      "detail": {
+        "rsi": 71.2,
+        "prev_rsi": 69.9,
+        "threshold": 70
+      }
+    },
+    {
+      "ts": 1772414130598,
+      "time": "09:15:30",
+      "strategy": "ma_bullish_align",
+      "code": "HK07262",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "XL二南方看多日经 均线多头排列",
+      "display": "HK07262 XL二南方看多日经 均线多头排列: MA5=154.12 MA10=152.60 MA20=143.99 MA60=128.12 斜率+3.83% | 现价158.50 日涨+0.0%",
+      "detail": {
+        "ma5": 154.12,
+        "ma10": 152.6,
+        "ma20": 143.99,
+        "ma60": 128.12,
+        "ma20_slope_pct": 3.83
+      }
+    },
+    {
+      "ts": 1772414130598,
+      "time": "09:15:30",
+      "strategy": "volume_breakout",
+      "code": "HK07262",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "XL二南方看多日经 放量突破",
+      "display": "HK07262 XL二南方看多日经 放量突破: 收盘158.50>前高157.95 量比MA20=2.1x | 现价158.50 日涨+0.0%",
+      "detail": {
+        "close": 158.5,
+        "prev_high": 157.95,
+        "volume": 27550.0,
+        "vol_ma20": 13139.0,
+        "vol_ratio": 2.1
+      }
+    },
+    {
+      "ts": 1772414130598,
+      "time": "09:15:30",
+      "strategy": "engulfing_pattern",
+      "code": "HK07262",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方看多日经 吞没形态",
+      "display": "HK07262 XL二南方看多日经 看涨吞没形态 | 现价158.50 日涨+0.0%",
+      "detail": {
+        "direction": "bullish",
+        "prev_open": 157.0,
+        "prev_close": 156.7,
+        "curr_open": 153.75,
+        "curr_close": 158.5
+      }
+    },
+    {
+      "ts": 1772414130598,
+      "time": "09:15:30",
+      "strategy": "relative_strength",
+      "code": "HK07262",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方看多日经 相对强弱",
+      "display": "HK07262 XL二南方看多日经 相对强弱: 60日强于恒指 个股+37.2% 恒指+2.3% 超额+34.9% | 现价158.50 日涨+0.0%",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 37.2,
+        "index_return_60d": 2.3,
+        "excess_return": 34.9
+      }
+    },
+    {
+      "ts": 1772414130657,
+      "time": "09:15:30",
+      "strategy": "ma_bullish_align",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "XL二南方海力士 均线多头排列",
+      "display": "HK07709 XL二南方海力士 均线多头排列: MA5=37.48 MA10=33.05 MA20=30.35 MA60=21.04 斜率+12.56% | 现价37.62 日跌-5.3%",
+      "detail": {
+        "ma5": 37.48,
+        "ma10": 33.05,
+        "ma20": 30.35,
+        "ma60": 21.04,
+        "ma20_slope_pct": 12.56
+      }
+    },
+    {
+      "ts": 1772414130657,
+      "time": "09:15:30",
+      "strategy": "relative_strength",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 相对强弱",
+      "display": "HK07709 XL二南方海力士 相对强弱: 60日强于恒指 个股+251.4% 恒指+2.3% 超额+249.1% | 现价37.62 日跌-5.3%",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 251.4,
+        "index_return_60d": 2.3,
+        "excess_return": 249.1
+      }
+    },
+    {
+      "ts": 1772414130762,
+      "time": "09:15:30",
+      "strategy": "ma_bearish_align",
+      "code": "HK09618",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "京东-SW 均线空头排列",
+      "display": "HK09618 京东-SW 均线空头排列: MA5=105.18 MA10=105.79 MA20=107.82 MA60=112.08 斜率-1.87% | 现价102.60 日跌-1.7%",
+      "detail": {
+        "ma5": 105.18,
+        "ma10": 105.79,
+        "ma20": 107.82,
+        "ma60": 112.08,
+        "ma20_slope_pct": -1.87
+      }
+    },
+    {
+      "ts": 1772414130822,
+      "time": "09:15:30",
+      "strategy": "macd_bottom_divergence",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "赛力斯 MACD底背离",
+      "display": "HK09927 赛力斯 MACD底背离: 价格95.25<98.65 但DIF-2.3334>-2.4174 | 现价92.50 日跌-2.9%",
+      "detail": {
+        "price": 95.25,
+        "prior_low": 98.65,
+        "dif": -2.3334,
+        "prior_dif": -2.4174,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1772414130822,
+      "time": "09:15:30",
+      "strategy": "ma_bearish_align",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "赛力斯 均线空头排列",
+      "display": "HK09927 赛力斯 均线空头排列: MA5=95.66 MA10=96.61 MA20=96.99 MA60=104.88 斜率-1.23% | 现价92.50 日跌-2.9%",
+      "detail": {
+        "ma5": 95.66,
+        "ma10": 96.61,
+        "ma20": 96.99,
+        "ma60": 104.88,
+        "ma20_slope_pct": -1.23
+      }
+    },
+    {
+      "ts": 1772414130822,
+      "time": "09:15:30",
+      "strategy": "relative_strength",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "赛力斯 相对强弱",
+      "display": "HK09927 赛力斯 相对强弱: 60日弱于恒指 个股-17.2% 恒指+2.3% 超额-19.5% | 现价92.50 日跌-2.9%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -17.2,
+        "index_return_60d": 2.3,
+        "excess_return": -19.5
+      }
+    },
+    {
+      "ts": 1772415035319,
+      "time": "09:30:35",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 散户机构分歧",
+      "display": "HK00700 腾讯控股 散户机构分歧: 主力进散户出 | 机构净+3844万 散户净-1019万 | 现价512.00 日跌-1.2% 净流入3844万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 38438000.0,
+        "retail_net": -10185600.0,
+        "super_net": 14635950.0,
+        "big_net": 23802050.0
+      }
+    },
+    {
+      "ts": 1772415066854,
+      "time": "09:31:06",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 散户机构分歧",
+      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力进散户出 | 机构净+8885万 散户净-3715万 | 现价139.70 日跌-2.2% 净流入8885万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 88846850.0,
+        "retail_net": -37152270.0,
+        "super_net": 39116000.0,
+        "big_net": 49730850.0
+      }
+    },
+    {
+      "ts": 1772415353993,
+      "time": "09:35:53",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 散户机构分歧",
+      "display": "HK01810 小米集团－Ｗ 散户机构分歧: 主力出散户进 | 机构净-2384万 散户净+6023万 | 现价33.82 日跌-3.1% 量比15.3 净流出2384万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -23838928.0,
+        "retail_net": 60227392.0,
+        "super_net": 23071716.0,
+        "big_net": -46910644.0
+      }
+    },
+    {
+      "ts": 1772415931685,
+      "time": "09:45:31",
+      "strategy": "rsi_oversold",
+      "code": "HK00325",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "布鲁可 RSI超卖",
+      "display": "HK00325 布鲁可 RSI超卖: RSI=28.9 (前日33.6) 跌破30 | 现价59.95 日跌-5.1% 量比8.7",
+      "detail": {
+        "rsi": 28.9,
+        "prev_rsi": 33.6,
+        "threshold": 30
+      }
+    },
+    {
+      "ts": 1772415931945,
+      "time": "09:45:31",
+      "strategy": "morning_evening_star",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "比亚迪股份 晨暮星",
+      "display": "HK01211 比亚迪股份 晨星形态 | 现价96.90 日涨+2.1% 量比6.2",
+      "detail": {
+        "direction": "bullish",
+        "pattern": "morning_star",
+        "day1_body": -4.7,
+        "day2_body": 0.05,
+        "day3_body": 3.9
+      }
+    },
+    {
+      "ts": 1772415932192,
+      "time": "09:45:32",
+      "strategy": "macd_death_cross",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "小米集团－Ｗ MACD死叉",
+      "display": "HK01810 小米集团－Ｗ MACD死叉: DIF=-0.5864 DEA=-0.5280 | 现价33.62 日跌-3.7% 量比9.9",
+      "detail": {
+        "hist": -0.1168,
+        "prev_hist": 0.1162,
+        "dif": -0.5864,
+        "dea": -0.528
+      }
+    },
+    {
+      "ts": 1772415933026,
+      "time": "09:45:33",
+      "strategy": "adx_trend_start",
+      "code": "HK09618",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "京东-SW 趋势启动",
+      "display": "HK09618 京东-SW 趋势启动: ADX=27.1(前日24.2) 空头趋势 | 现价101.60 日跌-2.7% 量比3.7",
+      "detail": {
+        "adx": 27.1,
+        "prev_adx": 24.2,
+        "direction": "bearish",
+        "threshold": 25
+      }
+    },
+    {
+      "ts": 1772415933096,
+      "time": "09:45:33",
+      "strategy": "adx_trend_start",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "赛力斯 趋势启动",
+      "display": "HK09927 赛力斯 趋势启动: ADX=25.2(前日24.2) 空头趋势 | 现价94.45 日跌-0.8% 量比4.3",
+      "detail": {
+        "adx": 25.2,
+        "prev_adx": 24.2,
+        "direction": "bearish",
+        "threshold": 25
+      }
+    },
+    {
+      "ts": 1772416643692,
+      "time": "09:57:23",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 散户机构分歧",
+      "display": "HK07709 XL二南方海力士 散户机构分歧: 主力出散户进 | 机构净-1688万 散户净+527万 | 现价39.24 日跌-1.3% 净流出1688万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -16882088.0,
+        "retail_net": 5273610.0,
+        "super_net": -10013816.0,
+        "big_net": -6868272.0
+      }
+    },
+    {
+      "ts": 1772417733885,
+      "time": "10:15:33",
+      "strategy": "rsi_oversold",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 RSI超卖",
+      "display": "HK00700 腾讯控股 RSI超卖: RSI=29.7 (前日32.5) 跌破30 | 现价507.50 日跌-2.0% 量比3.1",
+      "detail": {
+        "rsi": 29.7,
+        "prev_rsi": 32.5,
+        "threshold": 30
+      }
+    },
+    {
+      "ts": 1772417734043,
+      "time": "10:15:34",
+      "strategy": "rsi_oversold",
+      "code": "HK01060",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "大麦娱乐 RSI超卖",
+      "display": "HK01060 大麦娱乐 RSI超卖: RSI=28.7 (前日34.5) 跌破30 | 现价0.76 日跌-7.3% 量比3.5",
+      "detail": {
+        "rsi": 28.7,
+        "prev_rsi": 34.5,
+        "threshold": 30
+      }
+    },
+    {
+      "ts": 1772417734043,
+      "time": "10:15:34",
+      "strategy": "relative_strength",
+      "code": "HK01060",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "大麦娱乐 相对强弱",
+      "display": "HK01060 大麦娱乐 相对强弱: 60日弱于恒指 个股-15.6% 恒指-0.4% 超额-15.2% | 现价0.76 日跌-7.3% 量比3.5",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -15.6,
+        "index_return_60d": -0.4,
+        "excess_return": -15.2
+      }
+    },
+    {
+      "ts": 1772417735206,
+      "time": "10:15:35",
+      "strategy": "macd_death_cross",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "赛力斯 MACD死叉",
+      "display": "HK09927 赛力斯 MACD死叉: DIF=-2.4620 DEA=-2.4457 | 现价92.75 日跌-2.6% 量比2.5",
+      "detail": {
+        "hist": -0.0325,
+        "prev_hist": 0.2165,
+        "dif": -2.462,
+        "dea": -2.4457
+      }
+    },
+    {
+      "ts": 1772417735285,
+      "time": "10:15:35",
+      "strategy": "rsi_oversold",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ RSI超卖",
+      "display": "HK09988 阿里巴巴－Ｗ RSI超卖: RSI=29.9 (前日34.8) 跌破30 | 现价136.70 日跌-4.3% 量比4.3",
+      "detail": {
+        "rsi": 29.9,
+        "prev_rsi": 34.8,
+        "threshold": 30
+      }
+    },
+    {
+      "ts": 1772419076537,
+      "time": "10:37:56",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK06809",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "澜起科技 散户机构分歧",
+      "display": "HK06809 澜起科技 散户机构分歧: 主力进散户出 | 机构净+1088万 散户净-642万 | 现价186.80 日涨+4.2% 量比2.7 净流入1088万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 10883920.0,
+        "retail_net": -6419320.0,
+        "super_net": 2293760.0,
+        "big_net": 8590160.0
+      }
+    },
+    {
+      "ts": 1772422246798,
+      "time": "11:30:46",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 散户机构分歧",
+      "display": "HK00700 腾讯控股 散户机构分歧: 主力进散户出 | 机构净+21569万 散户净-11037万 | 现价518.50 日涨+0.1% 量比1.7 净流入21569万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 215687600.0,
+        "retail_net": -110367550.0,
+        "super_net": 33374200.0,
+        "big_net": 182313400.0
+      }
+    },
+    {
+      "ts": 1772422603185,
+      "time": "11:36:43",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 散户机构分歧",
+      "display": "HK01810 小米集团－Ｗ 散户机构分歧: 主力出散户进 | 机构净-5423万 散户净+39852万 | 现价33.08 日跌-5.2% 量比4.0 净流出5423万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -54226072.0,
+        "retail_net": 398521672.0,
+        "super_net": 42668676.0,
+        "big_net": -96894748.0
+      }
+    },
+    {
+      "ts": 1772423867153,
+      "time": "11:57:47",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 散户机构分歧",
+      "display": "HK07709 XL二南方海力士 散户机构分歧: 主力出散户进 | 机构净-2078万 散户净+875万 | 现价38.70 日跌-2.6% 净流出2078万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -20776970.0,
+        "retail_net": 8753978.0,
+        "super_net": -13164904.0,
+        "big_net": -7612066.0
+      }
     }
   ],
   "session": {
-    "HK06060": {
-      "direction": "bearish",
-      "score": -2,
-      "tick": {
-        "buy_vol": 1965000,
-        "sell_vol": 2765700,
-        "imbalance": -0.169,
-        "direction_score": -1
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 0,
-        "buy_amount": 0.0,
-        "sell_amount": 0.0,
-        "net_amount": 0.0,
-        "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": 214940.0,
-        "main_net_inflow_pct": 0,
-        "direction_score": 0
-      }
-    },
     "HK07262": {
       "direction": "neutral",
       "score": 0,
       "tick": {
-        "buy_vol": 2870,
-        "sell_vol": 7780,
-        "imbalance": -0.461,
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
         "direction_score": 0
       },
       "large_order": {
@@ -3318,54 +3306,19 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -1183284.0,
+        "main_net_inflow": 217217.0,
         "main_net_inflow_pct": 0,
         "direction_score": 0
       }
     },
-    "HK01060": {
+    "HK01211": {
       "direction": "bullish",
-      "score": 3,
+      "score": 1,
       "tick": {
-        "buy_vol": 68450000,
-        "sell_vol": 37450000,
-        "imbalance": 0.293,
-        "direction_score": 1
-      },
-      "large_order": {
-        "buy_count": 2,
-        "sell_count": 0,
-        "buy_amount": 13070400.0,
-        "sell_amount": 0.0,
-        "net_amount": 13070400.0,
-        "direction_score": 0,
-        "orders": [
-          [
-            1772086094.635144,
-            "BUY",
-            8030400.0
-          ],
-          [
-            1772087297.0682828,
-            "BUY",
-            5040000.0
-          ]
-        ]
-      },
-      "capital_flow": {
-        "main_net_inflow": 20003100.0,
-        "main_net_inflow_pct": 50.91,
-        "direction_score": 1
-      }
-    },
-    "HK02359": {
-      "direction": "bearish",
-      "score": -2,
-      "tick": {
-        "buy_vol": 1144800,
-        "sell_vol": 1474800,
-        "imbalance": -0.126,
-        "direction_score": -1
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
+        "direction_score": 0
       },
       "large_order": {
         "buy_count": 0,
@@ -3377,19 +3330,19 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -4910610.0,
-        "main_net_inflow_pct": 15.99,
-        "direction_score": 0
+        "main_net_inflow": 127610655.0,
+        "main_net_inflow_pct": 26.79,
+        "direction_score": 1
       }
     },
     "HK00325": {
-      "direction": "bearish",
-      "score": -2,
+      "direction": "neutral",
+      "score": 0,
       "tick": {
-        "buy_vol": 103500,
-        "sell_vol": 144000,
-        "imbalance": -0.164,
-        "direction_score": -1
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
+        "direction_score": 0
       },
       "large_order": {
         "buy_count": 0,
@@ -3401,18 +3354,90 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -173160.0,
-        "main_net_inflow_pct": 3.38,
+        "main_net_inflow": -3953565.0,
+        "main_net_inflow_pct": 38.27,
         "direction_score": 0
+      }
+    },
+    "HK07709": {
+      "direction": "bearish",
+      "score": -1,
+      "tick": {
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
+        "direction_score": 0
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": -20776970.0,
+        "main_net_inflow_pct": 71.57,
+        "direction_score": -1
+      }
+    },
+    "HK03986": {
+      "direction": "bullish",
+      "score": 1,
+      "tick": {
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
+        "direction_score": 0
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": 19412500.0,
+        "main_net_inflow_pct": 50.56,
+        "direction_score": 1
+      }
+    },
+    "HK09988": {
+      "direction": "bearish",
+      "score": -1,
+      "tick": {
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
+        "direction_score": 0
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": -221050930.0,
+        "main_net_inflow_pct": 37.03,
+        "direction_score": -1
       }
     },
     "HK01357": {
       "direction": "bullish",
       "score": 1,
       "tick": {
-        "buy_vol": 15353000,
-        "sell_vol": 14417000,
-        "imbalance": 0.031,
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
         "direction_score": 0
       },
       "large_order": {
@@ -3425,19 +3450,19 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 26050245.0,
-        "main_net_inflow_pct": 53.85,
+        "main_net_inflow": 29331310.0,
+        "main_net_inflow_pct": 60.76,
         "direction_score": 1
       }
     },
-    "HK06809": {
-      "direction": "bearish",
-      "score": -2,
+    "HK01810": {
+      "direction": "bullish",
+      "score": 1,
       "tick": {
-        "buy_vol": 366600,
-        "sell_vol": 498200,
-        "imbalance": -0.152,
-        "direction_score": -1
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
+        "direction_score": 0
       },
       "large_order": {
         "buy_count": 0,
@@ -3449,42 +3474,42 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -2160770.0,
-        "main_net_inflow_pct": 4.15,
+        "main_net_inflow": 18800640.0,
+        "main_net_inflow_pct": 4.7,
+        "direction_score": 1
+      }
+    },
+    "HK01060": {
+      "direction": "neutral",
+      "score": 0,
+      "tick": {
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
+        "direction_score": 0
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": -3595100.0,
+        "main_net_inflow_pct": 13.98,
         "direction_score": 0
       }
     },
     "HK09927": {
-      "direction": "bearish",
-      "score": -2,
-      "tick": {
-        "buy_vol": 122500,
-        "sell_vol": 222500,
-        "imbalance": -0.29,
-        "direction_score": -1
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 0,
-        "buy_amount": 0.0,
-        "sell_amount": 0.0,
-        "net_amount": 0.0,
-        "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": -4728970.0,
-        "main_net_inflow_pct": 31.82,
-        "direction_score": 0
-      }
-    },
-    "HK02590": {
       "direction": "neutral",
       "score": 0,
       "tick": {
-        "buy_vol": 1025400,
-        "sell_vol": 1205000,
-        "imbalance": -0.081,
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
         "direction_score": 0
       },
       "large_order": {
@@ -3497,2550 +3522,203 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 2143460.0,
-        "main_net_inflow_pct": -35.31,
-        "direction_score": 0
-      }
-    },
-    "HK01810": {
-      "direction": "bearish",
-      "score": -5,
-      "tick": {
-        "buy_vol": 23895000,
-        "sell_vol": 35181200,
-        "imbalance": -0.191,
-        "direction_score": -1
-      },
-      "large_order": {
-        "buy_count": 6,
-        "sell_count": 25,
-        "buy_amount": 48674680.0,
-        "sell_amount": 218390560.0,
-        "net_amount": -169715880.0,
-        "direction_score": -1,
-        "orders": [
-          [
-            1772076749.325359,
-            "SELL",
-            8591544.0
-          ],
-          [
-            1772076749.32536,
-            "SELL",
-            7597040.0
-          ],
-          [
-            1772082066.382899,
-            "SELL",
-            10124600.0
-          ],
-          [
-            1772082066.382899,
-            "SELL",
-            13035600.0
-          ],
-          [
-            1772082179.561407,
-            "BUY",
-            5950188.0
-          ],
-          [
-            1772082522.361425,
-            "BUY",
-            8548400.0
-          ],
-          [
-            1772082557.962615,
-            "BUY",
-            8943936.0
-          ],
-          [
-            1772082748.5320792,
-            "SELL",
-            6925696.0
-          ],
-          [
-            1772082884.306331,
-            "SELL",
-            6789720.0
-          ],
-          [
-            1772082884.3063319,
-            "SELL",
-            10280160.0
-          ],
-          [
-            1772083668.3576992,
-            "SELL",
-            5188416.0
-          ],
-          [
-            1772084304.174149,
-            "SELL",
-            13528736.0
-          ],
-          [
-            1772084304.174151,
-            "SELL",
-            5421156.0
-          ],
-          [
-            1772085315.4734662,
-            "BUY",
-            5246900.0
-          ],
-          [
-            1772085717.1564748,
-            "SELL",
-            9619120.0
-          ],
-          [
-            1772085717.1564748,
-            "SELL",
-            5087940.0
-          ],
-          [
-            1772085798.4730802,
-            "SELL",
-            5137504.0
-          ],
-          [
-            1772086656.190976,
-            "SELL",
-            10620480.0
-          ],
-          [
-            1772088540.017463,
-            "BUY",
-            9992628.0
-          ],
-          [
-            1772088540.017463,
-            "BUY",
-            9992628.0
-          ],
-          [
-            1772089072.1977532,
-            "SELL",
-            9732480.0
-          ],
-          [
-            1772089268.637723,
-            "SELL",
-            6503600.0
-          ],
-          [
-            1772089268.637723,
-            "SELL",
-            13517880.0
-          ],
-          [
-            1772089724.9954612,
-            "SELL",
-            6576192.0
-          ],
-          [
-            1772090949.71753,
-            "SELL",
-            12057504.0
-          ],
-          [
-            1772091511.9495199,
-            "SELL",
-            12220860.0
-          ],
-          [
-            1772091739.164736,
-            "SELL",
-            9359800.0
-          ],
-          [
-            1772091934.8247051,
-            "SELL",
-            6470624.0
-          ],
-          [
-            1772092352.1620858,
-            "SELL",
-            8009028.0
-          ],
-          [
-            1772092767.729402,
-            "SELL",
-            10369920.0
-          ],
-          [
-            1772092767.7294028,
-            "SELL",
-            5624960.0
-          ]
-        ]
-      },
-      "capital_flow": {
-        "main_net_inflow": -182698764.0,
-        "main_net_inflow_pct": 41.19,
-        "direction_score": -1
-      }
-    },
-    "HK07709": {
-      "direction": "bullish",
-      "score": 3,
-      "tick": {
-        "buy_vol": 19374700,
-        "sell_vol": 14956200,
-        "imbalance": 0.129,
-        "direction_score": 1
-      },
-      "large_order": {
-        "buy_count": 3,
-        "sell_count": 2,
-        "buy_amount": 22349480.0,
-        "sell_amount": 14029700.0,
-        "net_amount": 8319780.0,
-        "direction_score": 0,
-        "orders": [
-          [
-            1772084479.699615,
-            "BUY",
-            8392000.0
-          ],
-          [
-            1772084479.699616,
-            "BUY",
-            5020000.0
-          ],
-          [
-            1772086325.571373,
-            "SELL",
-            6074208.0
-          ],
-          [
-            1772087824.000285,
-            "BUY",
-            8937480.0
-          ],
-          [
-            1772087901.817617,
-            "SELL",
-            7955492.0
-          ]
-        ]
-      },
-      "capital_flow": {
-        "main_net_inflow": 44790976.0,
-        "main_net_inflow_pct": 12.86,
-        "direction_score": 1
-      }
-    },
-    "HK03288": {
-      "direction": "bearish",
-      "score": -1,
-      "tick": {
-        "buy_vol": 411200,
-        "sell_vol": 433700,
-        "imbalance": -0.027,
-        "direction_score": 0
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 0,
-        "buy_amount": 0.0,
-        "sell_amount": 0.0,
-        "net_amount": 0.0,
-        "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": -14892314.0,
+        "main_net_inflow": -1542975.0,
         "main_net_inflow_pct": 0,
-        "direction_score": -1
+        "direction_score": 0
       }
     },
-    "HK01211": {
-      "direction": "bearish",
-      "score": -3,
+    "HK02722": {
+      "direction": "neutral",
+      "score": 0,
       "tick": {
-        "buy_vol": 5392800,
-        "sell_vol": 6237900,
-        "imbalance": -0.073,
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
         "direction_score": 0
       },
       "large_order": {
-        "buy_count": 4,
-        "sell_count": 9,
-        "buy_amount": 30730310.0,
-        "sell_amount": 53322430.0,
-        "net_amount": -22592120.0,
-        "direction_score": -1,
-        "orders": [
-          [
-            1772075679.216191,
-            "SELL",
-            5165425.0
-          ],
-          [
-            1772089403.456785,
-            "SELL",
-            6070470.0
-          ],
-          [
-            1772089555.3637178,
-            "SELL",
-            5923530.0
-          ],
-          [
-            1772089755.8606,
-            "NEUTRAL",
-            6076890.0
-          ],
-          [
-            1772090899.049929,
-            "BUY",
-            5021625.0
-          ],
-          [
-            1772090935.820031,
-            "SELL",
-            5733000.0
-          ],
-          [
-            1772090935.820032,
-            "SELL",
-            6685000.0
-          ],
-          [
-            1772091012.7303731,
-            "BUY",
-            5297475.0
-          ],
-          [
-            1772091901.937634,
-            "BUY",
-            13141870.0
-          ],
-          [
-            1772091934.8247051,
-            "SELL",
-            5594110.0
-          ],
-          [
-            1772092439.301315,
-            "BUY",
-            7269340.0
-          ],
-          [
-            1772092528.8598552,
-            "SELL",
-            5691000.0
-          ],
-          [
-            1772092554.043723,
-            "SELL",
-            6436920.0
-          ],
-          [
-            1772092782.2126641,
-            "SELL",
-            6022975.0
-          ]
-        ]
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -46632815.0,
-        "main_net_inflow_pct": 29.45,
-        "direction_score": -1
+        "main_net_inflow": -1892100.0,
+        "main_net_inflow_pct": 23.1,
+        "direction_score": 0
+      }
+    },
+    "HK06809": {
+      "direction": "bullish",
+      "score": 1,
+      "tick": {
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
+        "direction_score": 0
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": 8019190.0,
+        "main_net_inflow_pct": -80.66,
+        "direction_score": 1
+      }
+    },
+    "HK02359": {
+      "direction": "neutral",
+      "score": 0,
+      "tick": {
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
+        "direction_score": 0
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": -2760220.0,
+        "main_net_inflow_pct": 40.26,
+        "direction_score": 0
       }
     },
     "HK09618": {
       "direction": "bullish",
       "score": 1,
       "tick": {
-        "buy_vol": 4262500,
-        "sell_vol": 3818400,
-        "imbalance": 0.055,
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
         "direction_score": 0
       },
       "large_order": {
-        "buy_count": 8,
-        "sell_count": 6,
-        "buy_amount": 50387240.0,
-        "sell_amount": 44862325.0,
-        "net_amount": 5524915.0,
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
         "direction_score": 0,
-        "orders": [
-          [
-            1772076677.510962,
-            "BUY",
-            5139750.0
-          ],
-          [
-            1772082130.516156,
-            "SELL",
-            5804975.0
-          ],
-          [
-            1772082140.297355,
-            "BUY",
-            5768400.0
-          ],
-          [
-            1772084029.89649,
-            "SELL",
-            7308000.0
-          ],
-          [
-            1772085315.4734662,
-            "BUY",
-            5992560.0
-          ],
-          [
-            1772085329.758734,
-            "BUY",
-            5172750.0
-          ],
-          [
-            1772086010.1198971,
-            "BUY",
-            7307820.0
-          ],
-          [
-            1772086419.204462,
-            "BUY",
-            6908460.0
-          ],
-          [
-            1772088036.201099,
-            "NEUTRAL",
-            5839118.0
-          ],
-          [
-            1772091334.768489,
-            "BUY",
-            7238420.0
-          ],
-          [
-            1772091483.6526752,
-            "SELL",
-            6269220.0
-          ],
-          [
-            1772091640.674967,
-            "BUY",
-            6859080.0
-          ],
-          [
-            1772091921.7724822,
-            "SELL",
-            5949820.0
-          ],
-          [
-            1772092031.761119,
-            "SELL",
-            9899910.0
-          ],
-          [
-            1772092528.8598552,
-            "SELL",
-            9630400.0
-          ]
-        ]
+        "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 28616000.0,
-        "main_net_inflow_pct": 70.43,
+        "main_net_inflow": 5233840.0,
+        "main_net_inflow_pct": 25.25,
         "direction_score": 1
       }
     },
-    "HK09988": {
+    "HK02590": {
       "direction": "bearish",
-      "score": -5,
+      "score": -1,
       "tick": {
-        "buy_vol": 20045500,
-        "sell_vol": 24523100,
-        "imbalance": -0.1,
-        "direction_score": -1
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
+        "direction_score": 0
       },
       "large_order": {
-        "buy_count": 83,
-        "sell_count": 105,
-        "buy_amount": 818845640.0,
-        "sell_amount": 1169251780.0,
-        "net_amount": -350406140.0,
-        "direction_score": -1,
-        "orders": [
-          [
-            1772075872.471084,
-            "BUY",
-            5484780.0
-          ],
-          [
-            1772075955.4016519,
-            "SELL",
-            6340870.0
-          ],
-          [
-            1772075987.089927,
-            "BUY",
-            5571840.0
-          ],
-          [
-            1772076275.7394922,
-            "BUY",
-            5288920.0
-          ],
-          [
-            1772076568.6572711,
-            "BUY",
-            6179500.0
-          ],
-          [
-            1772076627.640328,
-            "BUY",
-            6314700.0
-          ],
-          [
-            1772076677.510962,
-            "BUY",
-            5125120.0
-          ],
-          [
-            1772076736.447051,
-            "SELL",
-            5084930.0
-          ],
-          [
-            1772077277.421154,
-            "BUY",
-            14181280.0
-          ],
-          [
-            1772077286.235595,
-            "SELL",
-            6746560.0
-          ],
-          [
-            1772077812.7604558,
-            "BUY",
-            7076110.0
-          ],
-          [
-            1772082035.813323,
-            "SELL",
-            5052960.0
-          ],
-          [
-            1772082066.382895,
-            "SELL",
-            5568000.0
-          ],
-          [
-            1772082066.382897,
-            "SELL",
-            6206000.0
-          ],
-          [
-            1772082066.382897,
-            "SELL",
-            43500000.0
-          ],
-          [
-            1772082066.3828979,
-            "SELL",
-            25534500.0
-          ],
-          [
-            1772082066.3828979,
-            "SELL",
-            5423000.0
-          ],
-          [
-            1772082066.3828979,
-            "SELL",
-            12626560.0
-          ],
-          [
-            1772082070.2420428,
-            "SELL",
-            5705120.0
-          ],
-          [
-            1772082076.151297,
-            "BUY",
-            8447670.0
-          ],
-          [
-            1772082148.014441,
-            "SELL",
-            16510270.0
-          ],
-          [
-            1772082162.08082,
-            "BUY",
-            5285200.0
-          ],
-          [
-            1772082162.08082,
-            "BUY",
-            5299680.0
-          ],
-          [
-            1772082225.321878,
-            "BUY",
-            8004000.0
-          ],
-          [
-            1772082250.493292,
-            "SELL",
-            7255000.0
-          ],
-          [
-            1772082256.82865,
-            "SELL",
-            5760470.0
-          ],
-          [
-            1772082374.134721,
-            "SELL",
-            5187210.0
-          ],
-          [
-            1772082452.515383,
-            "SELL",
-            5307000.0
-          ],
-          [
-            1772082490.730688,
-            "SELL",
-            6926040.0
-          ],
-          [
-            1772082490.730688,
-            "SELL",
-            5804000.0
-          ],
-          [
-            1772082522.361424,
-            "SELL",
-            5009400.0
-          ],
-          [
-            1772082633.000205,
-            "SELL",
-            6378670.0
-          ],
-          [
-            1772082784.2515671,
-            "SELL",
-            5317980.0
-          ],
-          [
-            1772083086.87176,
-            "BUY",
-            10026410.0
-          ],
-          [
-            1772083105.285698,
-            "SELL",
-            5321500.0
-          ],
-          [
-            1772083198.902941,
-            "BUY",
-            5071500.0
-          ],
-          [
-            1772083263.152173,
-            "SELL",
-            14765310.0
-          ],
-          [
-            1772083303.317744,
-            "SELL",
-            7061360.0
-          ],
-          [
-            1772083335.25386,
-            "BUY",
-            8745920.0
-          ],
-          [
-            1772083399.855532,
-            "BUY",
-            8644560.0
-          ],
-          [
-            1772083441.5866072,
-            "BUY",
-            6259680.0
-          ],
-          [
-            1772083675.7613199,
-            "SELL",
-            14581360.0
-          ],
-          [
-            1772083711.5262458,
-            "SELL",
-            12082450.0
-          ],
-          [
-            1772083941.270727,
-            "BUY",
-            7413760.0
-          ],
-          [
-            1772083941.2707279,
-            "BUY",
-            5618240.0
-          ],
-          [
-            1772084112.455884,
-            "SELL",
-            8644560.0
-          ],
-          [
-            1772084241.327533,
-            "SELL",
-            11004060.0
-          ],
-          [
-            1772084272.568133,
-            "SELL",
-            40704900.0
-          ],
-          [
-            1772084272.5681338,
-            "SELL",
-            10367820.0
-          ],
-          [
-            1772084272.568135,
-            "SELL",
-            11061900.0
-          ],
-          [
-            1772084316.8119721,
-            "BUY",
-            13534560.0
-          ],
-          [
-            1772084663.175206,
-            "SELL",
-            7152750.0
-          ],
-          [
-            1772084671.368719,
-            "SELL",
-            7225000.0
-          ],
-          [
-            1772084694.2113228,
-            "SELL",
-            7225000.0
-          ],
-          [
-            1772084757.217891,
-            "BUY",
-            7244460.0
-          ],
-          [
-            1772085315.4734652,
-            "BUY",
-            7022700.0
-          ],
-          [
-            1772085315.4734652,
-            "BUY",
-            9999400.0
-          ],
-          [
-            1772085315.4734662,
-            "BUY",
-            8323200.0
-          ],
-          [
-            1772085315.4734662,
-            "BUY",
-            10252140.0
-          ],
-          [
-            1772085391.280674,
-            "BUY",
-            10837500.0
-          ],
-          [
-            1772085475.860425,
-            "SELL",
-            9305800.0
-          ],
-          [
-            1772085583.148551,
-            "BUY",
-            7152750.0
-          ],
-          [
-            1772085713.085502,
-            "SELL",
-            8692880.0
-          ],
-          [
-            1772085733.94833,
-            "SELL",
-            25844130.0
-          ],
-          [
-            1772085733.948331,
-            "BUY",
-            9624810.0
-          ],
-          [
-            1772085745.100258,
-            "SELL",
-            5047000.0
-          ],
-          [
-            1772085831.40419,
-            "SELL",
-            10887100.0
-          ],
-          [
-            1772085831.404191,
-            "SELL",
-            8046360.0
-          ],
-          [
-            1772085874.88866,
-            "SELL",
-            5634310.0
-          ],
-          [
-            1772085908.417994,
-            "SELL",
-            7075310.0
-          ],
-          [
-            1772085994.0252821,
-            "BUY",
-            20346620.0
-          ],
-          [
-            1772086039.052982,
-            "BUY",
-            9567090.0
-          ],
-          [
-            1772086257.133697,
-            "SELL",
-            6782100.0
-          ],
-          [
-            1772086276.562206,
-            "SELL",
-            10094000.0
-          ],
-          [
-            1772086411.567301,
-            "SELL",
-            5432570.0
-          ],
-          [
-            1772086433.2442439,
-            "SELL",
-            6729470.0
-          ],
-          [
-            1772086494.752606,
-            "SELL",
-            9251220.0
-          ],
-          [
-            1772086505.8638542,
-            "SELL",
-            16588800.0
-          ],
-          [
-            1772086600.518264,
-            "SELL",
-            21067200.0
-          ],
-          [
-            1772086600.5182688,
-            "SELL",
-            43200000.0
-          ],
-          [
-            1772086600.5182688,
-            "SELL",
-            35092800.0
-          ],
-          [
-            1772086600.5182688,
-            "SELL",
-            18201600.0
-          ],
-          [
-            1772086600.51827,
-            "SELL",
-            9993600.0
-          ],
-          [
-            1772086600.51827,
-            "SELL",
-            9993600.0
-          ],
-          [
-            1772086600.51827,
-            "SELL",
-            9993600.0
-          ],
-          [
-            1772086600.518271,
-            "SELL",
-            5860800.0
-          ],
-          [
-            1772086615.274961,
-            "SELL",
-            6590620.0
-          ],
-          [
-            1772086669.0521789,
-            "BUY",
-            12807100.0
-          ],
-          [
-            1772086817.4796748,
-            "BUY",
-            5065280.0
-          ],
-          [
-            1772086817.4796789,
-            "BUY",
-            7108660.0
-          ],
-          [
-            1772086817.4796789,
-            "BUY",
-            10015440.0
-          ],
-          [
-            1772086821.743045,
-            "BUY",
-            7992000.0
-          ],
-          [
-            1772086872.7395022,
-            "BUY",
-            7300800.0
-          ],
-          [
-            1772086872.7395031,
-            "BUY",
-            6426860.0
-          ],
-          [
-            1772086985.241421,
-            "BUY",
-            8265600.0
-          ],
-          [
-            1772086994.1424031,
-            "BUY",
-            7017670.0
-          ],
-          [
-            1772087206.308959,
-            "BUY",
-            12686400.0
-          ],
-          [
-            1772087219.2684731,
-            "BUY",
-            14698200.0
-          ],
-          [
-            1772087219.2684731,
-            "SELL",
-            5519030.0
-          ],
-          [
-            1772087219.2684731,
-            "SELL",
-            14745600.0
-          ],
-          [
-            1772087253.9354439,
-            "SELL",
-            9144000.0
-          ],
-          [
-            1772087361.5844538,
-            "BUY",
-            5381860.0
-          ],
-          [
-            1772087373.8694122,
-            "BUY",
-            15811200.0
-          ],
-          [
-            1772087520.328317,
-            "SELL",
-            6883200.0
-          ],
-          [
-            1772087604.885649,
-            "BUY",
-            20404560.0
-          ],
-          [
-            1772087635.684364,
-            "SELL",
-            7190590.0
-          ],
-          [
-            1772087663.062707,
-            "SELL",
-            9072000.0
-          ],
-          [
-            1772087699.821791,
-            "BUY",
-            9604800.0
-          ],
-          [
-            1772087870.9226618,
-            "SELL",
-            16951420.0
-          ],
-          [
-            1772087870.9226649,
-            "SELL",
-            5597710.0
-          ],
-          [
-            1772088036.201098,
-            "BUY",
-            6984000.0
-          ],
-          [
-            1772088036.201098,
-            "BUY",
-            13449600.0
-          ],
-          [
-            1772088172.527832,
-            "BUY",
-            6389160.0
-          ],
-          [
-            1772088233.0517702,
-            "BUY",
-            7195000.0
-          ],
-          [
-            1772088357.9290318,
-            "BUY",
-            27225880.0
-          ],
-          [
-            1772088357.929033,
-            "BUY",
-            9158400.0
-          ],
-          [
-            1772088540.017462,
-            "BUY",
-            6960030.0
-          ],
-          [
-            1772088540.017462,
-            "BUY",
-            5220040.0
-          ],
-          [
-            1772088544.1006389,
-            "SELL",
-            8600280.0
-          ],
-          [
-            1772088672.05513,
-            "BUY",
-            7152320.0
-          ],
-          [
-            1772088941.5087528,
-            "BUY",
-            9747920.0
-          ],
-          [
-            1772089046.727288,
-            "BUY",
-            5209230.0
-          ],
-          [
-            1772089046.7272892,
-            "BUY",
-            5974020.0
-          ],
-          [
-            1772089211.393472,
-            "BUY",
-            5036070.0
-          ],
-          [
-            1772089320.890228,
-            "SELL",
-            19611200.0
-          ],
-          [
-            1772089351.268685,
-            "SELL",
-            8069600.0
-          ],
-          [
-            1772089368.187618,
-            "BUY",
-            14410000.0
-          ],
-          [
-            1772089368.187619,
-            "BUY",
-            8660410.0
-          ],
-          [
-            1772089447.436687,
-            "SELL",
-            5951330.0
-          ],
-          [
-            1772089458.704874,
-            "SELL",
-            6854400.0
-          ],
-          [
-            1772089487.3915288,
-            "SELL",
-            6840000.0
-          ],
-          [
-            1772089568.957918,
-            "BUY",
-            17320820.0
-          ],
-          [
-            1772089610.4259279,
-            "SELL",
-            9360000.0
-          ],
-          [
-            1772089797.828019,
-            "SELL",
-            9914710.0
-          ],
-          [
-            1772089797.828019,
-            "SELL",
-            5511370.0
-          ],
-          [
-            1772089804.67138,
-            "BUY",
-            7972060.0
-          ],
-          [
-            1772090046.59495,
-            "SELL",
-            7132480.0
-          ],
-          [
-            1772090258.446387,
-            "BUY",
-            32377500.0
-          ],
-          [
-            1772090321.6567109,
-            "SELL",
-            5540150.0
-          ],
-          [
-            1772090332.2822242,
-            "BUY",
-            6345990.0
-          ],
-          [
-            1772090488.876131,
-            "SELL",
-            9727640.0
-          ],
-          [
-            1772090639.530137,
-            "BUY",
-            12830400.0
-          ],
-          [
-            1772090639.530138,
-            "BUY",
-            12168000.0
-          ],
-          [
-            1772090669.863276,
-            "BUY",
-            7954320.0
-          ],
-          [
-            1772090741.979844,
-            "BUY",
-            11989120.0
-          ],
-          [
-            1772090762.438505,
-            "SELL",
-            8300160.0
-          ],
-          [
-            1772090762.438506,
-            "BUY",
-            5446980.0
-          ],
-          [
-            1772090842.527908,
-            "SELL",
-            22449600.0
-          ],
-          [
-            1772090935.82003,
-            "SELL",
-            9871540.0
-          ],
-          [
-            1772090935.820031,
-            "SELL",
-            5568930.0
-          ],
-          [
-            1772090998.834134,
-            "SELL",
-            6844880.0
-          ],
-          [
-            1772091096.077451,
-            "BUY",
-            12447350.0
-          ],
-          [
-            1772091185.857402,
-            "BUY",
-            12211200.0
-          ],
-          [
-            1772091217.704536,
-            "SELL",
-            20260800.0
-          ],
-          [
-            1772091217.704538,
-            "SELL",
-            12542400.0
-          ],
-          [
-            1772091268.734019,
-            "SELL",
-            10044220.0
-          ],
-          [
-            1772091399.506152,
-            "SELL",
-            7195000.0
-          ],
-          [
-            1772091399.506152,
-            "SELL",
-            6202090.0
-          ],
-          [
-            1772091479.3485389,
-            "SELL",
-            10260070.0
-          ],
-          [
-            1772091531.651171,
-            "BUY",
-            5558400.0
-          ],
-          [
-            1772091659.797677,
-            "SELL",
-            7195000.0
-          ],
-          [
-            1772091659.797678,
-            "SELL",
-            22016700.0
-          ],
-          [
-            1772091953.6858912,
-            "BUY",
-            7195000.0
-          ],
-          [
-            1772091967.335467,
-            "SELL",
-            23626340.0
-          ],
-          [
-            1772091967.335468,
-            "SELL",
-            9692120.0
-          ],
-          [
-            1772092004.106993,
-            "BUY",
-            7190000.0
-          ],
-          [
-            1772092004.106994,
-            "BUY",
-            7190000.0
-          ],
-          [
-            1772092031.761118,
-            "SELL",
-            34602960.0
-          ],
-          [
-            1772092115.530564,
-            "SELL",
-            16194990.0
-          ],
-          [
-            1772092149.183769,
-            "SELL",
-            5744000.0
-          ],
-          [
-            1772092149.1837702,
-            "SELL",
-            9894040.0
-          ],
-          [
-            1772092149.183771,
-            "SELL",
-            7180000.0
-          ],
-          [
-            1772092233.766134,
-            "SELL",
-            22746240.0
-          ],
-          [
-            1772092244.097638,
-            "SELL",
-            6615350.0
-          ],
-          [
-            1772092338.323345,
-            "SELL",
-            9987600.0
-          ],
-          [
-            1772092338.3233511,
-            "SELL",
-            9987600.0
-          ],
-          [
-            1772092338.3233511,
-            "SELL",
-            9987600.0
-          ],
-          [
-            1772092338.3233511,
-            "SELL",
-            9987600.0
-          ],
-          [
-            1772092420.3581069,
-            "SELL",
-            5162400.0
-          ],
-          [
-            1772092472.522974,
-            "BUY",
-            28700000.0
-          ],
-          [
-            1772092472.522976,
-            "BUY",
-            15124900.0
-          ],
-          [
-            1772092472.522977,
-            "BUY",
-            15081850.0
-          ],
-          [
-            1772092487.352282,
-            "BUY",
-            8954400.0
-          ],
-          [
-            1772092528.85985,
-            "BUY",
-            7175000.0
-          ],
-          [
-            1772092601.258034,
-            "SELL",
-            11027460.0
-          ],
-          [
-            1772092795.886404,
-            "BUY",
-            14340000.0
-          ],
-          [
-            1772092795.8864052,
-            "BUY",
-            14340000.0
-          ],
-          [
-            1772092800.73281,
-            "BUY",
-            11629740.0
-          ]
-        ]
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -629771600.0,
-        "main_net_inflow_pct": 39.71,
+        "main_net_inflow": -10481652.0,
+        "main_net_inflow_pct": 87.43,
         "direction_score": -1
       }
     },
     "HK00700": {
+      "direction": "bullish",
+      "score": 1,
+      "tick": {
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
+        "direction_score": 0
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": 186356850.0,
+        "main_net_inflow_pct": 89.22,
+        "direction_score": 1
+      }
+    },
+    "HK03288": {
+      "direction": "neutral",
+      "score": 0,
+      "tick": {
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
+        "direction_score": 0
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": 2043188.0,
+        "main_net_inflow_pct": 0,
+        "direction_score": 0
+      }
+    },
+    "HK06060": {
       "direction": "bearish",
       "score": -1,
       "tick": {
-        "buy_vol": 5191800,
-        "sell_vol": 6821000,
-        "imbalance": -0.136,
-        "direction_score": -1
+        "buy_vol": 0,
+        "sell_vol": 0,
+        "imbalance": 0.0,
+        "direction_score": 0
       },
       "large_order": {
-        "buy_count": 116,
-        "sell_count": 102,
-        "buy_amount": 1079354600.0,
-        "sell_amount": 1060556550.0,
-        "net_amount": 18798050.0,
-        "direction_score": 1,
-        "orders": [
-          [
-            1772075801.219337,
-            "BUY",
-            5081300.0
-          ],
-          [
-            1772075909.4043992,
-            "BUY",
-            11718100.0
-          ],
-          [
-            1772075909.4043992,
-            "BUY",
-            9747800.0
-          ],
-          [
-            1772075909.4043992,
-            "BUY",
-            15451300.0
-          ],
-          [
-            1772075909.4044,
-            "BUY",
-            6170150.0
-          ],
-          [
-            1772075949.026274,
-            "SELL",
-            12288450.0
-          ],
-          [
-            1772076036.313149,
-            "BUY",
-            5185000.0
-          ],
-          [
-            1772076133.588361,
-            "BUY",
-            5236850.0
-          ],
-          [
-            1772076152.781863,
-            "SELL",
-            5547950.0
-          ],
-          [
-            1772076449.2422311,
-            "BUY",
-            9809100.0
-          ],
-          [
-            1772076553.510164,
-            "SELL",
-            7777500.0
-          ],
-          [
-            1772076595.667976,
-            "BUY",
-            5190000.0
-          ],
-          [
-            1772076627.640327,
-            "BUY",
-            5034300.0
-          ],
-          [
-            1772076627.640328,
-            "BUY",
-            5241900.0
-          ],
-          [
-            1772076696.991213,
-            "BUY",
-            13558950.0
-          ],
-          [
-            1772076745.316478,
-            "SELL",
-            6805450.0
-          ],
-          [
-            1772076837.0936918,
-            "BUY",
-            5876000.0
-          ],
-          [
-            1772076936.711377,
-            "SELL",
-            14961600.0
-          ],
-          [
-            1772077000.338845,
-            "BUY",
-            8667300.0
-          ],
-          [
-            1772077264.8784158,
-            "SELL",
-            7013250.0
-          ],
-          [
-            1772077353.892585,
-            "BUY",
-            14234300.0
-          ],
-          [
-            1772077423.886038,
-            "SELL",
-            12260200.0
-          ],
-          [
-            1772077423.886038,
-            "SELL",
-            39651600.0
-          ],
-          [
-            1772077825.483655,
-            "BUY",
-            6124200.0
-          ],
-          [
-            1772078026.210509,
-            "SELL",
-            10318150.0
-          ],
-          [
-            1772082035.813319,
-            "BUY",
-            15570000.0
-          ],
-          [
-            1772082035.81332,
-            "BUY",
-            7888800.0
-          ],
-          [
-            1772082035.81332,
-            "BUY",
-            5195000.0
-          ],
-          [
-            1772082035.8133209,
-            "SELL",
-            7836900.0
-          ],
-          [
-            1772082035.8133209,
-            "SELL",
-            9021900.0
-          ],
-          [
-            1772082035.813322,
-            "SELL",
-            15555000.0
-          ],
-          [
-            1772082035.813322,
-            "SELL",
-            5807200.0
-          ],
-          [
-            1772082197.35007,
-            "SELL",
-            9220400.0
-          ],
-          [
-            1772082197.350071,
-            "SELL",
-            30199400.0
-          ],
-          [
-            1772082207.549778,
-            "SELL",
-            7969500.0
-          ],
-          [
-            1772082211.37374,
-            "SELL",
-            9522000.0
-          ],
-          [
-            1772082211.3737411,
-            "SELL",
-            9884250.0
-          ],
-          [
-            1772082211.3737411,
-            "SELL",
-            6261750.0
-          ],
-          [
-            1772082211.373742,
-            "SELL",
-            9211500.0
-          ],
-          [
-            1772082211.373742,
-            "SELL",
-            12563100.0
-          ],
-          [
-            1772082219.07286,
-            "SELL",
-            7755000.0
-          ],
-          [
-            1772082219.072861,
-            "NEUTRAL",
-            6048900.0
-          ],
-          [
-            1772082219.072861,
-            "SELL",
-            36241700.0
-          ],
-          [
-            1772082225.321877,
-            "SELL",
-            5273400.0
-          ],
-          [
-            1772082225.321877,
-            "SELL",
-            16130400.0
-          ],
-          [
-            1772082225.321878,
-            "SELL",
-            5014900.0
-          ],
-          [
-            1772082225.321878,
-            "SELL",
-            14010700.0
-          ],
-          [
-            1772082229.160529,
-            "SELL",
-            6611200.0
-          ],
-          [
-            1772082260.684853,
-            "SELL",
-            7954100.0
-          ],
-          [
-            1772082274.3917608,
-            "BUY",
-            5170000.0
-          ],
-          [
-            1772082274.391762,
-            "BUY",
-            15510000.0
-          ],
-          [
-            1772082274.391763,
-            "BUY",
-            11477400.0
-          ],
-          [
-            1772082420.546328,
-            "SELL",
-            5113350.0
-          ],
-          [
-            1772082474.1842759,
-            "BUY",
-            9823000.0
-          ],
-          [
-            1772082522.361423,
-            "BUY",
-            5175000.0
-          ],
-          [
-            1772082522.361423,
-            "BUY",
-            7607250.0
-          ],
-          [
-            1772082522.361424,
-            "SELL",
-            5485500.0
-          ],
-          [
-            1772082589.767508,
-            "BUY",
-            13920750.0
-          ],
-          [
-            1772082734.6944761,
-            "SELL",
-            7193250.0
-          ],
-          [
-            1772082876.425966,
-            "SELL",
-            15510000.0
-          ],
-          [
-            1772082876.4259672,
-            "SELL",
-            14372600.0
-          ],
-          [
-            1772082876.4259672,
-            "SELL",
-            15458300.0
-          ],
-          [
-            1772082904.5747,
-            "SELL",
-            5836450.0
-          ],
-          [
-            1772083086.8717551,
-            "BUY",
-            15495000.0
-          ],
-          [
-            1772083086.871756,
-            "BUY",
-            5165000.0
-          ],
-          [
-            1772083086.87176,
-            "BUY",
-            5888100.0
-          ],
-          [
-            1772083090.565883,
-            "SELL",
-            7954100.0
-          ],
-          [
-            1772083270.587896,
-            "SELL",
-            5985600.0
-          ],
-          [
-            1772083509.043544,
-            "BUY",
-            5165000.0
-          ],
-          [
-            1772083608.569215,
-            "SELL",
-            9804000.0
-          ],
-          [
-            1772083651.3079412,
-            "SELL",
-            6398400.0
-          ],
-          [
-            1772083651.307942,
-            "SELL",
-            5934000.0
-          ],
-          [
-            1772083660.019933,
-            "SELL",
-            6398400.0
-          ],
-          [
-            1772083704.069304,
-            "SELL",
-            5361200.0
-          ],
-          [
-            1772083760.847031,
-            "SELL",
-            14626000.0
-          ],
-          [
-            1772083764.710204,
-            "BUY",
-            5155000.0
-          ],
-          [
-            1772083858.6073332,
-            "SELL",
-            10300000.0
-          ],
-          [
-            1772083894.435698,
-            "BUY",
-            15465000.0
-          ],
-          [
-            1772083894.435699,
-            "BUY",
-            6082900.0
-          ],
-          [
-            1772083894.435699,
-            "BUY",
-            6443750.0
-          ],
-          [
-            1772084037.400497,
-            "BUY",
-            7636800.0
-          ],
-          [
-            1772084112.4558668,
-            "SELL",
-            13970050.0
-          ],
-          [
-            1772084133.811539,
-            "BUY",
-            5103450.0
-          ],
-          [
-            1772084161.722305,
-            "SELL",
-            17716000.0
-          ],
-          [
-            1772084190.605778,
-            "SELL",
-            5150000.0
-          ],
-          [
-            1772084253.131745,
-            "SELL",
-            11793500.0
-          ],
-          [
-            1772084253.131747,
-            "SELL",
-            5819500.0
-          ],
-          [
-            1772084284.512788,
-            "SELL",
-            7717500.0
-          ],
-          [
-            1772084316.8119712,
-            "SELL",
-            9406200.0
-          ],
-          [
-            1772084349.2220511,
-            "SELL",
-            9457600.0
-          ],
-          [
-            1772084464.016534,
-            "BUY",
-            15435000.0
-          ],
-          [
-            1772084464.0165389,
-            "BUY",
-            15589350.0
-          ],
-          [
-            1772084475.6448991,
-            "SELL",
-            15435000.0
-          ],
-          [
-            1772084632.239632,
-            "BUY",
-            15435000.0
-          ],
-          [
-            1772084632.2396328,
-            "BUY",
-            6945750.0
-          ],
-          [
-            1772084632.2396328,
-            "BUY",
-            11267550.0
-          ],
-          [
-            1772084632.2396328,
-            "BUY",
-            6128500.0
-          ],
-          [
-            1772084730.64782,
-            "BUY",
-            7725000.0
-          ],
-          [
-            1772084788.9746401,
-            "SELL",
-            9929850.0
-          ],
-          [
-            1772084788.9746408,
-            "SELL",
-            14663250.0
-          ],
-          [
-            1772084821.53529,
-            "SELL",
-            6527800.0
-          ],
-          [
-            1772084840.64172,
-            "BUY",
-            9003750.0
-          ],
-          [
-            1772084840.641723,
-            "BUY",
-            12708150.0
-          ],
-          [
-            1772084995.26956,
-            "BUY",
-            5145000.0
-          ],
-          [
-            1772085011.192797,
-            "SELL",
-            8378200.0
-          ],
-          [
-            1772085053.848376,
-            "SELL",
-            15420000.0
-          ],
-          [
-            1772085053.8483782,
-            "SELL",
-            5294200.0
-          ],
-          [
-            1772085140.812296,
-            "BUY",
-            7497100.0
-          ],
-          [
-            1772085281.737561,
-            "BUY",
-            7086300.0
-          ],
-          [
-            1772085281.737563,
-            "BUY",
-            5443100.0
-          ],
-          [
-            1772085281.7375638,
-            "BUY",
-            15302300.0
-          ],
-          [
-            1772085359.230419,
-            "BUY",
-            10280000.0
-          ],
-          [
-            1772085422.326912,
-            "BUY",
-            11873400.0
-          ],
-          [
-            1772085443.4179032,
-            "BUY",
-            10228600.0
-          ],
-          [
-            1772085551.519718,
-            "SELL",
-            8943600.0
-          ],
-          [
-            1772085551.519719,
-            "SELL",
-            5294200.0
-          ],
-          [
-            1772085551.519719,
-            "SELL",
-            7864200.0
-          ],
-          [
-            1772085551.519719,
-            "SELL",
-            9303400.0
-          ],
-          [
-            1772085551.5197198,
-            "BUY",
-            12644400.0
-          ],
-          [
-            1772085551.5197198,
-            "BUY",
-            15265800.0
-          ],
-          [
-            1772085587.175651,
-            "SELL",
-            8532400.0
-          ],
-          [
-            1772085713.085502,
-            "BUY",
-            6071100.0
-          ],
-          [
-            1772085733.948329,
-            "BUY",
-            10032750.0
-          ],
-          [
-            1772085831.404185,
-            "SELL",
-            5140000.0
-          ],
-          [
-            1772085908.417991,
-            "BUY",
-            7203000.0
-          ],
-          [
-            1772086231.8174348,
-            "BUY",
-            10290000.0
-          ],
-          [
-            1772086391.676078,
-            "SELL",
-            5135000.0
-          ],
-          [
-            1772086702.7815099,
-            "SELL",
-            24162300.0
-          ],
-          [
-            1772086710.051736,
-            "SELL",
-            7841250.0
-          ],
-          [
-            1772086764.6436238,
-            "BUY",
-            8507500.0
-          ],
-          [
-            1772086764.643626,
-            "BUY",
-            14760000.0
-          ],
-          [
-            1772086764.643627,
-            "SELL",
-            5125000.0
-          ],
-          [
-            1772086903.685089,
-            "BUY",
-            19545300.0
-          ],
-          [
-            1772086903.685089,
-            "BUY",
-            6669000.0
-          ],
-          [
-            1772086951.369476,
-            "BUY",
-            5135000.0
-          ],
-          [
-            1772087002.528102,
-            "BUY",
-            5083650.0
-          ],
-          [
-            1772087028.866101,
-            "SELL",
-            6104700.0
-          ],
-          [
-            1772087219.268472,
-            "SELL",
-            9952200.0
-          ],
-          [
-            1772087253.9354382,
-            "SELL",
-            15390000.0
-          ],
-          [
-            1772087253.935443,
-            "SELL",
-            6925500.0
-          ],
-          [
-            1772087253.935443,
-            "SELL",
-            5796900.0
-          ],
-          [
-            1772087253.9354439,
-            "SELL",
-            5540400.0
-          ],
-          [
-            1772087453.1569102,
-            "BUY",
-            15390000.0
-          ],
-          [
-            1772087453.156915,
-            "BUY",
-            15800400.0
-          ],
-          [
-            1772087473.109834,
-            "SELL",
-            6874200.0
-          ],
-          [
-            1772087571.002913,
-            "BUY",
-            5027400.0
-          ],
-          [
-            1772087732.2066402,
-            "SELL",
-            13286700.0
-          ],
-          [
-            1772088048.4603179,
-            "BUY",
-            5130000.0
-          ],
-          [
-            1772088048.46032,
-            "BUY",
-            15390000.0
-          ],
-          [
-            1772088048.4603221,
-            "BUY",
-            9849600.0
-          ],
-          [
-            1772088048.460323,
-            "BUY",
-            6976800.0
-          ],
-          [
-            1772088048.460323,
-            "BUY",
-            6771600.0
-          ],
-          [
-            1772088048.460323,
-            "BUY",
-            5283900.0
-          ],
-          [
-            1772088053.7173162,
-            "SELL",
-            5437800.0
-          ],
-          [
-            1772088103.787758,
-            "BUY",
-            6156000.0
-          ],
-          [
-            1772088114.962993,
-            "BUY",
-            5078700.0
-          ],
-          [
-            1772088114.9629939,
-            "BUY",
-            6162000.0
-          ],
-          [
-            1772088124.385244,
-            "SELL",
-            5335200.0
-          ],
-          [
-            1772088250.106047,
-            "BUY",
-            5283900.0
-          ],
-          [
-            1772088364.210568,
-            "BUY",
-            6104700.0
-          ],
-          [
-            1772088488.682601,
-            "BUY",
-            6104700.0
-          ],
-          [
-            1772088488.682601,
-            "BUY",
-            41347800.0
-          ],
-          [
-            1772088498.303812,
-            "BUY",
-            7702500.0
-          ],
-          [
-            1772088604.438194,
-            "BUY",
-            5494450.0
-          ],
-          [
-            1772088686.480396,
-            "BUY",
-            5140000.0
-          ],
-          [
-            1772088724.275983,
-            "BUY",
-            5859600.0
-          ],
-          [
-            1772088754.407924,
-            "BUY",
-            5037200.0
-          ],
-          [
-            1772088791.2435331,
-            "BUY",
-            7144600.0
-          ],
-          [
-            1772088847.34951,
-            "BUY",
-            6122550.0
-          ],
-          [
-            1772088956.646993,
-            "BUY",
-            5659500.0
-          ],
-          [
-            1772089011.377268,
-            "BUY",
-            10753050.0
-          ],
-          [
-            1772089011.377269,
-            "BUY",
-            6025500.0
-          ],
-          [
-            1772089072.19775,
-            "SELL",
-            5145000.0
-          ],
-          [
-            1772089072.197752,
-            "BUY",
-            25750000.0
-          ],
-          [
-            1772089072.197752,
-            "BUY",
-            9888000.0
-          ],
-          [
-            1772089072.197752,
-            "BUY",
-            19415500.0
-          ],
-          [
-            1772089072.1977532,
-            "SELL",
-            12875000.0
-          ],
-          [
-            1772089072.1977532,
-            "SELL",
-            5716500.0
-          ],
-          [
-            1772089211.393471,
-            "BUY",
-            5974000.0
-          ],
-          [
-            1772089241.94837,
-            "SELL",
-            11061750.0
-          ],
-          [
-            1772089268.637722,
-            "BUY",
-            5145000.0
-          ],
-          [
-            1772089320.8902268,
-            "BUY",
-            5659500.0
-          ],
-          [
-            1772089326.168013,
-            "BUY",
-            5505150.0
-          ],
-          [
-            1772089337.540745,
-            "BUY",
-            11113200.0
-          ],
-          [
-            1772089381.630574,
-            "SELL",
-            23952400.0
-          ],
-          [
-            1772089447.436687,
-            "BUY",
-            5397000.0
-          ],
-          [
-            1772089538.187205,
-            "BUY",
-            15420000.0
-          ],
-          [
-            1772089548.3037398,
-            "BUY",
-            25725000.0
-          ],
-          [
-            1772089579.302022,
-            "SELL",
-            9406200.0
-          ],
-          [
-            1772089631.157598,
-            "SELL",
-            8069800.0
-          ],
-          [
-            1772089804.67138,
-            "BUY",
-            5602600.0
-          ],
-          [
-            1772089973.3165061,
-            "SELL",
-            6572800.0
-          ],
-          [
-            1772090078.679113,
-            "BUY",
-            5135000.0
-          ],
-          [
-            1772090078.6791139,
-            "BUY",
-            15405000.0
-          ],
-          [
-            1772090465.249568,
-            "SELL",
-            15405000.0
-          ],
-          [
-            1772090465.2495701,
-            "SELL",
-            9499750.0
-          ],
-          [
-            1772090686.430298,
-            "BUY",
-            15405000.0
-          ],
-          [
-            1772090686.4302988,
-            "BUY",
-            5545800.0
-          ],
-          [
-            1772090811.502075,
-            "SELL",
-            15405000.0
-          ],
-          [
-            1772090873.550306,
-            "BUY",
-            10270000.0
-          ],
-          [
-            1772091123.576281,
-            "BUY",
-            5135000.0
-          ],
-          [
-            1772091173.063345,
-            "BUY",
-            5135000.0
-          ],
-          [
-            1772091185.8574002,
-            "SELL",
-            5643000.0
-          ],
-          [
-            1772091221.779078,
-            "BUY",
-            10270000.0
-          ],
-          [
-            1772091399.506151,
-            "BUY",
-            9397050.0
-          ],
-          [
-            1772091479.348535,
-            "SELL",
-            9705150.0
-          ],
-          [
-            1772091531.651169,
-            "BUY",
-            7548450.0
-          ],
-          [
-            1772091790.9598532,
-            "BUY",
-            6367400.0
-          ],
-          [
-            1772091841.603785,
-            "BUY",
-            5140000.0
-          ],
-          [
-            1772091934.824703,
-            "SELL",
-            6932250.0
-          ],
-          [
-            1772091934.824704,
-            "SELL",
-            7548450.0
-          ],
-          [
-            1772091953.68589,
-            "SELL",
-            9859200.0
-          ],
-          [
-            1772091953.6858912,
-            "SELL",
-            33891000.0
-          ],
-          [
-            1772092000.054063,
-            "SELL",
-            15492600.0
-          ],
-          [
-            1772092288.538485,
-            "BUY",
-            9644400.0
-          ],
-          [
-            1772092384.625397,
-            "SELL",
-            8353750.0
-          ],
-          [
-            1772092420.3581061,
-            "SELL",
-            5432500.0
-          ],
-          [
-            1772092554.0437179,
-            "SELL",
-            5125000.0
-          ],
-          [
-            1772092782.212663,
-            "NEUTRAL",
-            8968750.0
-          ],
-          [
-            1772092782.212663,
-            "SELL",
-            14401250.0
-          ]
-        ]
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -123599750.0,
-        "main_net_inflow_pct": 11.16,
+        "main_net_inflow": -7702131.0,
+        "main_net_inflow_pct": 117.86,
         "direction_score": -1
       }
     }
   },
-  "lastUpdated": 1772092867008
+  "lastUpdated": 1772424057836
 }
