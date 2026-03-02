@@ -2,6 +2,8 @@
 
 > Generated: 2026-02-24 | Based on: Playwright screenshots + code review + finance-ux-reviewer audit
 > P0 (C1/C3/H7) 已完成，本文档记录剩余待修复项。
+> 
+> **Status Update (2026-03-02):** 本文档为历史修复计划，含大量已完成项。当前实现已采用统一组件 `AppTabs` / `AppTitleBar` / `MarketSwitch`，并移除旧 terminal prompt / blink cursor / `(node)` 文案。执行新需求时请以 `CLAUDE.md` 与当前代码为准。
 
 ---
 

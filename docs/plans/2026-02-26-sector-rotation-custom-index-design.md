@@ -1,5 +1,7 @@
 # Sector Rotation & Custom Index Design
 
+> **Status Update (2026-03-02):** 本文档为历史设计文档。文中涉及的部分 UI 命名与导航示例（如旧 TabBar / `(node)` 文案）可能与当前实现不一致。落地时请以 `CLAUDE.md` 与当前页面代码为准。
+>
 Date: 2026-02-26
 
 ## Problem

@@ -8,7 +8,7 @@ user_invocable: true
 
 ## Overview
 
-Run the automated test suites (~315 total tests) against the web dashboard at `http://localhost:3120`, then visually inspect screenshots and report findings. The full checkup (49 tests) is a quick regression; per-page E2E tests cover all interactive features.
+Run the automated test suites (~330+ total tests) against the web dashboard at `http://localhost:3120`, then visually inspect screenshots and report findings. The full checkup (65 tests) is the single-entry regression; per-page E2E tests cover interactive features in depth.
 
 ## Mandatory Rule
 
@@ -38,20 +38,9 @@ Run the automated test suites (~315 total tests) against the web dashboard at `h
 cd web && node screenshots/test_full_checkup.mjs
 ```
 
-This runs ~49 automated tests across 10 sections:
+This runs ~65 automated tests across dashboard/alerts/sim/manage/watching/api/navigation checks:
 
-| # | Section | Tests | Checks |
-|---|---------|-------|--------|
-| 1 | Dashboard A tab | 7 | ERROR banner, PROD rows, summary bar, 量比 no "0.00", 股数 column+values, alert log |
-| 2 | Dashboard HK tab | 6 | ERROR banner, PROD rows, HK codes, FX rate, hidden isolation, 药明康德 negative cost |
-| 3 | Tab switching | 2 | A→HK and HK→A URL updates via click |
-| 4 | Alerts page | 4 | ERROR banner, event count, path ~/projects/alerts, event rows |
-| 5 | Sim page | 8 | ERROR banner, 收益率/夏普/胜率/总市值/总资产/股数, positions, trades |
-| 6 | Manage page | 3 | ERROR banner, table headers, PROD/DEV rows |
-| 7 | API health | 2 | /api/metrics (services+events), /api/sim (trades+positions) |
-| 8 | Data consistency | 10 | Holdings have cost+shares, no NaN, alert events valid, new/sold stocks |
-| 9 | Navigation | 5 | All pages 200, invalid path 404 |
-| 10 | Console errors | 1 | No JS runtime errors |
+Important: trust the script's `[PASS]/[FAIL]` output as source of truth for exact section counts; keep this skill updated when `test_full_checkup.mjs` expands.
 
 ### Step 2: Review screenshots
 
@@ -145,7 +134,7 @@ Scripts live in `web/screenshots/` (must be under `web/` for playwright module r
 
 **Commit 前必须执行：**
 ```bash
-node screenshots/test_full_checkup.mjs        # 全站回归 (49 tests)
+node screenshots/test_full_checkup.mjs        # 全站回归 (65 tests)
 node screenshots/test_<feature>.mjs            # 功能专项
 cd web && npx tsc --noEmit                      # TypeScript 编译
 # 用 Read 工具查看截图确认 UI 无异常
@@ -155,7 +144,7 @@ cd web && npx tsc --noEmit                      # TypeScript 编译
 
 | 脚本 | 测试数 | 覆盖范围 | 必跑 |
 |------|--------|---------|------|
-| `test_full_checkup.mjs` | 49 | 全站回归（Dashboard/Alerts/Sim/Manage/API/Navigation） | 每次 commit |
+| `test_full_checkup.mjs` | 65 | 全站回归（Dashboard/Alerts/Sim/Manage/Watching/API/Navigation + Watching 排序/折叠/跨 tab） | 每次 commit |
 | `test_dashboard_e2e.mjs` | 55 | Dashboard 交互（折叠/排序/星标/EditableCell/FX/摘要栏） | 改 dashboard 时 |
 | `test_manage_stocks_e2e.mjs` | 32 | Manage 持仓表（above/below/hide/star/promote/demote/搜索） | 改 manage 持仓时 |
 | `test_plan_e2e.mjs` | ~15 | 交易计划 CRUD（创建/编辑/暂停/删除） | 改 plan 相关代码时 |
@@ -172,14 +161,14 @@ cd web && npx tsc --noEmit                      # TypeScript 编译
 |------|-----|---------------|
 | Dashboard A | `/?tab=A` | Summary: `Nodes:`, `position:`. Rows: `★PROD`/` PROD`. Sort headers. |
 | Dashboard HK | `/?tab=HK` | FX: `FX`/`WARN FX`/`0.92`. HK-prefixed codes. |
-| Alerts | `/alerts` | Path: `~/projects/alerts`. Events: `[HH:MM:SS]` + `[L1-3]`. L3 toggle: `L3:N (hidden)`. |
+| Alerts | `/alerts` | Events: `[HH:MM:SS]` + `[L1-3]`. L3 toggle: `L3:N (hidden)`. |
 | Sim | `/sim` | Summary: 收益率/夏普/胜率/总市值/总资产. Trade plans + 操作记录(分页). |
 | Manage | `/manage` | Plans: `+ 新建计划`/`运行中`/`已暂停`. Stocks: type/code/above/below/hide. `title="Promote"/"Demote"`. |
 | Sector | `/sector` | Indices matrix: 板块名+累涨+日涨跌%. K线弹窗: SVG polyline. `+ 新建`/`title="删除"`. |
 
 ## UI Selector Patterns
 
-- **Tab bar**: `div[style*="cursor:pointer"][style*="minWidth:130px"]` containing "A-share" or "HK"
+- **Top nav**: use visible tab text in `AppTabs` (e.g., "holdings", "watching", "alerts", "sim", "sector", "manage")
 - **EditableCell**: `<span title="Click to edit">` → click → `<input>` → Enter saves
 - **Row**: flex div with `whiteSpace: pre`, children `<span>` with `width: Nch`
 - **PROD/DEV badge**: `span` with `width: 6ch`, text `★PROD` / ` PROD` / `  DEV`
@@ -192,18 +181,9 @@ cd web && npx tsc --noEmit                      # TypeScript 编译
 - **Manage hide toggle**: `title="Hide (out of sight)"`, `title="Unhide (show on dashboard)"`
 - **Manage star**: `title="Mark as L1 priority"`, `title="Remove L1 priority"`
 
-## parseMoney Helper
+## Parsing Helpers
 
-```javascript
-function parseMoney(s) {
-  if (!s || s === '-') return NaN;
-  let t = s.trim().replace(/[¥,\s]/g, '').replace(/[\u2212\u2013\uff0d]/g, '-');
-  let m = 1;
-  if (t.includes('亿')) { m = 1e8; t = t.replace('亿', ''); }
-  else if (t.includes('万')) { m = 1e4; t = t.replace('万', ''); }
-  return parseFloat(t) * m;
-}
-```
+Prefer using helper functions that already exist in the active test file instead of redefining stale utility snippets in this skill.
 
 ## Common Targeted Patterns
 

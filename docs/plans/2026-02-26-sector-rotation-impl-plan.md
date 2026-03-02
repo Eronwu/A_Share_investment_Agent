@@ -1,5 +1,7 @@
 # Sector Rotation & Custom Index — Implementation Plan
 
+> **Status Update (2026-03-02):** 本文档为历史实现计划。部分 UI 描述（例如 TabBar、`(node)` 标签与旧终端文案）已过时。当前实现请以 `CLAUDE.md` 与现行代码（`AppTabs` / `AppTitleBar` / `MarketSwitch`）为准。
+>
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Add a `/sector` page with EM board rotation matrix (东方财富 style) and user-defined custom indices with mainline alert detection.
