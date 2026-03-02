@@ -78,20 +78,31 @@ All responses follow `ApiResponse<T>` schema with `success`, `message`, `data`, 
 
 Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
-**URL routing**: `/?tab=A`（A 股）、`/?tab=HK`（港股）。无参数时按时间自动选：15:00 前默认 A 股，15:00 后默认港股。Tab 切换同步更新 URL，刷新保持状态。
+**页面结构**: Holdings (`/`) 和 Watching (`/watching`) 分离，各自支持 `?tab=A` / `?tab=HK` 市场切换。无参数时按时间自动选：15:00 前默认 A 股，15:00 后默认港股。Tab 切换同步更新 URL，刷新保持状态。
 
-**导航与页眉组件**:
-- `AppTabs` (`web/app/components/AppTabs.tsx`) 是全站统一顶部导航（holdings/watching/alerts/sim/sector/manage）
-- `AppTitleBar` (`web/app/components/AppTitleBar.tsx`) 是全站统一 macOS 风格标题栏
-- `MarketSwitch` (`web/app/components/MarketSwitch.tsx`) 统一 `A-share/HK` 切换按钮（用于 holdings + watching）
+| 页面 | URL | 数据范围 | 功能 |
+|------|-----|---------|------|
+| Holdings | `/` | `type=holding` (PROD) | 持仓 P&L、成本、股数、日盈亏 |
+| Watching | `/watching` | `type!=holding` (DEV) | 自选行情、涨跌、成交额 |
+| Alerts | `/alerts` | 全部 | 告警事件流 |
+| Sim | `/sim` | 全部 | 模拟交易持仓+绩效 |
+| Sector | `/sector` | 全部 | 自定义板块指数+主线告警 |
+| Manage | `/manage` | 全部 | 交易计划+持仓管理 |
 
-**摘要栏按 tab 独立统计**：Nodes/holdings(+N hidden)/up/down/throughput/avg_delta/P&L 全部按当前 tab 计算。A 股 tab 显示两市指数+成交额（SH/SZ/vol），HK tab 显示 FX 汇率。港股 P&L（行级和汇总级）自动乘汇率转 CNY。当 FX 不可用时显示黄色 `[WARN FX unavailable]` banner。
+两页共享同一个 `/api/metrics` 数据源（返回全量 `services[]`），客户端按 `s.type` 过滤。
+
+**共享组件** (`web/app/components/`):
+- `AppTitleBar` — macOS 风格标题栏（红黄绿圆点 + 居中标题），全 6 页使用
+- `AppTabs` — 全站统一顶部导航 tab 栏（holdings/watching/alerts/sim/sector/manage），active tab 紫色上边框
+- `MarketSwitch` — `A-share/HK` 切换按钮，用于 holdings + watching 页面，15:00 时间自动切换
+
+**摘要栏按 market tab 独立统计**：Nodes/holdings(+N hidden)/up/down/throughput/avg_delta/P&L 全部按当前 tab 计算。A 股 tab 显示两市指数+成交额（SH/SZ/vol），HK tab 显示 FX 汇率。港股 P&L（行级和汇总级）自动乘汇率转 CNY。当 FX 不可用时显示黄色 `[WARN FX unavailable]` banner。
 
 **错误处理**: Dashboard 和 Alerts 页面都有 `fetchError` state。API 返回 `{ error: "..." }` 时保留旧数据、显示红色 `[ERROR]` banner、触发 STALE 标记。`/api/metrics` catch 块返回 `{ ...EMPTY, error: String(e) }`，并校验 `services` 必须是数组。
 
 **Loading 状态**: Dashboard 首次加载时显示 `info Loading metrics...`（终端风格），不渲染空表格。
 
-**Data flow**: 三 JSON + SQLite alert_events 分离，`/api/metrics` 负责合并。
+**Data flow**: `market_data.json` + `monitor_config`(DB 或 JSON) + `alert_config.json` + SQLite alert_events 分离，`/api/metrics` 负责合并。
 
 **Key hooks**:
 - `useCommand` — parses `svc add|update|rm|hide|unhide|star|unstar|ls|config|help` commands, manages terminal log entries. Returns `addLogs` for external log injection.
@@ -217,12 +228,23 @@ poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主�
 - Promote (watching→holding) 必须填写 cost 和 shares 才能 Confirm
 - Demote (holding→watching) 有 `confirm()` 确认弹窗
 
+**Config API** (`/api/config` POST actions):
+- `add` — 添加股票到 watchlist
+- `update` — 更新 cost/shares/name 等字段
+- `rm` — 删除股票（同步清理 alert_config）
+- `hide`/`unhide` — 切换隐藏状态
+- `star`/`unstar` — 切换星标
+- `promote` — watching → holding（需 cost/shares）
+- `demote` — holding → watching（清除 cost/shares）
+- 所有操作 DB-first 写入 `monitor_watchlist` 表，然后导出 JSON 快照
+
 **数据职责分离**:
 
 | 存储 | 写入方 | 内容 |
 |------|--------|------|
 | `market_data.json` | Poller (Python) | 个股行情 + 两市成交额 (marketTurnover) + 汇率 |
-| `monitor_config.json` | UI (/api/config) | 持仓配置 (name/type/cost/shares/hidden) |
+| `sim_trading.db` → `monitor_watchlist` | UI (/api/config) | 持仓配置 (主存储，DB-first) |
+| `monitor_config.json` | UI (/api/config) 双写 | 持仓配置 JSON 快照 (name/type/cost/shares/hidden) |
 | `alert_config.json` | UI (/api/config) | 告警规则 (above/below，按股票代码索引) |
 | `sim_trading.db` → `alert_events` | Notifier (Python) | 告警事件流 (message/display 双格式) |
 | `trade_plans.json` | UI (/api/trade-plans) + TradePlanEngine | 交易计划条件单 (orders 统一模型) |
@@ -230,7 +252,7 @@ poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主�
 | `sector_config.json` | UI (/api/sector) | 自定义指数定义 + 告警规则 + 轮动配置 |
 | `sim_trading.db` → `sector_*` | sector_index_engine (Python) | 板块轮动排名 + 自定义指数日线 + 主线告警 |
 
-`/api/metrics` 合并三 JSON + SQLite alert_events + 计算 pnl，任何 UI 操作立即生效，不依赖 poller 周期。
+`/api/metrics` 合并 `market_data.json` + `monitor_config`(DB 或 JSON) + `alert_config.json` + SQLite alert_events + 计算 pnl，任何 UI 操作立即生效，不依赖 poller 周期。
 
 **`alert_events` 表（`sim_trading.db`）** — Notifier 写入的告警事件，存储在 SQLite 中（原 `alert_events.json` 已迁移）。每条事件含两种格式：`message`（stealth 简短，terminal 通知用）和 `display`（中文详细，web 日志展示用）。`INSERT OR IGNORE` + `UNIQUE(ts, symbol, message)` 零成本去重。date 索引支持历史查询。30 天自动清理。
 
@@ -240,9 +262,27 @@ poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主�
   "watchlist": {
     "HK09988": { "name": "...", "type": "holding", "cost": 155, "shares": 200, "lot": 100 }
   },
+  "holdings": { "HK09988": { "name": "...", "type": "holding", "cost": 155, "shares": 200, "lot": 100 } },
+  "watching": { "600000": { "name": "浦发银行" } },
   "settings": { "poll_interval": 30, "big_move_pct": 3, "cooldown_minutes": 10 }
 }
 ```
+
+JSON 同时存储三种视图：`watchlist`（统一）、`holdings`（仅持仓）、`watching`（仅自选）。读取时 `normalizeConfig()` 自动兼容任意组合。
+
+**Monitor Config DB 迁移**:
+
+持仓配置主存储已迁移到 SQLite（`sim_trading.db` 的 `monitor_watchlist` + `monitor_settings` 表），JSON 作为可读快照同步保存。
+
+```sql
+-- monitor_watchlist: symbol/name/list_type(holding|watching)/cost/shares/lot/hidden/star/timestamps
+-- monitor_settings: key/value/updated_at
+```
+
+- **`CONFIG_SOURCE` 环境变量**: 设 `json` 强制读 JSON，默认读 DB（DB 空时自动 fallback JSON）
+- **双写模式**: `/api/config` 所有写操作先写 DB，然后导出快照到 JSON，保证两者一致
+- **迁移工具**: `poetry run python -m src.tools.monitor_config_db_migrator --action import-verify`
+- **向后兼容**: Python 端 Poller/Notifier 仍读 JSON；Web 端 `/api/config` 和 `/api/metrics` 支持 DB 优先
 
 **`alert_config.json` structure** (独立告警规则):
 ```json
@@ -254,7 +294,12 @@ poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主�
 }
 ```
 
-`type: "holding"` = production (PROD), otherwise watching (DEV). `poll_interval` controls refresh rate. Interactive commands modify config via `/api/config` POST.
+`type: "holding"` = production (PROD), otherwise watching (DEV). `poll_interval` controls refresh rate. Interactive commands modify config via `/api/config` POST (DB-first + JSON snapshot 双写)。
+
+**共享模块**:
+- `web/app/lib/db.ts` — SQLite 路径统一 (`SIM_DB_PATH`)，所有 API route 共用
+- `web/app/types.ts` — `WatchEntry`（含 `lot`）、`MonitorConfig`（含 `holdings`/`watching` 分组）
+- `src/tools/monitor_config_db_migrator.py` — JSON ↔ DB 迁移工具 (import/verify/export)
 
 ### Git 版本控制
 
@@ -383,6 +428,8 @@ tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
 - `sector_daily`: 自定义指数日线 (date, index_id, avg_change_pct, index_value, components_json) — 180 天保留
 - `sector_alerts`: 主线告警 (date, index_id, alert_type, cumulative_pct, slope, message) — 30 天保留
 - `daily_l2_digest`: 日线微观结构聚合 (date, code, lo_net_amount, tick_imbalance, cf_net_inflow, direction_score, direction) — 收盘后计算
+- `monitor_watchlist`: 持仓配置主存储 (symbol, name, list_type, cost, shares, lot, hidden, star) — DB-first，JSON 为快照
+- `monitor_settings`: 监控设置 (key, value) — 与 monitor_config.json settings 同步
 
 **RT engine 日志**: logger 名 `l2_daemon.rt_sim`，继承 daemon handler，写入 `logs/l2_daemon.log`。
 
@@ -460,7 +507,8 @@ Order 字段: `side` (buy/sell), `op` (>=/<= 价格方向), `price` (触发价),
 
 ### Architecture Rules
 
-- **Poller 是生产者，UI 是消费者，二者无耦合。** Poller (`src/tools/market_data_poller.py`) 只写行情数据到 `market_data.json`（price/change/vol/amount 等）；用户配置（type/cost/shares/hidden）只存 `monitor_config.json`；告警规则（above/below）独立存 `alert_config.json`；告警事件存 `sim_trading.db` 的 `alert_events` 表。`/api/metrics` 负责合并三 JSON + SQLite alert_events + 计算派生字段（pnl）。任何 UI 端操作立即生效，不依赖 poller 周期。
+- **Poller 是生产者，UI 是消费者，二者无耦合。** Poller (`src/tools/market_data_poller.py`) 只写行情数据到 `market_data.json`（price/change/vol/amount 等）；用户配置（type/cost/shares/hidden）主存储在 `sim_trading.db:monitor_watchlist`，JSON 为快照；告警规则（above/below）独立存 `alert_config.json`；告警事件存 `sim_trading.db` 的 `alert_events` 表。`/api/metrics` 负责合并行情 + 配置 + 告警 + 计算派生字段（pnl）。任何 UI 端操作立即生效，不依赖 poller 周期。
+- **Monitor Config DB-first 双写。** `/api/config` 所有写操作先写 SQLite `monitor_watchlist`/`monitor_settings` 表，然后自动导出 JSON 快照到 `monitor_config.json`。Python 端（Poller/Notifier）仍读 JSON。`CONFIG_SOURCE=json` 环境变量可强制 Web 端也读 JSON。
 - **All market data and FX rate fetching must happen in the Python poller script**, not in Next.js API routes. The web layer (`/api/metrics`) only reads from `market_data.json` written by the poller. This keeps the data pipeline centralized and avoids duplicate API calls from the frontend.
 - **Poller 降级不丢数据。** 东方财富不可用时 fallback 到新浪（价格刷新，但无量比/换手率）。Sina 降级时从上轮 `market_data.json` 继承 `volRatio`/`turnover`，避免用 0 覆盖。FX 汇率获取失败时同理继承上次值。
 - **板块轮动独立于 Poller。** `sector_index_engine.py` 是独立 cron，不嵌入 poller 循环。数据源降级链: akshare (EM push2) → 腾讯财经 kline → 新浪财经。Web 层 `/api/sector` 只读 SQLite + `sector_config.json` + `monitor_config.json`(名称查找)，不调用外部 API。周末自动跳过（`_is_trading_day()` 检查）。
@@ -579,7 +627,10 @@ Lightweight macOS notification daemon. Reads poller output, never fetches data d
 
 #### Config Write Safety
 
-`/api/config` 和 poller 都使用原子写入（tmp → rename），防止并发读到半截 JSON。修改 config 写入逻辑时必须保持此模式。
+- **DB 写入**: `/api/config` 通过 `better-sqlite3` 同步写入 `monitor_watchlist`/`monitor_settings` 表（SQLite WAL 模式，自带原子性）
+- **JSON 快照**: 写 DB 后自动导出 JSON，使用原子写入（tmp → rename），防止并发读到半截 JSON
+- **Poller 写入**: `market_data.json` 也使用 tmp → rename 原子写入
+- 修改 config 写入逻辑时必须保持双写模式（DB + JSON snapshot）
 
 #### Playwright Testing
 
@@ -617,7 +668,7 @@ cd web && npx tsc --noEmit
 **现有测试脚本（~330+ tests 总计）：**
 | 脚本 | 测试数 | 覆盖范围 |
 |------|--------|---------|
-| `test_full_checkup.mjs` | 65 | 全站回归（Dashboard/Alerts/Sim/Manage/Watching/API/Navigation + Watching 排序/折叠/跨 tab 断言） |
+| `test_full_checkup.mjs` | ~55 | 全站回归（Holdings/Watching/Alerts/Sim/Manage/API/Navigation + 排序/折叠/跨 tab 断言） |
 | `test_dashboard_e2e.mjs` | 55 | Dashboard 交互（折叠/排序/星标/EditableCell/FX/摘要栏） |
 | `test_manage_stocks_e2e.mjs` | 32 | Manage 持仓表（above/below/hide/star/promote/demote/搜索） |
 | `test_plan_e2e.mjs` | ~15 | 交易计划 CRUD（创建/编辑/暂停/删除） |
@@ -627,4 +678,4 @@ cd web && npx tsc --noEmit
 
 #### Hidden List
 
-`hiddenList` 按当前 market tab 过滤。A 股 tab 只显示 A 股 hidden，HK tab 只显示港股 hidden；holdings 与 watching 页面各自按所属列表类型展示 hidden。
+`hiddenList` 按当前 market tab 过滤。A 股 tab 只显示 A 股 hidden，HK tab 只显示港股 hidden。Holdings (`/`) 页面只显示 `type=holding` 的 hidden，Watching (`/watching`) 页面只显示 `type!=holding` 的 hidden。

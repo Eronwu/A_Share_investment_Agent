@@ -144,7 +144,7 @@ cd web && npx tsc --noEmit                      # TypeScript 编译
 
 | 脚本 | 测试数 | 覆盖范围 | 必跑 |
 |------|--------|---------|------|
-| `test_full_checkup.mjs` | 65 | 全站回归（Dashboard/Alerts/Sim/Manage/Watching/API/Navigation + Watching 排序/折叠/跨 tab） | 每次 commit |
+| `test_full_checkup.mjs` | ~55 | 全站回归（Holdings/Watching/Alerts/Sim/Manage/API/Navigation + 排序/折叠/跨 tab） | 每次 commit |
 | `test_dashboard_e2e.mjs` | 55 | Dashboard 交互（折叠/排序/星标/EditableCell/FX/摘要栏） | 改 dashboard 时 |
 | `test_manage_stocks_e2e.mjs` | 32 | Manage 持仓表（above/below/hide/star/promote/demote/搜索） | 改 manage 持仓时 |
 | `test_plan_e2e.mjs` | ~15 | 交易计划 CRUD（创建/编辑/暂停/删除） | 改 plan 相关代码时 |
@@ -159,8 +159,9 @@ cd web && npx tsc --noEmit                      # TypeScript 编译
 
 | Page | URL | Key Selectors |
 |------|-----|---------------|
-| Dashboard A | `/?tab=A` | Summary: `Nodes:`, `position:`. Rows: `★PROD`/` PROD`. Sort headers. |
-| Dashboard HK | `/?tab=HK` | FX: `FX`/`WARN FX`/`0.92`. HK-prefixed codes. |
+| Holdings A | `/?tab=A` | Summary: `Nodes:`, `position:`. Rows: `★PROD`/` PROD`. Sort headers. |
+| Holdings HK | `/?tab=HK` | FX: `FX`/`WARN FX`/`0.92`. HK-prefixed codes. |
+| Watching | `/watching?tab=A` | DEV rows. Sections: watch:stocks / watch:ETF. Sort headers. |
 | Alerts | `/alerts` | Events: `[HH:MM:SS]` + `[L1-3]`. L3 toggle: `L3:N (hidden)`. |
 | Sim | `/sim` | Summary: 收益率/夏普/胜率/总市值/总资产. Trade plans + 操作记录(分页). |
 | Manage | `/manage` | Plans: `+ 新建计划`/`运行中`/`已暂停`. Stocks: type/code/above/below/hide. `title="Promote"/"Demote"`. |
