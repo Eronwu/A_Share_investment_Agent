@@ -80,6 +80,11 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
 **URL routing**: `/?tab=A`（A 股）、`/?tab=HK`（港股）。无参数时按时间自动选：15:00 前默认 A 股，15:00 后默认港股。Tab 切换同步更新 URL，刷新保持状态。
 
+**导航与页眉组件**:
+- `AppTabs` (`web/app/components/AppTabs.tsx`) 是全站统一顶部导航（holdings/watching/alerts/sim/sector/manage）
+- `AppTitleBar` (`web/app/components/AppTitleBar.tsx`) 是全站统一 macOS 风格标题栏
+- `MarketSwitch` (`web/app/components/MarketSwitch.tsx`) 统一 `A-share/HK` 切换按钮（用于 holdings + watching）
+
 **摘要栏按 tab 独立统计**：Nodes/holdings(+N hidden)/up/down/throughput/avg_delta/P&L 全部按当前 tab 计算。A 股 tab 显示两市指数+成交额（SH/SZ/vol），HK tab 显示 FX 汇率。港股 P&L（行级和汇总级）自动乘汇率转 CNY。当 FX 不可用时显示黄色 `[WARN FX unavailable]` banner。
 
 **错误处理**: Dashboard 和 Alerts 页面都有 `fetchError` state。API 返回 `{ error: "..." }` 时保留旧数据、显示红色 `[ERROR]` banner、触发 STALE 标记。`/api/metrics` catch 块返回 `{ ...EMPTY, error: String(e) }`，并校验 `services` 必须是数组。
@@ -609,10 +614,10 @@ cd web && npx tsc --noEmit
 # 4. 截图审查（用 Read 工具查看每张截图）
 ```
 
-**现有测试脚本（~315 tests 总计）：**
+**现有测试脚本（~330+ tests 总计）：**
 | 脚本 | 测试数 | 覆盖范围 |
 |------|--------|---------|
-| `test_full_checkup.mjs` | 49 | 全站回归（Dashboard/Alerts/Sim/Manage/API/Navigation） |
+| `test_full_checkup.mjs` | 65 | 全站回归（Dashboard/Alerts/Sim/Manage/Watching/API/Navigation + Watching 排序/折叠/跨 tab 断言） |
 | `test_dashboard_e2e.mjs` | 55 | Dashboard 交互（折叠/排序/星标/EditableCell/FX/摘要栏） |
 | `test_manage_stocks_e2e.mjs` | 32 | Manage 持仓表（above/below/hide/star/promote/demote/搜索） |
 | `test_plan_e2e.mjs` | ~15 | 交易计划 CRUD（创建/编辑/暂停/删除） |
@@ -622,4 +627,4 @@ cd web && npx tsc --noEmit
 
 #### Hidden List
 
-`hiddenList` 按当前 market tab 过滤（与 prod/stage 分组一致）。A 股 tab 只显示 A 股 hidden，HK tab 只显示港股 hidden。
+`hiddenList` 按当前 market tab 过滤。A 股 tab 只显示 A 股 hidden，HK tab 只显示港股 hidden；holdings 与 watching 页面各自按所属列表类型展示 hidden。
