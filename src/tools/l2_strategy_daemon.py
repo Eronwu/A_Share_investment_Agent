@@ -195,14 +195,13 @@ def run():
                 for s in signals:
                     logger.info(f"Signal: [{s['strategy']}] {s['display']}")
 
-            # Archive signals + price snapshots to SQLite
+            # Archive signals + price snapshots + session context to SQLite
             if archiver_enabled and archiver:
-                try:
-                    archiver.archive_signals()
-                    archiver.sample_prices()
-                    archiver.snapshot_session()
-                except Exception:
-                    pass  # archiver failure should not affect daemon
+                for _arch_fn in (archiver.archive_signals, archiver.sample_prices, archiver.snapshot_session):
+                    try:
+                        _arch_fn()
+                    except Exception as _arch_err:
+                        logger.debug(f"Archiver {_arch_fn.__name__} error: {_arch_err}")
 
             # Real-time sim engine tick (after archiver so signals are in DB)
             if rt_enabled and rt_engine:

@@ -853,9 +853,9 @@ def check_l2_signals() -> list[dict]:
         code = s.get("code", "")
         should_notify = s.get("notify", False)
 
-        # Per-stock daily cap check
+        # Per-stock daily cap check (exempt notify=True / L1 signals)
         count = check_l2_signals._daily_counts.get(code, 0)
-        if count >= PER_STOCK_DAILY_CAP:
+        if count >= PER_STOCK_DAILY_CAP and not should_notify:
             continue
         check_l2_signals._daily_counts[code] = count + 1
 

@@ -116,6 +116,9 @@ def _build_per_stock(
     watchlist = config.get("watchlist", {})
     services = {s["id"]: s for s in market_data.get("services", []) if s.get("id")}
 
+    # Read FX rate from market data (poller writes hkdCnyRate)
+    hkd_cny_rate = market_data.get("hkdCnyRate") or 0.92
+
     per_stock = []
     # Combine all codes from watchlist, signals, and market data
     all_codes = set(watchlist.keys()) | set(signal_agg.keys())
@@ -170,10 +173,11 @@ def _build_per_stock(
                 "large_order": "大单成交",
                 "tick_imbalance": "主买卖失衡",
                 "volume_price_divergence": "量价背离",
+                "momentum_alert": "动量确认",
                 "momentum_buy": "动量买入",
                 "momentum_sell": "动量卖出",
                 "momentum_buy_alert": "动量确认",
-                "momentum_sell_alert": "动量卖出",
+                "momentum_sell_alert": "动量卖出确认",
                 "volume_accel_alert": "放量加速",
                 "volume_crash_alert": "放量砸盘",
                 "sustained_buying": "主买持续",
@@ -230,7 +234,7 @@ def _build_per_stock(
         cost = entry.get("cost", 0) or 0
         shares = entry.get("shares", 0) or 0
         is_hk = code.startswith("HK")
-        fx = 0.92 if is_hk else 1
+        fx = hkd_cny_rate if is_hk else 1
         mkt_val = price * shares * fx if price > 0 and shares > 0 else 0
         pnl_pct = ((price - cost) / cost * 100) if cost > 0 and price > 0 else None
 
@@ -344,8 +348,10 @@ def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]
 
     # ── Fix 5: Portfolio summary ──
     if holdings:
-        total_mkt = sum(ps["mkt_val"] for ps in holdings)
-        total_cost = sum(ps["cost"] * ps["shares"] * ps.get("fx", 1) for ps in holdings if ps["cost"] > 0 and ps["shares"] > 0)
+        # Only include holdings with valid cost for P&L calculation
+        costed = [ps for ps in holdings if ps["cost"] > 0 and ps["shares"] > 0]
+        total_mkt = sum(ps["mkt_val"] for ps in costed)
+        total_cost = sum(ps["cost"] * ps["shares"] * ps.get("fx", 1) for ps in costed)
         total_pnl = total_mkt - total_cost if total_cost > 0 else 0
         total_pnl_pct = (total_pnl / total_cost * 100) if total_cost > 0 else 0
         hk_day = sum(ps["change"] / 100 * ps["mkt_val"] for ps in holdings if ps["code"].startswith("HK") and ps["mkt_val"] > 0)
@@ -650,7 +656,11 @@ def generate_daily_summary(date_str: str | None = None) -> dict | None:
     config = _read_json(MONITOR_CONFIG_PATH) or {"watchlist": {}, "settings": {}}
     l2_signals_data = _read_json(L2_SIGNALS_PATH) or {"signals": []}
 
-    signals = l2_signals_data.get("signals", [])
+    # Filter signals to today only (JSON has no date column; use timestamp)
+    all_signals = l2_signals_data.get("signals", [])
+    today_start_ts = int(datetime.strptime(today, "%Y-%m-%d").timestamp() * 1000)
+    today_end_ts = today_start_ts + 86400_000
+    signals = [s for s in all_signals if today_start_ts <= s.get("ts", 0) < today_end_ts]
 
     # 从 SQLite 读取当日 alert events
     events: list[dict] = []

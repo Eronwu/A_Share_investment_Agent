@@ -2621,12 +2621,9 @@ class L2StrategyEngine:
                 self._subscribed = True
                 return
 
-            # Subscribe TICKER (逐笔成交 — large_order + tick_imbalance 共用)
-            need_ticker = (
-                self._strategies.get("large_order", {}).get("enabled", True)
-                or self._strategies.get("tick_imbalance", {}).get("enabled", True)
-            )
-            if need_ticker:
+            # Subscribe TICKER (逐笔成交 — SessionAccumulator 始终需要，
+            # 即使 large_order / tick_imbalance 策略 disabled 也要订阅)
+            if True:
                 ret, msg = self._ctx.subscribe(codes, [SubType.TICKER])
                 if ret == RET_OK:
                     logger.info(f"Subscribed TICKER for {len(codes)} HK stocks")
