@@ -757,6 +757,148 @@ def _notify_line(name: str, change_pct: float, extra: str = "") -> str:
     return f"{name} {sign}{change_pct:.1f}%"
 
 
+# ══════════════════════════════════════════
+# 5. Mainline detection (once per day after close)
+# ══════════════════════════════════════════
+
+# Default alert rules (same as sector_index_engine)
+_MAINLINE_DEFAULTS = {
+    "cumulative_gain_pct": 8,
+    "slope_threshold": 0.05,
+    "r_squared_min": 0.4,
+    "lookback_days": 10,
+    "min_days_since_create": 3,
+}
+
+
+def _linear_regression(ys: list[float]):
+    """Manual OLS regression. Returns (slope, r_squared) for y indexed 0..N-1."""
+    n = len(ys)
+    if n < 3:
+        return 0.0, 0.0
+    x_mean = (n - 1) / 2
+    y_mean = sum(ys) / n
+    ss_xy = sum((i - x_mean) * (ys[i] - y_mean) for i in range(n))
+    ss_xx = sum((i - x_mean) ** 2 for i in range(n))
+    ss_yy = sum((yi - y_mean) ** 2 for yi in ys)
+    if ss_xx == 0:
+        return 0.0, 0.0
+    slope = ss_xy / ss_xx
+    r_squared = (ss_xy ** 2) / (ss_xx * ss_yy) if ss_yy != 0 else 0.0
+    return slope, r_squared
+
+
+def check_mainline_alerts() -> list[dict]:
+    """Read sector_daily + tag_meta from DB, run mainline detection, return alerts.
+
+    Same algorithm as sector_index_engine.detect_mainline but returns alert dicts
+    instead of writing to sector_alerts table.
+    """
+    from src.sim_trading.db import get_connection
+
+    today_str = datetime.now().strftime("%Y-%m-%d")
+
+    conn = get_connection()
+    try:
+        # Load tag indices from DB (tag_meta + monitor_watchlist)
+        tags = conn.execute(
+            "SELECT tag, star, watch, baseline_value, created_at FROM tag_meta"
+        ).fetchall()
+        if not tags:
+            return []
+
+        alerts = []
+        rules = dict(_MAINLINE_DEFAULTS)
+        cum_threshold = rules["cumulative_gain_pct"]
+        slope_threshold = rules["slope_threshold"]
+        r2_min = rules["r_squared_min"]
+        lookback = rules["lookback_days"]
+        min_days = rules["min_days_since_create"]
+
+        for row in tags:
+            tag_name = row["tag"]
+            star = bool(row["star"])
+            watch = bool(row["watch"])
+
+            if not watch:
+                continue
+
+            # Get last N days of index values
+            daily_rows = conn.execute(
+                "SELECT date, index_value FROM sector_daily"
+                " WHERE index_id = ? AND date <= ?"
+                " ORDER BY date DESC LIMIT ?",
+                (tag_name, today_str, lookback),
+            ).fetchall()
+
+            if len(daily_rows) < min_days:
+                continue
+
+            # Reverse to chronological order (oldest first)
+            daily_rows = list(reversed(daily_rows))
+            values = [r["index_value"] for r in daily_rows]
+            baseline = values[0]
+            if baseline == 0:
+                continue
+
+            cum_gain = (values[-1] / baseline - 1) * 100
+
+            # Linear regression on daily returns
+            if len(values) < 3:
+                slope, r_squared = 0.0, 0.0
+            else:
+                returns = [(values[i] / values[i - 1] - 1) * 100
+                           for i in range(1, len(values))]
+                slope, r_squared = _linear_regression(returns)
+
+            # Mainline: cumulative >= threshold AND slope >= threshold AND R² >= min
+            if (cum_gain >= cum_threshold
+                    and slope >= slope_threshold
+                    and r_squared >= r2_min):
+                alerts.append({
+                    "symbol": f"tag:{tag_name}",
+                    "title": f"{tag_name} 主线行情",
+                    "_kind": "MAINLINE",
+                    "_level": 1 if star else 2,
+                    "_change_pct": round(cum_gain, 1),
+                    "message": f"{tag_name} 主线行情确认",
+                    "display": (
+                        f"\U0001f525 {tag_name}指数 主线行情"
+                        f" 累涨{cum_gain:.1f}% 斜率{slope:.3f} R\u00b2={r_squared:.2f}"
+                    ),
+                    "_stealth": f"{tag_name} 主线确认",
+                })
+                logger.info(
+                    "mainline detected: %s cum=%.1f%% slope=%.3f R2=%.2f",
+                    tag_name, cum_gain, slope, r_squared,
+                )
+            # Approaching: cumulative >= 75% threshold AND slope > 0
+            elif cum_gain >= cum_threshold * 0.75 and slope > 0:
+                alerts.append({
+                    "symbol": f"tag:{tag_name}",
+                    "title": f"{tag_name} 接近主线",
+                    "_kind": "MAINLINE",
+                    "_level": 2,  # approaching is always L2
+                    "_change_pct": round(cum_gain, 1),
+                    "message": f"{tag_name} 接近主线",
+                    "display": (
+                        f"\u26a1 {tag_name}指数 接近主线 累涨{cum_gain:.1f}%"
+                    ),
+                    "_stealth": f"{tag_name} 接近主线",
+                })
+                logger.info(
+                    "approaching mainline: %s cum=%.1f%% slope=%.3f",
+                    tag_name, cum_gain, slope,
+                )
+
+        return alerts
+    except Exception as e:
+        logger.warning("check_mainline_alerts failed: %s", e)
+        return []
+    finally:
+        conn.close()
+
+
 def write_alert_events(alerts: list[dict]):
     """将告警事件写入 SQLite alert_events 表，供 web 端读取展示。
 
@@ -789,6 +931,8 @@ def write_alert_events(alerts: list[dict]):
         elif kind == "portfolio":
             display = f"组合盈亏 {change_pct:+.1f}%"
         elif kind == "DRIFT":
+            display = a.get("display", a.get("message", ""))
+        elif kind == "MAINLINE":
             display = a.get("display", a.get("message", ""))
         else:
             direction = "涨幅" if change_pct > 0 else "跌幅"
@@ -1558,6 +1702,7 @@ def run():
     sent_open_today = False
     sent_close_today = False
     sent_summary_today = False
+    mainline_checked_today = False
     latest_quotes: dict | None = None       # last merged quotes (for close summary)
     latest_hkd_cny_rate: float | None = None
     market_snapshot: dict | None = None     # latest parsed market_data.json (for watchdog)
@@ -1572,6 +1717,7 @@ def run():
             sent_open_today = False
             sent_close_today = False
             sent_summary_today = False
+            mainline_checked_today = False
             latest_quotes = None
             latest_hkd_cny_rate = None
             last_alert_date = today
@@ -1715,6 +1861,29 @@ def run():
             daily_alerts += len(oc_alerts)
             for a in oc_alerts:
                 logger.info(f"Alert: {a['title']} - {a['message']}")
+
+        # ── Mainline detection (once per day, after 15:30 when sector_daily has data) ──
+        if not mainline_checked_today:
+            now_t = datetime.now()
+            hhmm = now_t.hour * 100 + now_t.minute
+            if now_t.weekday() < 5 and hhmm >= 1530:
+                mainline_checked_today = True
+                try:
+                    ml_alerts = check_mainline_alerts()
+                    if ml_alerts:
+                        print()
+                        write_alert_events(ml_alerts)
+                        ml_l1 = [a for a in ml_alerts if a.get("_level") == 1]
+                        ml_l2 = [a for a in ml_alerts if a.get("_level") == 2]
+                        if ml_l1:
+                            stealth_dispatch(ml_l1, sound="default")
+                        if ml_l2:
+                            stealth_dispatch(ml_l2, sound="")
+                        daily_alerts += len(ml_l1) + len(ml_l2)
+                        for a in ml_alerts:
+                            logger.info(f"Mainline: {a['message']}")
+                except Exception as e:
+                    logger.error(f"Mainline detection failed: {e}")
 
         # ── Daily summary generation (16:05-16:15 after HK close) ──
         if not sent_summary_today:
