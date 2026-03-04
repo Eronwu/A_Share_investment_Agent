@@ -2241,6 +2241,13 @@ class DailyIndicatorTracker:
             return 0.0
         return float(atr_series.iloc[-1])
 
+    def get_recent_high(self, code: str, days: int = 20) -> float:
+        """返回近 N 个交易日的最高价（用于 dip_buy 回撤检测）。"""
+        ind = self._ind.get(code)
+        if not ind or "high" not in ind or len(ind["high"]) < days:
+            return 0.0
+        return float(ind["high"].iloc[-days:].max())
+
     def score(self, code: str,
               main_net_inflow: float = 0,
               main_net_inflow_pct: float = 0) -> dict:

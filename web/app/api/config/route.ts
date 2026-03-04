@@ -110,6 +110,7 @@ type WatchRow = {
   lot: number | null;
   hidden: number;
   star: number;
+  dip_buy: number;
 };
 
 function openMonitorDb(readonly = false): MonitorDb {
@@ -138,6 +139,14 @@ function ensureMonitorTables(db: MonitorDb) {
     );
     CREATE INDEX IF NOT EXISTS idx_monitor_watchlist_type ON monitor_watchlist(list_type);
     CREATE INDEX IF NOT EXISTS idx_monitor_watchlist_updated ON monitor_watchlist(updated_at);
+  `);
+  // Add dip_buy column if not exists (schema migration)
+  try {
+    db.exec(`ALTER TABLE monitor_watchlist ADD COLUMN dip_buy INTEGER NOT NULL DEFAULT 0`);
+  } catch {
+    // Column already exists — ignore
+  }
+  db.exec(`
 
     CREATE TABLE IF NOT EXISTS monitor_settings (
       key TEXT PRIMARY KEY,
@@ -151,7 +160,7 @@ function readConfigFromDb(db: MonitorDb, ensureSchema = true): MonitorConfig {
   if (ensureSchema) ensureMonitorTables(db);
   const rows = db
     .prepare(
-      `SELECT symbol, name, list_type, cost, shares, lot, hidden, star
+      `SELECT symbol, name, list_type, cost, shares, lot, hidden, star, dip_buy
        FROM monitor_watchlist
        ORDER BY symbol`,
     )
@@ -174,6 +183,7 @@ function readConfigFromDb(db: MonitorDb, ensureSchema = true): MonitorConfig {
     }
     if (Boolean(r.hidden)) entry.hidden = true;
     if (Boolean(r.star)) entry.star = true;
+    if (Boolean(r.dip_buy)) entry.dip_buy = true;
     watchlist[r.symbol] = entry;
     if (r.list_type === "holding") holdings[r.symbol] = entry;
     else watching[r.symbol] = entry;
@@ -200,7 +210,7 @@ function exportMonitorSnapshotFromDb(db: MonitorDb): string | null {
 function readWatchRow(db: MonitorDb, symbol: string): WatchRow | undefined {
   return db
     .prepare(
-      `SELECT symbol, name, list_type, cost, shares, lot, hidden, star
+      `SELECT symbol, name, list_type, cost, shares, lot, hidden, star, dip_buy
        FROM monitor_watchlist
        WHERE symbol = ?`,
     )
@@ -537,9 +547,9 @@ export async function POST(request: Request) {
 
         db.prepare(
           `INSERT INTO monitor_watchlist(
-            symbol, name, list_type, cost, shares, lot, hidden, star, created_at, updated_at
+            symbol, name, list_type, cost, shares, lot, hidden, star, dip_buy, created_at, updated_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(symbol) DO UPDATE SET
             name = excluded.name,
             list_type = excluded.list_type,
@@ -548,8 +558,9 @@ export async function POST(request: Request) {
             lot = excluded.lot,
             hidden = excluded.hidden,
             star = excluded.star,
+            dip_buy = excluded.dip_buy,
             updated_at = excluded.updated_at`
-        ).run(code, name, listType, cost, shares, lot, hidden, star, nowTs, nowTs);
+        ).run(code, name, listType, cost, shares, lot, hidden, star, 0, nowTs, nowTs);
 
         // 告警写到 alert_config
         if (data?.above != null || data?.below != null) {
@@ -594,6 +605,7 @@ export async function POST(request: Request) {
         let shares = existing.shares;
         let hidden = Boolean(existing.hidden);
         let star = Boolean(existing.star);
+        let dipBuy = Boolean(existing.dip_buy);
         let lot = existing.lot;
 
         if (data?.type !== undefined) {
@@ -610,6 +622,7 @@ export async function POST(request: Request) {
         }
         if (data?.hidden !== undefined) hidden = Boolean(data.hidden);
         if (data?.star !== undefined) star = Boolean(data.star);
+        if (data?.dip_buy !== undefined) dipBuy = Boolean(data.dip_buy);
 
         // 自动提升为 holding：仅当用户未显式设置 type 且新增了 cost/shares 时
         if (data?.type === undefined && (data?.cost != null || data?.shares != null)) {
@@ -621,9 +634,9 @@ export async function POST(request: Request) {
         const nowTs = Math.floor(Date.now() / 1000);
         db.prepare(
           `UPDATE monitor_watchlist
-           SET list_type = ?, cost = ?, shares = ?, lot = ?, hidden = ?, star = ?, updated_at = ?
+           SET list_type = ?, cost = ?, shares = ?, lot = ?, hidden = ?, star = ?, dip_buy = ?, updated_at = ?
            WHERE symbol = ?`
-        ).run(listType, cost, shares, lot, hidden ? 1 : 0, star ? 1 : 0, nowTs, code);
+        ).run(listType, cost, shares, lot, hidden ? 1 : 0, star ? 1 : 0, dipBuy ? 1 : 0, nowTs, code);
 
         // 告警写到 alert_config
         if (data?.above !== undefined || data?.below !== undefined) {
@@ -653,6 +666,7 @@ export async function POST(request: Request) {
         if (data?.below !== undefined) changed.push(`below:${data.below}`);
         if (data?.hidden !== undefined) changed.push(`hidden:${data.hidden}`);
         if (data?.star !== undefined) changed.push(`star:${data.star}`);
+        if (data?.dip_buy !== undefined) changed.push(`dip_buy:${data.dip_buy}`);
         if ((data as WatchEntry & { lot?: number | null } | undefined)?.lot !== undefined) {
           changed.push(`lot:${(data as WatchEntry & { lot?: number | null }).lot}`);
         }

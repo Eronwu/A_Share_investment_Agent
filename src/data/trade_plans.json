@@ -16,8 +16,8 @@
           "consecutive_days": null,
           "trailing": null,
           "label": "固定止损",
-          "triggered": false,
-          "triggered_at": null
+          "triggered": true,
+          "triggered_at": "2026-03-03T09:42:44.818638"
         },
         {
           "id": "sl2",
@@ -62,7 +62,8 @@
           "triggered": false,
           "triggered_at": null
         }
-      ]
+      ],
+      "scope": "real"
     },
     "HK02590_acc": {
       "name": "极智嘉分批建仓",
@@ -80,8 +81,8 @@
           "consecutive_days": null,
           "trailing": null,
           "label": "止损",
-          "triggered": false,
-          "triggered_at": null
+          "triggered": true,
+          "triggered_at": "2026-03-03T10:04:10.064030"
         },
         {
           "id": "o1",
@@ -148,7 +149,114 @@
           "triggered": false,
           "triggered_at": null
         }
-      ]
+      ],
+      "scope": "real"
+    },
+    "HK09988_dip": {
+      "name": "阿里巴巴分批抄底",
+      "symbol": "HK09988",
+      "status": "active",
+      "created_at": "2026-03-04",
+      "orders": [
+        {
+          "id": "b1",
+          "side": "buy",
+          "op": "<=",
+          "price": 125,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "1档 整数关口125",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "b2",
+          "side": "buy",
+          "op": "<=",
+          "price": 120,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "2档 高点回撤20%",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "b3",
+          "side": "buy",
+          "op": "<=",
+          "price": 115,
+          "shares": 200,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "3档 前低区域加大仓",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "sl1",
+          "side": "sell",
+          "op": "<=",
+          "price": 105,
+          "shares": 600,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止损 跌破起涨点减半仓(总仓1300的一半)",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK03986_dip": {
+      "name": "兆易创新港股低吸",
+      "symbol": "HK03986",
+      "status": "active",
+      "created_at": "2026-03-04",
+      "orders": [
+        {
+          "id": "buy1",
+          "side": "buy",
+          "op": "<=",
+          "price": 340,
+          "shares": 100,
+          "label": "首仓340",
+          "triggered": false
+        },
+        {
+          "id": "buy2",
+          "side": "buy",
+          "op": "<=",
+          "price": 332,
+          "shares": 100,
+          "label": "加仓332",
+          "triggered": false
+        },
+        {
+          "id": "sl",
+          "side": "sell",
+          "op": "<=",
+          "price": 325,
+          "shares": 200,
+          "label": "止损325",
+          "triggered": false
+        },
+        {
+          "id": "tp",
+          "side": "sell",
+          "op": ">=",
+          "price": 375,
+          "shares": 200,
+          "label": "止盈375",
+          "triggered": false
+        }
+      ],
+      "scope": "real"
     }
   }
 }

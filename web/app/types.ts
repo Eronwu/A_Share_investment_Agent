@@ -8,6 +8,7 @@ export interface WatchEntry {
   lot?: number | null;
   hidden?: boolean;
   star?: boolean;
+  dip_buy?: boolean;
 }
 
 export interface MonitorConfig {

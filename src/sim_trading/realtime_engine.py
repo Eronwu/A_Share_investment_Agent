@@ -16,6 +16,7 @@ v2 策略核心变化：
 
 import json
 import logging
+import subprocess
 import time
 from datetime import datetime
 from pathlib import Path
@@ -54,6 +55,7 @@ class RealtimeSimEngine:
         self._score_cfg = rules.get("daily_score", {})
         self._last_exit_ts: dict[str, int] = {}  # code → epoch ms of last exit (cooldown)
         self._new_positions_today = 0
+        self._dip_buy_notified_today: set[str] = set()  # codes already notified for dip_buy today
         self._entry_evaluated_today = False
         self._exit_evaluated_today = False
         # Per-tick score cache: {code: score_dict}, cleared each tick
@@ -282,6 +284,8 @@ class RealtimeSimEngine:
                     "price": price,
                     "amount": float(svc.get("amount", 0) or 0),
                     "change": float(svc.get("change", 0) or 0),
+                    "open": float(svc.get("open", 0) or 0),
+                    "prevClose": float(svc.get("prevClose", 0) or 0),
                 }
         return result
 
@@ -385,6 +389,12 @@ class RealtimeSimEngine:
                 and self._new_positions_today < max_per_day):
             self._evaluate_entries(today, prices, market)
             self._entry_evaluated_today = True
+
+        # 1b. Dip-buy window — conviction + drawdown entry channel
+        db_cfg = self._rules.get("dip_buy", {})
+        if (db_cfg.get("enabled")
+                and db_cfg.get("window_start", "09:45") <= time_str <= db_cfg.get("window_end", "14:30")):
+            self._evaluate_dip_buy(today, prices, market)
 
         # 2. Consume new signals from DB — v2 only processes T3 + intraday exceptions
         conn = get_connection()
@@ -545,6 +555,213 @@ class RealtimeSimEngine:
                     f"score={score_result['total']} "
                     f"SL={sl:.2f} TP={tp:.2f} "
                     f"(daily_score entry)"
+                )
+
+    def _get_dip_buy_codes(self) -> list[str]:
+        """Get codes with dip_buy=true from monitor_config.json (any type)."""
+        try:
+            with open(MONITOR_CONFIG_PATH, "r", encoding="utf-8") as f:
+                config = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return []
+
+        codes = []
+        for code, info in config.get("watchlist", {}).items():
+            if info.get("dip_buy") and not info.get("hidden", False):
+                codes.append(code)
+        return codes
+
+    def _notify_dip_buy(self, code: str, drawdown_pct: float, price: float,
+                        score: int, high_20d: float, date: str):
+        """Send macOS notification + write alert_event for dip_buy opportunity."""
+        now_ts = int(time.time() * 1000)
+
+        # macOS notification (stealth title, audible)
+        msg = f"{code} dd={drawdown_pct:+.1f}% @{price:.2f}"
+        titles = ["CI Pipeline Alert", "Deploy Monitor", "SRE Notification", "Build Status"]
+        title = titles[now_ts % len(titles)]
+        try:
+            subprocess.run(
+                ["terminal-notifier", "-title", title, "-message", msg,
+                 "-sound", "default", "-open", "http://localhost:3120/sim"],
+                capture_output=True, timeout=5,
+            )
+        except Exception as e:
+            logger.debug(f"Dip-buy notification failed: {e}")
+
+        # Write to alert_events table
+        display = (
+            f"[DIP_BUY] {code} 距20日高点({high_20d:.2f})回撤{abs(drawdown_pct):.1f}%, "
+            f"现价{price:.2f}, 评分{score}, 建议关注抄底"
+        )
+        try:
+            conn = get_connection()
+            conn.execute(
+                """INSERT OR IGNORE INTO alert_events
+                   (ts, date, symbol, kind, level, message, display, change_pct)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (now_ts, date, code, "dip_buy", "L1", msg, display, drawdown_pct),
+            )
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.debug(f"Dip-buy alert_event write failed: {e}")
+
+    def _evaluate_dip_buy(self, date: str, prices: dict[str, float],
+                          market: dict[str, dict]):
+        """Conviction + Drawdown 抄底: dip_buy 标记的股票回撤达标 → 通知 + 模拟开仓。
+
+        独立于 v2 评分入场，作为并行第二入场通道。
+        通知与交易解耦：通知不受仓位限制，交易受限。
+        """
+        db_cfg = self._rules.get("dip_buy", {})
+        if not db_cfg.get("enabled") or not self._daily_tracker:
+            return
+
+        drawdown_pct = db_cfg.get("drawdown_pct", 8.0)
+        lookback_days = db_cfg.get("lookback_days", 20)
+        min_score = db_cfg.get("min_score", 30)
+        min_ma_score = db_cfg.get("min_ma_score", 5)
+        position_pct = db_cfg.get("position_pct", 0.15)
+        sl_atr_mult = db_cfg.get("stop_loss_atr_mult", 3.0)
+        max_db_per_day = db_cfg.get("max_per_day", 1)
+        cooldown_min = self._score_cfg.get("reentry_cooldown_minutes", 120)
+        min_notional = self._score_cfg.get("min_notional", 30000)
+        max_hold = self._score_cfg.get("max_hold_days", 10)
+        max_per_day = self._score_cfg.get("max_new_positions_per_day", 1)
+        now_ts = int(time.time() * 1000)
+
+        dip_buy_codes = self._get_dip_buy_codes()
+        if not dip_buy_codes:
+            return
+
+        db_entries_today = sum(
+            1 for c in self._dip_buy_notified_today
+            if c in self._pos_mgr.positions
+        )
+
+        candidates = []
+        for code in dip_buy_codes:
+            # Already notified today — skip (dedup per stock per day)
+            if code in self._dip_buy_notified_today:
+                continue
+
+            price = prices.get(code, 0)
+            if price <= 0:
+                continue
+
+            # 20-day high from daily tracker
+            high_nd = self._daily_tracker.get_recent_high(code, lookback_days)
+            if high_nd <= 0:
+                continue
+
+            # Drawdown check
+            dd = (price - high_nd) / high_nd * 100  # negative if below high
+            if dd > -drawdown_pct:
+                continue
+
+            # Daily score check
+            score_result = self._get_score(code)
+            total = score_result.get("total", 0)
+            if total < min_score:
+                logger.debug(f"Dip-buy skip {code}: score={total} < {min_score}")
+                continue
+
+            # Non-bearish MA check
+            ma_score = score_result.get("ma", 0)
+            if ma_score < min_ma_score:
+                logger.debug(f"Dip-buy skip {code}: ma={ma_score} < {min_ma_score}")
+                continue
+
+            candidates.append((code, score_result, high_nd, dd))
+            logger.info(
+                f"Dip-buy candidate: {code} dd={dd:.1f}% high{lookback_days}d={high_nd:.2f} "
+                f"price={price:.2f} score={total} ma={ma_score}"
+            )
+
+        if not candidates:
+            return
+
+        # Sort by drawdown severity (most oversold first)
+        candidates.sort(key=lambda x: x[3])
+
+        for code, score_result, high_nd, dd in candidates:
+            price = prices.get(code, 0)
+            if price <= 0:
+                continue
+
+            # 1. Always notify (not subject to position limits)
+            self._notify_dip_buy(code, dd, price, score_result["total"], high_nd, date)
+            self._dip_buy_notified_today.add(code)
+
+            # 2. Sim trade (subject to limits)
+            if code in self._pos_mgr.positions:
+                logger.info(f"Dip-buy {code}: already holding, notify only")
+                continue
+            if self._new_positions_today >= max_per_day:
+                logger.info(f"Dip-buy {code}: daily limit reached, notify only")
+                continue
+            if db_entries_today >= max_db_per_day:
+                logger.info(f"Dip-buy {code}: dip_buy daily limit reached, notify only")
+                continue
+
+            # Cooldown check
+            last_exit = self._last_exit_ts.get(code, 0)
+            if (now_ts - last_exit) < cooldown_min * 60 * 1000:
+                logger.info(f"Dip-buy {code}: cooldown active, notify only")
+                continue
+
+            atr = score_result.get("atr", 0) or self._estimate_atr(code, date)
+            daily_amount = market.get(code, {}).get("amount", 0)
+
+            decision = TradeDecision(
+                action="BUY",
+                code=code,
+                confidence=min(score_result["total"] / 100, 0.80),
+                position_pct=position_pct,
+                stop_atr=sl_atr_mult,
+                max_hold_days=max_hold,
+                trigger_signal_ids=[],
+                reason=f"dip_buy(score={score_result['total']},dd={dd:.1f}%)",
+                direction="bullish",
+            )
+
+            exec_info = self._engine.execute_trade(decision, price, daily_amount, atr)
+            exec_price = exec_info["exec_price"]
+
+            alloc = self._pos_mgr.cash * position_pct
+            est_qty = self._pos_mgr._align_lot(code, int(alloc / exec_price))
+            if est_qty <= 0:
+                continue
+
+            notional = exec_price * est_qty
+            if notional < min_notional:
+                logger.debug(f"Dip-buy skip {code}: notional {notional:.0f} < {min_notional}")
+                continue
+
+            cost_info = self._engine.calc_cost(exec_price, est_qty, "BUY")
+
+            pos = self._pos_mgr.open_position(
+                decision, exec_price, atr,
+                trade_cost=cost_info["total"],
+                current_date=date, current_ts=now_ts,
+                day_index=self._day_index,
+            )
+            if pos:
+                # SL: entry - ATR * 3 (wider for volatility)
+                pos.stop_loss = round(exec_price - atr * sl_atr_mult, 4)
+                # TP: 20-day high (recovery target)
+                pos.take_profit = round(high_nd, 4)
+                pos.max_hold_days = max_hold
+
+                self._new_positions_today += 1
+                db_entries_today += 1
+                logger.info(
+                    f"RT DIP-BUY {code}: {est_qty} @ {exec_price:.2f} "
+                    f"dd={dd:.1f}% high{lookback_days}d={high_nd:.2f} "
+                    f"score={score_result['total']} "
+                    f"SL={pos.stop_loss:.2f} TP={pos.take_profit:.2f} "
+                    f"(dip_buy)"
                 )
 
     def _evaluate_exits(self, date: str, prices: dict[str, float],
@@ -832,6 +1049,7 @@ class RealtimeSimEngine:
         """
         self._mapper.reset_session(self._current_date)
         self._new_positions_today = 0
+        self._dip_buy_notified_today.clear()
         self._entry_evaluated_today = False
         self._exit_evaluated_today = False
         self._last_exit_ts.clear()

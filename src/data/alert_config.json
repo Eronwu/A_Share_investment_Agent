@@ -1,18 +1,15 @@
 {
   "alerts": {
     "HK09988": {
-      "above": 166,
-      "below": 150
+      "above": 200,
+      "below": 120
     },
     "HK03690": {
       "above": 97.5,
-      "below": 88.5
+      "below": 70
     },
     "HK02590": {
       "below": 22
-    },
-    "HK03986": {
-      "below": 18.5
     }
   }
 }

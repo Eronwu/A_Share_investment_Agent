@@ -90,5 +90,17 @@
     "capital_flow": 20,
     "volume_price": 15,
     "support": 10
+  },
+  "dip_buy": {
+    "enabled": true,
+    "drawdown_pct": 8.0,
+    "lookback_days": 20,
+    "min_score": 30,
+    "min_ma_score": 5,
+    "position_pct": 0.15,
+    "stop_loss_atr_mult": 3.0,
+    "window_start": "09:45",
+    "window_end": "14:30",
+    "max_per_day": 1
   }
 }
