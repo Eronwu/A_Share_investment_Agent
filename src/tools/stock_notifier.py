@@ -788,6 +788,8 @@ def write_alert_events(alerts: list[dict]):
             display = f"{symbol} {name} 触价告警 {a.get('message', '')}"
         elif kind == "portfolio":
             display = f"组合盈亏 {change_pct:+.1f}%"
+        elif kind == "DRIFT":
+            display = a.get("display", a.get("message", ""))
         else:
             direction = "涨幅" if change_pct > 0 else "跌幅"
             p = a.get("_price", 0)
@@ -1364,6 +1366,140 @@ class TradePlanEngine:
 
 
 # ══════════════════════════════════════════
+# 6b. Watch Drift Tracker
+# ══════════════════════════════════════════
+
+
+class WatchDriftTracker:
+    """Tracks cumulative drift from watch_price for stocks and tag indices.
+
+    Notifies when drift crosses tier boundaries (e.g. +/-5%, +/-10%, +/-15%...).
+    Each tier fires only once per day (reset at 08:00 with everything else).
+    """
+
+    def __init__(self, alert_config_path):
+        self._alert_config_path = alert_config_path
+        self._notified_tiers = {}  # {symbol_or_tag: set of triggered tier values}
+        self._defaults = {"watch_drift_pct": 5, "watch_drift_enabled": True}
+
+    def reset(self):
+        """Daily reset at 08:00."""
+        self._notified_tiers.clear()
+
+    def check_stocks(self, quotes):
+        """Check individual stock drift from watch_price. Returns list of alert dicts.
+
+        quotes = {symbol: {"price": float, "name": str, ...}}
+        """
+        from src.sim_trading.db import get_connection
+
+        alerts = []
+        try:
+            conn = get_connection()
+            rows = conn.execute(
+                "SELECT symbol, name, watch_price, tags, star, list_type, hidden "
+                "FROM monitor_watchlist WHERE watch_price IS NOT NULL AND watch_price > 0"
+            ).fetchall()
+            conn.close()
+        except Exception as e:
+            logger.warning(f"WatchDriftTracker: failed to read monitor_watchlist: {e}")
+            return alerts
+
+        for row in rows:
+            symbol, name, wp, tags_json, star, list_type, hidden = row
+            if hidden:
+                continue
+            q = quotes.get(symbol)
+            if not q or not q.get("price"):
+                continue
+            price = q["price"]
+            drift_pct = (price - wp) / wp * 100
+            step = self._get_step(symbol)
+            tier = self._calc_tier(drift_pct, step)
+            if tier and tier not in self._notified_tiers.get(symbol, set()):
+                self._notified_tiers.setdefault(symbol, set()).add(tier)
+                level = 1 if star else (2 if list_type == "holding" else 3)
+                direction = "涨" if drift_pct > 0 else "跌"
+                alerts.append({
+                    "symbol": symbol,
+                    "title": f"{name} drift",
+                    "_kind": "DRIFT",
+                    "_level": level,
+                    "_change_pct": round(drift_pct, 1),
+                    "message": f"{name} 距关注{direction}{abs(tier):.0f}%",
+                    "display": f"{name}({symbol}) 距关注价{wp:.2f}{direction}{abs(drift_pct):.1f}%，现价{price:.2f}",
+                    "_stealth": f"{name} {direction}{abs(tier):.0f}%",
+                })
+        return alerts
+
+    def check_indices(self, index_values):
+        """Check tag index drift from baseline. index_values = {tag: current_value}.
+
+        Reads tag_meta to get baseline and star/watch status.
+        """
+        from src.sim_trading.db import get_connection
+
+        alerts = []
+        try:
+            conn = get_connection()
+            tags = conn.execute(
+                "SELECT tag, star, watch, baseline_value FROM tag_meta WHERE watch = 1"
+            ).fetchall()
+            conn.close()
+        except Exception as e:
+            logger.warning(f"WatchDriftTracker: failed to read tag_meta: {e}")
+            return alerts
+
+        for row in tags:
+            tag, star, watch, baseline = row
+            val = index_values.get(tag)
+            if not val or not baseline:
+                continue
+            drift_pct = (val - baseline) / baseline * 100
+            key = f"tag:{tag}"
+            step = self._get_step(key)
+            tier = self._calc_tier(drift_pct, step)
+            if tier and tier not in self._notified_tiers.get(key, set()):
+                self._notified_tiers.setdefault(key, set()).add(tier)
+                level = 1 if star else 2
+                direction = "涨" if drift_pct > 0 else "跌"
+                alerts.append({
+                    "symbol": key,
+                    "title": f"{tag}指数 drift",
+                    "_kind": "DRIFT",
+                    "_level": level,
+                    "_change_pct": round(drift_pct, 1),
+                    "message": f"{tag}指数 距创建{direction}{abs(tier):.0f}%",
+                    "display": f"{tag}指数 距创建{direction}{abs(drift_pct):.1f}%，当前{val:.1f}",
+                    "_stealth": f"{tag} {direction}{abs(tier):.0f}%",
+                })
+        return alerts
+
+    def _get_step(self, key):
+        """Get drift step % for a key (stock code or tag:name)."""
+        cfg = read_json_safe(self._alert_config_path) or {}
+        alerts = cfg.get("alerts", {})
+        if key in alerts and "watch_drift_pct" in alerts[key]:
+            return alerts[key]["watch_drift_pct"]
+        defaults = cfg.get("defaults", {})
+        return defaults.get("watch_drift_pct", self._defaults["watch_drift_pct"])
+
+    def _calc_tier(self, drift_pct, step):
+        """Return the tier value if drift crosses a new step boundary, else None.
+
+        E.g. step=5: drift 12.3% -> tier = 10 (crossed 10% tier)
+             drift 4.9% -> None (hasn't crossed 5% tier yet)
+        """
+        if step <= 0:
+            return None
+        tier_num = int(abs(drift_pct) / step)
+        if tier_num == 0:
+            return None
+        tier_value = tier_num * step * (1 if drift_pct > 0 else -1)
+        return tier_value
+
+
+# ══════════════════════════════════════════
 # 7. Main loop
 # ══════════════════════════════════════════
 
@@ -1417,6 +1553,7 @@ def run():
     last_checked_count = len(watchlist)
     engine = DeltaAlertEngine(config)
     plan_engine = TradePlanEngine()
+    drift_tracker = WatchDriftTracker(ALERT_CONFIG_PATH)
     watchdog = DataFreshnessWatchdog(poll_interval=settings.get("poll_interval", 30))
     sent_open_today = False
     sent_close_today = False
@@ -1439,6 +1576,7 @@ def run():
             latest_hkd_cny_rate = None
             last_alert_date = today
             engine.reset()  # clear delta tracking for new day
+            drift_tracker.reset()  # clear drift tier tracking for new day
             watchdog.reset()  # clear staleness tracking for new day
             check_l2_signals._daily_counts = {}  # reset per-stock L2 cap
             # 归档昨日数据 + 清空（新交易日重新开始）
@@ -1505,6 +1643,25 @@ def run():
                     if plan_alerts:
                         write_alert_events(plan_alerts)
                         all_alerts.extend(plan_alerts)
+
+                    # ── Watch drift (stock + tag index) ──
+                    drift_alerts = drift_tracker.check_stocks(quotes)
+                    try:
+                        from src.sim_trading.db import get_connection as _get_conn
+                        import datetime as _dt
+                        _today_str = _dt.date.today().strftime("%Y-%m-%d")
+                        _conn = _get_conn()
+                        _idx_rows = _conn.execute(
+                            "SELECT index_id, index_value FROM sector_daily WHERE date = ?",
+                            (_today_str,),
+                        ).fetchall()
+                        _conn.close()
+                        _index_values = {r[0]: r[1] for r in _idx_rows}
+                        drift_alerts.extend(drift_tracker.check_indices(_index_values))
+                    except Exception:
+                        pass  # sector_daily may not have today's data yet
+                    if drift_alerts:
+                        all_alerts.extend(drift_alerts)
 
                     if all_alerts:
                         print()
