@@ -4,6 +4,7 @@ import sqlite3
 from pathlib import Path
 
 DB_PATH = Path(__file__).resolve().parent.parent / "data" / "sim_trading.db"
+_db_path_override: str | None = None  # set to ":memory:" in tests
 
 SCHEMA = """
 -- 历史信号归档
@@ -290,7 +291,9 @@ CREATE TABLE IF NOT EXISTS tag_meta (
 
 def get_connection() -> sqlite3.Connection:
     """Get a SQLite connection with WAL mode for concurrent read/write."""
-    conn = sqlite3.connect(str(DB_PATH), timeout=10)
+    path = _db_path_override if _db_path_override is not None else str(DB_PATH)
+    use_uri = path.startswith("file:")
+    conn = sqlite3.connect(path, timeout=10, uri=use_uri)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA busy_timeout=5000")
     conn.row_factory = sqlite3.Row
