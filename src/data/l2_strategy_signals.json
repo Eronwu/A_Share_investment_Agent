@@ -1,39 +1,6 @@
 {
   "signals": [
     {
-      "ts": 1772430989656,
-      "time": "13:56:29",
-      "strategy": "ma_bullish_align",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "XL二南方海力士 均线多头排列",
-      "display": "HK07709 XL二南方海力士 均线多头排列: MA5=38.71 MA10=34.20 MA20=30.84 MA60=21.49 斜率+11.54% | 现价38.30 日跌-3.6% 净流出4705万",
-      "detail": {
-        "ma5": 38.71,
-        "ma10": 34.2,
-        "ma20": 30.84,
-        "ma60": 21.49,
-        "ma20_slope_pct": 11.54
-      }
-    },
-    {
-      "ts": 1772430989656,
-      "time": "13:56:29",
-      "strategy": "relative_strength",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方海力士 相对强弱",
-      "display": "HK07709 XL二南方海力士 相对强弱: 60日强于恒指 个股+233.0% 恒指+0.6% 超额+232.4% | 现价38.30 日跌-3.6% 净流出4705万",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 233.0,
-        "index_return_60d": 0.6,
-        "excess_return": 232.4
-      }
-    },
-    {
       "ts": 1772430989930,
       "time": "13:56:29",
       "strategy": "ma_bearish_align",
@@ -3305,6 +3272,40 @@
         "super_net": -98746666.0,
         "big_net": 4707082.0
       }
+    },
+    {
+      "ts": 1772610088529,
+      "time": "15:41:28",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 散户机构分歧",
+      "display": "HK00700 腾讯控股 散户机构分歧: 主力出散户进 | 机构净-67077万 散户净+17592万 | 现价505.50 日跌-1.0% 净流出67077万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -670769040.0,
+        "retail_net": 175918900.0,
+        "super_net": -515806160.0,
+        "big_net": -154962880.0
+      }
+    },
+    {
+      "ts": 1772611247645,
+      "time": "16:00:47",
+      "strategy": "support_breakdown",
+      "code": "HK02359",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "药明康德 破位下跌",
+      "display": "HK02359 药明康德 破位下跌: 跌破111.26 现价108.60 放量1.1x | 现价108.60 日跌-3.4% 净流入1485万",
+      "detail": {
+        "close": 108.6,
+        "support_level": 111.26,
+        "prev_low_20": 107.1,
+        "ma60": 111.26,
+        "vol_ratio": 1.08
+      }
     }
   ],
   "session": {
@@ -3351,8 +3352,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 28970562.5,
-        "main_net_inflow_pct": 10.01,
+        "main_net_inflow": 71640277.5,
+        "main_net_inflow_pct": 21.43,
         "direction_score": 1
       }
     },
@@ -3376,13 +3377,13 @@
       },
       "capital_flow": {
         "main_net_inflow": -1866240.0,
-        "main_net_inflow_pct": 21.48,
+        "main_net_inflow_pct": 34.96,
         "direction_score": 0
       }
     },
     "HK03896": {
-      "direction": "neutral",
-      "score": 0,
+      "direction": "bullish",
+      "score": 1,
       "tick": {
         "buy_vol": 0,
         "sell_vol": 0,
@@ -3399,9 +3400,9 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -397880.0,
-        "main_net_inflow_pct": -2.7,
-        "direction_score": 0
+        "main_net_inflow": 9451700.0,
+        "main_net_inflow_pct": 31.8,
+        "direction_score": 1
       }
     },
     "HK06060": {
@@ -3495,8 +3496,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 37612736.0,
-        "main_net_inflow_pct": 29.74,
+        "main_net_inflow": 62048884.0,
+        "main_net_inflow_pct": 21.69,
         "direction_score": 1
       }
     },
@@ -3519,8 +3520,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 42247555.0,
-        "main_net_inflow_pct": 116.64,
+        "main_net_inflow": 45564795.0,
+        "main_net_inflow_pct": 102.25,
         "direction_score": 1
       }
     },
@@ -3543,8 +3544,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 3495000.0,
-        "main_net_inflow_pct": 38.8,
+        "main_net_inflow": 2413296.0,
+        "main_net_inflow_pct": 25.89,
         "direction_score": 0
       }
     },
@@ -3568,7 +3569,7 @@
       },
       "capital_flow": {
         "main_net_inflow": -4141700.0,
-        "main_net_inflow_pct": 16.57,
+        "main_net_inflow_pct": 16.03,
         "direction_score": 0
       }
     },
@@ -3591,8 +3592,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -13360015.0,
-        "main_net_inflow_pct": 19.87,
+        "main_net_inflow": -15559800.0,
+        "main_net_inflow_pct": 22.56,
         "direction_score": -1
       }
     },
@@ -3615,8 +3616,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 11378720.0,
-        "main_net_inflow_pct": 19.79,
+        "main_net_inflow": 13593020.0,
+        "main_net_inflow_pct": 22.79,
         "direction_score": 1
       }
     },
@@ -3663,8 +3664,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -701565240.0,
-        "main_net_inflow_pct": 89.33,
+        "main_net_inflow": -676802690.0,
+        "main_net_inflow_pct": 129.48,
         "direction_score": -1
       }
     },
@@ -3687,7 +3688,7 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -91464.0,
+        "main_net_inflow": 219162.0,
         "main_net_inflow_pct": 0,
         "direction_score": 0
       }
@@ -3735,8 +3736,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 179030140.0,
-        "main_net_inflow_pct": 32.76,
+        "main_net_inflow": 208787425.0,
+        "main_net_inflow_pct": 30.96,
         "direction_score": 1
       }
     },
@@ -3783,14 +3784,14 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 15741890.0,
-        "main_net_inflow_pct": 13.15,
+        "main_net_inflow": 14849210.0,
+        "main_net_inflow_pct": 12.13,
         "direction_score": 1
       }
     },
     "HK03288": {
-      "direction": "neutral",
-      "score": 0,
+      "direction": "bullish",
+      "score": 1,
       "tick": {
         "buy_vol": 0,
         "sell_vol": 0,
@@ -3807,11 +3808,11 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 3642946.0,
-        "main_net_inflow_pct": 21.56,
-        "direction_score": 0
+        "main_net_inflow": 5067516.0,
+        "main_net_inflow_pct": 25.3,
+        "direction_score": 1
       }
     }
   },
-  "lastUpdated": 1772609891079
+  "lastUpdated": 1772611258525
 }

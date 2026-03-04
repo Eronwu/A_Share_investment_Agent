@@ -165,7 +165,7 @@ async function main() {
       record('HK tab: hidden section', true, 'no hidden section (ok if no HK hidden)');
     }
 
-    // Check 药明康德 P&L displays (cost is -48.888)
+    // Check 药明康德 displays correct cost (76.21) and positive P&L
     const yakuming = await page.evaluate(() => {
       const spans = Array.from(document.querySelectorAll('span'));
       const codeSpan = spans.find(s => s.textContent.trim() === 'HK02359');
@@ -174,8 +174,8 @@ async function main() {
       return row ? row.textContent : null;
     });
     if (yakuming) {
-      const showsDash = yakuming.includes('-48.89') || yakuming.includes('-48.888');
-      record('HK tab: 药明康德 shows negative cost', showsDash, yakuming.slice(0, 100));
+      const hasCorrectCost = yakuming.includes('76.2');
+      record('HK tab: 药明康德 cost correct (76.2x)', hasCorrectCost, yakuming.slice(0, 120));
     }
 
     // ════════════════════════════════════════════════
