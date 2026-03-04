@@ -10,7 +10,27 @@ const SIM_DB_PATH = join(process.cwd(), "..", "src", "data", "sim_trading.db");
 import type { WatchEntry, MonitorConfig } from "../../types";
 import { EM_UT } from "../../theme";
 
+const MARKET_DATA_PATH = join(process.cwd(), "..", "src", "data", "market_data.json");
 const EM_API = "https://push2.eastmoney.com/api/qt/ulist.np/get";
+
+/** Read current price for a stock from market_data.json (poller output). Returns null if unavailable. */
+function readMarketPrice(code: string): number | null {
+  try {
+    const raw = readFileSync(MARKET_DATA_PATH, "utf-8");
+    const md = JSON.parse(raw);
+    const services = md?.services;
+    if (!Array.isArray(services)) return null;
+    const svc = services.find((s: { id?: string }) => s.id === code);
+    return svc?.price != null ? Number(svc.price) : null;
+  } catch {
+    return null;
+  }
+}
+
+function todayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 // ── Config (monitor_config.json) ──
 
@@ -584,11 +604,18 @@ export async function POST(request: Request) {
         const star = data?.star ? 1 : 0;
         const nowTs = Math.floor(Date.now() / 1000);
 
+        // tags + watch_price auto-recording
+        const tags = Array.isArray(data?.tags) ? data.tags : [];
+        const tagsJson = JSON.stringify(tags);
+        const watchPrice = data?.watch_price != null ? Number(data.watch_price) : readMarketPrice(code);
+        const watchPriceDate = watchPrice != null ? todayStr() : null;
+
         db.prepare(
           `INSERT INTO monitor_watchlist(
-            symbol, name, list_type, cost, shares, lot, hidden, star, dip_buy, created_at, updated_at
+            symbol, name, list_type, cost, shares, lot, hidden, star, dip_buy,
+            tags, watch_price, watch_price_date, created_at, updated_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(symbol) DO UPDATE SET
             name = excluded.name,
             list_type = excluded.list_type,
@@ -598,8 +625,11 @@ export async function POST(request: Request) {
             hidden = excluded.hidden,
             star = excluded.star,
             dip_buy = excluded.dip_buy,
+            tags = excluded.tags,
+            watch_price = excluded.watch_price,
+            watch_price_date = excluded.watch_price_date,
             updated_at = excluded.updated_at`
-        ).run(code, name, listType, cost, shares, lot, hidden, star, 0, nowTs, nowTs);
+        ).run(code, name, listType, cost, shares, lot, hidden, star, 0, tagsJson, watchPrice, watchPriceDate, nowTs, nowTs);
 
         // 告警写到 alert_config
         if (data?.above != null || data?.below != null) {
@@ -646,6 +676,9 @@ export async function POST(request: Request) {
         let star = Boolean(existing.star);
         let dipBuy = Boolean(existing.dip_buy);
         let lot = existing.lot;
+        let tagsJson = existing.tags ?? "[]";
+        let watchPrice = existing.watch_price;
+        let watchPriceDate = existing.watch_price_date;
 
         if (data?.type !== undefined) {
           listType = data.type === "holding" ? "holding" : "watching";
@@ -662,6 +695,13 @@ export async function POST(request: Request) {
         if (data?.hidden !== undefined) hidden = Boolean(data.hidden);
         if (data?.star !== undefined) star = Boolean(data.star);
         if (data?.dip_buy !== undefined) dipBuy = Boolean(data.dip_buy);
+        if (Array.isArray(data?.tags)) {
+          tagsJson = JSON.stringify(data.tags);
+        }
+        if (data?.watch_price !== undefined) {
+          watchPrice = data.watch_price == null ? null : Number(data.watch_price);
+          watchPriceDate = watchPrice != null ? todayStr() : null;
+        }
 
         // 自动提升为 holding：仅当用户未显式设置 type 且新增了 cost/shares 时
         if (data?.type === undefined && (data?.cost != null || data?.shares != null)) {
@@ -673,9 +713,10 @@ export async function POST(request: Request) {
         const nowTs = Math.floor(Date.now() / 1000);
         db.prepare(
           `UPDATE monitor_watchlist
-           SET list_type = ?, cost = ?, shares = ?, lot = ?, hidden = ?, star = ?, dip_buy = ?, updated_at = ?
+           SET list_type = ?, cost = ?, shares = ?, lot = ?, hidden = ?, star = ?, dip_buy = ?,
+               tags = ?, watch_price = ?, watch_price_date = ?, updated_at = ?
            WHERE symbol = ?`
-        ).run(listType, cost, shares, lot, hidden ? 1 : 0, star ? 1 : 0, dipBuy ? 1 : 0, nowTs, code);
+        ).run(listType, cost, shares, lot, hidden ? 1 : 0, star ? 1 : 0, dipBuy ? 1 : 0, tagsJson, watchPrice, watchPriceDate, nowTs, code);
 
         // 告警写到 alert_config
         if (data?.above !== undefined || data?.below !== undefined) {
@@ -709,6 +750,8 @@ export async function POST(request: Request) {
         if ((data as WatchEntry & { lot?: number | null } | undefined)?.lot !== undefined) {
           changed.push(`lot:${(data as WatchEntry & { lot?: number | null }).lot}`);
         }
+        if (Array.isArray(data?.tags)) changed.push(`tags:[${data.tags.join(",")}]`);
+        if (data?.watch_price !== undefined) changed.push(`watch_price:${data.watch_price}`);
 
         return NextResponse.json({
           success: true,
@@ -797,6 +840,110 @@ export async function POST(request: Request) {
         return NextResponse.json({
           success: applied.length > 0,
           message: withSnapshotWarning(msg + warn, snapshotWarn),
+        });
+      }
+
+      case "tag-add": {
+        const { codes, tag } = body as { codes?: string[]; tag?: string };
+        if (!tag || !Array.isArray(codes) || codes.length === 0) {
+          return NextResponse.json(
+            { success: false, message: "Missing codes (array) or tag (string)" },
+            { status: 400 }
+          );
+        }
+        const updated: string[] = [];
+        for (const c of codes) {
+          const row = readWatchRow(db, c);
+          if (!row) continue;
+          let tags: string[] = [];
+          try { tags = JSON.parse(row.tags ?? "[]"); } catch { /* ignore */ }
+          if (!tags.includes(tag)) {
+            tags.push(tag);
+            const nowTs = Math.floor(Date.now() / 1000);
+            db.prepare("UPDATE monitor_watchlist SET tags = ?, updated_at = ? WHERE symbol = ?")
+              .run(JSON.stringify(tags), nowTs, c);
+            updated.push(c);
+          }
+        }
+        // Auto-create tag_meta row if tag is new
+        db.prepare("INSERT OR IGNORE INTO tag_meta(tag) VALUES (?)").run(tag);
+        const snapshotWarnTagAdd = exportMonitorSnapshotFromDb(db);
+        return NextResponse.json({
+          success: updated.length > 0,
+          message: withSnapshotWarning(
+            updated.length > 0
+              ? `Added tag "${tag}" to ${updated.join(", ")}`
+              : `Tag "${tag}" already present on all specified codes`,
+            snapshotWarnTagAdd
+          ),
+        });
+      }
+
+      case "tag-remove": {
+        const { codes, tag } = body as { codes?: string[]; tag?: string };
+        if (!tag || !Array.isArray(codes) || codes.length === 0) {
+          return NextResponse.json(
+            { success: false, message: "Missing codes (array) or tag (string)" },
+            { status: 400 }
+          );
+        }
+        const removed: string[] = [];
+        for (const c of codes) {
+          const row = readWatchRow(db, c);
+          if (!row) continue;
+          let tags: string[] = [];
+          try { tags = JSON.parse(row.tags ?? "[]"); } catch { /* ignore */ }
+          const idx = tags.indexOf(tag);
+          if (idx >= 0) {
+            tags.splice(idx, 1);
+            const nowTs = Math.floor(Date.now() / 1000);
+            db.prepare("UPDATE monitor_watchlist SET tags = ?, updated_at = ? WHERE symbol = ?")
+              .run(JSON.stringify(tags), nowTs, c);
+            removed.push(c);
+          }
+        }
+        const snapshotWarnTagRm = exportMonitorSnapshotFromDb(db);
+        return NextResponse.json({
+          success: removed.length > 0,
+          message: withSnapshotWarning(
+            removed.length > 0
+              ? `Removed tag "${tag}" from ${removed.join(", ")}`
+              : `Tag "${tag}" not found on any specified codes`,
+            snapshotWarnTagRm
+          ),
+        });
+      }
+
+      case "reset-watch-price": {
+        const { code } = body as { code?: string };
+        if (!code) {
+          return NextResponse.json({ success: false, message: "Missing code" }, { status: 400 });
+        }
+        const row = readWatchRow(db, code);
+        if (!row) {
+          return NextResponse.json(
+            { success: false, message: `${code} not in watchlist` },
+            { status: 400 }
+          );
+        }
+        const price = readMarketPrice(code);
+        if (price == null) {
+          return NextResponse.json(
+            { success: false, message: `No market price available for ${code}` },
+            { status: 400 }
+          );
+        }
+        const nowTs = Math.floor(Date.now() / 1000);
+        db.prepare(
+          "UPDATE monitor_watchlist SET watch_price = ?, watch_price_date = ?, updated_at = ? WHERE symbol = ?"
+        ).run(price, todayStr(), nowTs, code);
+        const snapshotWarnWp = exportMonitorSnapshotFromDb(db);
+        return NextResponse.json({
+          success: true,
+          message: withSnapshotWarning(
+            `Reset watch_price for ${code} (${row.name}) → ${price}`,
+            snapshotWarnWp
+          ),
         });
       }
 

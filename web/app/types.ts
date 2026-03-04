@@ -9,6 +9,9 @@ export interface WatchEntry {
   hidden?: boolean;
   star?: boolean;
   dip_buy?: boolean;
+  tags?: string[];
+  watch_price?: number;
+  watch_price_date?: string;
 }
 
 export interface MonitorConfig {
