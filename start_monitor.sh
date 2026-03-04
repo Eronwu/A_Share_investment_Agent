@@ -32,6 +32,17 @@ _check_terminal_notifier() {
     exit 1
   fi
 }
+_check_terminal_notifier() {
+  if ! command -v terminal-notifier &> /dev/null; then
+    echo "ERROR: terminal-notifier 未安装"
+    echo ""
+    echo "L1/L2 告警弹窗功能需要 terminal-notifier，请安装:"
+    echo ""
+    echo "  brew install terminal-notifier"
+    echo ""
+    exit 1
+  fi
+}
 
 _read_pid() { [ -f "$1" ] && cat "$1" || echo ""; }
 
