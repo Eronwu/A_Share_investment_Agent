@@ -53,6 +53,8 @@ const KIND_LABELS: Record<string, { label: string; color: string }> = {
   portfolio: { label: "组合变动", color: D.purple },
   l2_strategy: { label: "L2信号", color: D.cyan },
   STALE: { label: "数据监控", color: "#ff6b6b" },
+  DRIFT: { label: "涨跌追踪", color: "#8be9fd" },
+  MAINLINE: { label: "主线行情", color: "#ff5555" },
 };
 
 /** Parse display text into structured fields for cleaner rendering */
@@ -66,8 +68,8 @@ function parseAlert(e: AlertEvent): {
 } {
   const d = e.display || "";
   const sym = e.symbol || "";
-  // Strip HK prefix for compact display
-  const shortCode = sym.replace(/^HK/, "");
+  // Strip HK prefix for compact display; tag: prefix → show tag name
+  const shortCode = sym.startsWith("tag:") ? sym.replace("tag:", "") : sym.replace(/^HK/, "");
 
   if (e.kind === "l2_strategy") {
     // L2 format: "{code} {name} {signal}: {detail} | 现价{price} 日涨{chg}% ..."
@@ -128,6 +130,40 @@ function parseAlert(e: AlertEvent): {
         detail: "触及阈值",
       };
     }
+  }
+
+  if (e.kind === "DRIFT") {
+    // display: "📊 {name}({code}) 距关注价{wp}{direction}{drift}%，现价{price}"
+    // or index: "📊 {tag}指数 距创建{direction}{drift}%，当前{value}"
+    const isIndex = sym.startsWith("tag:");
+    const direction = e.change_pct > 0;
+    // Extract price from display: "现价X.XX" or "当前X.XX"
+    const driftPriceMatch = d.match(/(?:现价|当前)([\d.]+)/);
+    // Extract name from display: "📊 NAME(CODE)" or "📊 NAME指数"
+    const driftNameMatch = d.match(/^📊\s*(.+?)(?:\([\dA-Z]+\)|\s+距)/);
+    return {
+      stockName: isIndex ? sym.replace("tag:", "") + "指数" : (driftNameMatch?.[1]?.trim() || ""),
+      stockCode: isIndex ? "" : shortCode,
+      signal: direction ? `距关注涨${Math.abs(e.change_pct).toFixed(1)}%` : `距关注跌${Math.abs(e.change_pct).toFixed(1)}%`,
+      signalColor: direction ? "#50fa7b" : "#ff5555",
+      price: driftPriceMatch?.[1] || "",
+      detail: d.replace(/^📊\s*/, ""),
+    };
+  }
+
+  if (e.kind === "MAINLINE") {
+    // display: "🔥 {tag}指数 主线行情 累涨{pct}% 斜率{s} R²={r}"
+    // or: "⚡ {tag}指数 接近主线 累涨{pct}%"
+    const isApproaching = d.includes("接近主线");
+    const tagName = sym.replace("tag:", "");
+    return {
+      stockName: tagName + "指数",
+      stockCode: "",
+      signal: isApproaching ? "接近主线" : "主线确认",
+      signalColor: isApproaching ? "#ffb86c" : "#ff5555",
+      price: "",
+      detail: d.replace(/^[🔥⚡]\s*/, ""),
+    };
   }
 
   if (e.kind === "STALE") {
