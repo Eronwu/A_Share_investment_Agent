@@ -2,8 +2,7 @@ import { chromium } from "playwright";
 
 const BASE = "http://localhost:3120";
 const DIR = new URL(".", import.meta.url).pathname;
-const TEST_INDEX_ID = "__e2e_test_sector__";
-const TEST_INDEX_NAME = "E2E板块测试";
+const TEST_TAG_NAME = "E2E板块测试";
 
 const results = [];
 function record(name, ok, detail = "") {
@@ -12,15 +11,15 @@ function record(name, ok, detail = "") {
 }
 
 async function cleanup() {
-  // Delete the test index via API if it exists
+  // Delete the test tag via API if it exists
   try {
     const resp = await fetch(`${BASE}/api/sector`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "delete", id: TEST_INDEX_ID }),
+      body: JSON.stringify({ action: "delete-tag", tag: TEST_TAG_NAME }),
     });
     const json = await resp.json();
-    if (json.ok) console.log("  (cleanup) deleted test index");
+    if (json.ok) console.log("  (cleanup) deleted test tag");
   } catch {
     /* ignore */
   }
@@ -72,6 +71,10 @@ async function main() {
   // Accept all confirm() dialogs (for delete)
   page.on("dialog", (d) => d.accept());
 
+  // Block font requests to avoid screenshot timeout waiting for fonts
+  await page.route('**/*.googleapis.com/**', route => route.abort());
+  await page.route('**/*.gstatic.com/**', route => route.abort());
+
   try {
     // Pre-cleanup: remove any leftover test index from previous runs
     await cleanup();
@@ -80,7 +83,7 @@ async function main() {
     // 1. PAGE LOADS — no error banner, indices matrix, nav links
     // ════════════════════════════════════════════════════════════════
     console.log("\n=== 1. Page loads ===");
-    await page.goto(`${BASE}/sector`, { waitUntil: "networkidle", timeout: 15000 });
+    await page.goto(`${BASE}/sector`, { waitUntil: "commit", timeout: 30000 });
     await page.waitForTimeout(2000);
 
     await page.screenshot({ path: `${DIR}/sector_e2e_01_loaded.png`, fullPage: true });
@@ -102,23 +105,24 @@ async function main() {
       const links = Array.from(document.querySelectorAll("a"));
       return links.map((a) => a.textContent.trim());
     });
-    const hasMonitor = navLinks.some((t) => t.includes("monitor"));
+    const hasHoldings = navLinks.some((t) => t.includes("holdings"));
     const hasAlerts = navLinks.some((t) => t.includes("alerts"));
     const hasSim = navLinks.some((t) => t.includes("sim"));
     const hasManage = navLinks.some((t) => t.includes("manage"));
-    record("Nav: monitor link present", hasMonitor);
+    record("Nav: holdings link present", hasHoldings);
     record("Nav: alerts link present", hasAlerts);
     record("Nav: sim link present", hasSim);
     record("Nav: manage link present", hasManage);
 
-    // Check "sector" is highlighted (bold purple) in nav
+    // Check "sector" tab is active (has green ✱ bullet and bright foreground)
     const sectorHighlighted = await page.evaluate(() => {
       const spans = Array.from(document.querySelectorAll("span"));
-      return spans.some(
-        (s) =>
-          s.textContent.trim() === "sector" &&
-          (s.style.fontWeight === "700" || s.style.fontWeight === "bold")
-      );
+      // Active tab has the ✱ bullet (green) next to the label
+      const sectorSpan = spans.find((s) => s.textContent.trim() === "sector");
+      if (!sectorSpan) return false;
+      // Check the parent div has an active-style top border (purple)
+      const parentDiv = sectorSpan.closest("div");
+      return parentDiv && parentDiv.style.borderTop && parentDiv.style.borderTop.includes("rgb(189, 147, 249)");
     });
     record("Nav: sector tab highlighted", sectorHighlighted);
 
@@ -362,25 +366,15 @@ async function main() {
       path: `${DIR}/sector_e2e_05a_create_modal.png`,
     });
 
-    // Verify create modal appeared
+    // Verify create modal appeared (tag-based model: "新建 Tag 指数")
     const createModalVisible = await page.evaluate(() =>
-      document.body.innerText.includes("\u65b0\u5efa\u81ea\u5b9a\u4e49\u6307\u6570")
-    ); // 新建自定义指数
+      document.body.innerText.includes("Tag \u6307\u6570")
+    ); // Tag 指数
     record("Create modal opened", createModalVisible);
 
-    // Fill form fields via placeholder selectors
+    // Fill tag name via placeholder selector (only one input now)
     const nameInput = page.locator('input[placeholder="\u78f7\u5316\u5de5"]'); // 磷化工
-    await nameInput.fill(TEST_INDEX_NAME);
-    await page.waitForTimeout(100);
-
-    const idInput = page.locator('input[placeholder="phosphorus"]');
-    await idInput.fill(TEST_INDEX_ID);
-    await page.waitForTimeout(100);
-
-    const stocksInput = page.locator(
-      'input[placeholder="000792,600096,002895"]'
-    );
-    await stocksInput.fill("000001,000002,600000");
+    await nameInput.fill(TEST_TAG_NAME);
     await page.waitForTimeout(100);
 
     await page.screenshot({
@@ -409,16 +403,14 @@ async function main() {
     // Verify the new index appears in the page
     const newIndexVisible = await page.evaluate(
       (name) => document.body.innerText.includes(name),
-      TEST_INDEX_NAME
+      TEST_TAG_NAME
     );
     record("New index visible on page", newIndexVisible);
 
     // Verify the create modal closed
     const createModalClosed = await page.evaluate(
       () =>
-        !document.body.innerText.includes(
-          "\u65b0\u5efa\u81ea\u5b9a\u4e49\u6307\u6570"
-        )
+        !document.body.innerText.includes("Tag \u6307\u6570")
     );
     record("Create modal closed after submit", createModalClosed);
 
@@ -460,7 +452,7 @@ async function main() {
         }
       }
       return null;
-    }, TEST_INDEX_NAME);
+    }, TEST_TAG_NAME);
     console.log(`  (info) star action: ${starClicked}`);
 
     await page.waitForTimeout(1500);
@@ -480,7 +472,7 @@ async function main() {
         }
       }
       return false;
-    }, TEST_INDEX_NAME);
+    }, TEST_TAG_NAME);
     record("Star toggle: index now starred", isStarred);
 
     // Toggle back to ☆
@@ -496,7 +488,7 @@ async function main() {
           }
         }
       }
-    }, TEST_INDEX_NAME);
+    }, TEST_TAG_NAME);
 
     await page.waitForTimeout(1500);
 
@@ -510,7 +502,7 @@ async function main() {
         }
       }
       return false;
-    }, TEST_INDEX_NAME);
+    }, TEST_TAG_NAME);
     record("Star toggle: index unstarred back", isUnstarred);
 
     // ════════════════════════════════════════════════════════════════
@@ -526,7 +518,7 @@ async function main() {
         body: JSON.stringify({ action: "watch", id, value: false }),
       });
       return resp.json();
-    }, TEST_INDEX_ID);
+    }, TEST_TAG_NAME);
     record("Watch API: set watch=false", watchResp?.ok === true);
 
     // Verify via GET that watch is now false
@@ -535,7 +527,7 @@ async function main() {
       const data = await resp.json();
       const idx = data.indices?.find((i) => i.id === id);
       return idx?.watch;
-    }, TEST_INDEX_ID);
+    }, TEST_TAG_NAME);
     record("Watch state verified as false", checkWatch === false);
 
     // Toggle watch back
@@ -546,7 +538,7 @@ async function main() {
         body: JSON.stringify({ action: "watch", id, value: true }),
       });
       return resp.json();
-    }, TEST_INDEX_ID);
+    }, TEST_TAG_NAME);
     record("Watch API: set watch=true", watchResp2?.ok === true);
 
     await page.screenshot({
@@ -560,7 +552,7 @@ async function main() {
     console.log("\n=== 8. Horizontal scroll ===");
 
     // Reload to get fresh state
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "commit", timeout: 30000 });
     await page.waitForTimeout(1500);
 
     // Find the scrollable container using computed style instead of inline style
@@ -820,8 +812,8 @@ async function main() {
     await page.waitForTimeout(500);
 
     const validationError = await page.evaluate(() =>
-      document.body.innerText.includes("\u4e0d\u80fd\u4e3a\u7a7a")
-    ); // 不能为空
+      document.body.innerText.includes("Tag \u540d\u79f0\u4e0d\u80fd\u4e3a\u7a7a")
+    ); // Tag 名称不能为空
     record("Validation: empty fields show error", validationError);
 
     await page.screenshot({ path: `${DIR}/sector_e2e_11_validation.png` });
@@ -841,9 +833,7 @@ async function main() {
 
     const createModalClosedByCancel = await page.evaluate(
       () =>
-        !document.body.innerText.includes(
-          "\u65b0\u5efa\u81ea\u5b9a\u4e49\u6307\u6570"
-        )
+        !document.body.innerText.includes("Tag \u6307\u6570")
     );
     record("Create modal closed by \u53d6\u6d88", createModalClosedByCancel);
 
@@ -868,7 +858,7 @@ async function main() {
         }
       }
       return false;
-    }, TEST_INDEX_NAME);
+    }, TEST_TAG_NAME);
     record("Clicked delete on test index", deleteClicked);
 
     // The dialog auto-accepts
@@ -881,7 +871,7 @@ async function main() {
     // Verify test index is gone
     const indexGone = await page.evaluate(
       (name) => !document.body.innerText.includes(name),
-      TEST_INDEX_NAME
+      TEST_TAG_NAME
     );
     record("Test index removed from page", indexGone);
 
@@ -913,6 +903,9 @@ async function main() {
     console.log("\n=== 14. Console errors check ===");
     const realErrors = consoleErrors.filter(
       (e) => !e.includes("favicon") && !e.includes("404")
+        && !e.includes("net::ERR_FAILED")
+        && !e.includes("fonts.googleapis.com")
+        && !e.includes("fonts.gstatic.com")
     );
     record(
       "No critical console errors",

@@ -429,7 +429,7 @@ async function main() {
       return rows
         .slice(0, 8)
         .map((row) => {
-          const spans = row.querySelectorAll('span');
+          const spans = row.querySelectorAll(':scope > span');
           return parseCell(spans[colIdx]?.textContent || '');
         })
         .filter((v) => Number.isFinite(v));
@@ -460,37 +460,37 @@ async function main() {
       };
     }
 
-    // watching sort: 涨跌幅
-    const sortChange = await verifyWatchingSort('涨跌幅', 4, 'pct');
+    // watching sort: 涨跌幅 (col 5 after tags column at 3)
+    const sortChange = await verifyWatchingSort('涨跌幅', 5, 'pct');
     record('Watching sort[涨跌幅]: header clickable', sortChange.clicked, `first=${sortChange.first.slice(0,4).join(',')}`);
     record('Watching sort[涨跌幅]: direction toggles', sortChange.toggled, `first=${sortChange.first.slice(0,4).join(',')} second=${sortChange.second.slice(0,4).join(',')}`);
     record('Watching sort[涨跌幅]: second click ascending', sortChange.ascOk, `second=${sortChange.second.slice(0,4).join(',')}`);
 
-    // watching sort: 成交额
-    const sortAmount = await verifyWatchingSort('成交额', 8, 'money');
+    // watching sort: 成交额 (col 9 after tags column)
+    const sortAmount = await verifyWatchingSort('成交额', 9, 'money');
     record('Watching sort[成交额]: direction toggles', sortAmount.toggled, `first=${sortAmount.first.slice(0,4).join(',')} second=${sortAmount.second.slice(0,4).join(',')}`);
 
-    // watching sort: 量比
-    const sortVolRatio = await verifyWatchingSort('量比', 6, 'number');
+    // watching sort: 量比 (col 7 after tags column)
+    const sortVolRatio = await verifyWatchingSort('量比', 7, 'number');
     record('Watching sort[量比]: direction toggles', sortVolRatio.toggled, `first=${sortVolRatio.first.slice(0,4).join(',')} second=${sortVolRatio.second.slice(0,4).join(',')}`);
 
     // collapse/expand should not destroy current sort
-    const beforeCollapse = await getWatchingColumnValues(6, 'number');
+    const beforeCollapse = await getWatchingColumnValues(7, 'number');
     const stockSectionToggle = page.locator('div', { hasText: 'watching:stocks' }).first();
     await stockSectionToggle.click();
     await page.waitForTimeout(120);
     await stockSectionToggle.click();
     await page.waitForTimeout(120);
-    const afterExpand = await getWatchingColumnValues(6, 'number');
+    const afterExpand = await getWatchingColumnValues(7, 'number');
     record('Watching: collapse/expand keeps sort order', sameHead(beforeCollapse, afterExpand), `before=${beforeCollapse.slice(0,4).join(',')} after=${afterExpand.slice(0,4).join(',')}`);
 
     // tab switch should keep watching sort state
-    const beforeTabSwitch = await getWatchingColumnValues(8, 'money');
+    const beforeTabSwitch = await getWatchingColumnValues(9, 'money');
     await page.locator('button', { hasText: 'HK' }).first().click();
     await page.waitForTimeout(250);
     await page.locator('button', { hasText: 'A-share' }).first().click();
     await page.waitForTimeout(250);
-    const afterTabSwitch = await getWatchingColumnValues(8, 'money');
+    const afterTabSwitch = await getWatchingColumnValues(9, 'money');
     record('Watching: sort persists across A/HK switch', sameHead(beforeTabSwitch, afterTabSwitch), `before=${beforeTabSwitch.slice(0,4).join(',')} after=${afterTabSwitch.slice(0,4).join(',')}`);
 
     // ════════════════════════════════════════════════

@@ -286,6 +286,24 @@ CREATE TABLE IF NOT EXISTS tag_meta (
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
+
+-- Futu 模拟盘订单审计追踪
+CREATE TABLE IF NOT EXISTS futu_orders (
+    order_id TEXT PRIMARY KEY,
+    code TEXT NOT NULL,
+    side TEXT NOT NULL,
+    price REAL,
+    quantity INTEGER,
+    filled_qty INTEGER DEFAULT 0,
+    avg_fill_price REAL,
+    status TEXT DEFAULT 'PENDING',
+    futu_acc_id INTEGER,
+    exit_reason TEXT,
+    created_at INTEGER,
+    updated_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_futu_orders_code ON futu_orders(code);
+CREATE INDEX IF NOT EXISTS idx_futu_orders_status ON futu_orders(status);
 """
 
 
