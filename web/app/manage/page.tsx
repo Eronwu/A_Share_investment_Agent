@@ -6,6 +6,7 @@ import { AppTabs } from "../components/AppTabs";
 import { AppTitleBar } from "../components/AppTitleBar";
 
 import type { WatchEntry, MonitorConfig } from "../types";
+import { tagColor } from "../lib/tag-utils";
 
 /* ── Trade Plan Types ── */
 
@@ -203,6 +204,156 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
   );
 }
 
+/* ── Tag Editor dropdown ── */
+function TagEditor({
+  code,
+  currentTags,
+  allTags,
+  onSave,
+  onClose,
+}: {
+  code: string;
+  currentTags: string[];
+  allTags: string[];
+  onSave: (code: string, tags: string[]) => void;
+  onClose: () => void;
+}) {
+  const [selected, setSelected] = useState<Set<string>>(new Set(currentTags));
+  const [newTag, setNewTag] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [onClose]);
+
+  function toggle(tag: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) next.delete(tag);
+      else next.add(tag);
+      return next;
+    });
+  }
+
+  function addNew() {
+    const t = newTag.trim();
+    if (!t) return;
+    setSelected((prev) => new Set(prev).add(t));
+    setNewTag("");
+  }
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        position: "absolute",
+        top: "100%",
+        left: 0,
+        zIndex: 100,
+        background: D.bg,
+        border: `1px solid ${D.purple}`,
+        borderRadius: 4,
+        padding: "8px 10px",
+        minWidth: 180,
+        maxHeight: 260,
+        overflow: "auto",
+        fontFamily: "JetBrains Mono, monospace",
+        fontSize: 11,
+      }}
+    >
+      {allTags.length > 0 && (
+        <div style={{ marginBottom: 6 }}>
+          {allTags.map((t) => (
+            <label
+              key={t}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "2px 0",
+                cursor: "pointer",
+                color: D.fg,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={selected.has(t)}
+                onChange={() => toggle(t)}
+                style={{ accentColor: D.purple }}
+              />
+              <span
+                style={{
+                  background: tagColor(t),
+                  color: "#282a36",
+                  padding: "0 6px",
+                  borderRadius: 3,
+                  fontSize: 10,
+                  fontWeight: 700,
+                }}
+              >
+                {t}
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+        <input
+          value={newTag}
+          onChange={(e) => setNewTag(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") addNew(); }}
+          placeholder="new tag..."
+          style={{
+            background: D.currentLine,
+            border: `1px solid ${D.comment}`,
+            color: D.fg,
+            fontFamily: "JetBrains Mono, monospace",
+            fontSize: 11,
+            padding: "2px 6px",
+            outline: "none",
+            borderRadius: 2,
+            flex: 1,
+            minWidth: 0,
+          }}
+        />
+        <button
+          onClick={addNew}
+          style={{
+            background: "transparent",
+            border: `1px solid ${D.green}`,
+            color: D.green,
+            cursor: "pointer",
+            fontSize: 11,
+            fontWeight: 700,
+            padding: "0 6px",
+            borderRadius: 2,
+            fontFamily: "JetBrains Mono, monospace",
+          }}
+        >+</button>
+      </div>
+      <button
+        onClick={() => { onSave(code, Array.from(selected)); onClose(); }}
+        style={{
+          background: D.purple,
+          border: "none",
+          color: D.bg,
+          cursor: "pointer",
+          fontSize: 11,
+          fontWeight: 700,
+          padding: "3px 12px",
+          borderRadius: 3,
+          fontFamily: "JetBrains Mono, monospace",
+          width: "100%",
+        }}
+      >确定</button>
+    </div>
+  );
+}
+
 /* ── Stock row ── */
 function StockRow({
   code,
@@ -223,6 +374,10 @@ function StockRow({
   onToggleHidden,
   onToggleStar,
   onToggleDipBuy,
+  allTags,
+  onSaveTags,
+  selected,
+  onToggleSelect,
 }: {
   code: string;
   entry: WatchEntry;
@@ -242,7 +397,12 @@ function StockRow({
   onToggleHidden: (code: string, hidden: boolean) => void;
   onToggleStar: (code: string, star: boolean) => void;
   onToggleDipBuy: (code: string, dipBuy: boolean) => void;
+  allTags: string[];
+  onSaveTags: (code: string, tags: string[]) => void;
+  selected: boolean;
+  onToggleSelect: (code: string) => void;
 }) {
+  const [tagEditorOpen, setTagEditorOpen] = useState(false);
   const isPromoting = promoting === code;
 
   const typeBadgeStyle: React.CSSProperties = {
@@ -303,6 +463,12 @@ function StockRow({
           whiteSpace: "nowrap",
         }}
       >
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(code)}
+          style={{ accentColor: D.purple, cursor: "pointer", marginRight: 2 }}
+        />
         <span
           style={typeBadgeStyle}
           onClick={() => onUpdateType(code, entry.type || "watching")}
@@ -315,6 +481,39 @@ function StockRow({
         </span>
         <span style={{ width: 110, color: D.fg, display: "inline-block" }}>
           {entry.name}
+        </span>
+        {/* tags */}
+        <span
+          style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 3, minWidth: 80, cursor: "pointer" }}
+          onClick={() => setTagEditorOpen((v) => !v)}
+          title="Click to edit tags"
+        >
+          {(entry.tags || []).length > 0
+            ? (entry.tags || []).map((t) => (
+                <span
+                  key={t}
+                  style={{
+                    background: tagColor(t),
+                    color: "#282a36",
+                    padding: "0 5px",
+                    borderRadius: 3,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    whiteSpace: "nowrap",
+                  }}
+                >{t}</span>
+              ))
+            : <span style={{ color: D.comment, fontSize: 10 }}>+tag</span>
+          }
+          {tagEditorOpen && (
+            <TagEditor
+              code={code}
+              currentTags={entry.tags || []}
+              allTags={allTags}
+              onSave={onSaveTags}
+              onClose={() => setTagEditorOpen(false)}
+            />
+          )}
         </span>
         {isHolding && (
           <>
@@ -994,6 +1193,12 @@ export default function ManagePage() {
   const [prodHKOpen, setProdHKOpen] = useState(true);
   const [watchOpen, setWatchOpen] = useState(true);
 
+  // batch selection
+  const [selectedCodes, setSelectedCodes] = useState<Set<string>>(new Set());
+  const [batchTagOpen, setBatchTagOpen] = useState(false);
+  const [batchNewTag, setBatchNewTag] = useState("");
+  const batchRef = useRef<HTMLDivElement>(null);
+
   // trade plans
   const [plans, setPlans] = useState<Record<string, TradePlan>>({});
   const [plansOpen, setPlansOpen] = useState(true);
@@ -1206,6 +1411,33 @@ export default function ManagePage() {
   const prodETF = holdings.filter(([c]) => isETF(c));
   const prodHK = holdings.filter(([c]) => isHK(c));
 
+  // collect all unique tags across all stocks
+  const allTags = Array.from(
+    new Set(entries.flatMap(([, v]) => v.tags || []))
+  ).sort();
+
+  function toggleSelect(code: string) {
+    setSelectedCodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
+  }
+
+  async function handleSaveTags(code: string, tags: string[]) {
+    await apiPost({ action: "update", code, data: { tags } });
+  }
+
+  async function handleBatchTagAdd(tag: string) {
+    const codes = Array.from(selectedCodes);
+    if (codes.length === 0 || !tag) return;
+    await apiPost({ action: "tag-add", codes, tag });
+    setSelectedCodes(new Set());
+    setBatchTagOpen(false);
+    setBatchNewTag("");
+  }
+
   const planEntries = Object.entries(plans).filter(([, p]) => p.scope !== "sim");
 
   const inputStyle: React.CSSProperties = {
@@ -1406,11 +1638,127 @@ export default function ManagePage() {
         </div>
         </>)}
 
+        {/* batch tag toolbar */}
+        {selectedCodes.size > 0 && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "6px 8px", marginBottom: 4,
+            background: D.currentLine, borderRadius: 4,
+            fontSize: 12,
+          }}>
+            <span style={{ color: D.purple, fontWeight: 700 }}>
+              {selectedCodes.size} selected
+            </span>
+            <div style={{ position: "relative" }} ref={batchRef}>
+              <button
+                onClick={() => setBatchTagOpen((v) => !v)}
+                style={{
+                  background: "transparent",
+                  border: `1px solid ${D.purple}`,
+                  color: D.purple,
+                  cursor: "pointer",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "2px 10px",
+                  borderRadius: 3,
+                  fontFamily: "JetBrains Mono, monospace",
+                }}
+              >批量打 Tag</button>
+              {batchTagOpen && (
+                <div style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  zIndex: 100,
+                  background: D.bg,
+                  border: `1px solid ${D.purple}`,
+                  borderRadius: 4,
+                  padding: "8px 10px",
+                  minWidth: 180,
+                  marginTop: 4,
+                  fontFamily: "JetBrains Mono, monospace",
+                  fontSize: 11,
+                }}>
+                  {allTags.map((t) => (
+                    <div
+                      key={t}
+                      onClick={() => handleBatchTagAdd(t)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 6,
+                        padding: "3px 4px", cursor: "pointer",
+                        borderRadius: 2,
+                      }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = D.currentLine; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                    >
+                      <span style={{
+                        background: tagColor(t),
+                        color: "#282a36",
+                        padding: "0 6px",
+                        borderRadius: 3,
+                        fontSize: 10,
+                        fontWeight: 700,
+                      }}>{t}</span>
+                    </div>
+                  ))}
+                  <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
+                    <input
+                      value={batchNewTag}
+                      onChange={(e) => setBatchNewTag(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter" && batchNewTag.trim()) handleBatchTagAdd(batchNewTag.trim()); }}
+                      placeholder="new tag..."
+                      style={{
+                        background: D.currentLine,
+                        border: `1px solid ${D.comment}`,
+                        color: D.fg,
+                        fontFamily: "JetBrains Mono, monospace",
+                        fontSize: 11,
+                        padding: "2px 6px",
+                        outline: "none",
+                        borderRadius: 2,
+                        flex: 1,
+                        minWidth: 0,
+                      }}
+                    />
+                    <button
+                      onClick={() => { if (batchNewTag.trim()) handleBatchTagAdd(batchNewTag.trim()); }}
+                      style={{
+                        background: D.purple,
+                        border: "none",
+                        color: D.bg,
+                        cursor: "pointer",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: "2px 8px",
+                        borderRadius: 2,
+                        fontFamily: "JetBrains Mono, monospace",
+                      }}
+                    >+</button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setSelectedCodes(new Set())}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: D.comment,
+                cursor: "pointer",
+                fontSize: 11,
+                fontFamily: "JetBrains Mono, monospace",
+              }}
+            >clear</button>
+          </div>
+        )}
+
         {/* column legend */}
-        <div style={{ display: "flex", gap: 4, padding: "4px 0 2px", color: D.comment, fontSize: 11, borderBottom: `1px solid ${D.currentLine}` }}>
+        <div style={{ display: "flex", gap: 4, padding: "4px 0 2px", color: D.comment, fontSize: 11, borderBottom: `1px solid ${D.currentLine}`, alignItems: "center" }}>
+          <span style={{ width: 20 }}></span>
           <span style={{ width: 50 }}>type</span>
           <span style={{ width: 90 }}>code</span>
           <span style={{ width: 110 }}>name</span>
+          <span style={{ minWidth: 80 }}>tags</span>
           <span style={{ width: 80 }}>cost</span>
           <span style={{ width: 80 }}>shares</span>
           <span style={{ width: 60 }}></span>
@@ -1438,6 +1786,8 @@ export default function ManagePage() {
                 setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
                 onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
                 onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar} onToggleDipBuy={handleToggleDipBuy}
+                allTags={allTags} onSaveTags={handleSaveTags}
+                selected={selectedCodes.has(code)} onToggleSelect={toggleSelect}
               />
             ))}
           </>
@@ -1461,6 +1811,8 @@ export default function ManagePage() {
                 setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
                 onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
                 onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar} onToggleDipBuy={handleToggleDipBuy}
+                allTags={allTags} onSaveTags={handleSaveTags}
+                selected={selectedCodes.has(code)} onToggleSelect={toggleSelect}
               />
             ))}
           </>
@@ -1484,6 +1836,8 @@ export default function ManagePage() {
                 setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
                 onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
                 onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar} onToggleDipBuy={handleToggleDipBuy}
+                allTags={allTags} onSaveTags={handleSaveTags}
+                selected={selectedCodes.has(code)} onToggleSelect={toggleSelect}
               />
             ))}
           </>
@@ -1511,6 +1865,8 @@ export default function ManagePage() {
                 setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
                 onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
                 onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar} onToggleDipBuy={handleToggleDipBuy}
+                allTags={allTags} onSaveTags={handleSaveTags}
+                selected={selectedCodes.has(code)} onToggleSelect={toggleSelect}
               />
             ))}
           </>
