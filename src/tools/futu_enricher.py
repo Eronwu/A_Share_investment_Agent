@@ -141,7 +141,7 @@ class FutuL2Enricher:
         if not codes:
             return {}
 
-        # ── 1. Snapshot 额外字段 (bidAskRatio, avgPrice) ──
+        # ── 1. Snapshot (HK=完整行情+L2, A股=仅L2衍生) ──
         snapshot_data = self._fetch_snapshot_extra(codes)
 
         # ── 2. Capital flow (mainNetInflow, retailNetInflow) ──
@@ -149,22 +149,16 @@ class FutuL2Enricher:
         # Futu get_capital_flow 的 30次/30s 限频（daemon 每 3s poll 已占满配额）
         capital_data = self._read_capital_from_l2_signals()
 
-        # ── 3. 组装结果，计算 mainNetInflowPct ──
+        # ── 3. 组装结果 ──
         amount_map = {s["id"]: s.get("amount", 0) for s in services}
 
         for code in codes:
             entry = {}
 
-            # snapshot 字段
+            # snapshot 字段 — HK 已含 price/change 等行情字段，直接 merge
             snap = snapshot_data.get(code)
             if snap:
-                entry["bidAskRatio"] = snap.get("bidAskRatio")
-                entry["avgPrice"] = snap.get("avgPrice")
-                # 量比/换手率：东方财富对港股返回 0，用 Futu 数据覆盖
-                if snap.get("volumeRatio"):
-                    entry["volRatio"] = snap["volumeRatio"]
-                if snap.get("turnoverRate"):
-                    entry["turnover"] = snap["turnoverRate"]
+                entry.update(snap)
 
             # capital flow 字段
             cap = capital_data.get(code)
@@ -173,7 +167,8 @@ class FutuL2Enricher:
                 entry["retailNetInflow"] = cap.get("retailNetInflow")
 
                 # mainNetInflowPct = mainNetInflow / 当日成交额 * 100
-                amount = amount_map.get(code, 0)
+                # 优先用 snapshot 的 amount（HK），fallback 到 services 的 amount
+                amount = entry.get("amount") or amount_map.get(code, 0)
                 main_inflow = cap.get("mainNetInflow", 0)
                 if amount and main_inflow is not None:
                     entry["mainNetInflowPct"] = round(main_inflow / amount * 100, 2)
@@ -186,7 +181,12 @@ class FutuL2Enricher:
         return result
 
     def _fetch_snapshot_extra(self, codes: list[str]) -> dict[str, dict]:
-        """从 snapshot 提取 bidAskRatio, avgPrice, volumeRatio, turnoverRate"""
+        """从 snapshot 提取行情数据
+
+        港股: 完整行情 (price/change/vol/amount/...) + L2 衍生字段，
+              直接覆盖新浪/东方财富数据，Futu HK L2 是最可靠数据源。
+        A股:  仅 L2 衍生字段 (bidAskRatio, avgPrice, volumeRatio, turnoverRate)。
+        """
         from futu import RET_OK
 
         futu_codes = [to_futu_code(c) for c in codes]
@@ -196,32 +196,75 @@ class FutuL2Enricher:
         a_share = [c for c in futu_codes if not c.startswith("HK.")]
 
         result = {}
-        for batch in [hk, a_share]:
-            if not batch:
-                continue
+
+        # ── 港股: 完整行情 + L2 字段 ──
+        if hk:
             try:
-                ret, data = self._ctx.get_market_snapshot(batch)
-                if ret != RET_OK:
-                    continue
-                for _, row in data.iterrows():
-                    code = from_futu_code(row["code"])
-                    bid_ask = row.get("bid_ask_ratio")
-                    avg = row.get("avg_price")
-                    vol_ratio = row.get("volume_ratio")
-                    turnover_rate = row.get("turnover_rate")
-                    entry = {}
-                    if bid_ask and bid_ask != 0:
-                        entry["bidAskRatio"] = round(float(bid_ask), 3)
-                    if avg and avg != 0:
-                        entry["avgPrice"] = round(float(avg), 3)
-                    if vol_ratio and vol_ratio > 0:
-                        entry["volumeRatio"] = round(float(vol_ratio), 2)
-                    if turnover_rate and turnover_rate > 0:
-                        entry["turnoverRate"] = round(float(turnover_rate), 2)
-                    if entry:
-                        result[code] = entry
+                ret, data = self._ctx.get_market_snapshot(hk)
+                if ret == RET_OK:
+                    for _, row in data.iterrows():
+                        code = from_futu_code(row["code"])
+                        entry = {}
+                        # 核心行情字段 — 覆盖新浪/东方财富
+                        price = row.get("last_price")
+                        prev = row.get("prev_close_price")
+                        if price and price > 0:
+                            entry["price"] = round(float(price), 3)
+                        if prev and prev > 0:
+                            entry["prevClose"] = round(float(prev), 3)
+                            if price and price > 0:
+                                entry["change"] = round((price - prev) / prev * 100, 2)
+                                entry["chgAmt"] = round(float(price - prev), 3)
+                        for ft_key, svc_key in [
+                            ("open_price", "open"), ("high_price", "high"),
+                            ("low_price", "low"), ("volume", "vol"),
+                            ("turnover", "amount"), ("amplitude", "amp"),
+                        ]:
+                            val = row.get(ft_key)
+                            if val and val > 0:
+                                entry[svc_key] = round(float(val), 3) if isinstance(val, float) else int(val)
+                        # L2 衍生字段
+                        bid_ask = row.get("bid_ask_ratio")
+                        avg = row.get("avg_price")
+                        vol_ratio = row.get("volume_ratio")
+                        turnover_rate = row.get("turnover_rate")
+                        if bid_ask and bid_ask != 0:
+                            entry["bidAskRatio"] = round(float(bid_ask), 3)
+                        if avg and avg != 0:
+                            entry["avgPrice"] = round(float(avg), 3)
+                        if vol_ratio and vol_ratio > 0:
+                            entry["volRatio"] = round(float(vol_ratio), 2)
+                        if turnover_rate and turnover_rate > 0:
+                            entry["turnover"] = round(float(turnover_rate), 2)
+                        if entry:
+                            result[code] = entry
             except Exception as e:
-                logger.debug(f"snapshot batch 失败: {e}")
+                logger.debug(f"HK snapshot 失败: {e}")
+
+        # ── A股: 仅 L2 衍生字段 ──
+        if a_share:
+            try:
+                ret, data = self._ctx.get_market_snapshot(a_share)
+                if ret == RET_OK:
+                    for _, row in data.iterrows():
+                        code = from_futu_code(row["code"])
+                        entry = {}
+                        bid_ask = row.get("bid_ask_ratio")
+                        avg = row.get("avg_price")
+                        vol_ratio = row.get("volume_ratio")
+                        turnover_rate = row.get("turnover_rate")
+                        if bid_ask and bid_ask != 0:
+                            entry["bidAskRatio"] = round(float(bid_ask), 3)
+                        if avg and avg != 0:
+                            entry["avgPrice"] = round(float(avg), 3)
+                        if vol_ratio and vol_ratio > 0:
+                            entry["volRatio"] = round(float(vol_ratio), 2)
+                        if turnover_rate and turnover_rate > 0:
+                            entry["turnover"] = round(float(turnover_rate), 2)
+                        if entry:
+                            result[code] = entry
+            except Exception as e:
+                logger.debug(f"A股 snapshot 失败: {e}")
 
         return result
 

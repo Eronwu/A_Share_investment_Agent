@@ -27,6 +27,7 @@ interface TradePlan {
   name: string;
   symbol: string;
   status: "active" | "paused";
+  scope: "real" | "sim";
   created_at: string;
   orders: Order[];
 }
@@ -153,6 +154,7 @@ export async function POST(request: Request) {
           name: plan.name,
           symbol: plan.symbol,
           status: plan.status || "active",
+          scope: plan.scope || "real",
           created_at: plan.created_at || new Date().toISOString().slice(0, 10),
           orders: plan.orders || [],
         };
@@ -173,6 +175,7 @@ export async function POST(request: Request) {
 
         if (updates.name !== undefined) plan.name = updates.name;
         if (updates.status !== undefined) plan.status = updates.status;
+        if (updates.scope !== undefined) plan.scope = updates.scope;
 
         // orders replacement
         if (updates.orders !== undefined) {

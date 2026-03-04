@@ -250,6 +250,7 @@ def poll_once() -> bool:
             existing = {"services": []}
         existing["ts"] = int(time.time() * 1000)
         existing["settings"] = settings
+        existing["_source"] = {"primary": "unavailable", "is_fallback": True, "futu_connected": False}
         if turnover:
             existing["marketTurnover"] = turnover
         tmp = OUTPUT_PATH.with_suffix(".tmp")
@@ -318,6 +319,12 @@ def poll_once() -> bool:
         "settings": settings,
         "hkdCnyRate": hkd_cny_rate,
         "marketTurnover": turnover,
+        # 数据源元数据，供 Data Freshness Watchdog 检测降级
+        "_source": {
+            "primary": "sina" if is_sina_fallback else "eastmoney",
+            "is_fallback": is_sina_fallback,
+            "futu_connected": bool(l2_data),
+        },
     }
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)

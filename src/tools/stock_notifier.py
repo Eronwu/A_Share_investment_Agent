@@ -131,24 +131,26 @@ def _archive_and_reset(today):
 def is_any_market_open(has_hk: bool = False) -> bool:
     """Check if any watched market is currently in trading hours.
 
-    A-shares: Mon-Fri 09:15-11:30, 13:00-15:00
-    HK:       Mon-Fri 09:15-12:00, 13:00-16:00 (when has_hk=True)
+    A-shares: trading day 09:15-11:30, 13:00-15:00
+    HK:       trading day 09:15-12:00, 13:00-16:00 (when has_hk=True)
 
+    Uses Futu trading calendar for accurate holiday detection,
+    falls back to weekday check if Futu is unavailable.
     Uses 09:15 instead of 09:30 to catch pre-open auction moves.
     """
-    now = datetime.now()
-    if now.weekday() >= 5:
-        return False
+    from src.tools.trading_calendar import is_trading_day
 
+    now = datetime.now()
     t = now.hour * 100 + now.minute
 
     # A-share session
     if (915 <= t <= 1130) or (1300 <= t <= 1500):
-        return True
+        if is_trading_day("CN"):
+            return True
 
     # HK extended session
-    if has_hk:
-        if (915 <= t <= 1200) or (1300 <= t <= 1600):
+    if has_hk and ((915 <= t <= 1200) or (1300 <= t <= 1600)):
+        if is_trading_day("HK"):
             return True
 
     return False
@@ -465,6 +467,264 @@ class DeltaAlertEngine:
 
 
 # ══════════════════════════════════════════
+# 4b. Data Freshness Watchdog
+# ══════════════════════════════════════════
+#
+# Three-layer staleness detection:
+#   Layer 1: File staleness (poller crash/hang)
+#   Layer 2: Price freeze (poller running but data stale)
+#   Layer 3: Source degradation (running on fallback)
+#
+# Only active during trading hours. Resets at 08:00 with everything else.
+
+WATCHDOG_COOLDOWN_SEC = 300  # 5 min between repeated alerts per issue type
+
+
+class DataFreshnessWatchdog:
+    """Monitors data pipeline health and alerts on staleness."""
+
+    def __init__(self, poll_interval: int = 30):
+        self._poll_interval = poll_interval
+        # Layer 1: file staleness
+        self._last_seen_mtime: float = 0.0
+        self._mtime_unchanged_since: float | None = None
+        self._file_stale_alerted: bool = False
+        # Layer 2: price freeze (per-market)
+        self._price_fingerprints: dict[str, dict] = {}   # {market: {fp, first_seen}}
+        self._price_frozen_alerted: dict[str, bool] = {}
+        # Layer 3: source degradation
+        self._fallback_since: float | None = None
+        self._futu_down_since: float | None = None
+        self._source_alerted: dict[str, bool] = {}
+        # Cooldowns
+        self._cooldowns: dict[str, float] = {}
+
+    def reset(self):
+        """Daily reset at 08:00."""
+        self._last_seen_mtime = 0.0
+        self._mtime_unchanged_since = None
+        self._file_stale_alerted = False
+        self._price_fingerprints.clear()
+        self._price_frozen_alerted.clear()
+        self._fallback_since = None
+        self._futu_down_since = None
+        self._source_alerted.clear()
+        self._cooldowns.clear()
+
+    def update_poll_interval(self, interval: int):
+        self._poll_interval = interval
+
+    def check(self, market_data_path, market: dict | None, has_hk: bool) -> list[dict]:
+        """Run all staleness checks. Called every loop iteration."""
+        if not is_any_market_open(has_hk):
+            return []
+
+        now = time.time()
+        alerts: list[dict] = []
+
+        # Layer 1: file staleness
+        alerts.extend(self._check_file_staleness(market_data_path, now))
+
+        if market and not self._file_stale_alerted:
+            # Layer 2: price freeze
+            alerts.extend(self._check_price_freeze(market, has_hk, now))
+            # Layer 3: source degradation
+            alerts.extend(self._check_source_degradation(market, now))
+
+        return alerts
+
+    # ── helpers ──
+
+    def _cooled(self, key: str, now: float) -> bool:
+        return (now - self._cooldowns.get(key, 0)) >= WATCHDOG_COOLDOWN_SEC
+
+    def _fire(self, key: str, now: float):
+        self._cooldowns[key] = now
+
+    @staticmethod
+    def _make_alert(issue_type: str, display_msg: str, level: int = 2,
+                    is_recovery: bool = False) -> dict:
+        icon = "OK" if is_recovery else "WARN"
+        return {
+            "symbol": "",
+            "title": f"[{icon}] {display_msg[:40]}",
+            "message": display_msg,
+            "display": display_msg,
+            "_kind": "STALE",
+            "_level": level,
+            "_change_pct": 0,
+            "_stealth": f"[{icon}] {display_msg}",
+            "_issue_type": issue_type,
+        }
+
+    # ── Layer 1: file staleness ──
+
+    def _check_file_staleness(self, path, now: float) -> list[dict]:
+        current_mtime = get_mtime(path)
+        threshold = self._poll_interval * 3
+
+        if current_mtime <= 0:
+            return []
+
+        if current_mtime != self._last_seen_mtime:
+            self._last_seen_mtime = current_mtime
+            self._mtime_unchanged_since = None
+            if self._file_stale_alerted:
+                self._file_stale_alerted = False
+                return [self._make_alert(
+                    "file_stale_recovery",
+                    "数据恢复: Poller 已恢复写入",
+                    level=3, is_recovery=True,
+                )]
+            return []
+
+        # mtime unchanged
+        if self._mtime_unchanged_since is None:
+            self._mtime_unchanged_since = now
+
+        elapsed = now - self._mtime_unchanged_since
+        if elapsed >= threshold and not self._file_stale_alerted:
+            if self._cooled("file_stale", now):
+                self._fire("file_stale", now)
+                self._file_stale_alerted = True
+                mins = int(elapsed // 60) or 1
+                return [self._make_alert(
+                    "file_stale",
+                    f"Poller 可能挂起: market_data.json 已 {mins} 分钟未更新",
+                    level=1,
+                )]
+        return []
+
+    # ── Layer 2: price freeze ──
+
+    @staticmethod
+    def _compute_fingerprint(services: list[dict], market_prefix: str) -> str:
+        import hashlib
+        if market_prefix == "HK":
+            subset = [s for s in services if s.get("id", "").startswith("HK")]
+        else:
+            subset = [s for s in services if not s.get("id", "").startswith("HK")]
+        subset.sort(key=lambda s: s.get("amount", 0), reverse=True)
+        top = subset[:8]
+        if not top:
+            return ""
+        key_data = tuple(sorted((s.get("id", ""), s.get("price", 0)) for s in top))
+        return hashlib.md5(str(key_data).encode()).hexdigest()
+
+    @staticmethod
+    def _is_market_active(market: str, has_hk: bool) -> bool:
+        from src.tools.trading_calendar import is_trading_day
+        now = datetime.now()
+        t = now.hour * 100 + now.minute
+        if market == "A":
+            return ((930 <= t <= 1130) or (1300 <= t <= 1500)) and is_trading_day("CN")
+        if market == "HK" and has_hk:
+            return ((930 <= t <= 1200) or (1300 <= t <= 1600)) and is_trading_day("HK")
+        return False
+
+    def _check_price_freeze(self, market: dict, has_hk: bool, now: float) -> list[dict]:
+        services = market.get("services", [])
+        if not services:
+            return []
+        alerts = []
+        freeze_threshold = self._poll_interval * 5
+
+        for mkt in (["A", "HK"] if has_hk else ["A"]):
+            if not self._is_market_active(mkt, has_hk):
+                self._price_fingerprints.pop(mkt, None)
+                continue
+            fp = self._compute_fingerprint(services, mkt)
+            if not fp:
+                continue
+            prev = self._price_fingerprints.get(mkt)
+            if prev is None or prev["fingerprint"] != fp:
+                self._price_fingerprints[mkt] = {"fingerprint": fp, "first_seen": now}
+                if self._price_frozen_alerted.get(mkt):
+                    self._price_frozen_alerted[mkt] = False
+                    alerts.append(self._make_alert(
+                        f"price_frozen_recovery_{mkt}",
+                        f"价格恢复: {mkt} 行情数据已更新",
+                        level=3, is_recovery=True,
+                    ))
+            else:
+                elapsed = now - prev["first_seen"]
+                if elapsed >= freeze_threshold and not self._price_frozen_alerted.get(mkt):
+                    key = f"price_frozen_{mkt}"
+                    if self._cooled(key, now):
+                        self._fire(key, now)
+                        self._price_frozen_alerted[mkt] = True
+                        mins = round(elapsed / 60, 1)
+                        alerts.append(self._make_alert(
+                            key,
+                            f"价格冻结: {mkt} Top8 价格 {mins} 分钟未变化",
+                            level=2,
+                        ))
+        return alerts
+
+    # ── Layer 3: source degradation ──
+
+    def _check_source_degradation(self, market: dict, now: float) -> list[dict]:
+        source = market.get("_source")
+        if source is None:
+            return []
+        alerts = []
+        threshold = 300  # 5 minutes
+
+        # Primary fallback
+        if source.get("is_fallback"):
+            if self._fallback_since is None:
+                self._fallback_since = now
+            elif (now - self._fallback_since >= threshold
+                    and not self._source_alerted.get("primary_fallback")):
+                if self._cooled("source_fallback", now):
+                    self._fire("source_fallback", now)
+                    self._source_alerted["primary_fallback"] = True
+                    mins = int((now - self._fallback_since) // 60)
+                    alerts.append(self._make_alert(
+                        "source_fallback",
+                        f"数据源降级: 东方财富不可用，新浪 fallback {mins}min",
+                        level=2,
+                    ))
+        else:
+            if self._fallback_since is not None:
+                self._fallback_since = None
+                if self._source_alerted.get("primary_fallback"):
+                    self._source_alerted["primary_fallback"] = False
+                    alerts.append(self._make_alert(
+                        "source_recovery",
+                        "数据源恢复: 东方财富重新连接",
+                        level=3, is_recovery=True,
+                    ))
+
+        # Futu disconnection
+        if not source.get("futu_connected", True):
+            if self._futu_down_since is None:
+                self._futu_down_since = now
+            elif (now - self._futu_down_since >= threshold
+                    and not self._source_alerted.get("futu_down")):
+                if self._cooled("futu_down", now):
+                    self._fire("futu_down", now)
+                    self._source_alerted["futu_down"] = True
+                    alerts.append(self._make_alert(
+                        "futu_down",
+                        "Futu 断连: HK 行情失去 L2 增强",
+                        level=2,
+                    ))
+        else:
+            if self._futu_down_since is not None:
+                self._futu_down_since = None
+                if self._source_alerted.get("futu_down"):
+                    self._source_alerted["futu_down"] = False
+                    alerts.append(self._make_alert(
+                        "futu_recovery",
+                        "Futu 恢复: HK L2 增强已重连",
+                        level=3, is_recovery=True,
+                    ))
+
+        return alerts
+
+
+# ══════════════════════════════════════════
 # 5. Stealth notification layer
 # ══════════════════════════════════════════
 #
@@ -520,7 +780,9 @@ def write_alert_events(alerts: list[dict]):
         name = a.get("title", "").split(" ")[0] if a.get("title") else symbol
 
         # 中文可读格式
-        if kind == "l2_strategy":
+        if kind == "STALE":
+            display = a.get("display", a.get("message", ""))
+        elif kind == "l2_strategy":
             display = a.get("message", f"{symbol} L2 signal")
         elif kind == "threshold":
             display = f"{symbol} {name} 触价告警 {a.get('message', '')}"
@@ -1155,11 +1417,13 @@ def run():
     last_checked_count = len(watchlist)
     engine = DeltaAlertEngine(config)
     plan_engine = TradePlanEngine()
+    watchdog = DataFreshnessWatchdog(poll_interval=settings.get("poll_interval", 30))
     sent_open_today = False
     sent_close_today = False
     sent_summary_today = False
     latest_quotes: dict | None = None       # last merged quotes (for close summary)
     latest_hkd_cny_rate: float | None = None
+    market_snapshot: dict | None = None     # latest parsed market_data.json (for watchdog)
 
     while running:
         # Reset daily at 08:00 (before market open)
@@ -1175,6 +1439,7 @@ def run():
             latest_hkd_cny_rate = None
             last_alert_date = today
             engine.reset()  # clear delta tracking for new day
+            watchdog.reset()  # clear staleness tracking for new day
             check_l2_signals._daily_counts = {}  # reset per-stock L2 cap
             # 归档昨日数据 + 清空（新交易日重新开始）
             _archive_and_reset(today)
@@ -1186,6 +1451,7 @@ def run():
                 settings = config.get("settings", {})
                 has_hk = any(is_hk_symbol(s) for s in watchlist)
                 engine.config = config
+                watchdog.update_poll_interval(settings.get("poll_interval", 30))
 
         trading = is_any_market_open(has_hk)
         check_interval = TRADING_CHECK_SEC if trading else NON_TRADING_CHECK_SEC
@@ -1207,6 +1473,7 @@ def run():
 
             market = read_json_safe(MARKET_DATA_PATH)
             if market is not None:
+                market_snapshot = market  # keep for watchdog
                 quotes = merge_data(market, config)
                 last_checked_count = len(quotes)
 
@@ -1261,6 +1528,21 @@ def run():
         else:
             # No new data -- reuse last checked count for consistent display
             print_status(last_checked_count, daily_alerts, check_interval, trading)
+
+        # ── Data Freshness Watchdog (runs every iteration, not just on mtime change) ──
+        wd_alerts = watchdog.check(MARKET_DATA_PATH, market_snapshot, has_hk)
+        if wd_alerts:
+            print()
+            write_alert_events(wd_alerts)
+            wd_l1 = [a for a in wd_alerts if a.get("_level") == 1]
+            wd_l2 = [a for a in wd_alerts if a.get("_level") == 2]
+            if wd_l1:
+                stealth_dispatch(wd_l1, sound="default")
+            if wd_l2:
+                stealth_dispatch(wd_l2, sound="")
+            daily_alerts += len(wd_l1) + len(wd_l2)
+            for a in wd_alerts:
+                logger.info(f"Watchdog: {a['message']}")
 
         # ── Market open/close notifications (time-based, independent of mtime) ──
         sent_open_today, sent_close_today, oc_alerts = check_market_open_close(

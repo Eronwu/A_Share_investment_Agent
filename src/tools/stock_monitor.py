@@ -127,9 +127,12 @@ def hk_code(symbol: str) -> str:
 
 
 def _sina_code(symbol: str) -> str:
-    """转换为新浪格式: A股 sh600089/sz002335, 港股 hk00700"""
+    """转换为新浪格式: A股 sh600089/sz002335, 港股 rt_hk00700
+
+    港股必须用 rt_hk 前缀才能拿到实时行情，hk 前缀返回延迟数据。
+    """
     if is_hk_symbol(symbol):
-        return f"hk{hk_code(symbol)}"
+        return f"rt_hk{hk_code(symbol)}"
     return f"{get_stock_prefix(symbol)}{symbol}"
 
 
@@ -188,11 +191,12 @@ def fetch_realtime_sina(symbols: list[str]) -> dict:
         fields = data_str.split(",")
 
         try:
-            if full_code.startswith("hk"):
-                # ── 港股: 19 个字段 ──
+            if full_code.startswith("rt_hk") or full_code.startswith("hk"):
+                # ── 港股: rt_hk 实时 (25 字段) / hk 延迟 (19 字段) ──
                 if len(fields) < 13:
                     continue
-                symbol = f"HK{full_code[2:]}"
+                raw = full_code.removeprefix("rt_").removeprefix("hk")
+                symbol = f"HK{raw}"
                 name = fields[1]
                 open_price = float(fields[2]) if fields[2] else 0
                 prev_close = float(fields[3]) if fields[3] else 0

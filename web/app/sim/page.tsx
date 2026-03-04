@@ -131,6 +131,7 @@ interface TradePlan {
   name: string;
   symbol: string;
   status: string;
+  scope?: string;
   created_at: string;
   orders: TradePlanOrder[];
   current_price: number;
@@ -1148,7 +1149,7 @@ function CompletedTradesTable({ trades }: { trades: Trade[] }) {
 
 function TradePlanPanel({ plans }: { plans: TradePlan[] }) {
   const [open, setOpen] = useState(true);
-  const activePlans = plans.filter((p) => p.status === "active");
+  const activePlans = plans.filter((p) => p.status === "active" && p.scope === "sim");
   if (activePlans.length === 0) return null;
 
   return (

@@ -35,6 +35,7 @@ interface TradePlan {
   name: string;
   symbol: string;
   status: "active" | "paused";
+  scope?: "real" | "sim";
   created_at: string;
   orders: PlanOrder[];
   position?: PlanPosition | null;
@@ -221,6 +222,7 @@ function StockRow({
   onRemove,
   onToggleHidden,
   onToggleStar,
+  onToggleDipBuy,
 }: {
   code: string;
   entry: WatchEntry;
@@ -239,6 +241,7 @@ function StockRow({
   onRemove: (code: string, name: string) => void;
   onToggleHidden: (code: string, hidden: boolean) => void;
   onToggleStar: (code: string, star: boolean) => void;
+  onToggleDipBuy: (code: string, dipBuy: boolean) => void;
 }) {
   const isPromoting = promoting === code;
 
@@ -402,6 +405,48 @@ function StockRow({
         >
           *
         </button>
+        {/* dip_buy toggle */}
+        <span
+          onClick={() => onToggleDipBuy(code, !entry.dip_buy)}
+          title={entry.dip_buy ? "Disable dip-buy monitoring" : "Enable dip-buy monitoring"}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            cursor: "pointer",
+            userSelect: "none",
+            fontFamily: "JetBrains Mono, monospace",
+            fontSize: 10,
+            color: entry.dip_buy ? D.cyan : D.comment,
+          }}
+        >
+          <span
+            style={{
+              display: "inline-block",
+              width: 28,
+              height: 14,
+              borderRadius: 7,
+              background: entry.dip_buy ? D.cyan : D.currentLine,
+              position: "relative",
+              transition: "background 0.2s",
+            }}
+          >
+            <span
+              style={{
+                display: "inline-block",
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: entry.dip_buy ? D.bg : D.comment,
+                position: "absolute",
+                top: 2,
+                left: entry.dip_buy ? 16 : 2,
+                transition: "left 0.2s",
+              }}
+            />
+          </span>
+          {entry.dip_buy ? "dip" : "dip"}
+        </span>
         {/* hide toggle */}
         <span
             onClick={() => onToggleHidden(code, !entry.hidden)}
@@ -719,6 +764,7 @@ function AddPlanForm({
       name: planName,
       symbol,
       status: "active",
+      scope: "real",
       created_at: new Date().toISOString().slice(0, 10),
       orders: builtOrders,
     };
@@ -1077,6 +1123,10 @@ export default function ManagePage() {
     await apiPost({ action: "update", code, data: { hidden } });
   }
 
+  async function handleToggleDipBuy(code: string, dip_buy: boolean) {
+    await apiPost({ action: "update", code, data: { dip_buy } });
+  }
+
   async function handleRemove(code: string, name: string) {
     if (!confirm(`Remove ${code} (${name})?`)) return;
     await apiPost({ action: "remove", code });
@@ -1156,7 +1206,7 @@ export default function ManagePage() {
   const prodETF = holdings.filter(([c]) => isETF(c));
   const prodHK = holdings.filter(([c]) => isHK(c));
 
-  const planEntries = Object.entries(plans);
+  const planEntries = Object.entries(plans).filter(([, p]) => p.scope !== "sim");
 
   const inputStyle: React.CSSProperties = {
     background: D.currentLine,
@@ -1387,7 +1437,7 @@ export default function ManagePage() {
                 promoting={promoting} promoCost={promoCost} promoShares={promoShares}
                 setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
                 onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
-                onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar}
+                onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar} onToggleDipBuy={handleToggleDipBuy}
               />
             ))}
           </>
@@ -1410,7 +1460,7 @@ export default function ManagePage() {
                 promoting={promoting} promoCost={promoCost} promoShares={promoShares}
                 setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
                 onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
-                onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar}
+                onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar} onToggleDipBuy={handleToggleDipBuy}
               />
             ))}
           </>
@@ -1433,7 +1483,7 @@ export default function ManagePage() {
                 promoting={promoting} promoCost={promoCost} promoShares={promoShares}
                 setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
                 onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
-                onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar}
+                onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar} onToggleDipBuy={handleToggleDipBuy}
               />
             ))}
           </>
@@ -1460,7 +1510,7 @@ export default function ManagePage() {
                 promoting={promoting} promoCost={promoCost} promoShares={promoShares}
                 setPromoting={setPromoting} setPromoCost={setPromoCost} setPromoShares={setPromoShares}
                 onUpdateField={handleUpdateField} onUpdateType={handleUpdateType}
-                onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar}
+                onPromote={handlePromote} onRemove={handleRemove} onToggleHidden={handleToggleHidden} onToggleStar={handleToggleStar} onToggleDipBuy={handleToggleDipBuy}
               />
             ))}
           </>

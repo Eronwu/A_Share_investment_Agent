@@ -98,6 +98,7 @@ function WatchingContent() {
   );
   useAlerts(tabAlertEvents, addLogs, activeTab);
 
+  const showL2 = activeTab === "HK";
   const isHK = (s: Service) => s.id.startsWith("HK");
   const isETF = (s: Service) => !isHK(s) && /^(51|15|58)\d{4}$/.test(s.id);
   const inTab = (s: Service) => activeTab === "HK" ? isHK(s) : !isHK(s);
@@ -144,6 +145,16 @@ function WatchingContent() {
           {pad(s.turnover > 0 ? s.turnover.toFixed(2) : "-", 7, true)}
         </span>
         <span style={{ color: D.comment, width: "9ch", textAlign: "right" }}>{pad(fmtAmt(s.amount), 8, true)}</span>
+        {showL2 && (
+          <span style={{ color: s.mainNetInflow != null ? chgColor(s.mainNetInflow) : D.comment, width: "9ch", textAlign: "right" }}>
+            {pad(s.mainNetInflow != null ? fmtAmt(s.mainNetInflow) : "-", 8, true)}
+          </span>
+        )}
+        {showL2 && (
+          <span style={{ color: s.mainNetInflowPct != null ? chgColor(s.mainNetInflowPct) : D.comment, width: "7ch", textAlign: "right" }}>
+            {s.mainNetInflowPct != null ? `${s.mainNetInflowPct >= 0 ? "+" : ""}${s.mainNetInflowPct.toFixed(1)}%` : pad("-", 6, true)}
+          </span>
+        )}
         <span style={{ color: D.comment, width: "13ch", textAlign: "right" }}>{pad(`${s.low.toFixed(2)}-${s.high.toFixed(2)}`, 12, true)}</span>
       </div>
     );
@@ -169,6 +180,8 @@ function WatchingContent() {
       <span style={mkHStyle("7ch", "volRatio", true)} onClick={() => toggleWatchSort("volRatio")}>{pad("量比" + mkArrow("volRatio"), 6, true)}</span>
       <span style={mkHStyle("8ch", "turnover", true)} onClick={() => toggleWatchSort("turnover")}>{pad("换手%" + mkArrow("turnover"), 7, true)}</span>
       <span style={mkHStyle("9ch", "amount", true)} onClick={() => toggleWatchSort("amount")}>{pad("成交额" + mkArrow("amount"), 8, true)}</span>
+      {showL2 && <span style={mkHStyle("9ch", "mainNetInflow" as SortKey, true)} onClick={() => toggleWatchSort("mainNetInflow" as SortKey)}>{pad("主力" + mkArrow("mainNetInflow" as SortKey), 8, true)}</span>}
+      {showL2 && <span style={mkHStyle("7ch", "mainNetInflowPct" as SortKey, true)} onClick={() => toggleWatchSort("mainNetInflowPct" as SortKey)}>{pad("主力%" + mkArrow("mainNetInflowPct" as SortKey), 6, true)}</span>}
       <span style={{ width: "13ch", textAlign: "right" }}>{pad("高低", 12, true)}</span>
     </div>
   );

@@ -52,6 +52,7 @@ const KIND_LABELS: Record<string, { label: string; color: string }> = {
   threshold: { label: "触价告警", color: D.red },
   portfolio: { label: "组合变动", color: D.purple },
   l2_strategy: { label: "L2信号", color: D.cyan },
+  STALE: { label: "数据监控", color: "#ff6b6b" },
 };
 
 /** Parse display text into structured fields for cleaner rendering */
@@ -127,6 +128,18 @@ function parseAlert(e: AlertEvent): {
         detail: "触及阈值",
       };
     }
+  }
+
+  if (e.kind === "STALE") {
+    const isRecovery = d.includes("恢复") || d.startsWith("[OK]");
+    return {
+      stockName: isRecovery ? "恢复" : "系统",
+      stockCode: "",
+      signal: isRecovery ? "数据恢复" : "数据异常",
+      signalColor: isRecovery ? D.green : "#ff6b6b",
+      price: "",
+      detail: d.replace(/^\[(OK|WARN)\]\s*/, ""),
+    };
   }
 
   if (e.kind === "portfolio") {

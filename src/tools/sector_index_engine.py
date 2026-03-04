@@ -83,13 +83,13 @@ def _today_compact(today=None) -> str:
 
 
 def _is_trading_day(date_str: str | None = None) -> bool:
-    """Check if date is a potential A-share trading day (Mon-Fri).
+    """Check if date is an A-share trading day.
 
-    Does NOT check holidays — but data sources will return no new data
-    on holidays, and the suspended-stock logic treats that as 0% change.
+    Uses Futu trading calendar for accurate holiday detection,
+    falls back to weekday check if Futu is unavailable.
     """
-    d = datetime.strptime(date_str, "%Y-%m-%d") if date_str else datetime.now()
-    return d.weekday() < 5  # 0=Mon .. 4=Fri
+    from src.tools.trading_calendar import is_trading_day
+    return is_trading_day("CN", date_str)
 
 
 # ---------------------------------------------------------------------------
