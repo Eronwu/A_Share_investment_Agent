@@ -32,19 +32,84 @@ logger = logging.getLogger("sector_engine")
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "data" / "sector_config.json"
 
+# Default alert rules (previously in sector_config.json → alert_rules)
+_DEFAULT_ALERT_RULES = {
+    "cumulative_gain_pct": 8,
+    "slope_threshold": 0.05,
+    "r_squared_min": 0.4,
+    "lookback_days": 10,
+    "min_days_since_create": 3,
+}
+
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 def _load_config() -> dict:
-    """Load sector_config.json, return empty dict on failure."""
+    """Load sector_config.json, return empty dict on failure.
+
+    Still used for rotation config (category, sort, top_n) and alert_rules
+    fallback.
+    """
     try:
         with open(CONFIG_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError) as exc:
         logger.warning("Failed to load config %s: %s", CONFIG_PATH, exc)
         return {}
+
+
+def _load_tag_indices() -> dict:
+    """Load index definitions from tag_meta + monitor_watchlist.tags in DB.
+
+    Returns dict keyed by tag name, e.g.:
+      {"磷化工": {"name": "磷化工", "stocks": ["000792", "600096", ...],
+                   "star": True, "watch": True, "baseline_value": 100,
+                   "created_at": "2026-02-27"}}
+    """
+    conn = get_connection()
+    try:
+        # Get all tags from tag_meta
+        tags = conn.execute(
+            "SELECT tag, star, watch, baseline_value, created_at FROM tag_meta"
+        ).fetchall()
+
+        # Get all non-hidden stocks that have tags
+        stocks = conn.execute(
+            "SELECT symbol, tags FROM monitor_watchlist"
+            " WHERE hidden = 0 AND tags != '[]'"
+        ).fetchall()
+    finally:
+        conn.close()
+
+    # Build tag → stocks mapping
+    tag_stocks: dict[str, list[str]] = {}
+    for row in stocks:
+        symbol = row["symbol"]
+        tags_json = row["tags"]
+        try:
+            parsed = json.loads(tags_json) if isinstance(tags_json, str) else tags_json
+        except (json.JSONDecodeError, TypeError):
+            continue
+        for tag in parsed:
+            tag_stocks.setdefault(tag, []).append(symbol)
+
+    # Build index definitions (only for tags that have at least one stock)
+    indices: dict[str, dict] = {}
+    for row in tags:
+        tag = row["tag"]
+        if tag in tag_stocks:
+            indices[tag] = {
+                "name": tag,
+                "stocks": tag_stocks[tag],
+                "star": bool(row["star"]),
+                "watch": bool(row["watch"]),
+                "baseline_value": row["baseline_value"] or 100,
+                "created_at": row["created_at"] or "",
+            }
+
+    return indices
 
 
 def _akshare_call(fn, label: str, max_retries: int = 3):
@@ -291,7 +356,7 @@ def collect_rotation(today=None):
 # ---------------------------------------------------------------------------
 
 def compute_custom_indices(today=None):
-    """Compute equal-weight custom indices from sector_config.json definitions."""
+    """Compute equal-weight custom indices from DB tag definitions."""
     date_str = _today_str(today)
 
     if not _is_trading_day(date_str):
@@ -299,8 +364,7 @@ def compute_custom_indices(today=None):
         return
 
     date_compact = _today_compact(today)
-    config = _load_config()
-    indices = config.get("indices", {})
+    indices = _load_tag_indices()
 
     if not indices:
         logger.info("No custom indices defined in config, skipping")
@@ -410,11 +474,10 @@ def _compute_single_index(conn, index_id: str, index_def: dict,
 
 def backfill_index(index_id: str, days: int = 30):
     """Backfill an index by fetching multi-day history for each component."""
-    config = _load_config()
-    indices = config.get("indices", {})
+    indices = _load_tag_indices()
     index_def = indices.get(index_id)
     if not index_def:
-        logger.error("index_id=%s not found in config", index_id)
+        logger.error("index_id=%s not found in DB tags", index_id)
         return
 
     components = index_def.get("stocks") or index_def.get("components", [])
@@ -598,9 +661,11 @@ def detect_mainline(today=None):
         logger.info("detect_mainline: %s is not a trading day, skipping", date_str)
         return
 
-    config = _load_config()
-    indices = config.get("indices", {})
-    alert_rules = config.get("alert_rules", {})
+    indices = _load_tag_indices()
+
+    # Alert rules: try sector_config.json fallback, else hardcoded defaults
+    cfg_alert_rules = _load_config().get("alert_rules", {})
+    alert_rules = {**_DEFAULT_ALERT_RULES, **cfg_alert_rules}
 
     cum_gain_threshold = alert_rules.get("cumulative_gain_pct", 8)
     slope_threshold = alert_rules.get("slope_threshold", 0.05)
