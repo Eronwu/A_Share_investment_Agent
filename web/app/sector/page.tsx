@@ -26,6 +26,7 @@ interface IndexEntry {
   star: boolean;
   watch: boolean;
   stocks: string[];
+  stockCount: number;
   createdAt: string;
   today: number;
   d3: number;
@@ -114,21 +115,14 @@ function CreateModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [id, setId] = useState("");
-  const [stocks, setStocks] = useState("");
+  const [tagName, setTagName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   async function handleCreate() {
-    const trimName = name.trim();
-    const trimId = id.trim();
-    const stockList = stocks
-      .split(/[,\s]+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (!trimName || !trimId || stockList.length === 0) {
-      setError("名称、ID、成分股均不能为空");
+    const trimTag = tagName.trim();
+    if (!trimTag) {
+      setError("Tag 名称不能为空");
       return;
     }
     setSaving(true);
@@ -138,10 +132,8 @@ function CreateModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "create",
-          id: trimId,
-          name: trimName,
-          stocks: stockList,
+          action: "create-tag",
+          tag: trimTag,
         }),
       });
       const result = await resp.json();
@@ -196,42 +188,25 @@ function CreateModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ color: D.purple, fontWeight: 700, marginBottom: 16, fontSize: 14 }}>
-          # ── 新建自定义指数 ──
+          # ── 新建 Tag 指数 ──
         </div>
 
         <label style={{ color: D.comment, fontSize: 12, display: "block", marginBottom: 4 }}>
-          名称:
+          Tag 名称:
         </label>
         <input
-          style={{ ...inputStyle, marginBottom: 12 }}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          style={{ ...inputStyle, marginBottom: 8 }}
+          value={tagName}
+          onChange={(e) => setTagName(e.target.value)}
           placeholder="磷化工"
           autoFocus
-        />
-
-        <label style={{ color: D.comment, fontSize: 12, display: "block", marginBottom: 4 }}>
-          ID:
-        </label>
-        <input
-          style={{ ...inputStyle, marginBottom: 12 }}
-          value={id}
-          onChange={(e) => setId(e.target.value)}
-          placeholder="phosphorus"
-        />
-
-        <label style={{ color: D.comment, fontSize: 12, display: "block", marginBottom: 4 }}>
-          成分股 (逗号分隔):
-        </label>
-        <input
-          style={{ ...inputStyle, marginBottom: 16 }}
-          value={stocks}
-          onChange={(e) => setStocks(e.target.value)}
-          placeholder="000792,600096,002895"
           onKeyDown={(e) => {
             if (e.key === "Enter") handleCreate();
           }}
         />
+        <div style={{ color: D.comment, fontSize: 11, marginBottom: 16 }}>
+          创建后在 /manage 页面给股票打上此 tag 即可加入指数
+        </div>
 
         {error && (
           <div style={{ color: D.red, fontSize: 12, marginBottom: 10 }}>
@@ -344,7 +319,7 @@ export default function SectorPage() {
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`删除指数 ${name}?`)) return;
-    await postAction({ action: "delete", id });
+    await postAction({ action: "delete-tag", tag: id });
   }
 
   // Escape key closes modals
@@ -552,7 +527,7 @@ export default function SectorPage() {
                                       {statusInfo.label}
                                     </span>
                                     <span style={{ fontSize: 10, color: D.comment }}>
-                                      {idx.stocks.length}股
+                                      {idx.stockCount ?? idx.stocks?.length ?? 0}只
                                     </span>
                                   </div>
                                 </div>
@@ -905,7 +880,7 @@ export default function SectorPage() {
               {/* component stocks table */}
               <div style={{ marginTop: 12, borderTop: `1px solid ${D.currentLine}`, paddingTop: 8 }}>
                 <div style={{ color: D.comment, fontSize: 11, marginBottom: 6 }}>
-                  成分股 ({idx.stocks.length}):
+                  成分股 ({idx.stockCount ?? idx.stocks?.length ?? 0}):
                 </div>
                 {idx.components.length > 0 ? (
                   <table
