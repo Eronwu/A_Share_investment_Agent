@@ -22,6 +22,9 @@ type DbWatchRow = {
   shares: number | null;
   hidden: number;
   star: number;
+  tags: string | null;
+  watch_price: number | null;
+  watch_price_date: string | null;
 };
 
 function mergeSplitLists(
@@ -64,7 +67,7 @@ function readMonitorConfigFromDb(): {
   try {
     const watchRows = db
       .prepare(
-        `SELECT symbol, name, list_type, cost, shares, hidden, star
+        `SELECT symbol, name, list_type, cost, shares, hidden, star, tags, watch_price, watch_price_date
          FROM monitor_watchlist`,
       )
       .all() as DbWatchRow[];
@@ -74,6 +77,10 @@ function readMonitorConfigFromDb(): {
 
     const watchlist: Record<string, Record<string, unknown>> = {};
     for (const r of watchRows) {
+      let parsedTags: string[] | undefined;
+      if (r.tags) {
+        try { parsedTags = JSON.parse(r.tags); } catch { /* ignore malformed */ }
+      }
       watchlist[r.symbol] = {
         name: r.name,
         type: r.list_type,
@@ -81,6 +88,9 @@ function readMonitorConfigFromDb(): {
         shares: r.shares,
         hidden: Boolean(r.hidden),
         star: Boolean(r.star),
+        tags: parsedTags,
+        watch_price: r.watch_price,
+        watch_price_date: r.watch_price_date,
       };
     }
 
@@ -185,6 +195,9 @@ export async function GET() {
           below: alert?.below ?? null,
           hidden: Boolean(entry.hidden),
           star: Boolean(entry.star),
+          ...(entry.tags ? { tags: entry.tags } : {}),
+          ...(entry.watch_price != null ? { watch_price: Number(entry.watch_price) } : {}),
+          ...(entry.watch_price_date ? { watch_price_date: entry.watch_price_date } : {}),
         };
       });
     }

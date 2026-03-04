@@ -44,6 +44,9 @@ export interface Service {
   below: number | null;
   hidden?: boolean;
   star?: boolean;
+  tags?: string[];
+  watch_price?: number;
+  watch_price_date?: string;
   /* Futu L2 enrichment (optional — absent when OpenD offline or A-share no permission) */
   mainNetInflow?: number;
   mainNetInflowPct?: number;
