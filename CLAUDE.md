@@ -128,6 +128,8 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 
 **概览**: 自定义板块指数 + 主线行情告警。板块轮动功能已归档（前端页面删除，DB 数据保留，代码在 git 历史 `4eeacb8` 中）。
 
+**Tag-Based Index 架构**: 自定义指数不再使用独立配置文件，而是从 `monitor_watchlist.tags` 自动聚合。给股票打标签（如 `磷化工`）即自动创建/加入该标签的指数。`tag_meta` 表存储每个标签的元数据（star/watch/baseline_value）。无需维护独立的成分股列表——标签即指数。
+
 **页面结构**:
 - `/sector` — 我的指数（轮动矩阵风格）+ 主线告警 + K 线图弹窗
 
@@ -135,6 +137,7 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 ```
 [每日 15:30 cron，自动跳过周末]
 sector_index_engine.py
+  ├── _load_tag_indices() → 从 monitor_watchlist.tags + tag_meta 聚合指数定义
   ├── akshare stock_zh_a_hist() → 成分股日线（EM push2）
   │   └── fallback: 腾讯财经 web.ifzq.gtimg.cn（EM 被封时自动切换）
   ├── 腾讯 qt API → 成分股名称（batch 获取，进程内缓存）
@@ -146,7 +149,7 @@ sector_index_engine.py
   └── 写入 sim_trading.db: sector_rotation / sector_daily / sector_alerts
           ↓
 /api/sector (Next.js, GET 只读 + POST 管理)
-  ├── indices: 含 30d history 数组（日期+涨跌+指数值）用于矩阵和K线图
+  ├── indices: 从 tag_meta + monitor_watchlist.tags 聚合，含 30d history
   ├── components: 含 name/close/change_pct（名称从 DB 读取，fallback watchlist）
   └── alerts: 主线/接近主线告警
           ↓
@@ -160,6 +163,7 @@ sector_index_engine.py
 - K 线图下方: 成分股表格（代码/名称/最新价/涨跌幅/涨跌额）
 - 停牌股处理: 无数据时按 0% 涨跌计入指数（不排除，防止指数被小盘股主导）
 - components_json 存储: `{code, name, change_pct, close}` — 名称从腾讯 qt API 获取
+- 标签管理: 在 Manage 页面给股票打 tags，sector 页面自动出现对应指数
 
 **主线行情检测**:
 - 规则: `累涨 >= 8%` AND `日收益率回归斜率 >= 0.05` AND `R² >= 0.4`
@@ -182,18 +186,16 @@ poetry run python -m src.tools.sector_index_engine --backfill ID # 回填指数3
 poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主线信号
 ```
 
-**配置 (`sector_config.json`)**:
+**指数定义（Tag-Based）**: 指数由 `monitor_watchlist.tags` 自动聚合，不需要独立配置文件。
+
+```
+给 000792 打 tag "磷化工" → 自动出现在 /sector 页面的"磷化工"指数中
+tag_meta 表存 star/watch/baseline_value → 控制指数是否监测主线、是否星标
+```
+
+**告警规则 (`sector_config.json`)**（仅保留 alert_rules + rotation，indices 已迁移到 tags）:
 ```json
 {
-  "indices": {
-    "phosphorus": {
-      "name": "磷化工",
-      "stocks": ["000792", "600096", "002895", "000902"],
-      "created_at": "2026-02-27",
-      "baseline_value": 100,
-      "watch": true, "star": false
-    }
-  },
   "alert_rules": {
     "cumulative_gain_pct": 8,
     "slope_threshold": 0.05,
@@ -206,10 +208,10 @@ poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主�
 ```
 
 **API**:
-- `GET /api/sector` → indices (含 history 数组 + 成分股含 name) + alerts + rotation
+- `GET /api/sector` → indices (从 tags 聚合，含 history + 成分股) + alerts + rotation
 - `GET /api/sector?category=industry&sort=change_pct&top_n=10&board=板块名` → 轮动矩阵 + 板块详情
 - `POST /api/sector` → `{action: "create"|"update"|"delete"|"watch"|"star"|"config", ...}`
-- 配置文件存储格式为 dict (`{id: {...}}`)，API 层自动 dict↔array 转换
+- 指数的创建/删除实际操作 `monitor_watchlist.tags` + `tag_meta` 表
 
 **SQLite 表** (in `sim_trading.db`):
 - `sector_rotation`: 板块每日排名 (date, category, board_name, change_pct, rank) — 90 天保留
@@ -249,7 +251,8 @@ poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主�
 | `sim_trading.db` → `alert_events` | Notifier (Python) | 告警事件流 (message/display 双格式) |
 | `trade_plans.json` | UI (/api/trade-plans) + TradePlanEngine | 交易计划条件单 (orders 统一模型) |
 | `sim_trading.db` → `trade_plan_events` | TradePlanEngine (Python) | 交易计划触发事件 |
-| `sector_config.json` | UI (/api/sector) | 自定义指数定义 + 告警规则 + 轮动配置 |
+| `sector_config.json` | UI (/api/sector) | 告警规则 + 轮动配置（indices 已迁移到 tags） |
+| `sim_trading.db` → `tag_meta` | UI (/api/sector, /api/config) | 标签元数据 (star/watch/baseline_value) — 标签即指数 |
 | `sim_trading.db` → `sector_*` | sector_index_engine (Python) | 板块轮动排名 + 自定义指数日线 + 主线告警 |
 
 `/api/metrics` 合并 `market_data.json` + `monitor_config`(DB 或 JSON) + `alert_config.json` + SQLite alert_events + 计算 pnl，任何 UI 操作立即生效，不依赖 poller 周期。
@@ -260,13 +263,16 @@ poetry run python -m src.tools.sector_index_engine --detect      # 仅检测主�
 ```json
 {
   "watchlist": {
-    "HK09988": { "name": "...", "type": "holding", "cost": 155, "shares": 200, "lot": 100 }
+    "HK09988": { "name": "...", "type": "holding", "cost": 155, "shares": 200, "lot": 100, "tags": "港股科技" },
+    "000792": { "name": "盐湖股份", "tags": "磷化工,有色金属", "watch_price": 18.5 }
   },
-  "holdings": { "HK09988": { "name": "...", "type": "holding", "cost": 155, "shares": 200, "lot": 100 } },
-  "watching": { "600000": { "name": "浦发银行" } },
+  "holdings": { "HK09988": { "name": "...", "type": "holding", "cost": 155, "shares": 200, "lot": 100, "tags": "港股科技" } },
+  "watching": { "000792": { "name": "盐湖股份", "tags": "磷化工,有色金属", "watch_price": 18.5 } },
   "settings": { "poll_interval": 30, "big_move_pct": 3, "cooldown_minutes": 10 }
 }
 ```
+
+`tags` 字段为逗号分隔的标签字符串，与 `monitor_watchlist.tags` DB 列同步。`watch_price` 为关注价（可选）。标签自动聚合为 `/sector` 页面的自定义指数。
 
 JSON 同时存储三种视图：`watchlist`（统一）、`holdings`（仅持仓）、`watching`（仅自选）。读取时 `normalizeConfig()` 自动兼容任意组合。
 
@@ -300,6 +306,7 @@ JSON 同时存储三种视图：`watchlist`（统一）、`holdings`（仅持仓
 - `web/app/lib/db.ts` — SQLite 路径统一 (`SIM_DB_PATH`)，所有 API route 共用
 - `web/app/types.ts` — `WatchEntry`（含 `lot`）、`MonitorConfig`（含 `holdings`/`watching` 分组）
 - `src/tools/monitor_config_db_migrator.py` — JSON ↔ DB 迁移工具 (import/verify/export)
+- `src/tools/migrate_sector_to_tags.py` — sector_config.json indices → stock tags + tag_meta 一次性迁移工具
 
 ### Git 版本控制
 
@@ -317,7 +324,7 @@ JSON 同时存储三种视图：`watchlist`（统一）、`holdings`（仅持仓
 | `l2_strategy_signals.json` | L2 信号 + session 上下文（资金流快照、盘口状态）。daemon 每 3s 覆盖，**每日 08:00 自动归档到 `archive/`**，防止 session 数据丢失 |
 | `signal_rules.json` | 信号规则配置 |
 | `l2_strategy_config.json` | L2 策略参数 |
-| `sector_config.json` | 自定义板块指数定义 + 告警规则 + 轮动配置 |
+| `sector_config.json` | 板块告警规则 + 轮动配置（indices 已迁移到 DB tags） |
 
 **不需要提交的（临时/派生）**:
 
@@ -428,8 +435,9 @@ tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
 - `sector_daily`: 自定义指数日线 (date, index_id, avg_change_pct, index_value, components_json) — 180 天保留
 - `sector_alerts`: 主线告警 (date, index_id, alert_type, cumulative_pct, slope, message) — 30 天保留
 - `daily_l2_digest`: 日线微观结构聚合 (date, code, lo_net_amount, tick_imbalance, cf_net_inflow, direction_score, direction) — 收盘后计算
-- `monitor_watchlist`: 持仓配置主存储 (symbol, name, list_type, cost, shares, lot, hidden, star) — DB-first，JSON 为快照
+- `monitor_watchlist`: 持仓配置主存储 (symbol, name, list_type, cost, shares, lot, hidden, star, tags, watch_price) — DB-first，JSON 为快照
 - `monitor_settings`: 监控设置 (key, value) — 与 monitor_config.json settings 同步
+- `tag_meta`: 标签元数据 (tag, star, watch, baseline_value, created_at) — 标签即指数，控制主线检测和星标
 
 **RT engine 日志**: logger 名 `l2_daemon.rt_sim`，继承 daemon handler，写入 `logs/l2_daemon.log`。
 
@@ -511,7 +519,7 @@ Order 字段: `side` (buy/sell), `op` (>=/<= 价格方向), `price` (触发价),
 - **Monitor Config DB-first 双写。** `/api/config` 所有写操作先写 SQLite `monitor_watchlist`/`monitor_settings` 表，然后自动导出 JSON 快照到 `monitor_config.json`。Python 端（Poller/Notifier）仍读 JSON。`CONFIG_SOURCE=json` 环境变量可强制 Web 端也读 JSON。
 - **All market data and FX rate fetching must happen in the Python poller script**, not in Next.js API routes. The web layer (`/api/metrics`) only reads from `market_data.json` written by the poller. This keeps the data pipeline centralized and avoids duplicate API calls from the frontend.
 - **Poller 降级不丢数据。** 东方财富不可用时 fallback 到新浪（价格刷新，但无量比/换手率）。Sina 降级时从上轮 `market_data.json` 继承 `volRatio`/`turnover`，避免用 0 覆盖。FX 汇率获取失败时同理继承上次值。
-- **板块轮动独立于 Poller。** `sector_index_engine.py` 是独立 cron，不嵌入 poller 循环。数据源降级链: akshare (EM push2) → 腾讯财经 kline → 新浪财经。Web 层 `/api/sector` 只读 SQLite + `sector_config.json` + `monitor_config.json`(名称查找)，不调用外部 API。周末自动跳过（`_is_trading_day()` 检查）。
+- **板块轮动独立于 Poller。** `sector_index_engine.py` 是独立 cron，不嵌入 poller 循环。数据源降级链: akshare (EM push2) → 腾讯财经 kline → 新浪财经。指数定义从 `monitor_watchlist.tags` + `tag_meta` 聚合（不再读 `sector_config.json` 的 indices）。Web 层 `/api/sector` 只读 SQLite，不调用外部 API。周末自动跳过（`_is_trading_day()` 检查）。
 - **告警规则与持仓配置分离。** `above`/`below` 阈值存在 `alert_config.json`，不存在 `monitor_config.json` 的 watchlist 条目里。所有读写告警的代码（web API、CLI、notifier）统一从 `alert_config.json` 操作。删除股票时同步清理两个文件。
 - **告警计算单一数据源。** Notifier (`stock_notifier.py` DeltaAlertEngine) 是唯一的告警计算引擎，产出写入 `sim_trading.db` 的 `alert_events` 表。Web 前端 (`useAlerts`) 只读取展示，不做任何告警计算。确保 terminal 弹窗和 web 日志完全一致，不重复计算，不重复告警。
 - **手续费单一计算源。** 交易成本只在 Python `SimulationEngine.calc_cost()` 中计算，`position_manager.close_position` 写入 DB 的 `pnl` 字段已包含买卖双边手续费（`buy_cost_per_share` 按比例分配）。Web `/api/sim` 直接读 DB pnl，不重新计算手续费。
