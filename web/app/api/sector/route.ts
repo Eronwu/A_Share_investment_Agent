@@ -7,26 +7,19 @@ import { SIM_DB_PATH } from "../../lib/db";
 
 export const dynamic = "force-dynamic";
 
-const SECTOR_CONFIG_PATH = join(
-  process.cwd(),
-  "..",
-  "src",
-  "data",
-  "sector_config.json",
-);
-const MONITOR_CONFIG_PATH = join(
-  process.cwd(),
-  "..",
-  "src",
-  "data",
-  "monitor_config.json",
-);
 const MARKET_DATA_PATH = join(
   process.cwd(),
   "..",
   "src",
   "data",
   "market_data.json",
+);
+const SECTOR_CONFIG_PATH = join(
+  process.cwd(),
+  "..",
+  "src",
+  "data",
+  "sector_config.json",
 );
 
 /* ── Types ── */
@@ -62,20 +55,18 @@ interface AlertRow {
   display: string;
 }
 
-interface IndexDef {
-  id: string;
-  name: string;
-  stocks: string[];
-  star: boolean;
-  watch: boolean;
-  created_at: string;
+interface TagMetaRow {
+  tag: string;
+  star: number;
+  watch: number;
   baseline_value: number;
+  created_at: string;
 }
 
-interface SectorConfig {
-  indices: IndexDef[];
-  alertRules: Record<string, unknown>;
-  rotation: Record<string, unknown>;
+interface WatchlistTagRow {
+  symbol: string;
+  name: string;
+  tags: string;
 }
 
 interface ComponentEntry {
@@ -93,65 +84,33 @@ interface RawComponentEntry {
   name?: string;
 }
 
-/* ── Config helpers ── */
-
-function readSectorConfig(): SectorConfig {
-  try {
-    if (!existsSync(SECTOR_CONFIG_PATH)) {
-      return { indices: [], alertRules: {}, rotation: {} };
-    }
-    const raw = JSON.parse(readFileSync(SECTOR_CONFIG_PATH, "utf-8"));
-    // Config file stores indices as dict { id: {...} }, convert to array
-    const indicesObj = raw.indices || {};
-    const indices: IndexDef[] = Object.entries(indicesObj).map(([id, v]) => ({
-      id,
-      ...(v as Omit<IndexDef, "id">),
-    }));
-    return {
-      indices,
-      alertRules: raw.alert_rules || raw.alertRules || {},
-      rotation: raw.rotation || {},
-    };
-  } catch {
-    return { indices: [], alertRules: {}, rotation: {} };
-  }
-}
-
-function writeSectorConfig(config: SectorConfig) {
-  // Convert array back to dict format for Python compatibility
-  const indicesObj: Record<string, Omit<IndexDef, "id">> = {};
-  for (const idx of config.indices) {
-    const { id, ...rest } = idx;
-    indicesObj[id] = rest;
-  }
-  const out = {
-    indices: indicesObj,
-    alert_rules: config.alertRules,
-    rotation: config.rotation,
-  };
-  const tmp = SECTOR_CONFIG_PATH + ".tmp";
-  writeFileSync(tmp, JSON.stringify(out, null, 2) + "\n", "utf-8");
-  renameSync(tmp, SECTOR_CONFIG_PATH);
-}
+/* ── Helpers ── */
 
 function round(n: number, d: number): number {
   const f = 10 ** d;
   return Math.round(n * f) / f;
 }
 
-/** Build code→name map from monitor_config.json + market_data.json (best effort) */
+/** Read alert_rules + rotation from sector_config.json (minimal reader, no indices) */
+function readSectorConfigMeta(): {
+  alertRules: Record<string, unknown>;
+  rotation: Record<string, unknown>;
+} {
+  try {
+    if (!existsSync(SECTOR_CONFIG_PATH)) return { alertRules: {}, rotation: {} };
+    const raw = JSON.parse(readFileSync(SECTOR_CONFIG_PATH, "utf-8"));
+    return {
+      alertRules: raw.alert_rules || raw.alertRules || {},
+      rotation: raw.rotation || {},
+    };
+  } catch {
+    return { alertRules: {}, rotation: {} };
+  }
+}
+
+/** Build code→name map from market_data.json (best effort) */
 function buildStockNameMap(): Record<string, string> {
   const map: Record<string, string> = {};
-  try {
-    if (existsSync(MONITOR_CONFIG_PATH)) {
-      const cfg = JSON.parse(readFileSync(MONITOR_CONFIG_PATH, "utf-8"));
-      const wl = cfg.watchlist || {};
-      for (const [code, entry] of Object.entries(wl)) {
-        const e = entry as { name?: string };
-        if (e.name) map[code] = e.name;
-      }
-    }
-  } catch { /* ignore */ }
   try {
     if (existsSync(MARKET_DATA_PATH)) {
       const md = JSON.parse(readFileSync(MARKET_DATA_PATH, "utf-8"));
@@ -445,16 +404,40 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // ── Custom indices ──
+    // ── Custom indices (tag-aggregated from DB) ──
 
-    const config = readSectorConfig();
+    const tagRows = db
+      .prepare("SELECT tag, star, watch, baseline_value, created_at FROM tag_meta")
+      .all() as TagMetaRow[];
+
+    const stockRows = db
+      .prepare(
+        `SELECT symbol, name, tags FROM monitor_watchlist
+         WHERE hidden = 0 AND tags IS NOT NULL AND tags != '[]'`,
+      )
+      .all() as WatchlistTagRow[];
+
+    // Build tag → stocks map
+    const tagStocks: Record<string, { code: string; name: string }[]> = {};
+    for (const row of stockRows) {
+      try {
+        const tags: string[] = JSON.parse(row.tags || "[]");
+        for (const tag of tags) {
+          if (!tagStocks[tag]) tagStocks[tag] = [];
+          tagStocks[tag].push({ code: row.symbol, name: row.name });
+        }
+      } catch { /* invalid json */ }
+    }
+
     const stockNameMap = buildStockNameMap();
+
     const indices: Array<{
       id: string;
       name: string;
       star: boolean;
       watch: boolean;
       stocks: string[];
+      stockCount: number;
       createdAt: string;
       today: number;
       d3: number;
@@ -466,7 +449,11 @@ export async function GET(request: NextRequest) {
       history: Array<{ date: string; change: number; value: number }>;
     }> = [];
 
-    for (const idx of config.indices) {
+    for (const tag of tagRows) {
+      const tagName = tag.tag;
+      const stockList = tagStocks[tagName] || [];
+      const stockCodes = stockList.map((s) => s.code);
+
       const dailyRows = db
         .prepare(
           `SELECT date, avg_change_pct, index_value, components_json
@@ -474,7 +461,7 @@ export async function GET(request: NextRequest) {
            WHERE index_id = ?
            ORDER BY date DESC LIMIT 30`,
         )
-        .all(idx.id) as SectorDailyRow[];
+        .all(tagName) as SectorDailyRow[];
 
       const today = dailyRows.length > 0 ? round(dailyRows[0].avg_change_pct, 2) : 0;
       const d3 = round(
@@ -490,7 +477,7 @@ export async function GET(request: NextRequest) {
         2,
       );
 
-      const baseline = idx.baseline_value || 100;
+      const baseline = tag.baseline_value || 100;
       const latestValue =
         dailyRows.length > 0 ? dailyRows[0].index_value : baseline;
       const cumGain = round(((latestValue / baseline) - 1) * 100, 2);
@@ -504,13 +491,11 @@ export async function GET(request: NextRequest) {
              WHERE index_id = ?
              ORDER BY ts DESC LIMIT 1`,
           )
-          .get(idx.id) as { alert_type: string } | undefined;
+          .get(tagName) as { alert_type: string } | undefined;
         if (latestAlert) {
           status = latestAlert.alert_type;
         }
-      } catch {
-        /* table may not exist */
-      }
+      } catch { /* table may not exist */ }
 
       // Components from latest row, enriched with stock names
       let components: ComponentEntry[] = [];
@@ -523,9 +508,7 @@ export async function GET(request: NextRequest) {
             close: c.close ?? null,
             name: c.name || stockNameMap[c.code] || "",
           }));
-        } catch {
-          /* invalid json */
-        }
+        } catch { /* invalid json */ }
       }
 
       // Daily history (chronological, newest last) for matrix view
@@ -538,12 +521,13 @@ export async function GET(request: NextRequest) {
         .reverse();
 
       indices.push({
-        id: idx.id,
-        name: idx.name,
-        star: idx.star ?? false,
-        watch: idx.watch ?? true,
-        stocks: idx.stocks,
-        createdAt: idx.created_at,
+        id: tagName,
+        name: tagName,
+        star: !!tag.star,
+        watch: !!tag.watch,
+        stocks: stockCodes,
+        stockCount: stockList.length,
+        createdAt: tag.created_at,
         today,
         d3,
         d5,
@@ -573,12 +557,13 @@ export async function GET(request: NextRequest) {
            ORDER BY ts DESC LIMIT 50`,
         )
         .all() as AlertRow[];
-    } catch {
-      /* table may not exist */
-    }
+    } catch { /* table may not exist */ }
 
     db.close();
     db = null;
+
+    // Read config meta (alert_rules, rotation) from sector_config.json
+    const configMeta = readSectorConfigMeta();
 
     return NextResponse.json({
       rotation: { dates, rows: rotationRows },
@@ -586,8 +571,8 @@ export async function GET(request: NextRequest) {
       indices,
       alerts,
       config: {
-        alertRules: config.alertRules,
-        rotation: config.rotation,
+        alertRules: configMeta.alertRules,
+        rotation: configMeta.rotation,
       },
     });
   } catch (e) {
@@ -605,77 +590,105 @@ export async function GET(request: NextRequest) {
   } finally {
     try {
       db?.close();
-    } catch {
-      /* already closed */
-    }
+    } catch { /* already closed */ }
   }
 }
 
 /* ── POST /api/sector ── */
 
 export async function POST(request: NextRequest) {
+  let db: InstanceType<typeof Database> | null = null;
   try {
     const body = await request.json();
     const { action } = body as { action: string };
-    const config = readSectorConfig();
 
     switch (action) {
-      case "create": {
-        const { id, name, stocks } = body as {
-          id: string;
-          name: string;
-          stocks: string[];
-        };
-        if (!id || !name || !stocks?.length) {
+      case "create-tag": {
+        const { tag } = body as { tag: string };
+        if (!tag || !tag.trim()) {
           return NextResponse.json(
-            { error: "Missing id, name, or stocks" },
+            { error: "Missing tag name" },
             { status: 400 },
           );
         }
-        if (config.indices.some((idx) => idx.id === id)) {
+        db = new Database(SIM_DB_PATH);
+        // Check if already exists
+        const existing = db
+          .prepare("SELECT tag FROM tag_meta WHERE tag = ?")
+          .get(tag.trim());
+        if (existing) {
+          db.close();
           return NextResponse.json(
-            { error: `Index ${id} already exists` },
+            { error: `Tag "${tag}" already exists` },
             { status: 400 },
           );
         }
-        config.indices.push({
-          id,
-          name,
-          stocks,
-          star: false,
-          watch: true,
-          created_at: new Date().toISOString(),
-          baseline_value: 100,
-        });
-        writeSectorConfig(config);
-        return NextResponse.json({ ok: true, action: "create", id });
+        db.prepare(
+          `INSERT INTO tag_meta (tag, star, watch, baseline_value, created_at, updated_at)
+           VALUES (?, 0, 1, 100, datetime('now'), datetime('now'))`,
+        ).run(tag.trim());
+        db.close();
+        db = null;
+        return NextResponse.json({ ok: true, action: "create-tag", tag: tag.trim() });
       }
 
-      case "update": {
-        const { id, stocks, name } = body as {
-          id: string;
-          stocks?: string[];
-          name?: string;
-        };
-        if (!id) {
+      case "delete-tag": {
+        const { tag } = body as { tag: string };
+        if (!tag) {
           return NextResponse.json(
-            { error: "Missing id" },
+            { error: "Missing tag" },
             { status: 400 },
           );
         }
-        const idx = config.indices.find((i) => i.id === id);
-        if (!idx) {
+        db = new Database(SIM_DB_PATH);
+        // Delete from tag_meta
+        const result = db
+          .prepare("DELETE FROM tag_meta WHERE tag = ?")
+          .run(tag);
+        if (result.changes === 0) {
+          db.close();
           return NextResponse.json(
-            { error: `Index ${id} not found` },
+            { error: `Tag "${tag}" not found` },
             { status: 404 },
           );
         }
-        if (stocks) idx.stocks = stocks;
-        if (name) idx.name = name;
-        writeSectorConfig(config);
-        return NextResponse.json({ ok: true, action: "update", id });
+        // Strip tag from all stocks in monitor_watchlist
+        const rows = db
+          .prepare(
+            `SELECT symbol, tags FROM monitor_watchlist
+             WHERE tags IS NOT NULL AND tags != '[]'`,
+          )
+          .all() as { symbol: string; tags: string }[];
+        const updateStmt = db.prepare(
+          "UPDATE monitor_watchlist SET tags = ?, updated_at = ? WHERE symbol = ?",
+        );
+        const now = Date.now();
+        const tx = db.transaction(() => {
+          for (const row of rows) {
+            try {
+              const tags: string[] = JSON.parse(row.tags || "[]");
+              const idx = tags.indexOf(tag);
+              if (idx !== -1) {
+                tags.splice(idx, 1);
+                updateStmt.run(JSON.stringify(tags), now, row.symbol);
+              }
+            } catch { /* invalid json */ }
+          }
+        });
+        tx();
+        // Delete associated DB rows
+        try {
+          db.prepare("DELETE FROM sector_daily WHERE index_id = ?").run(tag);
+        } catch { /* table may not exist */ }
+        try {
+          db.prepare("DELETE FROM sector_alerts WHERE index_id = ?").run(tag);
+        } catch { /* table may not exist */ }
+        db.close();
+        db = null;
+        return NextResponse.json({ ok: true, action: "delete-tag", tag });
       }
 
+      // Legacy alias: "delete" maps to "delete-tag" with id→tag
       case "delete": {
         const { id } = body as { id: string };
         if (!id) {
@@ -684,32 +697,48 @@ export async function POST(request: NextRequest) {
             { status: 400 },
           );
         }
-        const before = config.indices.length;
-        config.indices = config.indices.filter((i) => i.id !== id);
-        if (config.indices.length === before) {
-          return NextResponse.json(
-            { error: `Index ${id} not found` },
-            { status: 404 },
-          );
-        }
-        writeSectorConfig(config);
+        // Look up the tag name: try tag_meta directly first (id might be tag name)
+        db = new Database(SIM_DB_PATH);
+        const tagRow = db
+          .prepare("SELECT tag FROM tag_meta WHERE tag = ?")
+          .get(id) as { tag: string } | undefined;
+        const tagName = tagRow?.tag || id;
 
-        // Clean up DB rows (need write mode)
-        let db: InstanceType<typeof Database> | null = null;
-        try {
-          db = new Database(SIM_DB_PATH);
-          db.prepare("DELETE FROM sector_daily WHERE index_id = ?").run(id);
-          db.prepare("DELETE FROM sector_alerts WHERE index_id = ?").run(id);
-        } catch {
-          /* tables may not exist */
-        } finally {
-          try {
-            db?.close();
-          } catch {
-            /* already closed */
+        // Delete from tag_meta
+        db.prepare("DELETE FROM tag_meta WHERE tag = ?").run(tagName);
+        // Strip tag from stocks
+        const stocksWithTag = db
+          .prepare(
+            `SELECT symbol, tags FROM monitor_watchlist
+             WHERE tags IS NOT NULL AND tags != '[]'`,
+          )
+          .all() as { symbol: string; tags: string }[];
+        const updStmt = db.prepare(
+          "UPDATE monitor_watchlist SET tags = ?, updated_at = ? WHERE symbol = ?",
+        );
+        const nowTs = Date.now();
+        const delTx = db.transaction(() => {
+          for (const row of stocksWithTag) {
+            try {
+              const tags: string[] = JSON.parse(row.tags || "[]");
+              const tidx = tags.indexOf(tagName);
+              if (tidx !== -1) {
+                tags.splice(tidx, 1);
+                updStmt.run(JSON.stringify(tags), nowTs, row.symbol);
+              }
+            } catch { /* invalid json */ }
           }
-        }
-
+        });
+        delTx();
+        // Delete DB rows
+        try {
+          db.prepare("DELETE FROM sector_daily WHERE index_id = ?").run(tagName);
+        } catch { /* table may not exist */ }
+        try {
+          db.prepare("DELETE FROM sector_alerts WHERE index_id = ?").run(tagName);
+        } catch { /* table may not exist */ }
+        db.close();
+        db = null;
         return NextResponse.json({ ok: true, action: "delete", id });
       }
 
@@ -721,15 +750,18 @@ export async function POST(request: NextRequest) {
             { status: 400 },
           );
         }
-        const idx = config.indices.find((i) => i.id === id);
-        if (!idx) {
+        db = new Database(SIM_DB_PATH);
+        const wResult = db
+          .prepare("UPDATE tag_meta SET watch = ?, updated_at = datetime('now') WHERE tag = ?")
+          .run(value ? 1 : 0, id);
+        db.close();
+        db = null;
+        if (wResult.changes === 0) {
           return NextResponse.json(
-            { error: `Index ${id} not found` },
+            { error: `Tag "${id}" not found` },
             { status: 404 },
           );
         }
-        idx.watch = !!value;
-        writeSectorConfig(config);
         return NextResponse.json({ ok: true, action: "watch", id });
       }
 
@@ -741,30 +773,87 @@ export async function POST(request: NextRequest) {
             { status: 400 },
           );
         }
-        const idx = config.indices.find((i) => i.id === id);
-        if (!idx) {
+        db = new Database(SIM_DB_PATH);
+        const sResult = db
+          .prepare("UPDATE tag_meta SET star = ?, updated_at = datetime('now') WHERE tag = ?")
+          .run(value ? 1 : 0, id);
+        db.close();
+        db = null;
+        if (sResult.changes === 0) {
           return NextResponse.json(
-            { error: `Index ${id} not found` },
+            { error: `Tag "${id}" not found` },
             { status: 404 },
           );
         }
-        idx.star = !!value;
-        writeSectorConfig(config);
         return NextResponse.json({ ok: true, action: "star", id });
       }
 
+      case "reset-baseline": {
+        const { id } = body as { id: string };
+        if (!id) {
+          return NextResponse.json(
+            { error: "Missing id" },
+            { status: 400 },
+          );
+        }
+        db = new Database(SIM_DB_PATH);
+        // Get latest index value from sector_daily
+        const latestRow = db
+          .prepare(
+            `SELECT index_value FROM sector_daily
+             WHERE index_id = ?
+             ORDER BY date DESC LIMIT 1`,
+          )
+          .get(id) as { index_value: number } | undefined;
+        const newBaseline = latestRow?.index_value || 100;
+        const rbResult = db
+          .prepare("UPDATE tag_meta SET baseline_value = ?, updated_at = datetime('now') WHERE tag = ?")
+          .run(newBaseline, id);
+        db.close();
+        db = null;
+        if (rbResult.changes === 0) {
+          return NextResponse.json(
+            { error: `Tag "${id}" not found` },
+            { status: 404 },
+          );
+        }
+        return NextResponse.json({
+          ok: true,
+          action: "reset-baseline",
+          id,
+          baseline: newBaseline,
+        });
+      }
+
       case "config": {
+        // Keep config action for alert_rules / rotation updates via sector_config.json
         const { alertRules, rotation } = body as {
           alertRules?: Record<string, unknown>;
           rotation?: Record<string, unknown>;
         };
-        if (alertRules) {
-          config.alertRules = { ...config.alertRules, ...alertRules };
+        try {
+          if (!existsSync(SECTOR_CONFIG_PATH)) {
+            return NextResponse.json(
+              { error: "sector_config.json not found" },
+              { status: 404 },
+            );
+          }
+          const raw = JSON.parse(readFileSync(SECTOR_CONFIG_PATH, "utf-8"));
+          if (alertRules) {
+            raw.alert_rules = { ...(raw.alert_rules || {}), ...alertRules };
+          }
+          if (rotation) {
+            raw.rotation = { ...(raw.rotation || {}), ...rotation };
+          }
+          const tmp = SECTOR_CONFIG_PATH + ".tmp";
+          writeFileSync(tmp, JSON.stringify(raw, null, 2) + "\n", "utf-8");
+          renameSync(tmp, SECTOR_CONFIG_PATH);
+        } catch (e) {
+          return NextResponse.json(
+            { error: `Failed to update config: ${e}` },
+            { status: 500 },
+          );
         }
-        if (rotation) {
-          config.rotation = { ...config.rotation, ...rotation };
-        }
-        writeSectorConfig(config);
         return NextResponse.json({ ok: true, action: "config" });
       }
 
@@ -776,5 +865,9 @@ export async function POST(request: NextRequest) {
     }
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
+  } finally {
+    try {
+      db?.close();
+    } catch { /* already closed */ }
   }
 }
