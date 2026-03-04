@@ -14,6 +14,18 @@ WEB_LOG="$DIR/logs/web.log"
 
 mkdir -p "$DIR/logs"
 
+_check_terminal_notifier() {
+  if ! command -v terminal-notifier &> /dev/null; then
+    echo "ERROR: terminal-notifier 未安装"
+    echo ""
+    echo "L1/L2 告警弹窗功能需要 terminal-notifier，请安装:"
+    echo ""
+    echo "  brew install terminal-notifier"
+    echo ""
+    exit 1
+  fi
+}
+
 _read_pid() { [ -f "$1" ] && cat "$1" || echo ""; }
 
 _is_running() {
@@ -47,6 +59,9 @@ _ensure_no_orphan() {
 }
 
 do_start() {
+  # 检查 terminal-notifier 依赖
+  _check_terminal_notifier
+
   # Poller
   _ensure_no_orphan "$POLLER_PID" "market_data_poller.py"
   if _is_running "$POLLER_PID"; then
