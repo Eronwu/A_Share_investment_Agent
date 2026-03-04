@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useAlerts } from "../hooks/useAlerts";
 import { useLogEntries } from "../hooks/useCommand";
 import type { Service, AlertSettings } from "../types";
+import { tagColor } from "../lib/tag-utils";
 import { D } from "../theme";
 import { AppTabs } from "../components/AppTabs";
 import { AppTitleBar } from "../components/AppTitleBar";
@@ -51,6 +52,7 @@ function WatchingContent() {
     return new Date().getHours() < 15 ? "A" : "HK";
   }
   const [activeTab, setActiveTab] = useState<MarketTab>(getDefaultTab);
+  const [filterTag, setFilterTag] = useState<string | null>(null);
   const [watchStockOpen, setWatchStockOpen] = useState(true);
   const [watchETFOpen, setWatchETFOpen] = useState(true);
   const [hiddenOpen, setHiddenOpen] = useState(false);
@@ -120,12 +122,27 @@ function WatchingContent() {
     });
   }
   const tabServices = services.filter((s) => inTab(s) && s.type !== "holding");
-  const watchStock = applySortList(tabServices.filter((s) => !s.hidden && !isETF(s)));
-  const watchETF = applySortList(tabServices.filter((s) => !s.hidden && isETF(s)));
-  const hiddenList = applySortList(tabServices.filter((s) => s.hidden));
+  const tagFiltered = filterTag
+    ? tabServices.filter((s) => s.tags?.includes(filterTag))
+    : tabServices;
+  const watchStock = applySortList(tagFiltered.filter((s) => !s.hidden && !isETF(s)));
+  const watchETF = applySortList(tagFiltered.filter((s) => !s.hidden && isETF(s)));
+  const hiddenList = applySortList(tagFiltered.filter((s) => s.hidden));
 
   const now = ts ? new Date(ts).toLocaleTimeString("zh-CN", { hour12: false }) : "--:--:--";
   const isStale = (ts > 0 && Date.now() - ts > pollMs * 3) || fetchError !== null;
+
+  const tagChipStyle = (tag: string): React.CSSProperties => ({
+    display: "inline-block",
+    padding: "1px 6px",
+    borderRadius: 3,
+    fontSize: 10,
+    marginRight: 3,
+    cursor: "pointer",
+    color: "#282a36",
+    background: tagColor(tag),
+    whiteSpace: "nowrap",
+  });
 
   function WatchRow({ s }: { s: Service }) {
     const sign = s.change > 0 ? "+" : "";
@@ -135,6 +152,11 @@ function WatchingContent() {
         <span style={{ color: s.star ? D.yellow : D.comment, width: "6ch" }}>{s.star ? "★" : " "} DEV</span>
         <span style={{ color: D.cyan, width: "10ch" }}>{pad(s.id, 9)}</span>
         <span style={{ color: D.fg, width: "10ch" }}>{pad(s.name.slice(0, 6), 8)}</span>
+        <span style={{ width: "12ch", overflow: "hidden", whiteSpace: "nowrap" }}>
+          {(s.tags ?? []).map((t) => (
+            <span key={t} style={tagChipStyle(t)} onClick={() => setFilterTag(t)}>{t}</span>
+          ))}
+        </span>
         <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>{pad(s.price.toFixed(2), 9, true)}</span>
         <span style={{ color: chgColor(s.change), width: "9ch", textAlign: "right", fontWeight: 500 }}>{pad(`${sign}${s.change.toFixed(2)}%`, 8, true)}</span>
         <span style={{ color: chgColor(s.chgAmt), width: "8ch", textAlign: "right" }}>{pad(`${csign}${s.chgAmt.toFixed(2)}`, 7, true)}</span>
@@ -174,6 +196,7 @@ function WatchingContent() {
       <span style={{ width: "6ch" }}> 类型</span>
       <span style={mkHStyle("10ch", "id")} onClick={() => toggleWatchSort("id")}>代码{mkArrow("id")}</span>
       <span style={{ width: "10ch" }}>名称</span>
+      <span style={{ width: "12ch", color: D.pink }}>标签</span>
       <span style={mkHStyle("10ch", "price", true)} onClick={() => toggleWatchSort("price")}>{pad("现价" + mkArrow("price"), 9, true)}</span>
       <span style={mkHStyle("9ch", "change", true)} onClick={() => toggleWatchSort("change")}>{pad("涨跌幅" + mkArrow("change"), 8, true)}</span>
       <span style={mkHStyle("8ch", "chgAmt", true)} onClick={() => toggleWatchSort("chgAmt")}>{pad("涨跌" + mkArrow("chgAmt"), 7, true)}</span>
@@ -202,6 +225,13 @@ function WatchingContent() {
 
         {!loading && (
           <>
+            {/* tag filter bar */}
+            {filterTag && (
+              <div style={{ padding: "4px 8px", backgroundColor: "#44475a", color: D.fg, fontSize: 12, marginBottom: 4, display: "flex", alignItems: "center", gap: 8, borderRadius: 3 }}>
+                <span>筛选: <span style={{ color: tagColor(filterTag), fontWeight: 500 }}>{filterTag}</span></span>
+                <span style={{ cursor: "pointer", color: D.red, fontWeight: 500 }} onClick={() => setFilterTag(null)}>x</span>
+              </div>
+            )}
             <div style={{ color: D.comment, marginBottom: 6 }}>
               <span>Every {pollMs / 1000}.0s: svc-monitor --watching</span>
               <span style={{ float: "right" }}>

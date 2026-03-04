@@ -9,6 +9,7 @@ import { AppTitleBar } from "./components/AppTitleBar";
 import { MarketSwitch, type MarketTab } from "./components/MarketSwitch";
 
 import type { Service, AlertSettings } from "./types";
+import { tagColor } from "./lib/tag-utils";
 
 const DEFAULT_POLL_SEC = 30;
 
@@ -70,6 +71,7 @@ function Home() {
     clearLogs();  // 清掉另一个市场的 alert 日志
     window.history.replaceState(null, "", `/?tab=${tab}`);
   }
+  const [filterTag, setFilterTag] = useState<string | null>(null);
   const [prodStockOpen, setProdStockOpen] = useState(true);
   const [prodETFOpen, setProdETFOpen] = useState(true);
   const [hiddenOpen, setHiddenOpen] = useState(false);
@@ -165,9 +167,12 @@ function Home() {
   const inTab = (s: Service) => activeTab === "HK" ? isHK(s) : !isHK(s);
   const tabServices = services.filter((s) => inTab(s));
   const tabHoldingAll = tabServices.filter((s) => s.type === "holding");
-  const prodStock = applySortList(tabServices.filter((s) => s.type === "holding" && !s.hidden && !isETF(s)), holdSort);
-  const prodETF = applySortList(tabServices.filter((s) => s.type === "holding" && !s.hidden && isETF(s)), holdSort);
-  const hiddenList = applySortList(tabServices.filter((s) => s.hidden && s.type === "holding"), holdSort);
+  const tagFiltered = filterTag
+    ? tabServices.filter((s) => s.tags?.includes(filterTag))
+    : tabServices;
+  const prodStock = applySortList(tagFiltered.filter((s) => s.type === "holding" && !s.hidden && !isETF(s)), holdSort);
+  const prodETF = applySortList(tagFiltered.filter((s) => s.type === "holding" && !s.hidden && isETF(s)), holdSort);
+  const hiddenList = applySortList(tagFiltered.filter((s) => s.hidden && s.type === "holding"), holdSort);
   const hasHold = prodStock.length > 0 || prodETF.length > 0;
 
   const now = ts
@@ -210,6 +215,19 @@ function Home() {
     color: k && st.key === k ? D.yellow : D.pink,
   });
 
+  /* ── Tag chip style ── */
+  const tagChipStyle = (tag: string): React.CSSProperties => ({
+    display: "inline-block",
+    padding: "1px 6px",
+    borderRadius: 3,
+    fontSize: 10,
+    marginRight: 3,
+    cursor: "pointer",
+    color: "#282a36",
+    background: tagColor(tag),
+    whiteSpace: "nowrap",
+  });
+
   /* ── Holdings Row ── */
   function HoldRow({ s }: { s: Service }) {
     const sign = s.change > 0 ? "+" : "";
@@ -236,6 +254,11 @@ function Home() {
         <span style={{ color: D.orange, width: "6ch" }}>{s.star ? "★" : " "}PROD</span>
         <span style={{ color: D.cyan, width: "10ch" }}>{pad(s.id, 9)}</span>
         <span style={{ color: D.fg, width: "10ch" }}>{pad(s.name.slice(0, 6), 8)}</span>
+        <span style={{ width: "12ch", overflow: "hidden", whiteSpace: "nowrap" }}>
+          {(s.tags ?? []).map((t) => (
+            <span key={t} style={tagChipStyle(t)} onClick={() => setFilterTag(t)}>{t}</span>
+          ))}
+        </span>
         <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
           {pad(s.price.toFixed(2), 9, true)}
         </span>
@@ -296,6 +319,11 @@ function Home() {
         <span style={{ color: s.star ? D.yellow : D.comment, width: "6ch" }}>{s.star ? "★" : " "} DEV</span>
         <span style={{ color: D.cyan, width: "10ch" }}>{pad(s.id, 9)}</span>
         <span style={{ color: D.fg, width: "10ch" }}>{pad(s.name.slice(0, 6), 8)}</span>
+        <span style={{ width: "12ch", overflow: "hidden", whiteSpace: "nowrap" }}>
+          {(s.tags ?? []).map((t) => (
+            <span key={t} style={tagChipStyle(t)} onClick={() => setFilterTag(t)}>{t}</span>
+          ))}
+        </span>
         <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
           {pad(s.price.toFixed(2), 9, true)}
         </span>
@@ -360,6 +388,13 @@ function Home() {
         )}
 
         {!loading && (<>
+        {/* tag filter bar */}
+        {filterTag && (
+          <div style={{ padding: "4px 8px", backgroundColor: "#44475a", color: D.fg, fontSize: 12, marginBottom: 4, display: "flex", alignItems: "center", gap: 8, borderRadius: 3 }}>
+            <span>筛选: <span style={{ color: tagColor(filterTag), fontWeight: 500 }}>{filterTag}</span></span>
+            <span style={{ cursor: "pointer", color: D.red, fontWeight: 500 }} onClick={() => setFilterTag(null)}>x</span>
+          </div>
+        )}
         {/* watch header */}
         <div style={{ color: D.comment, marginBottom: 6 }}>
           <span>Every {pollMs / 1000}.0s: svc-monitor --format table</span>
@@ -452,6 +487,7 @@ function Home() {
               <span style={{ width: "6ch" }}> 类型</span>
               <span style={hs("10ch", "id")} onClick={() => ht("id")}>代码{ha("id")}</span>
               <span style={{ width: "10ch" }}>名称</span>
+              <span style={{ width: "12ch", color: D.pink }}>标签</span>
               <span style={hs("10ch", "price", true)} onClick={() => ht("price")}>{pad("现价" + ha("price"), 9, true)}</span>
               <span style={hs("9ch", "change", true)} onClick={() => ht("change")}>{pad("涨跌幅" + ha("change"), 8, true)}</span>
               <span style={hs("9ch", "cost", true)} onClick={() => ht("cost")}>{pad("成本" + ha("cost"), 8, true)}</span>
