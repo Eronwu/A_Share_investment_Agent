@@ -261,6 +261,10 @@ CREATE TABLE IF NOT EXISTS monitor_watchlist (
     lot INTEGER,
     hidden INTEGER NOT NULL DEFAULT 0,
     star INTEGER NOT NULL DEFAULT 0,
+    dip_buy INTEGER NOT NULL DEFAULT 0,
+    tags TEXT DEFAULT '[]',
+    watch_price REAL,
+    watch_price_date TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
 );
@@ -271,6 +275,15 @@ CREATE TABLE IF NOT EXISTS monitor_settings (
     key TEXT PRIMARY KEY,
     value REAL NOT NULL,
     updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tag_meta (
+    tag TEXT PRIMARY KEY,
+    star INTEGER DEFAULT 0,
+    watch INTEGER DEFAULT 1,
+    baseline_value REAL DEFAULT 100,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
 );
 """
 
@@ -296,6 +309,26 @@ def init_db():
             conn.execute("ALTER TABLE live_state ADD COLUMN daily_score INTEGER DEFAULT 0")
         except sqlite3.OperationalError:
             pass  # column already exists
+    # Migration: add tags, watch_price, watch_price_date columns to monitor_watchlist
+    existing_cols = {
+        row[1]
+        for row in conn.execute("PRAGMA table_info(monitor_watchlist)").fetchall()
+    }
+    if "tags" not in existing_cols:
+        try:
+            conn.execute("ALTER TABLE monitor_watchlist ADD COLUMN tags TEXT DEFAULT '[]'")
+        except sqlite3.OperationalError:
+            pass
+    if "watch_price" not in existing_cols:
+        try:
+            conn.execute("ALTER TABLE monitor_watchlist ADD COLUMN watch_price REAL")
+        except sqlite3.OperationalError:
+            pass
+    if "watch_price_date" not in existing_cols:
+        try:
+            conn.execute("ALTER TABLE monitor_watchlist ADD COLUMN watch_price_date TEXT")
+        except sqlite3.OperationalError:
+            pass
     conn.commit()
     conn.close()
 

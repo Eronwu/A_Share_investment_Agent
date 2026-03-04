@@ -63,6 +63,8 @@ def _normalize_config(cfg: dict[str, Any]) -> dict[str, Any]:
     for symbol, raw_entry in sorted(watchlist_raw.items()):
         entry = raw_entry or {}
         list_type = "holding" if entry.get("type") == "holding" else "watching"
+        raw_tags = entry.get("tags", [])
+        tags = list(raw_tags) if isinstance(raw_tags, (list, tuple)) else []
         normalized_watchlist[symbol] = {
             "name": str(entry.get("name", symbol)),
             "list_type": list_type,
@@ -71,6 +73,9 @@ def _normalize_config(cfg: dict[str, Any]) -> dict[str, Any]:
             "lot": _int_or_none(entry.get("lot")),
             "hidden": bool(entry.get("hidden", False)),
             "star": bool(entry.get("star", False)),
+            "tags": tags,
+            "watch_price": _num_or_none(entry.get("watch_price")),
+            "watch_price_date": entry.get("watch_price_date") or None,
         }
 
     normalized_settings: dict[str, float] = {}
@@ -96,11 +101,14 @@ def import_json_to_db(cfg: dict[str, Any]) -> tuple[int, int]:
             conn.execute("DELETE FROM monitor_settings")
 
             for symbol, entry in cfg["watchlist"].items():
+                tags_json = json.dumps(entry.get("tags", []), ensure_ascii=False)
                 conn.execute(
                     """
                     INSERT INTO monitor_watchlist (
-                        symbol, name, list_type, cost, shares, lot, hidden, star, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        symbol, name, list_type, cost, shares, lot, hidden, star,
+                        tags, watch_price, watch_price_date,
+                        created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         symbol,
@@ -111,6 +119,9 @@ def import_json_to_db(cfg: dict[str, Any]) -> tuple[int, int]:
                         entry["lot"],
                         1 if entry["hidden"] else 0,
                         1 if entry["star"] else 0,
+                        tags_json,
+                        entry.get("watch_price"),
+                        entry.get("watch_price_date"),
                         now_ts,
                         now_ts,
                     ),
@@ -132,7 +143,8 @@ def read_config_from_db() -> dict[str, Any]:
     try:
         watch_rows = conn.execute(
             """
-            SELECT symbol, name, list_type, cost, shares, lot, hidden, star
+            SELECT symbol, name, list_type, cost, shares, lot, hidden, star,
+                   tags, watch_price, watch_price_date
             FROM monitor_watchlist
             ORDER BY symbol
             """
@@ -145,6 +157,11 @@ def read_config_from_db() -> dict[str, Any]:
 
     watchlist: dict[str, dict[str, Any]] = {}
     for r in watch_rows:
+        tags_raw = r["tags"] if "tags" in r.keys() else "[]"
+        try:
+            tags = json.loads(tags_raw) if tags_raw else []
+        except (json.JSONDecodeError, TypeError):
+            tags = []
         watchlist[r["symbol"]] = {
             "name": str(r["name"]),
             "list_type": "holding" if r["list_type"] == "holding" else "watching",
@@ -153,6 +170,9 @@ def read_config_from_db() -> dict[str, Any]:
             "lot": _int_or_none(r["lot"]),
             "hidden": bool(r["hidden"]),
             "star": bool(r["star"]),
+            "tags": tags if isinstance(tags, list) else [],
+            "watch_price": _num_or_none(r["watch_price"] if "watch_price" in r.keys() else None),
+            "watch_price_date": r["watch_price_date"] if "watch_price_date" in r.keys() else None,
         }
 
     settings: dict[str, float] = {}
@@ -182,6 +202,13 @@ def _from_db_normalized_to_snapshot(cfg: dict[str, Any]) -> dict[str, Any]:
             out["hidden"] = True
         if entry["star"]:
             out["star"] = True
+        tags = entry.get("tags", [])
+        if tags:
+            out["tags"] = tags
+        if entry.get("watch_price") is not None:
+            out["watch_price"] = entry["watch_price"]
+        if entry.get("watch_price_date") is not None:
+            out["watch_price_date"] = entry["watch_price_date"]
         watchlist_out[symbol] = out
         split_out = dict(out)
         split_out.pop("type", None)

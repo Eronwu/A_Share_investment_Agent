@@ -34,6 +34,7 @@ MONITOR_CONFIG_PATH = DATA_DIR / "monitor_config.json"
 ALERT_CONFIG_PATH = DATA_DIR / "alert_config.json"
 L2_SIGNALS_PATH = DATA_DIR / "l2_strategy_signals.json"
 DAILY_SUMMARY_PATH = DATA_DIR / "daily_summary.json"
+TRADE_PLANS_PATH = DATA_DIR / "trade_plans.json"
 
 
 def _read_json(path: Path) -> dict | None:
@@ -109,6 +110,7 @@ def _build_per_stock(
     config: dict,
     signal_agg: dict,
     alert_agg: dict,
+    l2_digest_map: dict | None = None,
 ) -> list[dict]:
     """Build per-stock summary combining market data + signals + alerts."""
     watchlist = config.get("watchlist", {})
@@ -134,18 +136,29 @@ def _build_per_stock(
         if signal_count == 0 and alert_count == 0 and not is_star:
             continue
 
-        # Determine direction from signals
+        # Determine direction: prefer l2_digest direction_score, fallback to signal counts
         strategies = sig.get("strategies", Counter())
-        bullish = strategies.get("composite_bullish", 0)
-        bearish = strategies.get("composite_bearish", 0)
-        if bullish > bearish:
+        digest = (l2_digest_map or {}).get(code, {})
+        ds = digest.get("direction_score", 0)
+        if ds > 2:
             direction = "偏多"
-        elif bearish > bullish:
+        elif ds < -2:
             direction = "偏空"
-        elif bullish > 0 and bearish > 0:
-            direction = "多空交织"
+        elif ds != 0:
+            # Weak signal from digest
+            direction = "偏多" if ds > 0 else "偏空" if ds < 0 else "中性"
         else:
-            direction = "中性"
+            # Fallback: composite signal counts
+            bullish = strategies.get("composite_bullish", 0)
+            bearish = strategies.get("composite_bearish", 0)
+            if bullish > bearish:
+                direction = "偏多"
+            elif bearish > bullish:
+                direction = "偏空"
+            elif bullish > 0 and bearish > 0:
+                direction = "多空交织"
+            else:
+                direction = "中性"
 
         # Top signal types
         key_signals = []
@@ -191,6 +204,16 @@ def _build_per_stock(
                 "relative_strength": "相对强弱",
                 "order_book_imbalance": "盘口失衡",
                 "capital_flow_spike": "资金异动",
+                "support_breakdown": "破位下跌",
+                "morning_evening_star": "晨暮星",
+                "volume_divergence_top": "缩量创高",
+                "rsi_extreme_overbought": "RSI严重超买",
+                "rsi_extreme_oversold": "RSI严重超卖",
+                "tick_persistence": "tick持续偏向",
+                "closing_surge": "尾盘异动",
+                "momentum_sell_alert": "动量卖出确认",
+                "volume_accel_sell_alert": "放量砸盘确认",
+                "bollinger_squeeze_breakout": "布林带突破",
             }
             label = label_map.get(strat, strat)
             key_signals.append(f"{label}x{cnt}" if cnt > 1 else label)
@@ -207,7 +230,9 @@ def _build_per_stock(
         cost = entry.get("cost", 0) or 0
         shares = entry.get("shares", 0) or 0
         is_hk = code.startswith("HK")
-        mkt_val = price * shares * (0.92 if is_hk else 1) if price > 0 and shares > 0 else 0
+        fx = 0.92 if is_hk else 1
+        mkt_val = price * shares * fx if price > 0 and shares > 0 else 0
+        pnl_pct = ((price - cost) / cost * 100) if cost > 0 and price > 0 else None
 
         per_stock.append({
             "code": code,
@@ -216,8 +241,11 @@ def _build_per_stock(
             "star": entry.get("star", False),
             "price": price,
             "change": round(change, 2),
+            "cost": cost,
             "shares": shares,
             "mkt_val": round(mkt_val, 0),
+            "pnl_pct": round(pnl_pct, 1) if pnl_pct is not None else None,
+            "fx": fx,
             "signalCount": signal_count,
             "alertCount": alert_count,
             "direction": direction,
@@ -264,7 +292,8 @@ def _build_stats(
 
 
 def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str],
-                      l2_digest_map: dict | None = None) -> list[dict]:
+                      l2_digest_map: dict | None = None,
+                      trade_plans: dict | None = None) -> list[dict]:
     """Construct messages for LLM daily report generation."""
     system = """你是一位资深量化工程师，专注 A 股和港股。根据今日 L2 策略信号、微观结构数据和告警数据，生成简洁的持仓信号日报。
 
@@ -301,6 +330,8 @@ def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]
 - 当大单方向与资金流向矛盾时（如大单净卖但主力净流入），需解读原因（算法拆单、对倒等）
 - 标注[★重点]的股票（包括持仓和自选）是用户最关注的，必须在"重点关注"中详细分析
 - 持仓市值大的股票对组合影响大，也应优先关注
+- 持仓标的标签含成本和盈亏%，据此给出是否加仓/减仓/止损建议
+- 如有条件单数据，在操作建议中结合条件单距离给出提醒（如"阿里距买入条件单125仅3.5%"）
 - ★重点自选标的同样需要深度分析微观数据，不能只给一句话
 - 风格：专业简洁，像给基金经理写的晨会纪要
 - 输出纯 Markdown，不要代码块包裹"""
@@ -310,6 +341,29 @@ def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]
     watching = [ps for ps in per_stock if ps["type"] != "holding"]
 
     lines = []
+
+    # ── Fix 5: Portfolio summary ──
+    if holdings:
+        total_mkt = sum(ps["mkt_val"] for ps in holdings)
+        total_cost = sum(ps["cost"] * ps["shares"] * ps.get("fx", 1) for ps in holdings if ps["cost"] > 0 and ps["shares"] > 0)
+        total_pnl = total_mkt - total_cost if total_cost > 0 else 0
+        total_pnl_pct = (total_pnl / total_cost * 100) if total_cost > 0 else 0
+        hk_day = sum(ps["change"] / 100 * ps["mkt_val"] for ps in holdings if ps["code"].startswith("HK") and ps["mkt_val"] > 0)
+        a_day = sum(ps["change"] / 100 * ps["mkt_val"] for ps in holdings if not ps["code"].startswith("HK") and ps["mkt_val"] > 0)
+        h_up = sum(1 for ps in holdings if ps["change"] > 0)
+        h_down = sum(1 for ps in holdings if ps["change"] < 0)
+        lines.append("## 组合概况")
+        lines.append(f"- 持仓 {len(holdings)} 只, 总市值 {total_mkt/10000:.1f}万, 总浮盈 {total_pnl/10000:+.1f}万 ({total_pnl_pct:+.1f}%)")
+        day_parts = []
+        if any(ps["code"].startswith("HK") for ps in holdings):
+            day_parts.append(f"港股 {hk_day/10000:+.1f}万")
+        if any(not ps["code"].startswith("HK") for ps in holdings):
+            day_parts.append(f"A股 {a_day/10000:+.1f}万")
+        if day_parts:
+            lines.append(f"- 今日变化: {', '.join(day_parts)}")
+        lines.append(f"- 涨: {h_up}只 跌: {h_down}只")
+        lines.append("")
+
     lines.append(f"## 今日统计")
     lines.append(f"- 总信号数: {stats['totalSignals']} | L1高优: {stats['l1Count']}")
     lines.append(f"- 多头信号: {stats['bullish']} | 空头信号: {stats['bearish']}")
@@ -323,13 +377,17 @@ def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]
         lines.append("## 持仓标的")
         for ps in holdings:
             sigs = ", ".join(ps["keySignals"]) if ps["keySignals"] else "无信号"
-            # Star + position size tags
+            # Star + position size + cost/pnl tags
             tags = []
             if ps.get("star"):
                 tags.append("★重点")
             if ps["mkt_val"] > 0:
                 val_wan = ps["mkt_val"] / 10000
                 tags.append(f"持仓{val_wan:.1f}万")
+            if ps.get("cost") and ps["cost"] > 0:
+                tags.append(f"成本{ps['cost']:.2f}")
+            if ps.get("pnl_pct") is not None:
+                tags.append(f"盈亏{ps['pnl_pct']:+.1f}%")
             tag_str = f" [{', '.join(tags)}]" if tags else ""
             line = f"- {ps['code']} {ps['name']}{tag_str} | 涨跌:{ps['change']:+.2f}% | 信号:{ps['signalCount']}条 | 方向:{ps['direction']} | {sigs}"
             # Append L2 microstructure digest
@@ -387,6 +445,39 @@ def _build_llm_prompt(stats: dict, per_stock: list[dict], l1_displays: list[str]
                 sigs = ", ".join(ps["keySignals"]) if ps["keySignals"] else ""
                 lines.append(f"- {ps['code']} {ps['name']} | {ps['change']:+.2f}% | 信号:{ps['signalCount']} | {sigs}")
         lines.append("")
+
+    # ── Fix 4: Trade plans / conditional orders ──
+    if trade_plans:
+        plans = trade_plans.get("plans", {})
+        active_plans = {k: v for k, v in plans.items() if v.get("status") == "active"}
+        if active_plans:
+            # Build code→price lookup from per_stock
+            price_map = {ps["code"]: ps["price"] for ps in per_stock if ps.get("price")}
+            plan_lines = []
+            for pid, plan in active_plans.items():
+                symbol = plan.get("symbol", "")
+                pname = plan.get("name", pid)
+                cur_price = price_map.get(symbol, 0)
+                orders = plan.get("orders", [])
+                untriggered = [o for o in orders if not o.get("triggered")]
+                if not untriggered:
+                    continue
+                order_descs = []
+                for o in untriggered:
+                    side_cn = "买入" if o.get("side") == "buy" else "卖出"
+                    op = o.get("op", ">=")
+                    tgt = o.get("price", 0)
+                    label = o.get("label", f"{side_cn}{op}{tgt}")
+                    if cur_price > 0 and tgt > 0:
+                        dist = (tgt - cur_price) / cur_price * 100
+                        order_descs.append(f"{label}{op}{tgt}(距现价{dist:+.1f}%)")
+                    else:
+                        order_descs.append(f"{label}{op}{tgt}")
+                plan_lines.append(f"- {symbol} {pname}: {', '.join(order_descs)}")
+            if plan_lines:
+                lines.append("## 条件单状态")
+                lines.extend(plan_lines)
+                lines.append("")
 
     if l1_displays:
         lines.append("## L1 关键事件（原文）")
@@ -584,10 +675,17 @@ def generate_daily_summary(date_str: str | None = None) -> dict | None:
         logger.warning("No signals or events found — skipping summary generation")
         return None
 
+    # ── Read trade plans ──
+    trade_plans = _read_json(TRADE_PLANS_PATH)
+
+    # ── Compute L2 daily digest early (needed for direction in per_stock) ──
+    l2_digests_early = _compute_l2_digest(today)
+    l2_digest_map_early = {d["code"]: d for d in l2_digests_early}
+
     # ── Aggregate ──
     signal_agg = _aggregate_signals(signals)
     alert_agg = _aggregate_alerts(events)
-    per_stock = _build_per_stock(market_data, config, signal_agg, alert_agg)
+    per_stock = _build_per_stock(market_data, config, signal_agg, alert_agg, l2_digest_map_early)
     stats = _build_stats(signals, events, per_stock)
 
     # Collect L1 display texts for LLM context
@@ -598,15 +696,14 @@ def generate_daily_summary(date_str: str | None = None) -> dict | None:
 
     market = _detect_market(signals, watchlist)
 
-    # ── Compute L2 daily digest (session aggregation → daily_l2_digest table) ──
-    l2_digests = _compute_l2_digest(today)
-    l2_digest_map = {d["code"]: d for d in l2_digests}
+    # Use l2_digest_map computed earlier (already written to DB)
+    l2_digest_map = l2_digest_map_early
 
     # ── Call LLM ──
     from dotenv import load_dotenv
     load_dotenv(PROJECT_ROOT / ".env")
 
-    messages = _build_llm_prompt(stats, per_stock, l1_displays, l2_digest_map)
+    messages = _build_llm_prompt(stats, per_stock, l1_displays, l2_digest_map, trade_plans)
     report = None
     try:
         client = LLMClientFactory.create_client()

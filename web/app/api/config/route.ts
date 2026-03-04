@@ -111,6 +111,9 @@ type WatchRow = {
   hidden: number;
   star: number;
   dip_buy: number;
+  tags: string | null;
+  watch_price: number | null;
+  watch_price_date: string | null;
 };
 
 function openMonitorDb(readonly = false): MonitorDb {
@@ -140,18 +143,37 @@ function ensureMonitorTables(db: MonitorDb) {
     CREATE INDEX IF NOT EXISTS idx_monitor_watchlist_type ON monitor_watchlist(list_type);
     CREATE INDEX IF NOT EXISTS idx_monitor_watchlist_updated ON monitor_watchlist(updated_at);
   `);
-  // Add dip_buy column if not exists (schema migration)
-  try {
+  // Safe column-add migrations (SQLite throws if column already exists)
+  const existingCols = new Set(
+    (db.pragma("table_info(monitor_watchlist)") as { name: string }[]).map((c) => c.name),
+  );
+  if (!existingCols.has("dip_buy")) {
     db.exec(`ALTER TABLE monitor_watchlist ADD COLUMN dip_buy INTEGER NOT NULL DEFAULT 0`);
-  } catch {
-    // Column already exists — ignore
+  }
+  if (!existingCols.has("tags")) {
+    db.exec(`ALTER TABLE monitor_watchlist ADD COLUMN tags TEXT DEFAULT '[]'`);
+  }
+  if (!existingCols.has("watch_price")) {
+    db.exec(`ALTER TABLE monitor_watchlist ADD COLUMN watch_price REAL`);
+  }
+  if (!existingCols.has("watch_price_date")) {
+    db.exec(`ALTER TABLE monitor_watchlist ADD COLUMN watch_price_date TEXT`);
   }
   db.exec(`
-
     CREATE TABLE IF NOT EXISTS monitor_settings (
       key TEXT PRIMARY KEY,
       value REAL NOT NULL,
       updated_at INTEGER NOT NULL
+    );
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tag_meta (
+      tag TEXT PRIMARY KEY,
+      star INTEGER DEFAULT 0,
+      watch INTEGER DEFAULT 1,
+      baseline_value REAL DEFAULT 100,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
     );
   `);
 }
@@ -160,7 +182,8 @@ function readConfigFromDb(db: MonitorDb, ensureSchema = true): MonitorConfig {
   if (ensureSchema) ensureMonitorTables(db);
   const rows = db
     .prepare(
-      `SELECT symbol, name, list_type, cost, shares, lot, hidden, star, dip_buy
+      `SELECT symbol, name, list_type, cost, shares, lot, hidden, star, dip_buy,
+              tags, watch_price, watch_price_date
        FROM monitor_watchlist
        ORDER BY symbol`,
     )
@@ -184,6 +207,21 @@ function readConfigFromDb(db: MonitorDb, ensureSchema = true): MonitorConfig {
     if (Boolean(r.hidden)) entry.hidden = true;
     if (Boolean(r.star)) entry.star = true;
     if (Boolean(r.dip_buy)) entry.dip_buy = true;
+    // tags: stored as JSON string in DB, parse to array
+    if (r.tags) {
+      try {
+        const parsed = JSON.parse(r.tags);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          (entry as WatchEntry & { tags?: string[] }).tags = parsed;
+        }
+      } catch { /* ignore malformed JSON */ }
+    }
+    if (r.watch_price != null) {
+      (entry as WatchEntry & { watch_price?: number }).watch_price = Number(r.watch_price);
+    }
+    if (r.watch_price_date != null) {
+      (entry as WatchEntry & { watch_price_date?: string }).watch_price_date = r.watch_price_date;
+    }
     watchlist[r.symbol] = entry;
     if (r.list_type === "holding") holdings[r.symbol] = entry;
     else watching[r.symbol] = entry;
@@ -210,7 +248,8 @@ function exportMonitorSnapshotFromDb(db: MonitorDb): string | null {
 function readWatchRow(db: MonitorDb, symbol: string): WatchRow | undefined {
   return db
     .prepare(
-      `SELECT symbol, name, list_type, cost, shares, lot, hidden, star, dip_buy
+      `SELECT symbol, name, list_type, cost, shares, lot, hidden, star, dip_buy,
+              tags, watch_price, watch_price_date
        FROM monitor_watchlist
        WHERE symbol = ?`,
     )

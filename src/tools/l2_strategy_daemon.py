@@ -200,6 +200,7 @@ def run():
                 try:
                     archiver.archive_signals()
                     archiver.sample_prices()
+                    archiver.snapshot_session()
                 except Exception:
                     pass  # archiver failure should not affect daemon
 
