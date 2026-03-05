@@ -19,6 +19,7 @@ import socket
 import time
 from typing import Optional
 
+from src.utils.futu_codes import to_futu_code, from_futu_code
 from src.utils.logging_config import setup_logger
 
 logger = setup_logger("futu_enricher")
@@ -28,29 +29,6 @@ OPEND_PORT = 11111
 
 # 连接失败后的冷却时间（秒），避免每轮 poll 都尝试连接
 RECONNECT_COOLDOWN = 60
-
-
-# ── 代码映射（复用 futu_quote_demo 的逻辑） ───────────────
-
-
-def to_futu_code(code: str) -> str:
-    """本项目代码 → Futu 格式"""
-    if code.startswith("HK"):
-        return f"HK.{code[2:]}"
-    first = code[0]
-    if first in ("6", "5"):
-        return f"SH.{code}"
-    if first in ("0", "1", "2", "3"):
-        return f"SZ.{code}"
-    return f"SH.{code}"
-
-
-def from_futu_code(futu_code: str) -> str:
-    """Futu 格式 → 本项目代码"""
-    market, num = futu_code.split(".", 1)
-    if market == "HK":
-        return f"HK{num}"
-    return num
 
 
 # ── Enricher ─────────────────────────────────────────────

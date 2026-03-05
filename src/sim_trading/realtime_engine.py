@@ -34,9 +34,16 @@ PARAM_VERSION = "live"
 
 
 class RealtimeSimEngine:
-    """v2: Daily-score-driven real-time sim engine, called by l2_daemon.tick()."""
+    """v2: Daily-score-driven real-time sim engine, called by l2_daemon.tick().
 
-    def __init__(self, rules: dict, daily_tracker=None):
+    支持双模式:
+      - futu_trade=False (默认): 原有虚拟 SimEngine + PositionManager
+      - futu_trade=True: 下单走 Futu 模拟盘，影子 PM 用于风控
+    """
+
+    def __init__(self, rules: dict, daily_tracker=None,
+                 futu_trade: bool = False,
+                 futu_host: str = '127.0.0.1', futu_port: int = 11111):
         init_db()
         self._rules = rules
         self._mapper = TradeSignalMapper(rules)
@@ -61,13 +68,44 @@ class RealtimeSimEngine:
         # Per-tick score cache: {code: score_dict}, cleared each tick
         self._score_cache: dict[str, dict] = {}
 
-        # Load watermark + restore positions from DB
-        self._load_watermark()
-        self._load_state()
+        # ── Futu trade mode ──
+        self._futu_enabled = False
+        self._futu = None
+        self._futu_sync = None
+        futu_cfg = rules.get("futu_trade", {})
+        if futu_trade or futu_cfg.get("enabled", False):
+            try:
+                from .futu_trade_adapter import FutuTradeAdapter
+                from .futu_position_sync import FutuPositionSync
+                host = futu_cfg.get("host", futu_host)
+                port = futu_cfg.get("port", futu_port)
+                self._futu = FutuTradeAdapter(host, port)
+                self._futu_sync = FutuPositionSync(self._futu)
+                self._futu_enabled = self._futu.connect()
+                if self._futu_enabled:
+                    self._load_state_from_futu()
+                    logger.info(
+                        f"Futu trade mode ENABLED: "
+                        f"HK acc={self._futu.hk_acc_id}, "
+                        f"A-share acc={self._futu.a_acc_id}"
+                    )
+                else:
+                    logger.warning("Futu trade requested but connection failed, fallback to virtual")
+            except Exception as e:
+                logger.warning(f"Futu trade init failed: {e}, fallback to virtual")
+                self._futu_enabled = False
+        self._sync_interval = futu_cfg.get("sync_interval_ticks", 10)
+
+        # Load watermark + restore positions from DB (virtual mode)
+        if not self._futu_enabled:
+            self._load_watermark()
+            self._load_state()
+
         logger.info(
             f"RT SimEngine v2 init: capital={self._pos_mgr.cash:.0f}, "
             f"positions={len(self._pos_mgr.positions)}, "
             f"daily_tracker={'yes' if daily_tracker else 'no'}, "
+            f"futu={'ON' if self._futu_enabled else 'OFF'}, "
             f"watermark={self._last_processed_ts}"
         )
 
@@ -191,6 +229,32 @@ class RealtimeSimEngine:
         exit_time = self._score_cfg.get("exit_review_time", "15:30")
         if now_hm > exit_time:
             self._exit_evaluated_today = True
+
+    def _load_state_from_futu(self):
+        """Futu 模式: 从 Futu 持仓 + 资金恢复影子 PM 状态。"""
+        if not self._futu or not self._futu_enabled:
+            return
+        try:
+            positions = self._futu.get_positions()
+            funds = self._futu.get_funds()
+            self._pos_mgr.sync_from_futu(positions, funds.cash)
+            logger.info(
+                f"Loaded state from Futu: {len(positions)} positions, "
+                f"cash={funds.cash:.0f}, equity={funds.total_assets:.0f}"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to load state from Futu: {e}")
+
+    def _sync_shadow_pm(self):
+        """Futu 模式: 定期同步 Futu 持仓到影子 PM。"""
+        if not self._futu or not self._futu_enabled:
+            return
+        try:
+            positions = self._futu.get_positions()
+            funds = self._futu.get_funds()
+            self._pos_mgr.sync_from_futu(positions, funds.cash)
+        except Exception as e:
+            logger.debug(f"Shadow PM sync failed: {e}")
 
     def _persist_state(self, prices: dict[str, float]):
         """Write all current positions to live_state table (full replace)."""
@@ -325,7 +389,11 @@ class RealtimeSimEngine:
         return result
 
     def _get_watchlist_codes(self) -> list[str]:
-        """Get HK holding codes from monitor_config.json."""
+        """Get holding codes from monitor_config.json.
+
+        Virtual mode: HK only (original behavior).
+        Futu mode: HK + A-share holdings.
+        """
         try:
             with open(MONITOR_CONFIG_PATH, "r", encoding="utf-8") as f:
                 config = json.load(f)
@@ -334,10 +402,15 @@ class RealtimeSimEngine:
 
         codes = []
         for code, info in config.get("watchlist", {}).items():
-            if (code.startswith("HK")
-                    and info.get("type") == "holding"
-                    and not info.get("hidden", False)):
+            if info.get("type") != "holding" or info.get("hidden", False):
+                continue
+            if self._futu_enabled:
+                # Futu mode: both HK and A-share
                 codes.append(code)
+            else:
+                # Virtual mode: HK only
+                if code.startswith("HK"):
+                    codes.append(code)
         return codes
 
     # ── v2 Core logic ──
@@ -425,6 +498,22 @@ class RealtimeSimEngine:
             )
             for trade in exit_trades:
                 trade["notes"] = trade.get("notes", "")
+                # Futu mode: send sell order to Futu for risk exits
+                if self._futu_enabled and self._futu:
+                    result = self._futu.sell(
+                        trade["code"], trade["exit_price"], trade["quantity"]
+                    )
+                    if result.success and self._futu_sync:
+                        self._futu_sync.save_order(
+                            result.order_id, trade["code"], "SELL",
+                            trade["exit_price"], trade["quantity"],
+                            reason=trade.get("exit_reason", "risk_exit"),
+                        )
+                    elif not result.success:
+                        logger.warning(
+                            f"Futu sell failed for risk exit {trade['code']}: "
+                            f"{result.error_msg}"
+                        )
                 self._save_trade(trade)
                 self._last_exit_ts[trade["code"]] = now_ts
                 logger.info(
@@ -432,8 +521,35 @@ class RealtimeSimEngine:
                     f"PnL={trade['pnl']:+.0f} ({trade['exit_reason']})"
                 )
 
-        # 5. Persist positions to live_state
-        self._persist_state(prices)
+        # 5. Futu sync: periodic position sync + order status update
+        if self._futu_enabled and self._futu_sync:
+            if self._tick_count % self._sync_interval == 0:
+                try:
+                    # Detect closes before syncing (uses prev vs current snapshot)
+                    closed = self._futu_sync.detect_and_save_closed()
+                    for c in closed:
+                        logger.info(f"Futu close detected: {c['code']} ({c['exit_reason']})")
+
+                    # Sync live state from Futu → SQLite
+                    daily_scores = {
+                        code: self._get_score(code).get("total", 0)
+                        for code in self._pos_mgr.positions
+                    }
+                    self._futu_sync.sync_live_state(daily_scores)
+
+                    # Update pending order statuses
+                    updates = self._futu.check_pending_orders()
+                    if updates:
+                        self._futu_sync.update_order_status(updates)
+
+                    # Sync Futu positions → shadow PM for risk checks
+                    self._sync_shadow_pm()
+                except Exception as e:
+                    logger.debug(f"Futu sync error: {e}")
+        else:
+            # 5b. Virtual mode: persist to live_state as before
+            self._persist_state(prices)
+
         self._tick_count += 1
 
     def _evaluate_entries(self, date: str, prices: dict[str, float],
@@ -537,6 +653,24 @@ class RealtimeSimEngine:
                 )
             if tp <= 0 or tp <= exec_price or abs(tp - exec_price) / exec_price > 0.15:
                 tp = exec_price + atr * 3
+
+            # Futu mode: send buy order to Futu
+            if self._futu_enabled and self._futu:
+                buy_result = self._futu.buy(code, exec_price, est_qty)
+                if buy_result.success:
+                    if self._futu_sync:
+                        self._futu_sync.save_order(
+                            buy_result.order_id, code, "BUY",
+                            exec_price, est_qty,
+                            reason=f"daily_score={score_result['total']}",
+                        )
+                    logger.info(
+                        f"RT FUTU-BUY {code}: {est_qty} @ {exec_price:.2f} "
+                        f"score={score_result['total']} order={buy_result.order_id}"
+                    )
+                else:
+                    logger.warning(f"Futu buy failed for {code}: {buy_result.error_msg}")
+                    continue  # Skip shadow PM open if Futu order fails
 
             pos = self._pos_mgr.open_position(
                 decision, exec_price, atr,
@@ -809,6 +943,16 @@ class RealtimeSimEngine:
                     current_ts=now_ts, current_date=date,
                     day_index=self._day_index,
                 )
+                # Futu mode: send sell order
+                if self._futu_enabled and self._futu:
+                    sell_result = self._futu.sell(code, exec_price, pos.quantity)
+                    if sell_result.success and self._futu_sync:
+                        self._futu_sync.save_order(
+                            sell_result.order_id, code, "SELL",
+                            exec_price, pos.quantity,
+                            reason=decision.reason,
+                        )
+
                 if trade:
                     trade["notes"] = decision.reason
                     self._save_trade(trade)

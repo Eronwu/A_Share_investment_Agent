@@ -141,13 +141,19 @@ def run():
         archiver_enabled = False
         logger.warning(f"Signal archiver not available: {e}")
 
-    # ── Initialize real-time sim engine (v2: pass daily_tracker reference) ──
+    # ── Initialize real-time sim engine (v2: pass daily_tracker + futu config) ──
     try:
         from src.sim_trading.realtime_engine import RealtimeSimEngine
         rt_rules_path = PROJECT_ROOT / "src" / "data" / "signal_rules.json"
         rt_rules = json.loads(rt_rules_path.read_text(encoding="utf-8"))
         daily_tracker = getattr(engine, '_daily_indicators', None)
-        rt_engine = RealtimeSimEngine(rt_rules, daily_tracker=daily_tracker)
+        futu_cfg = rt_rules.get("futu_trade", {})
+        rt_engine = RealtimeSimEngine(
+            rt_rules, daily_tracker=daily_tracker,
+            futu_trade=futu_cfg.get("enabled", False),
+            futu_host=futu_cfg.get("host", "127.0.0.1"),
+            futu_port=futu_cfg.get("port", 11111),
+        )
         rt_enabled = True
     except Exception as e:
         rt_engine = None
@@ -163,6 +169,9 @@ def run():
     print(f"  signals file: {L2_SIGNALS_PATH.name}")
     print(f"  archiver    : {'enabled' if archiver_enabled else 'disabled'}")
     print(f"  sim engine  : {'enabled' if rt_enabled else 'disabled'}")
+    if rt_enabled and rt_engine:
+        futu_status = "ON" if rt_engine._futu_enabled else "OFF"
+        print(f"  futu trade  : {futu_status}")
     print(f"  Ctrl+C to stop\n")
 
     # ── State ──

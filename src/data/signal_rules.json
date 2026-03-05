@@ -102,5 +102,13 @@
     "window_start": "09:45",
     "window_end": "14:30",
     "max_per_day": 1
+  },
+  "futu_trade": {
+    "enabled": false,
+    "host": "127.0.0.1",
+    "port": 11111,
+    "order_type": "NORMAL",
+    "sync_interval_ticks": 10,
+    "fallback_to_virtual": true
   }
 }

@@ -27,46 +27,10 @@ from futu import (
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 CONFIG_PATH = PROJECT_ROOT / "src" / "data" / "monitor_config.json"
 
+from src.utils.futu_codes import to_futu_code, from_futu_code
+
 OPEND_HOST = "127.0.0.1"
 OPEND_PORT = 11111
-
-
-# ── 代码映射 ─────────────────────────────────────────────
-
-
-def to_futu_code(code: str) -> str:
-    """本项目代码 → Futu 格式
-
-    HK09988  → HK.09988
-    688676   → SH.688676
-    002848   → SZ.002848
-    000001   → SZ.000001
-    """
-    if code.startswith("HK"):
-        return f"HK.{code[2:]}"
-
-    # A 股: 6/5 开头 → 上海, 0/1/3 开头 → 深圳
-    first = code[0]
-    if first in ("6", "5"):
-        return f"SH.{code}"
-    if first in ("0", "1", "2", "3"):
-        return f"SZ.{code}"
-
-    # 未知前缀，兜底上海
-    return f"SH.{code}"
-
-
-def from_futu_code(futu_code: str) -> str:
-    """Futu 格式 → 本项目代码
-
-    HK.09988  → HK09988
-    SH.688676 → 688676
-    SZ.002848 → 002848
-    """
-    market, num = futu_code.split(".", 1)
-    if market == "HK":
-        return f"HK{num}"
-    return num
 
 
 # ── 加载 watchlist ───────────────────────────────────────

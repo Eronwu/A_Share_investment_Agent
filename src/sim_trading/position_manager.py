@@ -327,6 +327,29 @@ class PositionManager:
             for code, pos in self._positions.items()
         )
 
+    def sync_from_futu(self, positions: dict, cash: float):
+        """从 Futu 持仓同步到影子 PM，用于风控检查。
+
+        Args:
+            positions: {code: FutuPosition} from FutuTradeAdapter.get_positions()
+            cash: 可用现金
+        """
+        self._positions.clear()
+        self._cash = cash
+        for code, fp in positions.items():
+            self._positions[code] = Position(
+                code=code,
+                entry_price=fp.avg_price,
+                quantity=fp.quantity,
+                entry_time=0,
+                entry_date="",
+                stop_loss=fp.avg_price * 0.90,  # 默认 10% 止损，后续由策略覆盖
+                take_profit=None,
+                max_hold_days=10,
+                confidence=0.5,
+                highest_price=max(fp.avg_price, fp.market_val / fp.quantity if fp.quantity > 0 else 0),
+            )
+
     def snapshot(self, prices: dict[str, float]) -> dict:
         """Current portfolio snapshot."""
         equity = self.get_equity(prices)
