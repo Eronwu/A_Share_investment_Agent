@@ -1,14 +1,15 @@
 "use client";
 
-import { Suspense, useEffect, useState, useCallback } from "react";
+import { Suspense, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAlerts } from "./hooks/useAlerts";
 import { useLogEntries } from "./hooks/useCommand";
 import { AppTabs } from "./components/AppTabs";
 import { AppTitleBar } from "./components/AppTitleBar";
 import { MarketSwitch, type MarketTab } from "./components/MarketSwitch";
+import { useMetrics } from "./providers/MetricsProvider";
 
-import type { Service, AlertSettings } from "./types";
+import type { Service } from "./types";
 import { tagColor } from "./lib/tag-utils";
 
 const DEFAULT_POLL_SEC = 30;
@@ -48,13 +49,7 @@ export default function Page() {
 }
 
 function Home() {
-  const [services, setServices] = useState<Service[]>([]);
-  const [ts, setTs] = useState(0);
-  const [tick, setTick] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [settings, setSettings] = useState<AlertSettings>({});
-  const [hkdCnyRate, setHkdCnyRate] = useState<number | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const { services, ts, tick, loading, settings, hkdCnyRate, fetchError, alertEvents, marketTurnover } = useMetrics();
   // tab state: URL ?tab=A|HK, default by time (before 15:00 → A, after → HK)
   const searchParams = useSearchParams();
 
@@ -76,52 +71,15 @@ function Home() {
   const [prodETFOpen, setProdETFOpen] = useState(true);
   const [hiddenOpen, setHiddenOpen] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const resp = await fetch("/api/metrics", { cache: "no-store" });
-      const data = await resp.json();
-      if (data.error) {
-        setFetchError(data.error);
-        // preserve old services/ts — don't overwrite with empty
-      } else {
-        setFetchError(null);
-        setServices(data.services || []);
-        setTs(data.ts || Date.now());
-        if (data.settings) setSettings(data.settings);
-        if (data.hkdCnyRate != null) setHkdCnyRate(data.hkdCnyRate);
-        if (data.alertEvents) setAlertEvents(data.alertEvents);
-        if (data.marketTurnover) setMarketTurnover(data.marketTurnover);
-      }
-      setTick((t) => t + 1);
-    } catch (e) {
-      setFetchError(`network error: ${e}`);
-      // preserve old data
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const [alertEvents, setAlertEvents] = useState<unknown[]>([]);
-  const [marketTurnover, setMarketTurnover] = useState<{
-    sh: number; sz: number; total: number;
-    shIndex: number; szIndex: number; shPct: number; szPct: number;
-    verdict: string;
-  } | null>(null);
   const { logs, addLogs, clearLogs } = useLogEntries();
   // Filter alerts by active market tab (HK symbols start with "HK", rest are A-share)
   // Portfolio-level alerts (empty symbol) show in both tabs
-  const tabAlertEvents = (alertEvents as Parameters<typeof useAlerts>[0]).filter(
+  const tabAlertEvents = alertEvents.filter(
     (e) => !e.symbol || (activeTab === "HK" ? e.symbol.startsWith("HK") : !e.symbol.startsWith("HK"))
   );
   useAlerts(tabAlertEvents, addLogs, activeTab);
 
   const pollMs = (settings.poll_interval ?? DEFAULT_POLL_SEC) * 1000;
-
-  useEffect(() => {
-    fetchData();
-    const timer = setInterval(fetchData, pollMs);
-    return () => clearInterval(timer);
-  }, [fetchData, pollMs]);
 
   // 持仓排序状态，支持虚拟字段 mktVal / totalPnl / dayPnl
   type SortKey = keyof Service | "mktVal" | "totalPnl" | "dayPnl";
@@ -165,14 +123,14 @@ function Home() {
   const isHK = (s: Service) => s.id.startsWith("HK");
   const isETF = (s: Service) => !isHK(s) && /^(51|15|58)\d{4}$/.test(s.id);
   const inTab = (s: Service) => activeTab === "HK" ? isHK(s) : !isHK(s);
-  const tabServices = services.filter((s) => inTab(s));
-  const tabHoldingAll = tabServices.filter((s) => s.type === "holding");
-  const tagFiltered = filterTag
+  const tabServices = useMemo(() => services.filter((s) => inTab(s)), [services, activeTab]);
+  const tabHoldingAll = useMemo(() => tabServices.filter((s) => s.type === "holding"), [tabServices]);
+  const tagFiltered = useMemo(() => filterTag
     ? tabServices.filter((s) => s.tags?.includes(filterTag))
-    : tabServices;
-  const prodStock = applySortList(tagFiltered.filter((s) => s.type === "holding" && !s.hidden && !isETF(s)), holdSort);
-  const prodETF = applySortList(tagFiltered.filter((s) => s.type === "holding" && !s.hidden && isETF(s)), holdSort);
-  const hiddenList = applySortList(tagFiltered.filter((s) => s.hidden && s.type === "holding"), holdSort);
+    : tabServices, [tabServices, filterTag]);
+  const prodStock = useMemo(() => applySortList(tagFiltered.filter((s) => s.type === "holding" && !s.hidden && !isETF(s)), holdSort), [tagFiltered, holdSort]);
+  const prodETF = useMemo(() => applySortList(tagFiltered.filter((s) => s.type === "holding" && !s.hidden && isETF(s)), holdSort), [tagFiltered, holdSort]);
+  const hiddenList = useMemo(() => applySortList(tagFiltered.filter((s) => s.hidden && s.type === "holding"), holdSort), [tagFiltered, holdSort]);
   const hasHold = prodStock.length > 0 || prodETF.length > 0;
 
   const now = ts

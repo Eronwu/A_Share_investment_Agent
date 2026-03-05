@@ -4,17 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { D } from "../theme";
 import { AppTabs } from "../components/AppTabs";
 import { AppTitleBar } from "../components/AppTitleBar";
-
-interface AlertEvent {
-  ts: number;
-  time: string;
-  symbol: string;
-  kind: string;
-  level?: number;
-  message: string;
-  display: string;
-  change_pct: number;
-}
+import { useMetrics } from "../providers/MetricsProvider";
+import type { AlertEvent } from "../types";
 
 interface DailySummary {
   date: string;
@@ -334,49 +325,28 @@ function TabBar({
 }
 
 export default function AlertsPage() {
-  const [events, setEvents] = useState<AlertEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const { alertEvents: events, loading, fetchError } = useMetrics();
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(true);
   const [showL3, setShowL3] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    // Fetch events and summary in parallel
-    const [eventsRes, summaryRes] = await Promise.allSettled([
-      fetch("/api/metrics", { cache: "no-store" }).then((r) => r.json()),
-      fetch("/api/summary", { cache: "no-store" }).then((r) => r.json()),
-    ]);
-
-    // Handle events
-    if (eventsRes.status === "fulfilled") {
-      const data = eventsRes.value;
-      if (data.error) {
-        setFetchError(data.error);
-      } else {
-        setFetchError(null);
-        setEvents(data.alertEvents || []);
-      }
-    } else {
-      setFetchError(`network error: ${eventsRes.reason}`);
-    }
-
-    // Handle summary — only show today's report
-    if (summaryRes.status === "fulfilled") {
-      const sData = summaryRes.value;
+  const fetchSummary = useCallback(async () => {
+    try {
+      const res = await fetch("/api/summary", { cache: "no-store" });
+      const sData = await res.json();
       const s = sData.data;
       const today = new Date().toISOString().slice(0, 10);
       setSummary(s && s.date === today ? s : null);
+    } catch {
+      // summary fetch failure is non-critical
     }
-
-    setLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchData();
-    const timer = setInterval(fetchData, 30_000);
+    fetchSummary();
+    const timer = setInterval(fetchSummary, 30_000);
     return () => clearInterval(timer);
-  }, [fetchData]);
+  }, [fetchSummary]);
 
   // Level counts
   const l1Count = events.filter((e) => (e.level ?? 2) === 1).length;

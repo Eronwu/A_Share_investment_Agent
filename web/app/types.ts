@@ -60,3 +60,25 @@ export interface AlertSettings {
   big_move_pct?: number;
   cooldown_minutes?: number;
 }
+
+export interface MarketTurnover {
+  sh: number;
+  sz: number;
+  total: number;
+  shIndex: number;
+  szIndex: number;
+  shPct: number;
+  szPct: number;
+  verdict: string;
+}
+
+export interface AlertEvent {
+  ts: number;
+  time: string;
+  symbol: string;
+  kind: string;
+  level?: number;
+  message: string;
+  display: string;
+  change_pct: number;
+}

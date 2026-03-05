@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ClientProviders } from "./providers/ClientProviders";
 
 export const metadata: Metadata = {
   title: "A Share Investment Agent",
@@ -20,7 +21,7 @@ export default function RootLayout({
         />
       </head>
       <body style={{ margin: 0, padding: 0, overflow: "hidden", background: "#282a36" }}>
-        {children}
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );

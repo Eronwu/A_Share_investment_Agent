@@ -89,26 +89,35 @@ Next.js 15 + React 19 + TypeScript. Dracula-themed terminal UI on port 3120.
 | Sector | `/sector` | 全部 | 自定义板块指数+主线告警 |
 | Manage | `/manage` | 全部 | 交易计划+持仓管理 |
 
-两页共享同一个 `/api/metrics` 数据源（返回全量 `services[]`），客户端按 `s.type` 过滤。
+Holdings/Watching/Alerts 三页共享 `MetricsProvider`（`web/app/providers/MetricsProvider.tsx`），单一轮询 `/api/metrics`，数据通过 React Context 共享。切 tab 时数据已在内存，瞬间渲染（~200ms），零白屏零额外请求。其他页面（Sim/Sector/Manage）有独立 endpoint，不走共享 provider。
+
+**共享数据层** (`web/app/providers/`):
+- `MetricsProvider` — 单一 `/api/metrics` 轮询，暴露 `useMetrics()` hook，提供 `services/ts/tick/loading/settings/hkdCnyRate/fetchError/alertEvents/marketTurnover`
+- `ClientProviders` — Client Component 包装，在 `layout.tsx` 中包裹 `{children}`
+
+**共享类型** (`web/app/types.ts`):
+- `Service`, `AlertSettings`, `MarketTurnover`, `AlertEvent`, `WatchEntry`, `MonitorConfig`
 
 **共享组件** (`web/app/components/`):
 - `AppTitleBar` — macOS 风格标题栏（红黄绿圆点 + 居中标题），全 6 页使用
-- `AppTabs` — 全站统一顶部导航 tab 栏（holdings/watching/alerts/sim/sector/manage），active tab 紫色上边框
+- `AppTabs` — 全站统一顶部导航 tab 栏（holdings/watching/alerts/sim/sector/manage），active tab 紫色上边框，`next/link` 实现客户端导航
 - `MarketSwitch` — `A-share/HK` 切换按钮，用于 holdings + watching 页面，15:00 时间自动切换
 
 **摘要栏按 market tab 独立统计**：Nodes/holdings(+N hidden)/up/down/throughput/avg_delta/P&L 全部按当前 tab 计算。A 股 tab 显示两市指数+成交额（SH/SZ/vol），HK tab 显示 FX 汇率。港股 P&L（行级和汇总级）自动乘汇率转 CNY。当 FX 不可用时显示黄色 `[WARN FX unavailable]` banner。
 
-**错误处理**: Dashboard 和 Alerts 页面都有 `fetchError` state。API 返回 `{ error: "..." }` 时保留旧数据、显示红色 `[ERROR]` banner、触发 STALE 标记。`/api/metrics` catch 块返回 `{ ...EMPTY, error: String(e) }`，并校验 `services` 必须是数组。
+**错误处理**: `MetricsProvider` 统一处理 `fetchError`。API 返回 `{ error: "..." }` 时保留旧数据、各消费页面显示红色 `[ERROR]` banner、触发 STALE 标记。`/api/metrics` catch 块返回 `{ ...EMPTY, error: String(e) }`，并校验 `services` 必须是数组。
 
-**Loading 状态**: Dashboard 首次加载时显示 `info Loading metrics...`（终端风格），不渲染空表格。
+**Loading 状态**: `MetricsProvider` 管理全局 `loading` 状态。首次加载时各页显示终端风格 loading 提示，不渲染空表格。tab 切换时数据已在 Context，不触发 loading。
 
-**Data flow**: `market_data.json` + `monitor_config`(DB 或 JSON) + `alert_config.json` + SQLite alert_events 分离，`/api/metrics` 负责合并。
+**Data flow**: `market_data.json` + `monitor_config`(DB 或 JSON) + `alert_config.json` + SQLite alert_events 分离，`/api/metrics` 负责合并。`MetricsProvider` 单一轮询 `/api/metrics`，Holdings/Watching/Alerts 通过 `useMetrics()` 消费。
 
 **Key hooks**:
+- `useMetrics` — 从 `MetricsProvider` 获取共享数据（services/ts/tick/loading/settings/hkdCnyRate/fetchError/alertEvents/marketTurnover）
 - `useCommand` — parses `svc add|update|rm|hide|unhide|star|unstar|ls|config|help` commands, manages terminal log entries. Returns `addLogs` for external log injection.
-- `useAlerts` — 读取 notifier 写入 SQLite `alert_events` 表的数据（经 `/api/metrics` 返回），展示在 web 日志区，不做任何告警计算（纯消费者）。用 `display` 字段展示中文详细格式。
+- `useAlerts` — 读取 notifier 写入 SQLite `alert_events` 表的数据（经 `useMetrics()` 获取），展示在 web 日志区，不做任何告警计算（纯消费者）。用 `display` 字段展示中文详细格式。
 
 **Alerts 页面 (`/alerts`)**:
+- `alertEvents` 从 `useMetrics()` 获取（共享 provider），`/api/summary` 由 Alerts 页独立 30s 轮询
 - 列布局: `时间 | 级别 | 信号名 | 代码 | 价格 | 涨跌% | 名称+详情`
 - `parseAlert()` 从 `display` 文本中解析出结构化字段（信号名、股票名、代码、价格、详情），避免重复显示
 - 信号名列显示具体策略（`MACD底背离`、`均线多排`、`空头信号(分=5)`），不是泛化分类
@@ -515,6 +524,7 @@ Order 字段: `side` (buy/sell), `op` (>=/<= 价格方向), `price` (触发价),
 
 ### Architecture Rules
 
+- **前端共享数据层。** Holdings/Watching/Alerts 共用 `MetricsProvider`（`layout.tsx` 包裹），单一 `/api/metrics` 轮询。各页面通过 `useMetrics()` hook 消费数据，tab 切换不触发额外请求。Sim/Sector/Manage 有独立 endpoint 和 poll 周期，不走共享 provider。新增消费 `/api/metrics` 的页面应使用 `useMetrics()` 而非独立 fetch。
 - **Poller 是生产者，UI 是消费者，二者无耦合。** Poller (`src/tools/market_data_poller.py`) 只写行情数据到 `market_data.json`（price/change/vol/amount 等）；用户配置（type/cost/shares/hidden）主存储在 `sim_trading.db:monitor_watchlist`，JSON 为快照；告警规则（above/below）独立存 `alert_config.json`；告警事件存 `sim_trading.db` 的 `alert_events` 表。`/api/metrics` 负责合并行情 + 配置 + 告警 + 计算派生字段（pnl）。任何 UI 端操作立即生效，不依赖 poller 周期。
 - **Monitor Config DB-first 双写。** `/api/config` 所有写操作先写 SQLite `monitor_watchlist`/`monitor_settings` 表，然后自动导出 JSON 快照到 `monitor_config.json`。Python 端（Poller/Notifier）仍读 JSON。`CONFIG_SOURCE=json` 环境变量可强制 Web 端也读 JSON。
 - **All market data and FX rate fetching must happen in the Python poller script**, not in Next.js API routes. The web layer (`/api/metrics`) only reads from `market_data.json` written by the poller. This keeps the data pipeline centralized and avoids duplicate API calls from the frontend.
@@ -673,16 +683,17 @@ cd web && npx tsc --noEmit
 # 4. 截图审查（用 Read 工具查看每张截图）
 ```
 
-**现有测试脚本（~330+ tests 总计）：**
+**现有测试脚本（~340+ tests 总计）：**
 | 脚本 | 测试数 | 覆盖范围 |
 |------|--------|---------|
-| `test_full_checkup.mjs` | ~55 | 全站回归（Holdings/Watching/Alerts/Sim/Manage/API/Navigation + 排序/折叠/跨 tab 断言） |
+| `test_full_checkup.mjs` | ~65 | 全站回归（Holdings/Watching/Alerts/Sim/Manage/API/Navigation + 排序/折叠/跨 tab 断言） |
 | `test_dashboard_e2e.mjs` | 55 | Dashboard 交互（折叠/排序/星标/EditableCell/FX/摘要栏） |
 | `test_manage_stocks_e2e.mjs` | 32 | Manage 持仓表（above/below/hide/star/promote/demote/搜索） |
 | `test_plan_e2e.mjs` | ~15 | 交易计划 CRUD（创建/编辑/暂停/删除） |
 | `test_sim_alerts_e2e.mjs` | 60 | Sim+Alerts（交易计划/分页/L3切换/日报折叠/自动刷新） |
 | `test_sector_e2e.mjs` | 46 | Sector（K线弹窗/新建删除指数/星标关注/横向滚动/折叠） |
 | `test_navigation.mjs` | 18 | 全站路由+跨页导航 |
+| `test_perf_metrics_sharing.mjs` | 9 | 性能（单一 poll 流/tab 切换延迟/loading 闪烁/共享状态一致性） |
 
 #### Hidden List
 

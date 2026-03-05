@@ -1,15 +1,16 @@
 "use client";
 
-import { Suspense, useEffect, useState, useCallback } from "react";
+import { Suspense, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAlerts } from "../hooks/useAlerts";
 import { useLogEntries } from "../hooks/useCommand";
-import type { Service, AlertSettings } from "../types";
+import type { Service } from "../types";
 import { tagColor } from "../lib/tag-utils";
 import { D } from "../theme";
 import { AppTabs } from "../components/AppTabs";
 import { AppTitleBar } from "../components/AppTitleBar";
 import { MarketSwitch, type MarketTab } from "../components/MarketSwitch";
+import { useMetrics } from "../providers/MetricsProvider";
 
 const DEFAULT_POLL_SEC = 30;
 
@@ -38,13 +39,8 @@ export default function WatchingPage() {
 }
 
 function WatchingContent() {
+  const { services, ts, tick, loading, settings, fetchError, alertEvents } = useMetrics();
   const searchParams = useSearchParams();
-  const [services, setServices] = useState<Service[]>([]);
-  const [ts, setTs] = useState(0);
-  const [tick, setTick] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [settings, setSettings] = useState<AlertSettings>({});
-  const [fetchError, setFetchError] = useState<string | null>(null);
 
   function getDefaultTab(): MarketTab {
     const param = searchParams.get("tab")?.toUpperCase();
@@ -60,34 +56,8 @@ function WatchingContent() {
   type SortState = { key: SortKey | null; asc: boolean };
   const [watchSort, setWatchSort] = useState<SortState>({ key: null, asc: false });
   const { logs, addLogs, clearLogs } = useLogEntries();
-  const [alertEvents, setAlertEvents] = useState<unknown[]>([]);
-
-  const fetchData = useCallback(async () => {
-    try {
-      const resp = await fetch("/api/metrics", { cache: "no-store" });
-      const data = await resp.json();
-      if (data.error) setFetchError(data.error);
-      else {
-        setFetchError(null);
-        setServices(data.services || []);
-        setTs(data.ts || Date.now());
-        if (data.settings) setSettings(data.settings);
-        if (data.alertEvents) setAlertEvents(data.alertEvents);
-      }
-      setTick((t) => t + 1);
-    } catch (e) {
-      setFetchError(`network error: ${e}`);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   const pollMs = (settings.poll_interval ?? DEFAULT_POLL_SEC) * 1000;
-  useEffect(() => {
-    fetchData();
-    const timer = setInterval(fetchData, pollMs);
-    return () => clearInterval(timer);
-  }, [fetchData, pollMs]);
 
   function switchTab(tab: MarketTab) {
     setActiveTab(tab);
@@ -95,7 +65,7 @@ function WatchingContent() {
     window.history.replaceState(null, "", `/watching?tab=${tab}`);
   }
 
-  const tabAlertEvents = (alertEvents as Parameters<typeof useAlerts>[0]).filter(
+  const tabAlertEvents = alertEvents.filter(
     (e) => !e.symbol || (activeTab === "HK" ? e.symbol.startsWith("HK") : !e.symbol.startsWith("HK"))
   );
   useAlerts(tabAlertEvents, addLogs, activeTab);
@@ -121,13 +91,13 @@ function WatchingContent() {
       return watchSort.asc ? cmp : -cmp;
     });
   }
-  const tabServices = services.filter((s) => inTab(s) && s.type !== "holding");
-  const tagFiltered = filterTag
+  const tabServices = useMemo(() => services.filter((s) => inTab(s) && s.type !== "holding"), [services, activeTab]);
+  const tagFiltered = useMemo(() => filterTag
     ? tabServices.filter((s) => s.tags?.includes(filterTag))
-    : tabServices;
-  const watchStock = applySortList(tagFiltered.filter((s) => !s.hidden && !isETF(s)));
-  const watchETF = applySortList(tagFiltered.filter((s) => !s.hidden && isETF(s)));
-  const hiddenList = applySortList(tagFiltered.filter((s) => s.hidden));
+    : tabServices, [tabServices, filterTag]);
+  const watchStock = useMemo(() => applySortList(tagFiltered.filter((s) => !s.hidden && !isETF(s))), [tagFiltered, watchSort]);
+  const watchETF = useMemo(() => applySortList(tagFiltered.filter((s) => !s.hidden && isETF(s))), [tagFiltered, watchSort]);
+  const hiddenList = useMemo(() => applySortList(tagFiltered.filter((s) => s.hidden)), [tagFiltered, watchSort]);
 
   const now = ts ? new Date(ts).toLocaleTimeString("zh-CN", { hour12: false }) : "--:--:--";
   const isStale = (ts > 0 && Date.now() - ts > pollMs * 3) || fetchError !== null;
