@@ -104,7 +104,7 @@
     "max_per_day": 1
   },
   "futu_trade": {
-    "enabled": false,
+    "enabled": true,
     "host": "127.0.0.1",
     "port": 11111,
     "order_type": "NORMAL",

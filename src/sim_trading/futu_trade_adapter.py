@@ -142,8 +142,14 @@ class FutuTradeAdapter:
             return False
 
     def _discover_accounts(self):
-        """从 get_acc_list 发现 HK 和 A 股模拟账户。"""
-        from futu import RET_OK, TrdEnv, TrdMarket
+        """从 get_acc_list 发现 HK 和 A 股模拟账户。
+
+        Futu SDK 返回字段为字符串（非枚举）:
+          trd_env: "SIMULATE" / "REAL"
+          trdmarket_auth: ["HK"] / ["SH", "SZ"]
+          sim_acc_type: "STOCK" / "OPTION" / "N/A"
+        """
+        from futu import RET_OK
 
         ret, data = self._ctx.get_acc_list()
         if ret != RET_OK:
@@ -151,22 +157,29 @@ class FutuTradeAdapter:
             return
 
         for _, row in data.iterrows():
-            # 只用模拟盘 (SIMULATE)
-            if row.get("trd_env") != TrdEnv.SIMULATE:
+            trd_env = str(row.get("trd_env", ""))
+            if "SIMULATE" not in trd_env:
                 continue
-            acc_id = int(row["acc_id"])
-            market = row.get("trd_market_auth", [])
-            # market_auth 可能是字符串列表或单值
-            if isinstance(market, str):
-                market = [market]
 
-            for m in market:
-                if m == TrdMarket.HK and self._hk_acc_id is None:
-                    self._hk_acc_id = acc_id
-                    logger.debug(f"Found HK sim account: {acc_id}")
-                elif m in (TrdMarket.SH, TrdMarket.SZ) and self._a_acc_id is None:
-                    self._a_acc_id = acc_id
-                    logger.debug(f"Found A-share sim account: {acc_id}")
+            # 跳过期权模拟账户
+            sim_type = str(row.get("sim_acc_type", ""))
+            if "OPTION" in sim_type:
+                continue
+
+            acc_id = int(row["acc_id"])
+            market_auth = row.get("trdmarket_auth", [])
+            if isinstance(market_auth, str):
+                market_auth = [market_auth]
+
+            # 字符串匹配: "HK", "SH", "SZ", "US" etc.
+            market_strs = [str(m) for m in market_auth]
+
+            if "HK" in market_strs and self._hk_acc_id is None:
+                self._hk_acc_id = acc_id
+                logger.debug(f"Found HK sim account: {acc_id}")
+            if any(m in ("SH", "SZ") for m in market_strs) and self._a_acc_id is None:
+                self._a_acc_id = acc_id
+                logger.debug(f"Found A-share sim account: {acc_id}")
 
     def _select_account(self, code: str) -> int | None:
         """根据代码前缀选择模拟账户 ID。"""
@@ -320,6 +333,18 @@ class FutuTradeAdapter:
             if self._a_acc_id:
                 acc_ids.append(self._a_acc_id)
 
+        def _safe_float(val, default=0.0):
+            try:
+                return float(val)
+            except (ValueError, TypeError):
+                return default
+
+        def _safe_int(val, default=0):
+            try:
+                return int(val)
+            except (ValueError, TypeError):
+                return default
+
         try:
             from futu import RET_OK
             for acc_id in acc_ids:
@@ -332,18 +357,18 @@ class FutuTradeAdapter:
                     continue
 
                 for _, row in data.iterrows():
-                    qty = int(row.get("qty", 0))
+                    qty = _safe_int(row.get("qty", 0))
                     if qty <= 0:
                         continue
                     code = from_futu_code(row["code"])
                     result[code] = FutuPosition(
                         code=code,
                         quantity=qty,
-                        avg_price=float(row.get("cost_price", 0)),
-                        market_val=float(row.get("market_val", 0)),
-                        unrealized_pnl=float(row.get("pl_val", 0)),
-                        today_pnl=float(row.get("today_pl_val", 0)),
-                        today_buy_qty=int(row.get("today_buy_qty", 0)),
+                        avg_price=_safe_float(row.get("cost_price", 0)),
+                        market_val=_safe_float(row.get("market_val", 0)),
+                        unrealized_pnl=_safe_float(row.get("pl_val", 0)),
+                        today_pnl=_safe_float(row.get("today_pl_val", 0)),
+                        today_buy_qty=_safe_int(row.get("today_buy_qty", 0)),
                     )
         except Exception as e:
             logger.error(f"get_positions error: {e}")
