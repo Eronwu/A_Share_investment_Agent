@@ -14,6 +14,25 @@ WEB_LOG="$DIR/logs/web.log"
 
 mkdir -p "$DIR/logs"
 
+# 按日期生成日志文件名
+TODAY=$(date +%Y-%m-%d)
+POLLER_LOG="$DIR/logs/poller-$TODAY.log"
+NOTIFIER_LOG="$DIR/logs/notifier-$TODAY.log"
+L2_DAEMON_LOG="$DIR/logs/l2_daemon-$TODAY.log"
+WEB_LOG="$DIR/logs/web-$TODAY.log"
+
+_check_terminal_notifier() {
+  if ! command -v terminal-notifier &> /dev/null; then
+    echo "ERROR: terminal-notifier 未安装"
+    echo ""
+    echo "L1/L2 告警弹窗功能需要 terminal-notifier，请安装:"
+    echo ""
+    echo "  brew install terminal-notifier"
+    echo ""
+    exit 1
+  fi
+}
+
 _read_pid() { [ -f "$1" ] && cat "$1" || echo ""; }
 
 _is_running() {
@@ -47,6 +66,9 @@ _ensure_no_orphan() {
 }
 
 do_start() {
+  # 检查 terminal-notifier 依赖
+  _check_terminal_notifier
+
   # Poller
   _ensure_no_orphan "$POLLER_PID" "market_data_poller.py"
   if _is_running "$POLLER_PID"; then
@@ -55,7 +77,7 @@ do_start() {
     cd "$DIR"
     nohup poetry run python src/tools/market_data_poller.py >> "$POLLER_LOG" 2>&1 &
     echo $! > "$POLLER_PID"
-    echo "Poller  启动  pid=$!  日志=$POLLER_LOG"
+    echo "Poller  启动  pid=$!  日志=logs/poller-$TODAY.log"
   fi
 
   # Notifier (等 poller 先写一次数据)
@@ -67,7 +89,7 @@ do_start() {
     sleep 2  # 等 poller 首次写入 market_data.json
     nohup poetry run python src/tools/stock_notifier.py >> "$NOTIFIER_LOG" 2>&1 &
     echo $! > "$NOTIFIER_PID"
-    echo "Notifier 启动  pid=$!  日志=$NOTIFIER_LOG"
+    echo "Notifier 启动  pid=$!  日志=logs/notifier-$TODAY.log"
   fi
 
   # L2 Strategy Daemon (optional, needs Futu OpenD)
@@ -78,7 +100,7 @@ do_start() {
     cd "$DIR"
     nohup poetry run python src/tools/l2_strategy_daemon.py >> "$L2_DAEMON_LOG" 2>&1 &
     echo $! > "$L2_DAEMON_PID"
-    echo "L2 Daemon 启动  pid=$!  日志=$L2_DAEMON_LOG"
+    echo "L2 Daemon 启动  pid=$!  日志=logs/l2_daemon-$TODAY.log"
   fi
 
   # Web
@@ -89,13 +111,13 @@ do_start() {
     cd "$DIR/web"
     nohup npm run dev >> "$WEB_LOG" 2>&1 &
     echo $! > "$WEB_PID"
-    echo "Web    启动  pid=$!  日志=$WEB_LOG"
+    echo "Web    启动  pid=$!  日志=logs/web-$TODAY.log"
   fi
 
   echo ""
   echo "全部后台运行中，可关闭终端。"
   echo "  查看状态: ./start_monitor.sh status"
-  echo "  查看日志: tail -f logs/poller.log logs/notifier.log logs/l2_daemon_out.log logs/web.log"
+  echo "  查看日志: tail -f logs/poller-$TODAY.log logs/notifier-$TODAY.log logs/l2_daemon-$TODAY.log logs/web-$TODAY.log"
   echo "  停止服务: ./start_monitor.sh stop"
 }
 

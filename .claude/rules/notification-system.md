@@ -1,5 +1,13 @@
 # Notification System Rules
 
+## macOS 依赖
+
+L1/L2 告警弹窗需要安装 `terminal-notifier`:
+
+```bash
+brew install terminal-notifier
+```
+
 ## Tiered Notification (L1-L4)
 
 Level is derived from `star` + `type` + `hidden` on each watchlist entry:
