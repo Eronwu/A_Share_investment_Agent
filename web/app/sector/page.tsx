@@ -97,13 +97,26 @@ function statusStyle(status: string): { label: string; bg: string; fg: string } 
 
 /* ── Reusable UI ── */
 
-function TabBar({ indicesCount, alertsCount }: { indicesCount: number; alertsCount: number }) {
+function TabBar({ indicesCount, alertsCount, lastFetchTime }: { indicesCount: number; alertsCount: number; lastFetchTime: Date | null }) {
+  const timeLabel = (() => {
+    if (!lastFetchTime) return "...";
+    const hh = lastFetchTime.getHours();
+    const mm = lastFetchTime.getMinutes();
+    const timeStr = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+    // Trading hours: 09:15 - 15:30
+    const mins = hh * 60 + mm;
+    if (mins >= 9 * 60 + 15 && mins <= 15 * 60 + 30) {
+      return `${timeStr} 更新 | 60s`;
+    }
+    return `${timeStr} 已收盘`;
+  })();
+
   return (
     <AppTabs
       active="sector"
       rightSlot={(
         <span style={{ color: D.comment, fontSize: 11, marginLeft: 12, marginRight: 16 }}>
-          {indicesCount} indices | {alertsCount} alerts | auto-refresh 60s
+          {indicesCount} indices | {alertsCount} alerts | {timeLabel}
         </span>
       )}
     />
@@ -114,11 +127,14 @@ function TabBar({ indicesCount, alertsCount }: { indicesCount: number; alertsCou
 function CreateModal({
   onClose,
   onCreated,
+  parentOptions,
 }: {
   onClose: () => void;
   onCreated: () => void;
+  parentOptions: { id: string; name: string }[];
 }) {
   const [tagName, setTagName] = useState("");
+  const [parentTag, setParentTag] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -137,6 +153,7 @@ function CreateModal({
         body: JSON.stringify({
           action: "create-tag",
           tag: trimTag,
+          ...(parentTag ? { parent: parentTag } : {}),
         }),
       });
       const result = await resp.json();
@@ -207,6 +224,23 @@ function CreateModal({
             if (e.key === "Enter") handleCreate();
           }}
         />
+        {parentOptions.length > 0 && (
+          <>
+            <label style={{ color: D.comment, fontSize: 12, display: "block", marginBottom: 4 }}>
+              父指数 (可选):
+            </label>
+            <select
+              style={{ ...inputStyle, marginBottom: 8, appearance: "auto" }}
+              value={parentTag}
+              onChange={(e) => setParentTag(e.target.value)}
+            >
+              <option value="">无 (独立指数)</option>
+              {parentOptions.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </>
+        )}
         <div style={{ color: D.comment, fontSize: 11, marginBottom: 16 }}>
           创建后在 /manage 页面给股票打上此 tag 即可加入指数
         </div>
@@ -264,6 +298,7 @@ export default function SectorPage() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
 
   // expanded index row + hover highlight
   const [expandedIndex, setExpandedIndex] = useState<string | null>(null);
@@ -285,6 +320,7 @@ export default function SectorPage() {
       } else {
         setData(json);
         setFetchError(json.error || null);
+        setLastFetchTime(new Date());
       }
     } catch (e) {
       setFetchError(`network error: ${e}`);
@@ -359,7 +395,7 @@ export default function SectorPage() {
     >
       <AppTitleBar title="sector — indices" />
 
-      <TabBar indicesCount={indices.length} alertsCount={alerts.length} />
+      <TabBar indicesCount={indices.length} alertsCount={alerts.length} lastFetchTime={lastFetchTime} />
 
       {/* scrollable body */}
       <div
@@ -497,7 +533,7 @@ export default function SectorPage() {
 
                     const COL_W = 72;
                     const ROW_H = 48;
-                    const NAME_W = 180;
+                    const NAME_W = 220;
 
                     function toggleParentCollapse(parentId: string) {
                       setCollapsedParents((prev) => {
@@ -555,37 +591,38 @@ export default function SectorPage() {
                                 onMouseEnter={() => setHoverIndex(idx.id)}
                                 onMouseLeave={() => setHoverIndex(null)}
                               >
-                                {/* parent collapse toggle or star */}
-                                {isParent ? (
+                                {/* collapse arrow (parent only) + star toggle */}
+                                {isParent && (
                                   <span
                                     style={{
-                                      width: 16,
+                                      width: 14,
                                       color: D.purple,
                                       cursor: "pointer",
                                       userSelect: "none",
                                       fontSize: 12,
                                       textAlign: "center",
                                       fontWeight: 700,
+                                      flexShrink: 0,
                                     }}
                                     onClick={() => toggleParentCollapse(idx.id)}
                                   >
                                     {isCollapsed ? "▸" : "▾"}
                                   </span>
-                                ) : (
-                                  <span
-                                    style={{
-                                      width: isChild ? 12 : 16,
-                                      color: idx.star ? D.yellow : D.comment,
-                                      cursor: "pointer",
-                                      userSelect: "none",
-                                      fontSize: 12,
-                                      textAlign: "center",
-                                    }}
-                                    onClick={() => handleToggleStar(idx.id, idx.star)}
-                                  >
-                                    {idx.star ? "★" : "☆"}
-                                  </span>
                                 )}
+                                <span
+                                  style={{
+                                    width: isChild ? 12 : 16,
+                                    color: idx.star ? D.yellow : D.comment,
+                                    cursor: "pointer",
+                                    userSelect: "none",
+                                    fontSize: 12,
+                                    textAlign: "center",
+                                    flexShrink: 0,
+                                  }}
+                                  onClick={() => handleToggleStar(idx.id, idx.star)}
+                                >
+                                  {idx.star ? "★" : "☆"}
+                                </span>
                                 {/* name -- click to open chart modal */}
                                 <div
                                   style={{ flex: 1, minWidth: 0, overflow: "hidden", cursor: "pointer" }}
@@ -601,29 +638,27 @@ export default function SectorPage() {
                                   }}>
                                     {idx.name}
                                   </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 1 }}>
-                                    <span
-                                      style={{
-                                        display: "inline-block",
-                                        padding: "0 5px",
-                                        borderRadius: 2,
-                                        fontSize: 10,
-                                        fontWeight: 700,
-                                        background: statusInfo.bg,
-                                        color: statusInfo.fg,
-                                        lineHeight: "16px",
-                                      }}
-                                    >
-                                      {statusInfo.label}
-                                    </span>
-                                    <span style={{ fontSize: 10, color: D.comment }}>
-                                      {idx.stockCount ?? idx.stocks?.length ?? 0}只
-                                    </span>
-                                    {isParent && (
-                                      <span style={{ fontSize: 10, color: D.comment }}>
-                                        ({idx.children.length}子)
+                                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 1, overflow: "hidden", whiteSpace: "nowrap" }}>
+                                    {(idx.status === "mainline" || idx.status === "approaching") && (
+                                      <span
+                                        style={{
+                                          display: "inline-block",
+                                          padding: "0 5px",
+                                          borderRadius: 2,
+                                          fontSize: 10,
+                                          fontWeight: 700,
+                                          background: statusInfo.bg,
+                                          color: statusInfo.fg,
+                                          lineHeight: "16px",
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        {statusInfo.label}
                                       </span>
                                     )}
+                                    <span style={{ fontSize: 10, color: D.comment }}>
+                                      {idx.stockCount ?? idx.stocks?.length ?? 0}只{isParent ? ` (${idx.children.length}子)` : ""}
+                                    </span>
                                   </div>
                                 </div>
                                 {/* cumGain */}
@@ -815,45 +850,54 @@ export default function SectorPage() {
         <CreateModal
           onClose={() => setShowCreateModal(false)}
           onCreated={fetchData}
+          parentOptions={
+            indices
+              .filter((i) => i.isParent || (!i.parent && i.children.length === 0))
+              .map((i) => ({ id: i.id, name: i.name }))
+          }
         />
       )}
 
       {/* chart modal */}
       {expandedIndex && (() => {
         const idx = indices.find((i) => i.id === expandedIndex);
-        if (!idx || idx.history.length < 2) return null;
+        if (!idx) return null;
 
+        const hasChart = idx.history.length >= 2;
         const W = 680, H = 200, PAD_T = 20, PAD_B = 26, PAD_L = 44, PAD_R = 12;
-        const pts = [...idx.history].reverse();
+
+        // Chart data (only computed when hasChart)
+        const pts = hasChart ? [...idx.history].reverse() : [];
         const vals = pts.map((p) => p.value);
-        const minV = Math.min(...vals);
-        const maxV = Math.max(...vals);
+        const minV = hasChart ? Math.min(...vals) : 0;
+        const maxV = hasChart ? Math.max(...vals) : 0;
         const range = maxV - minV || 1;
 
-        const xStep = (W - PAD_L - PAD_R) / (pts.length - 1);
+        const xStep = hasChart ? (W - PAD_L - PAD_R) / (pts.length - 1) : 0;
         const yScale = (v: number) =>
           PAD_T + (H - PAD_T - PAD_B) * (1 - (v - minV) / range);
 
-        const line = pts
-          .map((p, i) => `${PAD_L + i * xStep},${yScale(p.value)}`)
-          .join(" ");
-        const area =
-          `${PAD_L},${yScale(minV)} ` +
-          pts.map((p, i) => `${PAD_L + i * xStep},${yScale(p.value)}`).join(" ") +
-          ` ${PAD_L + (pts.length - 1) * xStep},${yScale(minV)}`;
+        const line = hasChart
+          ? pts.map((p, i) => `${PAD_L + i * xStep},${yScale(p.value)}`).join(" ")
+          : "";
+        const area = hasChart
+          ? `${PAD_L},${yScale(minV)} ` +
+            pts.map((p, i) => `${PAD_L + i * xStep},${yScale(p.value)}`).join(" ") +
+            ` ${PAD_L + (pts.length - 1) * xStep},${yScale(minV)}`
+          : "";
 
-        const lastVal = vals[vals.length - 1];
-        const firstVal = vals[0];
+        const lastVal = hasChart ? vals[vals.length - 1] : 0;
+        const firstVal = hasChart ? vals[0] : 0;
         const trendUp = lastVal >= firstVal;
         const lineColor = trendUp ? D.red : D.green;
         const fillColor = trendUp ? "rgba(255,85,85,0.12)" : "rgba(80,250,123,0.12)";
 
-        const yTicks = Array.from({ length: 5 }, (_, i) => minV + (range * i) / 4);
+        const yTicks = hasChart ? Array.from({ length: 5 }, (_, i) => minV + (range * i) / 4) : [];
         const xLabelStep = Math.max(1, Math.floor(pts.length / 8));
         const xLabels = pts.filter((_, i) => i % xLabelStep === 0 || i === pts.length - 1);
 
-        const baseY = yScale(100);
-        const baseInRange = 100 >= minV && 100 <= maxV;
+        const baseY = hasChart ? yScale(100) : 0;
+        const baseInRange = hasChart && 100 >= minV && 100 <= maxV;
 
         return (
           <div
@@ -886,16 +930,20 @@ export default function SectorPage() {
                 <span style={{ color: D.fg, fontWeight: 700, fontSize: 15 }}>
                   {idx.name}
                 </span>
-                <span style={{ color: D.comment, fontSize: 12 }}>
-                  指数值 {lastVal.toFixed(1)}
-                </span>
+                {hasChart && (
+                  <span style={{ color: D.comment, fontSize: 12 }}>
+                    指数值 {lastVal.toFixed(1)}
+                  </span>
+                )}
                 <span style={{ color: chgColor(idx.cumGain), fontSize: 13, fontWeight: 600 }}>
                   {fmtPct(idx.cumGain)}
                 </span>
-                <span style={{ color: D.comment, fontSize: 11 }}>
-                  {pts.length}日
-                </span>
-                {(() => {
+                {hasChart && (
+                  <span style={{ color: D.comment, fontSize: 11 }}>
+                    {pts.length}日
+                  </span>
+                )}
+                {(idx.status === "mainline" || idx.status === "approaching") && (() => {
                   const st = statusStyle(idx.status);
                   return (
                     <span style={{
@@ -921,62 +969,77 @@ export default function SectorPage() {
                 </span>
               </div>
 
-              {/* SVG chart */}
-              <svg
-                width={W}
-                height={H}
-                style={{ display: "block", maxWidth: "100%" }}
-                viewBox={`0 0 ${W} ${H}`}
-              >
-                {yTicks.map((v, i) => (
-                  <g key={i}>
+              {/* SVG chart or placeholder */}
+              {hasChart ? (
+                <svg
+                  width={W}
+                  height={H}
+                  style={{ display: "block", maxWidth: "100%" }}
+                  viewBox={`0 0 ${W} ${H}`}
+                >
+                  {yTicks.map((v, i) => (
+                    <g key={i}>
+                      <line
+                        x1={PAD_L} y1={yScale(v)}
+                        x2={W - PAD_R} y2={yScale(v)}
+                        stroke="#333" strokeDasharray="2,3"
+                      />
+                      <text
+                        x={PAD_L - 4} y={yScale(v) + 3}
+                        fill={D.comment} fontSize={9} textAnchor="end"
+                      >
+                        {v.toFixed(1)}
+                      </text>
+                    </g>
+                  ))}
+
+                  {baseInRange && (
                     <line
-                      x1={PAD_L} y1={yScale(v)}
-                      x2={W - PAD_R} y2={yScale(v)}
-                      stroke="#333" strokeDasharray="2,3"
+                      x1={PAD_L} y1={baseY}
+                      x2={W - PAD_R} y2={baseY}
+                      stroke={D.yellow} strokeDasharray="4,3" strokeWidth={0.8} opacity={0.5}
                     />
-                    <text
-                      x={PAD_L - 4} y={yScale(v) + 3}
-                      fill={D.comment} fontSize={9} textAnchor="end"
-                    >
-                      {v.toFixed(1)}
-                    </text>
-                  </g>
-                ))}
+                  )}
 
-                {baseInRange && (
-                  <line
-                    x1={PAD_L} y1={baseY}
-                    x2={W - PAD_R} y2={baseY}
-                    stroke={D.yellow} strokeDasharray="4,3" strokeWidth={0.8} opacity={0.5}
+                  <polygon points={area} fill={fillColor} />
+                  <polyline points={line} fill="none" stroke={lineColor} strokeWidth={1.8} />
+                  <circle
+                    cx={PAD_L + (pts.length - 1) * xStep}
+                    cy={yScale(lastVal)}
+                    r={3.5}
+                    fill={lineColor}
                   />
-                )}
 
-                <polygon points={area} fill={fillColor} />
-                <polyline points={line} fill="none" stroke={lineColor} strokeWidth={1.8} />
-                <circle
-                  cx={PAD_L + (pts.length - 1) * xStep}
-                  cy={yScale(lastVal)}
-                  r={3.5}
-                  fill={lineColor}
-                />
-
-                {xLabels.map((p) => {
-                  const i = pts.indexOf(p);
-                  return (
-                    <text
-                      key={p.date}
-                      x={PAD_L + i * xStep}
-                      y={H - 4}
-                      fill={D.comment}
-                      fontSize={9}
-                      textAnchor="middle"
-                    >
-                      {shortDate(p.date)}
-                    </text>
-                  );
-                })}
-              </svg>
+                  {xLabels.map((p) => {
+                    const i = pts.indexOf(p);
+                    return (
+                      <text
+                        key={p.date}
+                        x={PAD_L + i * xStep}
+                        y={H - 4}
+                        fill={D.comment}
+                        fontSize={9}
+                        textAnchor="middle"
+                      >
+                        {shortDate(p.date)}
+                      </text>
+                    );
+                  })}
+                </svg>
+              ) : (
+                <div style={{
+                  height: 80,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: D.comment,
+                  fontSize: 12,
+                  border: `1px dashed ${D.currentLine}`,
+                  borderRadius: 4,
+                }}>
+                  K线数据将在收盘后生成
+                </div>
+              )}
 
               {/* component stocks table */}
               <div style={{ marginTop: 12, borderTop: `1px solid ${D.currentLine}`, paddingTop: 8 }}>
