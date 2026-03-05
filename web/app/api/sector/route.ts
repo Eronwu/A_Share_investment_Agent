@@ -60,6 +60,7 @@ interface TagMetaRow {
   star: number;
   watch: number;
   baseline_value: number;
+  parent: string | null;
   created_at: string;
 }
 
@@ -407,7 +408,7 @@ export async function GET(request: NextRequest) {
     // ── Custom indices (tag-aggregated from DB) ──
 
     const tagRows = db
-      .prepare("SELECT tag, star, watch, baseline_value, created_at FROM tag_meta")
+      .prepare("SELECT tag, star, watch, baseline_value, parent, created_at FROM tag_meta")
       .all() as TagMetaRow[];
 
     const stockRows = db
@@ -431,7 +432,34 @@ export async function GET(request: NextRequest) {
 
     const stockNameMap = buildStockNameMap();
 
-    const indices: Array<{
+    // Build parent→children mapping
+    const parentChildren: Record<string, string[]> = {};
+    const tagMetaMap: Record<string, TagMetaRow> = {};
+    for (const tag of tagRows) {
+      tagMetaMap[tag.tag] = tag;
+      if (tag.parent) {
+        if (!parentChildren[tag.parent]) parentChildren[tag.parent] = [];
+        parentChildren[tag.parent].push(tag.tag);
+      }
+    }
+
+    // For parent tags, aggregate children's stocks (deduplicated)
+    const parentStocks: Record<string, { code: string; name: string }[]> = {};
+    for (const [parentTag, children] of Object.entries(parentChildren)) {
+      const seen = new Set<string>();
+      const agg: { code: string; name: string }[] = [];
+      for (const child of children) {
+        for (const s of tagStocks[child] || []) {
+          if (!seen.has(s.code)) {
+            seen.add(s.code);
+            agg.push(s);
+          }
+        }
+      }
+      parentStocks[parentTag] = agg;
+    }
+
+    type IndexItem = {
       id: string;
       name: string;
       star: boolean;
@@ -447,12 +475,23 @@ export async function GET(request: NextRequest) {
       status: string;
       components: ComponentEntry[];
       history: Array<{ date: string; change: number; value: number }>;
-    }> = [];
+      parent: string | null;
+      isParent: boolean;
+      children: string[];
+    };
+
+    const indices: IndexItem[] = [];
 
     for (const tag of tagRows) {
       const tagName = tag.tag;
-      const stockList = tagStocks[tagName] || [];
+      const isParentTag = !tag.parent && !!parentChildren[tagName];
+      const stockList = isParentTag
+        ? parentStocks[tagName] || []
+        : tagStocks[tagName] || [];
       const stockCodes = stockList.map((s) => s.code);
+
+      // Skip tags that have no stocks (and are not parent tags with children)
+      if (stockList.length === 0 && !isParentTag) continue;
 
       const dailyRows = db
         .prepare(
@@ -463,7 +502,7 @@ export async function GET(request: NextRequest) {
         )
         .all(tagName) as SectorDailyRow[];
 
-      const today = dailyRows.length > 0 ? round(dailyRows[0].avg_change_pct, 2) : 0;
+      const todayVal = dailyRows.length > 0 ? round(dailyRows[0].avg_change_pct, 2) : 0;
       const d3 = round(
         dailyRows.slice(0, 3).reduce((s, r) => s + r.avg_change_pct, 0),
         2,
@@ -528,7 +567,7 @@ export async function GET(request: NextRequest) {
         stocks: stockCodes,
         stockCount: stockList.length,
         createdAt: tag.created_at,
-        today,
+        today: todayVal,
         d3,
         d5,
         d10,
@@ -536,6 +575,9 @@ export async function GET(request: NextRequest) {
         status,
         components,
         history,
+        parent: tag.parent || null,
+        isParent: isParentTag,
+        children: isParentTag ? (parentChildren[tagName] || []) : [],
       });
     }
 
@@ -604,7 +646,7 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case "create-tag": {
-        const { tag } = body as { tag: string };
+        const { tag, parent: parentTag } = body as { tag: string; parent?: string | null };
         if (!tag || !tag.trim()) {
           return NextResponse.json(
             { error: "Missing tag name" },
@@ -624,12 +666,35 @@ export async function POST(request: NextRequest) {
           );
         }
         db.prepare(
-          `INSERT INTO tag_meta (tag, star, watch, baseline_value, created_at, updated_at)
-           VALUES (?, 0, 1, 100, datetime('now'), datetime('now'))`,
-        ).run(tag.trim());
+          `INSERT INTO tag_meta (tag, star, watch, baseline_value, parent, created_at, updated_at)
+           VALUES (?, 0, 1, 100, ?, datetime('now'), datetime('now'))`,
+        ).run(tag.trim(), parentTag?.trim() || null);
         db.close();
         db = null;
         return NextResponse.json({ ok: true, action: "create-tag", tag: tag.trim() });
+      }
+
+      case "set-parent": {
+        const { tag: spTag, parent: spParent } = body as { tag: string; parent: string | null };
+        if (!spTag) {
+          return NextResponse.json(
+            { error: "Missing tag" },
+            { status: 400 },
+          );
+        }
+        db = new Database(SIM_DB_PATH);
+        const spResult = db
+          .prepare("UPDATE tag_meta SET parent = ?, updated_at = datetime('now') WHERE tag = ?")
+          .run(spParent?.trim() || null, spTag);
+        db.close();
+        db = null;
+        if (spResult.changes === 0) {
+          return NextResponse.json(
+            { error: `Tag "${spTag}" not found` },
+            { status: 404 },
+          );
+        }
+        return NextResponse.json({ ok: true, action: "set-parent", tag: spTag, parent: spParent || null });
       }
 
       case "delete-tag": {

@@ -36,6 +36,9 @@ interface IndexEntry {
   status: "mainline" | "approaching" | "watching" | "inactive";
   components: ComponentEntry[];
   history: DayPoint[];
+  parent: string | null;
+  isParent: boolean;
+  children: string[];
 }
 
 interface AlertEntry {
@@ -270,6 +273,9 @@ export default function SectorPage() {
   const [indicesOpen, setIndicesOpen] = useState(true);
   const [alertsOpen, setAlertsOpen] = useState(true);
 
+  // parent-child collapse: collapsed parent tags
+  const [collapsedParents, setCollapsedParents] = useState<Set<string>>(new Set());
+
   const fetchData = useCallback(async () => {
     try {
       const resp = await fetch("/api/sector", { cache: "no-store" });
@@ -433,6 +439,49 @@ export default function SectorPage() {
               {indicesOpen && (
                 <>
                   {indices.length > 0 ? (() => {
+                    // Build ordered display list: parents first with children, then standalone
+                    const parentIds = new Set(indices.filter((i) => i.isParent).map((i) => i.id));
+                    const childOf = new Map<string, string>(); // childId -> parentId
+                    for (const idx of indices) {
+                      if (idx.parent) childOf.set(idx.id, idx.parent);
+                    }
+
+                    const orderedIndices: IndexEntry[] = [];
+                    const added = new Set<string>();
+
+                    // First: parents + their children
+                    for (const idx of indices) {
+                      if (idx.isParent && !added.has(idx.id)) {
+                        orderedIndices.push(idx);
+                        added.add(idx.id);
+                        // Add children (sorted same as overall: star first, cumGain desc)
+                        const children = indices
+                          .filter((c) => c.parent === idx.id)
+                          .sort((a, b) => {
+                            if (a.star !== b.star) return a.star ? -1 : 1;
+                            return b.cumGain - a.cumGain;
+                          });
+                        for (const child of children) {
+                          orderedIndices.push(child);
+                          added.add(child.id);
+                        }
+                      }
+                    }
+
+                    // Then: standalone tags (no parent, not a parent)
+                    for (const idx of indices) {
+                      if (!added.has(idx.id)) {
+                        orderedIndices.push(idx);
+                        added.add(idx.id);
+                      }
+                    }
+
+                    // Filter out collapsed children
+                    const visibleIndices = orderedIndices.filter((idx) => {
+                      if (idx.parent && collapsedParents.has(idx.parent)) return false;
+                      return true;
+                    });
+
                     // Collect all unique dates across indices (chronological)
                     const allDates = Array.from(
                       new Set(indices.flatMap((idx) => idx.history.map((h) => h.date))),
@@ -448,7 +497,16 @@ export default function SectorPage() {
 
                     const COL_W = 72;
                     const ROW_H = 48;
-                    const NAME_W = 160;
+                    const NAME_W = 180;
+
+                    function toggleParentCollapse(parentId: string) {
+                      setCollapsedParents((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(parentId)) next.delete(parentId);
+                        else next.add(parentId);
+                        return next;
+                      });
+                    }
 
                     return (
                       <div style={{ display: "flex" }}>
@@ -472,8 +530,11 @@ export default function SectorPage() {
                             <span style={{ marginLeft: "auto", paddingRight: 8, fontSize: 11 }}>累涨</span>
                           </div>
                           {/* index rows */}
-                          {indices.map((idx) => {
+                          {visibleIndices.map((idx) => {
                             const statusInfo = statusStyle(idx.status);
+                            const isChild = !!idx.parent;
+                            const isParent = idx.isParent;
+                            const isCollapsed = isParent && collapsedParents.has(idx.id);
                             return (
                               <div
                                 key={idx.id}
@@ -483,32 +544,61 @@ export default function SectorPage() {
                                   alignItems: "center",
                                   borderBottom: "1px solid #191a21",
                                   gap: 2,
-                                  background: hoverIndex === idx.id ? "#2a2b36" : "transparent",
+                                  background: hoverIndex === idx.id
+                                    ? "#2a2b36"
+                                    : isParent
+                                      ? "#1e1f29"
+                                      : "transparent",
                                   transition: "background 0.1s",
+                                  paddingLeft: isChild ? 14 : 0,
                                 }}
                                 onMouseEnter={() => setHoverIndex(idx.id)}
                                 onMouseLeave={() => setHoverIndex(null)}
                               >
-                                {/* star */}
-                                <span
-                                  style={{
-                                    width: 16,
-                                    color: idx.star ? D.yellow : D.comment,
-                                    cursor: "pointer",
-                                    userSelect: "none",
-                                    fontSize: 12,
-                                    textAlign: "center",
-                                  }}
-                                  onClick={() => handleToggleStar(idx.id, idx.star)}
-                                >
-                                  {idx.star ? "★" : "☆"}
-                                </span>
-                                {/* name — click to open chart modal */}
+                                {/* parent collapse toggle or star */}
+                                {isParent ? (
+                                  <span
+                                    style={{
+                                      width: 16,
+                                      color: D.purple,
+                                      cursor: "pointer",
+                                      userSelect: "none",
+                                      fontSize: 12,
+                                      textAlign: "center",
+                                      fontWeight: 700,
+                                    }}
+                                    onClick={() => toggleParentCollapse(idx.id)}
+                                  >
+                                    {isCollapsed ? "▸" : "▾"}
+                                  </span>
+                                ) : (
+                                  <span
+                                    style={{
+                                      width: isChild ? 12 : 16,
+                                      color: idx.star ? D.yellow : D.comment,
+                                      cursor: "pointer",
+                                      userSelect: "none",
+                                      fontSize: 12,
+                                      textAlign: "center",
+                                    }}
+                                    onClick={() => handleToggleStar(idx.id, idx.star)}
+                                  >
+                                    {idx.star ? "★" : "☆"}
+                                  </span>
+                                )}
+                                {/* name -- click to open chart modal */}
                                 <div
                                   style={{ flex: 1, minWidth: 0, overflow: "hidden", cursor: "pointer" }}
                                   onClick={() => setExpandedIndex(idx.id)}
                                 >
-                                  <div style={{ fontSize: 12, color: D.cyan, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                  <div style={{
+                                    fontSize: isParent ? 12 : isChild ? 11 : 12,
+                                    color: isParent ? D.fg : D.cyan,
+                                    fontWeight: isParent ? 700 : 400,
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                  }}>
                                     {idx.name}
                                   </div>
                                   <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 1 }}>
@@ -529,6 +619,11 @@ export default function SectorPage() {
                                     <span style={{ fontSize: 10, color: D.comment }}>
                                       {idx.stockCount ?? idx.stocks?.length ?? 0}只
                                     </span>
+                                    {isParent && (
+                                      <span style={{ fontSize: 10, color: D.comment }}>
+                                        ({idx.children.length}子)
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                                 {/* cumGain */}
@@ -589,15 +684,21 @@ export default function SectorPage() {
                           </div>
 
                           {/* data rows */}
-                          {indices.map((idx) => {
-                            const idxLookup = lookup.get(idx.id)!;
+                          {visibleIndices.map((idx) => {
+                            const idxLookup = lookup.get(idx.id);
+                            const isParent = idx.isParent;
+                            const isChild = !!idx.parent;
                             return (
                               <div
                                 key={idx.id}
                                 style={{
                                   display: "flex",
                                   cursor: "pointer",
-                                  background: hoverIndex === idx.id ? "#2a2b36" : "transparent",
+                                  background: hoverIndex === idx.id
+                                    ? "#2a2b36"
+                                    : isParent
+                                      ? "#1e1f29"
+                                      : "transparent",
                                   transition: "background 0.1s",
                                 }}
                                 onClick={() => setExpandedIndex(idx.id)}
@@ -605,7 +706,7 @@ export default function SectorPage() {
                                 onMouseLeave={() => setHoverIndex(null)}
                               >
                                 {allDates.map((d) => {
-                                  const pt = idxLookup.get(d);
+                                  const pt = idxLookup?.get(d);
                                   return (
                                     <div
                                       key={d}
@@ -617,12 +718,12 @@ export default function SectorPage() {
                                         justifyContent: "center",
                                         alignItems: "center",
                                         borderBottom: "1px solid #191a21",
-                                        fontSize: 12,
+                                        fontSize: isChild ? 11 : 12,
                                       }}
                                     >
                                       {pt ? (
                                         <>
-                                          <span style={{ color: chgColor(pt.change), fontWeight: 500 }}>
+                                          <span style={{ color: chgColor(pt.change), fontWeight: isParent ? 600 : 500 }}>
                                             {fmtPct(pt.change)}
                                           </span>
                                           <span style={{ color: D.comment, fontSize: 10 }}>
@@ -647,7 +748,7 @@ export default function SectorPage() {
                     </div>
                   )}
 
-                  {/* nothing inline — chart is in modal */}
+                  {/* nothing inline -- chart is in modal */}
                 </>
               )}
             </div>

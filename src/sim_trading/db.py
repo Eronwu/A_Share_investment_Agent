@@ -283,6 +283,7 @@ CREATE TABLE IF NOT EXISTS tag_meta (
     star INTEGER DEFAULT 0,
     watch INTEGER DEFAULT 1,
     baseline_value REAL DEFAULT 100,
+    parent TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
@@ -348,6 +349,16 @@ def init_db():
     if "watch_price_date" not in existing_cols:
         try:
             conn.execute("ALTER TABLE monitor_watchlist ADD COLUMN watch_price_date TEXT")
+        except sqlite3.OperationalError:
+            pass
+    # Migration: add parent column to tag_meta if missing
+    tag_meta_cols = {
+        row[1]
+        for row in conn.execute("PRAGMA table_info(tag_meta)").fetchall()
+    }
+    if "parent" not in tag_meta_cols:
+        try:
+            conn.execute("ALTER TABLE tag_meta ADD COLUMN parent TEXT")
         except sqlite3.OperationalError:
             pass
     conn.commit()

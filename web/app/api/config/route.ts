@@ -192,10 +192,18 @@ function ensureMonitorTables(db: MonitorDb) {
       star INTEGER DEFAULT 0,
       watch INTEGER DEFAULT 1,
       baseline_value REAL DEFAULT 100,
+      parent TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     );
   `);
+  // Migration: add parent column to tag_meta if missing
+  const tagMetaCols = new Set(
+    (db.pragma("table_info(tag_meta)") as { name: string }[]).map((c) => c.name),
+  );
+  if (!tagMetaCols.has("parent")) {
+    db.exec(`ALTER TABLE tag_meta ADD COLUMN parent TEXT`);
+  }
 }
 
 function readConfigFromDb(db: MonitorDb, ensureSchema = true): MonitorConfig {

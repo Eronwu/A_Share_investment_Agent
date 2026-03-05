@@ -63,16 +63,21 @@ def _load_config() -> dict:
 def _load_tag_indices() -> dict:
     """Load index definitions from tag_meta + monitor_watchlist.tags in DB.
 
+    Supports parent-child hierarchy: if a tag has ``parent`` set, the parent
+    tag becomes a virtual index that aggregates all stocks from its children.
+    Each stock only carries fine-grained (child) tags; parent indices are
+    auto-derived.
+
     Returns dict keyed by tag name, e.g.:
       {"磷化工": {"name": "磷化工", "stocks": ["000792", "600096", ...],
                    "star": True, "watch": True, "baseline_value": 100,
-                   "created_at": "2026-02-27"}}
+                   "created_at": "2026-02-27", "parent": None}}
     """
     conn = get_connection()
     try:
-        # Get all tags from tag_meta
+        # Get all tags from tag_meta (including parent column)
         tags = conn.execute(
-            "SELECT tag, star, watch, baseline_value, created_at FROM tag_meta"
+            "SELECT tag, star, watch, baseline_value, created_at, parent FROM tag_meta"
         ).fetchall()
 
         # Get all non-hidden stocks that have tags
@@ -95,10 +100,21 @@ def _load_tag_indices() -> dict:
         for tag in parsed:
             tag_stocks.setdefault(tag, []).append(symbol)
 
-    # Build index definitions (only for tags that have at least one stock)
+    # Build child tag indices + track parent→children relationships
     indices: dict[str, dict] = {}
+    parent_children: dict[str, list[str]] = {}  # parent_tag -> [child_tag, ...]
+    tag_meta_map: dict[str, dict] = {}  # tag -> row data for quick lookup
+
     for row in tags:
         tag = row["tag"]
+        parent = row["parent"] if row["parent"] else None
+        tag_meta_map[tag] = {
+            "star": row["star"], "watch": row["watch"],
+            "baseline_value": row["baseline_value"],
+            "created_at": row["created_at"], "parent": parent,
+        }
+        if parent:
+            parent_children.setdefault(parent, []).append(tag)
         if tag in tag_stocks:
             indices[tag] = {
                 "name": tag,
@@ -107,6 +123,34 @@ def _load_tag_indices() -> dict:
                 "watch": bool(row["watch"]),
                 "baseline_value": row["baseline_value"] or 100,
                 "created_at": row["created_at"] or "",
+                "parent": parent,
+            }
+
+    # Build parent indices (virtual, aggregate children's stocks, deduplicated)
+    for parent_tag, children in parent_children.items():
+        meta = tag_meta_map.get(parent_tag)
+        if not meta:
+            continue
+        # Only build if this tag is itself not a child (i.e. has no parent)
+        if meta.get("parent"):
+            continue
+        all_stocks: list[str] = []
+        seen: set[str] = set()
+        for child in children:
+            for s in tag_stocks.get(child, []):
+                if s not in seen:
+                    all_stocks.append(s)
+                    seen.add(s)
+        if all_stocks:
+            indices[parent_tag] = {
+                "name": parent_tag,
+                "stocks": all_stocks,
+                "star": bool(meta["star"]),
+                "watch": bool(meta["watch"]),
+                "baseline_value": meta["baseline_value"] or 100,
+                "created_at": meta["created_at"] or "",
+                "parent": None,
+                "_is_parent": True,
             }
 
     return indices
