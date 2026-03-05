@@ -50,6 +50,7 @@ class FutuPosition:
     unrealized_pnl: float = 0.0
     today_pnl: float = 0.0
     today_buy_qty: int = 0   # 今日买入数量 (A 股 T+1 判断用)
+    name: str = ""           # 股票名称 (from Futu stock_name)
 
 
 @dataclass
@@ -369,6 +370,7 @@ class FutuTradeAdapter:
                         unrealized_pnl=_safe_float(row.get("pl_val", 0)),
                         today_pnl=_safe_float(row.get("today_pl_val", 0)),
                         today_buy_qty=_safe_int(row.get("today_buy_qty", 0)),
+                        name=str(row.get("stock_name", "")),
                     )
         except Exception as e:
             logger.error(f"get_positions error: {e}")

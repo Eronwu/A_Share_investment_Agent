@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS param_versions (
 -- 实时持仓状态 (RT engine UPSERT, web API 只读)
 CREATE TABLE IF NOT EXISTS live_state (
     code TEXT PRIMARY KEY,
+    name TEXT DEFAULT '',
     entry_price REAL,
     quantity INTEGER,
     current_price REAL,
@@ -331,6 +332,14 @@ def init_db():
             conn.execute("ALTER TABLE live_state ADD COLUMN daily_score INTEGER DEFAULT 0")
         except sqlite3.OperationalError:
             pass  # column already exists
+    # Migration: add name column to live_state if missing
+    try:
+        conn.execute("SELECT name FROM live_state LIMIT 1")
+    except sqlite3.OperationalError:
+        try:
+            conn.execute("ALTER TABLE live_state ADD COLUMN name TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass
     # Migration: add tags, watch_price, watch_price_date columns to monitor_watchlist
     existing_cols = {
         row[1]

@@ -676,5 +676,313 @@ class TestTickerSubscription(unittest.TestCase):
         self.assertTrue(engine._subscribed)
 
 
+# ══════════════════════════════════════════
+# Group: Indicator Condition Orders
+# ══════════════════════════════════════════
+
+class TestIndicatorConditions(unittest.TestCase):
+    """TradePlanEngine._check_indicator_conditions() — 6 indicator types."""
+
+    def setUp(self):
+        from src.tools.stock_notifier import TradePlanEngine
+        self.engine = TradePlanEngine()
+
+    # ── rsi_above ──
+
+    def test_rsi_above_pass(self):
+        self.assertTrue(self.engine._check_indicator_conditions(
+            {"rsi_above": 30}, {"rsi": 45.0}))
+
+    def test_rsi_above_fail(self):
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"rsi_above": 30}, {"rsi": 25.0}))
+
+    def test_rsi_above_equal_fail(self):
+        """Boundary: rsi == threshold should NOT pass (strict >)."""
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"rsi_above": 30}, {"rsi": 30.0}))
+
+    def test_rsi_above_none(self):
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"rsi_above": 30}, {"rsi": None}))
+
+    # ── rsi_below ──
+
+    def test_rsi_below_pass(self):
+        self.assertTrue(self.engine._check_indicator_conditions(
+            {"rsi_below": 70}, {"rsi": 55.0}))
+
+    def test_rsi_below_fail(self):
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"rsi_below": 70}, {"rsi": 80.0}))
+
+    def test_rsi_below_equal_fail(self):
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"rsi_below": 70}, {"rsi": 70.0}))
+
+    # ── macd_hist_narrowing_days ──
+
+    def test_narrowing_3_days_pass(self):
+        # abs: 0.05, 0.04, 0.03, 0.02 — 3 consecutive narrowing
+        hist = [-0.05, -0.04, -0.03, -0.02]
+        self.assertTrue(self.engine._check_indicator_conditions(
+            {"macd_hist_narrowing_days": 3}, {"macd_hist_list": hist}))
+
+    def test_narrowing_3_days_fail(self):
+        # abs: 0.05, 0.04, 0.05, 0.02 — not consecutive (0.04→0.05 widens)
+        hist = [-0.05, -0.04, -0.05, -0.02]
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"macd_hist_narrowing_days": 3}, {"macd_hist_list": hist}))
+
+    def test_narrowing_insufficient_data(self):
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"macd_hist_narrowing_days": 3}, {"macd_hist_list": [0.01, 0.02]}))
+
+    def test_narrowing_positive_hist(self):
+        # Positive hist narrowing: 0.10, 0.08, 0.05 — abs narrowing
+        hist = [0.10, 0.08, 0.05]
+        self.assertTrue(self.engine._check_indicator_conditions(
+            {"macd_hist_narrowing_days": 2}, {"macd_hist_list": hist}))
+
+    # ── macd_golden_cross ──
+
+    def test_golden_cross_pass(self):
+        self.assertTrue(self.engine._check_indicator_conditions(
+            {"macd_golden_cross": True}, {"macd_hist_list": [-0.01, 0.02]}))
+
+    def test_golden_cross_fail_both_positive(self):
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"macd_golden_cross": True}, {"macd_hist_list": [0.01, 0.02]}))
+
+    def test_golden_cross_fail_both_negative(self):
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"macd_golden_cross": True}, {"macd_hist_list": [-0.02, -0.01]}))
+
+    def test_golden_cross_zero_boundary(self):
+        """hist[-2]=0 and hist[-1]>0 should pass (0 → positive)."""
+        self.assertTrue(self.engine._check_indicator_conditions(
+            {"macd_golden_cross": True}, {"macd_hist_list": [0, 0.01]}))
+
+    def test_golden_cross_insufficient_data(self):
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"macd_golden_cross": True}, {"macd_hist_list": [0.01]}))
+
+    # ── macd_death_cross ──
+
+    def test_death_cross_pass(self):
+        self.assertTrue(self.engine._check_indicator_conditions(
+            {"macd_death_cross": True}, {"macd_hist_list": [0.01, -0.02]}))
+
+    def test_death_cross_fail(self):
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"macd_death_cross": True}, {"macd_hist_list": [-0.01, -0.02]}))
+
+    def test_death_cross_zero_boundary(self):
+        """hist[-2]=0 and hist[-1]<0 should pass (0 → negative)."""
+        self.assertTrue(self.engine._check_indicator_conditions(
+            {"macd_death_cross": True}, {"macd_hist_list": [0, -0.01]}))
+
+    # ── vol_ratio_above ──
+
+    def test_vol_ratio_pass(self):
+        self.assertTrue(self.engine._check_indicator_conditions(
+            {"vol_ratio_above": 1.5}, {"vol_ratio": 2.0}))
+
+    def test_vol_ratio_fail(self):
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"vol_ratio_above": 1.5}, {"vol_ratio": 1.2}))
+
+    def test_vol_ratio_none(self):
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"vol_ratio_above": 1.5}, {"vol_ratio": None}))
+
+    def test_vol_ratio_equal_fail(self):
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"vol_ratio_above": 1.5}, {"vol_ratio": 1.5}))
+
+    # ── Empty / missing indicators ──
+
+    def test_empty_indicators_returns_false(self):
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"rsi_above": 30}, {}))
+
+    def test_none_indicators_returns_false(self):
+        self.assertFalse(self.engine._check_indicator_conditions(
+            {"rsi_above": 30}, None))
+
+    # ── Combined AND conditions ──
+
+    def test_combined_rsi_and_narrowing_pass(self):
+        cond = {"rsi_above": 30, "macd_hist_narrowing_days": 2}
+        ind = {"rsi": 45.0, "macd_hist_list": [-0.05, -0.03, -0.01]}
+        self.assertTrue(self.engine._check_indicator_conditions(cond, ind))
+
+    def test_combined_rsi_pass_narrowing_fail(self):
+        cond = {"rsi_above": 30, "macd_hist_narrowing_days": 2}
+        ind = {"rsi": 45.0, "macd_hist_list": [-0.03, -0.05, -0.01]}
+        self.assertFalse(self.engine._check_indicator_conditions(cond, ind))
+
+    def test_combined_rsi_fail_narrowing_pass(self):
+        cond = {"rsi_above": 30, "macd_hist_narrowing_days": 2}
+        ind = {"rsi": 25.0, "macd_hist_list": [-0.05, -0.03, -0.01]}
+        self.assertFalse(self.engine._check_indicator_conditions(cond, ind))
+
+    def test_triple_condition(self):
+        cond = {"rsi_above": 30, "macd_golden_cross": True, "vol_ratio_above": 1.0}
+        ind = {"rsi": 50.0, "macd_hist_list": [-0.01, 0.02], "vol_ratio": 1.5}
+        self.assertTrue(self.engine._check_indicator_conditions(cond, ind))
+
+
+class TestOrderWithIndicators(unittest.TestCase):
+    """Integration: _check_order_conditions with indicators kwarg."""
+
+    def setUp(self):
+        from src.tools.stock_notifier import TradePlanEngine
+        self.engine = TradePlanEngine()
+
+    def test_order_without_indicators_still_works(self):
+        """Existing orders without indicators field should not be affected."""
+        order = {"id": "t1", "side": "sell", "op": ">=", "price": 10.0}
+        self.assertTrue(self.engine._check_order_conditions(
+            "plan1", order, price=11.0, amount=0, today="2026-03-05"))
+
+    def test_order_with_indicators_all_pass(self):
+        order = {
+            "id": "t1", "side": "buy", "op": "<=", "price": 26.0,
+            "indicators": {"rsi_above": 30},
+        }
+        ind = {"rsi": 45.0}
+        self.assertTrue(self.engine._check_order_conditions(
+            "plan1", order, price=25.0, amount=0, today="2026-03-05",
+            indicators=ind))
+
+    def test_order_price_pass_indicator_fail(self):
+        """Price condition met but indicator not met → overall False."""
+        order = {
+            "id": "t1", "side": "buy", "op": "<=", "price": 26.0,
+            "indicators": {"rsi_above": 50},
+        }
+        ind = {"rsi": 30.0}
+        self.assertFalse(self.engine._check_order_conditions(
+            "plan1", order, price=25.0, amount=0, today="2026-03-05",
+            indicators=ind))
+
+    def test_order_indicator_pass_price_fail(self):
+        """Indicator met but price not met → overall False."""
+        order = {
+            "id": "t1", "side": "buy", "op": "<=", "price": 20.0,
+            "indicators": {"rsi_above": 30},
+        }
+        ind = {"rsi": 45.0}
+        self.assertFalse(self.engine._check_order_conditions(
+            "plan1", order, price=25.0, amount=0, today="2026-03-05",
+            indicators=ind))
+
+    def test_order_indicators_missing_from_kwargs(self):
+        """Order has indicators condition but no indicators in kwargs → False."""
+        order = {
+            "id": "t1", "side": "sell", "op": ">=", "price": 10.0,
+            "indicators": {"rsi_above": 30},
+        }
+        self.assertFalse(self.engine._check_order_conditions(
+            "plan1", order, price=11.0, amount=0, today="2026-03-05"))
+
+
+class TestMergeDataIndicators(unittest.TestCase):
+    """merge_data() injects indicators from l2_strategy_signals.json."""
+
+    @patch("src.tools.stock_notifier._read_l2_indicators")
+    def test_indicators_injected(self, mock_read):
+        from src.tools.stock_notifier import merge_data
+        mock_read.return_value = {
+            "HK09973": {"rsi": 20.2, "macd_hist": -0.5, "macd_hist_list": [-0.3, -0.5]},
+        }
+        market = {"services": [
+            {"id": "HK09973", "price": 25.14, "change": -1.02, "name": "奇瑞汽车",
+             "chgAmt": -0.26, "amount": 76725842},
+        ]}
+        config = {"watchlist": {"HK09973": {"name": "奇瑞汽车", "type": "holding"}}}
+        quotes = merge_data(market, config)
+        self.assertIn("indicators", quotes["HK09973"])
+        self.assertEqual(quotes["HK09973"]["indicators"]["rsi"], 20.2)
+
+    @patch("src.tools.stock_notifier._read_l2_indicators")
+    def test_missing_indicators_empty_dict(self, mock_read):
+        from src.tools.stock_notifier import merge_data
+        mock_read.return_value = {}
+        market = {"services": [
+            {"id": "000001", "price": 10.0, "change": 1.0, "name": "Test",
+             "chgAmt": 0.1, "amount": 1000000},
+        ]}
+        config = {"watchlist": {"000001": {"name": "Test", "type": "holding"}}}
+        quotes = merge_data(market, config)
+        self.assertEqual(quotes["000001"]["indicators"], {})
+
+
+class TestSnapshotIndicators(unittest.TestCase):
+    """DailyIndicatorTracker.snapshot_indicators() output format."""
+
+    def _make_tracker(self):
+        import pandas as pd
+        from src.tools.l2_strategy_engine import DailyIndicatorTracker
+        tracker = DailyIndicatorTracker({"refresh_minutes": 30})
+        # Inject mock _ind data
+        tracker._ind["HK09973"] = {
+            "rsi": pd.Series([45.0, 50.0, 55.2]),
+            "macd_hist": pd.Series([-0.05, -0.03, -0.01, 0.02, 0.04]),
+            "volume": pd.Series([1000, 1200, 1500]),
+            "vol_ma20": pd.Series([800, 900, 1000]),
+        }
+        return tracker
+
+    def test_snapshot_basic(self):
+        tracker = self._make_tracker()
+        snap = tracker.snapshot_indicators()
+        self.assertIn("HK09973", snap)
+        ind = snap["HK09973"]
+        self.assertAlmostEqual(ind["rsi"], 55.2, places=1)
+        self.assertAlmostEqual(ind["macd_hist"], 0.04, places=4)
+        self.assertEqual(len(ind["macd_hist_list"]), 5)
+        self.assertAlmostEqual(ind["vol_ratio"], 1.5, places=1)
+        self.assertIn("updated_at", ind)
+
+    def test_snapshot_empty_ind(self):
+        from src.tools.l2_strategy_engine import DailyIndicatorTracker
+        tracker = DailyIndicatorTracker({"refresh_minutes": 30})
+        self.assertEqual(tracker.snapshot_indicators(), {})
+
+    def test_snapshot_nan_handling(self):
+        import pandas as pd
+        import numpy as np
+        from src.tools.l2_strategy_engine import DailyIndicatorTracker
+        tracker = DailyIndicatorTracker({"refresh_minutes": 30})
+        tracker._ind["TEST"] = {
+            "rsi": pd.Series([np.nan]),
+            "macd_hist": pd.Series([np.nan]),
+            "volume": pd.Series([100]),
+            "vol_ma20": pd.Series([0]),  # division by zero guard
+        }
+        snap = tracker.snapshot_indicators()
+        # NaN rsi/macd should result in None
+        if "TEST" in snap:
+            self.assertIsNone(snap["TEST"]["rsi"])
+            self.assertIsNone(snap["TEST"]["macd_hist"])
+
+    def test_snapshot_vol_ma_zero(self):
+        """vol_ma20 = 0 should not cause ZeroDivisionError."""
+        import pandas as pd
+        from src.tools.l2_strategy_engine import DailyIndicatorTracker
+        tracker = DailyIndicatorTracker({"refresh_minutes": 30})
+        tracker._ind["TEST"] = {
+            "rsi": pd.Series([50.0]),
+            "macd_hist": pd.Series([0.01]),
+            "volume": pd.Series([1000]),
+            "vol_ma20": pd.Series([0.0]),
+        }
+        snap = tracker.snapshot_indicators()
+        self.assertIn("TEST", snap)
+        self.assertIsNone(snap["TEST"]["vol_ratio"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -2227,6 +2227,52 @@ class DailyIndicatorTracker:
             return 0.0
         return float(ind["high"].iloc[-days:].max())
 
+    def snapshot_indicators(self) -> dict[str, dict]:
+        """导出指标快照供 notifier TradePlanEngine 读取。
+
+        Returns: {code: {rsi, macd_hist, macd_hist_list, vol_ratio, updated_at}}
+        指标不可用的股票被跳过。
+        """
+        result = {}
+        for code, ind in self._ind.items():
+            hist_series = ind.get("macd_hist")
+            rsi_series = ind.get("rsi")
+            vol_series = ind.get("volume")
+            vol_ma_series = ind.get("vol_ma20")
+            if hist_series is None or rsi_series is None:
+                continue
+
+            # 最近 10 天 histogram (用于 narrowing / 金叉死叉判断)
+            hist_list = []
+            for v in hist_series.iloc[-10:].tolist():
+                if not pd.isna(v):
+                    hist_list.append(round(float(v), 6))
+
+            rsi_val = None
+            if len(rsi_series) > 0 and not pd.isna(rsi_series.iloc[-1]):
+                rsi_val = round(float(rsi_series.iloc[-1]), 2)
+
+            macd_hist_val = None
+            if len(hist_series) > 0 and not pd.isna(hist_series.iloc[-1]):
+                macd_hist_val = round(float(hist_series.iloc[-1]), 6)
+
+            vol_ratio = None
+            if (vol_series is not None and vol_ma_series is not None
+                    and len(vol_series) > 0 and len(vol_ma_series) > 0
+                    and not pd.isna(vol_series.iloc[-1])
+                    and not pd.isna(vol_ma_series.iloc[-1])
+                    and float(vol_ma_series.iloc[-1]) > 0):
+                vol_ratio = round(float(vol_series.iloc[-1]) / float(vol_ma_series.iloc[-1]), 2)
+
+            result[code] = {
+                "rsi": rsi_val,
+                "macd_hist": macd_hist_val,
+                "macd_hist_list": hist_list,
+                "vol_ratio": vol_ratio,
+                "updated_at": int(time.time() * 1000),
+            }
+        return result
+
     def score(self, code: str,
               main_net_inflow: float = 0,
               main_net_inflow_pct: float = 0) -> dict:

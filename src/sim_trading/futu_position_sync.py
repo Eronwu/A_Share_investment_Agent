@@ -63,13 +63,14 @@ class FutuPositionSync:
 
                 conn.execute(
                     """INSERT OR REPLACE INTO live_state
-                       (code, entry_price, quantity, current_price, entry_time, entry_date,
+                       (code, name, entry_price, quantity, current_price, entry_time, entry_date,
                         stop_loss, take_profit, max_hold_days, entry_strategy, confidence,
                         trigger_signals, unrealized_pnl, pnl_pct, daily_score,
                         buy_cost_per_share, last_updated)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
-                        code, fp.avg_price, fp.quantity,
+                        code, fp.name,
+                        fp.avg_price, fp.quantity,
                         round(fp.market_val / fp.quantity, 4) if fp.quantity > 0 else 0,
                         0, "",  # entry_time/date not available from Futu positions
                         0, None, 10, "futu_sim", 0.0,

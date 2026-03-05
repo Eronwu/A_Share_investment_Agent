@@ -124,6 +124,7 @@ interface TradePlanOrder {
   label: string;
   triggered: boolean;
   triggered_at?: string | null;
+  indicators?: Record<string, number | boolean>;
 }
 
 interface TradePlan {
@@ -156,6 +157,18 @@ interface SimData {
 const pnlColor = (v: number) => (v > 0 ? D.red : v < 0 ? D.green : D.comment);
 const pctFmt = (v: number) => `${v >= 0 ? "+" : ""}${(v * 100).toFixed(2)}%`;
 const numFmt = (v: number) => v.toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+function indicatorTag(key: string, val: number | boolean): { text: string; color: string } {
+  switch (key) {
+    case "rsi_above":    return { text: `RSI>${val}`, color: D.cyan };
+    case "rsi_below":    return { text: `RSI<${val}`, color: D.cyan };
+    case "macd_hist_narrowing_days": return { text: `MACD收窄${val}日`, color: D.yellow };
+    case "macd_golden_cross":        return { text: "金叉", color: "#50fa7b" };
+    case "macd_death_cross":         return { text: "死叉", color: D.red };
+    case "vol_ratio_above":          return { text: `量比>${val}`, color: D.orange };
+    default: return { text: `${key}=${val}`, color: D.comment };
+  }
+}
 
 /** epoch ms → "MM-DD HH:MM" */
 function tsToTime(ts: number | undefined, fallbackDate?: string): string {
@@ -519,7 +532,7 @@ function TradesTable({ trades, bare }: { trades: Trade[]; bare?: boolean }) {
             }}
           >
             <span style={{ width: "10ch" }}>代码</span>
-            <span style={{ width: "8ch" }}>名称</span>
+            <span style={{ width: "12ch" }}>名称</span>
             <span style={{ width: "9ch", textAlign: "right" }}>买入</span>
             <span style={{ width: "2ch", textAlign: "center" }}>→</span>
             <span style={{ width: "9ch", textAlign: "right" }}>卖出</span>
@@ -545,7 +558,7 @@ function TradesTable({ trades, bare }: { trades: Trade[]; bare?: boolean }) {
                 }}
               >
                 <span style={{ color: D.cyan, width: "10ch" }}>{t.code}</span>
-                <span style={{ color: D.fg, width: "8ch" }}>{(t.name || "").slice(0, 6)}</span>
+                <span style={{ color: D.fg, width: "12ch" }}>{(t.name || t.code).slice(0, 10)}</span>
                 <span style={{ color: D.fg, width: "9ch", textAlign: "right" }}>
                   {t.entry_price.toFixed(2)}
                 </span>
@@ -891,7 +904,7 @@ function LivePanel({ live }: { live: LiveData }) {
                 }}
               >
                 <span style={{ width: "10ch" }}>代码</span>
-                <span style={{ width: "8ch" }}>名称</span>
+                <span style={{ width: "12ch" }}>名称</span>
                 <span style={{ width: "5ch", textAlign: "right" }}>评分</span>
                 <span style={{ width: "10ch", textAlign: "right" }}>   现价</span>
                 <span style={{ width: "9ch", textAlign: "right" }}>涨跌幅</span>
@@ -921,11 +934,11 @@ function LivePanel({ live }: { live: LiveData }) {
                     style={{
                       display: "flex", whiteSpace: "pre", padding: "1px 0",
                       borderBottom: "1px solid #191a21",
-                      background: slDist < 0.01 ? "#ff555510" : "transparent",
+                      background: p.stop_loss > 0 && slDist < 0.01 ? "#ff555510" : "transparent",
                     }}
                   >
                     <span style={{ color: D.cyan, width: "10ch" }}>{p.code}</span>
-                    <span style={{ color: D.fg, width: "8ch" }}>{(p.name || "").slice(0, 6)}</span>
+                    <span style={{ color: D.fg, width: "12ch" }}>{(p.name || p.code).slice(0, 10)}</span>
                     <span style={{ color: scoreColor, width: "5ch", textAlign: "right", fontWeight: 500 }}>
                       {score > 0 ? score : "-"}
                     </span>
@@ -951,10 +964,10 @@ function LivePanel({ live }: { live: LiveData }) {
                       {p.unrealized_pnl >= 0 ? "+" : ""}{numFmt(p.unrealized_pnl)}
                     </span>
                     <span style={{ color: D.orange, width: "9ch", textAlign: "right" }}>
-                      {p.stop_loss.toFixed(2)}
+                      {p.stop_loss > 0 ? p.stop_loss.toFixed(2) : "-"}
                     </span>
                     <span style={{ color: slDistColor, width: "8ch", textAlign: "right", fontWeight: slDist < 0.02 ? 700 : 400 }}>
-                      {(slDist * 100).toFixed(1)}%
+                      {p.stop_loss > 0 ? `${(slDist * 100).toFixed(1)}%` : "-"}
                     </span>
                     <span style={{ color: D.cyan, width: "9ch", textAlign: "right" }}>
                       {p.take_profit ? p.take_profit.toFixed(2) : "-"}
@@ -1078,7 +1091,7 @@ function OperationsLog({ live }: { live: LiveData }) {
             <span style={{ width: "13ch" }}>时间</span>
             <span style={{ width: "7ch" }}>操作</span>
             <span style={{ width: "10ch" }}>代码</span>
-            <span style={{ width: "8ch" }}>名称</span>
+            <span style={{ width: "12ch" }}>名称</span>
             <span style={{ width: "10ch", textAlign: "right" }}>价格</span>
             <span style={{ width: "8ch", textAlign: "right" }}>数量</span>
             <span style={{ width: "10ch", textAlign: "right" }}>盈亏</span>
@@ -1091,7 +1104,7 @@ function OperationsLog({ live }: { live: LiveData }) {
                 <span style={{ color: D.comment, width: "13ch" }}>{g.entry.time}</span>
                 <span style={{ color: D.red, width: "7ch", fontWeight: 700 }}>开仓</span>
                 <span style={{ color: D.cyan, width: "10ch" }}>{g.code}</span>
-                <span style={{ color: D.fg, width: "8ch" }}>{(g.name || "").slice(0, 6)}</span>
+                <span style={{ color: D.fg, width: "12ch" }}>{(g.name || g.code).slice(0, 10)}</span>
                 <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>{g.entry.price.toFixed(2)}</span>
                 <span style={{ color: D.fg, width: "8ch", textAlign: "right" }}>{g.entry.qty.toLocaleString()}</span>
                 <span style={{ color: D.comment, width: "10ch", textAlign: "right" }}>-</span>
@@ -1104,7 +1117,7 @@ function OperationsLog({ live }: { live: LiveData }) {
                   <span style={{ color: D.comment, width: "13ch" }}>{g.exit.time}</span>
                   <span style={{ color: exitColors[g.exit.action] || D.fg, width: "7ch", fontWeight: 700 }}>{g.exit.action}</span>
                   <span style={{ color: D.cyan, width: "10ch" }}>{g.code}</span>
-                  <span style={{ color: D.fg, width: "8ch" }}>{(g.name || "").slice(0, 6)}</span>
+                  <span style={{ color: D.fg, width: "12ch" }}>{(g.name || g.code).slice(0, 10)}</span>
                   <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>{g.exit.price.toFixed(2)}</span>
                   <span style={{ color: D.fg, width: "8ch", textAlign: "right" }}>{g.exit.qty.toLocaleString()}</span>
                   <span style={{
@@ -1196,6 +1209,18 @@ function TradePlanPanel({ plans }: { plans: TradePlan[] }) {
                   {o.side === "sell" ? `卖出${o.shares || 0}股` : `买入${o.shares || 0}股`}
                 </span>
                 <span style={{ color: D.comment, marginLeft: 8 }}>{o.label}</span>
+                {o.indicators && Object.entries(o.indicators).map(([k, v]) => {
+                  const tag = indicatorTag(k, v);
+                  return (
+                    <span key={k} style={{
+                      color: tag.color, marginLeft: 6, fontSize: 10,
+                      border: `1px solid ${tag.color}40`, borderRadius: 3,
+                      padding: "0 4px",
+                    }}>
+                      {tag.text}
+                    </span>
+                  );
+                })}
                 {o.triggered && o.triggered_at && (
                   <span style={{ color: D.cyan, marginLeft: 8, fontSize: 11 }}>
                     ✓ {o.triggered_at.slice(5, 16)}

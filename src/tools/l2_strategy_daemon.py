@@ -61,17 +61,20 @@ def load_configs() -> tuple[dict, dict]:
     return monitor, l2_config
 
 
-def write_signals(new_signals: list[dict], session_snapshot: dict | None = None):
-    """原子写入信号 + session 快照到 l2_strategy_signals.json"""
+def write_signals(new_signals: list[dict], session_snapshot: dict | None = None,
+                   indicators: dict | None = None):
+    """原子写入信号 + session 快照 + 指标快照到 l2_strategy_signals.json"""
     # 读已有数据
     existing = []
     prev_session = {}
+    prev_indicators = {}
     try:
         if L2_SIGNALS_PATH.exists():
             with open(L2_SIGNALS_PATH, "r", encoding="utf-8") as f:
                 data = json.load(f)
             existing = data.get("signals", [])
             prev_session = data.get("session", {})
+            prev_indicators = data.get("indicators", {})
     except Exception:
         existing = []
 
@@ -92,6 +95,7 @@ def write_signals(new_signals: list[dict], session_snapshot: dict | None = None)
         json.dump({
             "signals": existing,
             "session": session,
+            "indicators": indicators if indicators else prev_indicators,
             "lastUpdated": ts,
         }, f, ensure_ascii=False, indent=2)
     tmp.replace(L2_SIGNALS_PATH)
@@ -199,7 +203,9 @@ def run():
         if trading:
             signals, session = engine.poll_once()
             if signals or session:
-                write_signals(signals, session)
+                daily_tracker = getattr(engine, '_daily_indicators', None)
+                ind_snapshot = daily_tracker.snapshot_indicators() if daily_tracker else {}
+                write_signals(signals, session, ind_snapshot)
                 total_signals += len(signals)
                 for s in signals:
                     logger.info(f"Signal: [{s['strategy']}] {s['display']}")

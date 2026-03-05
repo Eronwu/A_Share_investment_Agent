@@ -377,6 +377,15 @@ Web:  sim_trading.db → /api/sim → /sim 页面
 | `simulation_engine.py` | HK 交易成本 (佣金+印花税+交易费+结算费) + 流动性滑点 |
 | `trade_analyzer.py` | 绩效分析: 胜率/Sharpe/最大回撤/Calmar/归因 |
 | `replay_runner.py` | 历史回放入口 |
+| `futu_trade_adapter.py` | **Futu 模拟盘交易适配器**: 连接 OpenD (port 11111)，buy/sell 下单，get_positions/get_funds 查询，HK+A 股双市场自动路由，15 orders/30s 限频，A 股 T+1 本地拦截 |
+| `futu_position_sync.py` | **Futu 持仓同步**: Futu positions → live_state 表，检测平仓 → trades 表，get_funds → daily_pnl 表，futu_orders 审计 |
+
+**Futu 模拟盘交易**:
+- **连接**: 需要 Futu OpenD 运行（端口 11111），`FutuTradeAdapter.connect()` 自动发现 HK/A 股模拟账户
+- **下单**: `adapter.sell(code, price, qty, order_type="MARKET")` 市价卖出，`adapter.buy()` 买入
+- **持仓同步**: daemon 每 tick 调用 `FutuPositionSync.sync_live_state()` → live_state 表，`detect_and_save_closed()` 检测平仓写入 trades 表
+- **审计**: 所有订单记录到 `futu_orders` 表 (order_id, code, side, price, qty, status)
+- **限制**: 盘后提交的市价单在下个交易日开盘成交；15 orders/30s 滑窗限频
 
 **DailyIndicatorTracker 评分系统** (`l2_strategy_engine.py`):
 - `score(code, main_net_inflow_pct)` → 0-100 分，6 个子维度
@@ -447,6 +456,7 @@ tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
 - `monitor_watchlist`: 持仓配置主存储 (symbol, name, list_type, cost, shares, lot, hidden, star, tags, watch_price) — DB-first，JSON 为快照
 - `monitor_settings`: 监控设置 (key, value) — 与 monitor_config.json settings 同步
 - `tag_meta`: 标签元数据 (tag, star, watch, baseline_value, created_at) — 标签即指数，控制主线检测和星标
+- `futu_orders`: Futu 模拟盘订单审计 (order_id, code, side, price, quantity, filled_qty, avg_fill_price, status) — 永久保留
 
 **RT engine 日志**: logger 名 `l2_daemon.rt_sim`，继承 daemon handler，写入 `logs/l2_daemon.log`。
 

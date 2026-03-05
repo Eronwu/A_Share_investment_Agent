@@ -279,13 +279,13 @@ class RealtimeSimEngine:
 
             conn.execute(
                 """INSERT OR REPLACE INTO live_state
-                   (code, entry_price, quantity, current_price, entry_time, entry_date,
+                   (code, name, entry_price, quantity, current_price, entry_time, entry_date,
                     stop_loss, take_profit, max_hold_days, entry_strategy, confidence,
                     trigger_signals, unrealized_pnl, pnl_pct, daily_score,
                     buy_cost_per_share, last_updated)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    code, pos.entry_price, pos.quantity, round(current_price, 4),
+                    code, "", pos.entry_price, pos.quantity, round(current_price, 4),
                     pos.entry_time, pos.entry_date,
                     round(pos.stop_loss, 4), round(pos.take_profit, 4) if pos.take_profit else None,
                     pos.max_hold_days, pos.entry_strategy, pos.confidence,

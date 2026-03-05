@@ -260,11 +260,13 @@ export async function GET() {
       const code = p.code as string;
       const info = marketLookup[code];
       if (info) {
-        p.name = info.name;
+        p.name = info.name || (p.name as string) || code;
         p.change = info.change;
         p.chgAmt = info.chgAmt;
+        if (info.price > 0) p.current_price = info.price;
       } else {
-        p.name = code;
+        // live_state 中已有 Futu 同步的 name 和 current_price，作为 fallback
+        p.name = (p.name as string) || code;
         p.change = 0;
         p.chgAmt = 0;
       }
