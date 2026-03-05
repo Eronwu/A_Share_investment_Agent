@@ -109,21 +109,45 @@ function readSectorConfigMeta(): {
   }
 }
 
-/** Build code→name map from market_data.json (best effort) */
-function buildStockNameMap(): Record<string, string> {
-  const map: Record<string, string> = {};
+/** Read market_data.json once, return {nameMap, changeMap} */
+function readMarketData(): {
+  nameMap: Record<string, string>;
+  changeMap: Record<string, number>;
+} {
+  const nameMap: Record<string, string> = {};
+  const changeMap: Record<string, number> = {};
   try {
     if (existsSync(MARKET_DATA_PATH)) {
       const md = JSON.parse(readFileSync(MARKET_DATA_PATH, "utf-8"));
       const services = md.services;
       if (Array.isArray(services)) {
         for (const s of services) {
-          if (s.id && s.name && !map[s.id]) map[s.id] = s.name;
+          if (s.id && s.name && !nameMap[s.id]) nameMap[s.id] = s.name;
+          if (s.id && s.change != null) changeMap[s.id] = s.change;
         }
       }
     }
   } catch { /* ignore */ }
-  return map;
+  return { nameMap, changeMap };
+}
+
+/** Build code→name map from market_data.json (best effort) */
+function buildStockNameMap(): Record<string, string> {
+  return readMarketData().nameMap;
+}
+
+/** Compute equal-weight average change% for a list of stock codes */
+function computeLiveChange(
+  stockCodes: string[],
+  changeMap: Record<string, number>,
+): number | null {
+  const changes: number[] = [];
+  for (const code of stockCodes) {
+    const chg = changeMap[code];
+    if (chg != null) changes.push(chg);
+  }
+  if (changes.length === 0) return null;
+  return changes.reduce((a, b) => a + b, 0) / changes.length;
 }
 
 /* ── Sina board helpers ── */
@@ -430,7 +454,7 @@ export async function GET(request: NextRequest) {
       } catch { /* invalid json */ }
     }
 
-    const stockNameMap = buildStockNameMap();
+    const { nameMap: stockNameMap, changeMap: liveChangeMap } = readMarketData();
 
     // Build parent→children mapping
     const parentChildren: Record<string, string[]> = {};
@@ -502,7 +526,12 @@ export async function GET(request: NextRequest) {
         )
         .all(tagName) as SectorDailyRow[];
 
-      const todayVal = dailyRows.length > 0 ? round(dailyRows[0].avg_change_pct, 2) : 0;
+      // Live intraday value from market_data.json (fallback to sector_daily)
+      const liveChange = computeLiveChange(stockCodes, liveChangeMap);
+      const todayVal = liveChange != null
+        ? round(liveChange, 2)
+        : dailyRows.length > 0 ? round(dailyRows[0].avg_change_pct, 2) : 0;
+
       const d3 = round(
         dailyRows.slice(0, 3).reduce((s, r) => s + r.avg_change_pct, 0),
         2,
@@ -517,9 +546,12 @@ export async function GET(request: NextRequest) {
       );
 
       const baseline = tag.baseline_value || 100;
-      const latestValue =
-        dailyRows.length > 0 ? dailyRows[0].index_value : baseline;
-      const cumGain = round(((latestValue / baseline) - 1) * 100, 2);
+      // Chain live today change from yesterday's index_value
+      const yesterdayValue = dailyRows.length > 0 ? dailyRows[0].index_value : baseline;
+      const liveValue = liveChange != null
+        ? yesterdayValue * (1 + liveChange / 100)
+        : yesterdayValue;
+      const cumGain = round(((liveValue / baseline) - 1) * 100, 2);
 
       // Status from latest alert
       let status: string = "watching";
@@ -536,9 +568,17 @@ export async function GET(request: NextRequest) {
         }
       } catch { /* table may not exist */ }
 
-      // Components from latest row, enriched with stock names
+      // Components: prefer live market data, fallback to sector_daily snapshot
       let components: ComponentEntry[] = [];
-      if (dailyRows.length > 0 && dailyRows[0].components_json) {
+      if (liveChange != null) {
+        // Build components from live market data
+        components = stockCodes.map((code) => ({
+          code,
+          change_pct: liveChangeMap[code] ?? 0,
+          close: null, // close not available from change map
+          name: stockNameMap[code] || stockList.find((s) => s.code === code)?.name || "",
+        }));
+      } else if (dailyRows.length > 0 && dailyRows[0].components_json) {
         try {
           const raw: RawComponentEntry[] = JSON.parse(dailyRows[0].components_json);
           components = raw.map((c) => ({

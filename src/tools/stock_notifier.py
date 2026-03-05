@@ -183,6 +183,17 @@ def get_mtime(path: Path) -> float:
         return 0.0
 
 
+def _read_l2_indicators() -> dict:
+    """Read indicators snapshot from l2_strategy_signals.json.
+
+    Returns: {code: {rsi, macd_hist, macd_hist_list, vol_ratio, updated_at}}
+    """
+    data = read_json_safe(L2_SIGNALS_PATH)
+    if data is None:
+        return {}
+    return data.get("indicators", {})
+
+
 # ══════════════════════════════════════════
 # 3. Data merging
 # ══════════════════════════════════════════
@@ -224,6 +235,11 @@ def merge_data(market: dict, config: dict) -> dict:
             "chg_amt": chg_amt,
             "amount": svc.get("amount", 0),
         }
+
+    # Inject technical indicators from L2 daemon
+    indicators = _read_l2_indicators()
+    for sid, q in quotes.items():
+        q["indicators"] = indicators.get(sid, {})
 
     return quotes
 
@@ -1351,7 +1367,8 @@ class TradePlanEngine:
             for order in plan.get("orders", []):
                 if order.get("triggered"):
                     continue
-                if not self._check_order_conditions(plan_id, order, price, amount, today):
+                if not self._check_order_conditions(plan_id, order, price, amount, today,
+                                                        indicators=q.get("indicators", {})):
                     if order.pop("_ts_dirty", False):
                         dirty = True
                     continue
@@ -1381,8 +1398,8 @@ class TradePlanEngine:
 
     def _check_order_conditions(self, plan_id: str, order: dict,
                                 price: float, amount: float,
-                                today: str) -> bool:
-        """Check if an order's conditions are met. Supports trailing orders."""
+                                today: str, **kwargs) -> bool:
+        """Check if an order's conditions are met. Supports trailing + indicator conditions."""
         op = order.get("op", ">=")
         target = order.get("price", 0)
         side = order.get("side", "sell")
@@ -1452,6 +1469,62 @@ class TradePlanEngine:
                 tracker["last_date"] = ""
 
             if tracker["count"] < cons_days:
+                return False
+
+        # ── Indicator conditions (AND with price/volume) ──
+        ind_cond = order.get("indicators")
+        if ind_cond:
+            indicators = kwargs.get("indicators", {})
+            if not self._check_indicator_conditions(ind_cond, indicators):
+                return False
+
+        return True
+
+    def _check_indicator_conditions(self, cond: dict, indicators: dict) -> bool:
+        """Check technical indicator conditions (AND logic).
+
+        Args:
+            cond: indicator conditions from order["indicators"]
+            indicators: {rsi, macd_hist, macd_hist_list, vol_ratio} from L2 daemon
+
+        Returns True if ALL conditions met. Returns False if indicators unavailable (safe default).
+        """
+        if not indicators:
+            return False  # 指标不可用 → 不触发（安全默认）
+
+        if "rsi_above" in cond:
+            rsi = indicators.get("rsi")
+            if rsi is None or rsi <= cond["rsi_above"]:
+                return False
+
+        if "rsi_below" in cond:
+            rsi = indicators.get("rsi")
+            if rsi is None or rsi >= cond["rsi_below"]:
+                return False
+
+        if "macd_hist_narrowing_days" in cond:
+            hist = indicators.get("macd_hist_list", [])
+            n = cond["macd_hist_narrowing_days"]
+            if len(hist) < n + 1:
+                return False
+            recent = hist[-(n + 1):]
+            for i in range(1, len(recent)):
+                if abs(recent[i]) >= abs(recent[i - 1]):
+                    return False
+
+        if cond.get("macd_golden_cross"):
+            hist = indicators.get("macd_hist_list", [])
+            if len(hist) < 2 or not (hist[-2] <= 0 < hist[-1]):
+                return False
+
+        if cond.get("macd_death_cross"):
+            hist = indicators.get("macd_hist_list", [])
+            if len(hist) < 2 or not (hist[-2] >= 0 > hist[-1]):
+                return False
+
+        if "vol_ratio_above" in cond:
+            vol_ratio = indicators.get("vol_ratio")
+            if vol_ratio is None or vol_ratio <= cond["vol_ratio_above"]:
                 return False
 
         return True
@@ -1884,6 +1957,14 @@ def run():
                             logger.info(f"Mainline: {a['message']}")
                 except Exception as e:
                     logger.error(f"Mainline detection failed: {e}")
+
+                # Compute today's custom index values for historical record
+                try:
+                    from src.tools.sector_index_engine import compute_custom_indices
+                    compute_custom_indices()
+                    logger.info("sector indices computed for today")
+                except Exception as e:
+                    logger.warning(f"sector index computation failed: {e}")
 
         # ── Daily summary generation (16:05-16:15 after HK close) ──
         if not sent_summary_today:
