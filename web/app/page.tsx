@@ -212,11 +212,6 @@ function Home() {
         <span style={{ color: D.orange, width: "6ch" }}>{s.star ? "★" : " "}PROD</span>
         <span style={{ color: D.cyan, width: "10ch" }}>{pad(s.id, 9)}</span>
         <span style={{ color: D.fg, width: "10ch" }}>{pad(s.name.slice(0, 6), 8)}</span>
-        <span style={{ width: "12ch", overflow: "hidden", whiteSpace: "nowrap" }}>
-          {(s.tags ?? []).map((t) => (
-            <span key={t} style={tagChipStyle(t)} onClick={() => setFilterTag(t)}>{t}</span>
-          ))}
-        </span>
         <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
           {pad(s.price.toFixed(2), 9, true)}
         </span>
@@ -256,6 +251,11 @@ function Home() {
         <span style={{ color: s.mainNetInflowPct != null ? chgColor(s.mainNetInflowPct) : D.comment, width: "7ch", textAlign: "right" }}>
           {s.mainNetInflowPct != null ? `${s.mainNetInflowPct >= 0 ? "+" : ""}${s.mainNetInflowPct.toFixed(1)}%` : pad("-", 6, true)}
         </span>
+        <span style={{ width: "12ch", overflow: "hidden", whiteSpace: "nowrap" }}>
+          {(s.tags ?? []).map((t) => (
+            <span key={t} style={tagChipStyle(t)} onClick={() => setFilterTag(t)}>{t}</span>
+          ))}
+        </span>
       </div>
     );
   }
@@ -277,11 +277,6 @@ function Home() {
         <span style={{ color: s.star ? D.yellow : D.comment, width: "6ch" }}>{s.star ? "★" : " "} DEV</span>
         <span style={{ color: D.cyan, width: "10ch" }}>{pad(s.id, 9)}</span>
         <span style={{ color: D.fg, width: "10ch" }}>{pad(s.name.slice(0, 6), 8)}</span>
-        <span style={{ width: "12ch", overflow: "hidden", whiteSpace: "nowrap" }}>
-          {(s.tags ?? []).map((t) => (
-            <span key={t} style={tagChipStyle(t)} onClick={() => setFilterTag(t)}>{t}</span>
-          ))}
-        </span>
         <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
           {pad(s.price.toFixed(2), 9, true)}
         </span>
@@ -308,6 +303,11 @@ function Home() {
         </span>
         <span style={{ color: s.mainNetInflowPct != null ? chgColor(s.mainNetInflowPct) : D.comment, width: "7ch", textAlign: "right" }}>
           {s.mainNetInflowPct != null ? `${s.mainNetInflowPct >= 0 ? "+" : ""}${s.mainNetInflowPct.toFixed(1)}%` : pad("-", 6, true)}
+        </span>
+        <span style={{ width: "12ch", overflow: "hidden", whiteSpace: "nowrap" }}>
+          {(s.tags ?? []).map((t) => (
+            <span key={t} style={tagChipStyle(t)} onClick={() => setFilterTag(t)}>{t}</span>
+          ))}
         </span>
       </div>
     );
@@ -445,7 +445,6 @@ function Home() {
               <span style={{ width: "6ch" }}> 类型</span>
               <span style={hs("10ch", "id")} onClick={() => ht("id")}>代码{ha("id")}</span>
               <span style={{ width: "10ch" }}>名称</span>
-              <span style={{ width: "12ch", color: D.pink }}>标签</span>
               <span style={hs("10ch", "price", true)} onClick={() => ht("price")}>{pad("现价" + ha("price"), 9, true)}</span>
               <span style={hs("9ch", "change", true)} onClick={() => ht("change")}>{pad("涨跌幅" + ha("change"), 8, true)}</span>
               <span style={hs("9ch", "cost", true)} onClick={() => ht("cost")}>{pad("成本" + ha("cost"), 8, true)}</span>
@@ -459,6 +458,7 @@ function Home() {
               <span style={hs("9ch", "amount", true)} onClick={() => ht("amount")}>{pad("成交额" + ha("amount"), 8, true)}</span>
               <span style={hs("9ch", "mainNetInflow" as SortKey, true)} onClick={() => ht("mainNetInflow" as SortKey)}>{pad("主力" + ha("mainNetInflow" as SortKey), 8, true)}</span>
               <span style={hs("7ch", "mainNetInflowPct" as SortKey, true)} onClick={() => ht("mainNetInflowPct" as SortKey)}>{pad("主力%" + ha("mainNetInflowPct" as SortKey), 6, true)}</span>
+              <span style={{ width: "12ch", color: D.pink }}>标签</span>
             </div>
           );
 
