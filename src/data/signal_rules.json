@@ -70,6 +70,8 @@
   "daily_score": {
     "entry_threshold": 70,
     "exit_threshold": 40,
+    "exit_extreme_threshold": 30,
+    "exit_consecutive_days": 2,
     "intraday_exception_confidence": 0.85,
     "intraday_exception_min_score": 60,
     "entry_window_start": "10:00",

@@ -11,16 +11,16 @@ interface Trade {
   trade_id: string;
   code: string;
   name?: string;
-  entry_price: number;
-  exit_price: number;
+  entry_price: number | null;
+  exit_price: number | null;
   quantity: number;
-  pnl: number;
-  pnl_pct: number;
-  hold_days: number;
+  pnl: number | null;
+  pnl_pct: number | null;
+  hold_days: number | null;
   exit_reason: string;
   notes: string;
   confidence: number;
-  entry_date: string;
+  entry_date: string | null;
   exit_date: string;
   entry_time?: number;  // epoch ms
   exit_time?: number;   // epoch ms
@@ -468,15 +468,15 @@ function EquityCurve({ data, initialCapital }: { data: DailyPnl[]; initialCapita
 
 /** 生成单笔交易的复盘点评 */
 function tradeReviewCN(t: Trade): { text: string; color: string } {
-  const pnlPct = t.pnl_pct * 100;
+  const pnlPct = (t.pnl_pct ?? 0) * 100;
   const fee = t.commission || 0;
-  const gross = t.pnl + fee;
+  const gross = (t.pnl ?? 0) + fee;
   const holdMs = (t.exit_time || 0) - (t.entry_time || 0);
   const holdMin = holdMs > 0 ? holdMs / 60000 : 0;
   const er = t.exit_reason;
 
   // 盈利交易
-  if (t.pnl > 0) {
+  if ((t.pnl ?? 0) > 0) {
     if (er.startsWith("stop_loss")) return { text: "盈利止损,控制得当", color: D.cyan };
     if (er.startsWith("take_profit")) return { text: "目标达成,纪律执行", color: D.cyan };
     if (er.includes("T3:")) return { text: "T3平仓,小赚离场", color: D.cyan };
@@ -485,7 +485,7 @@ function tradeReviewCN(t: Trade): { text: string; color: string } {
 
   // 亏损交易
   // 手续费杀利润
-  if (gross > 0 && t.pnl <= 0) {
+  if (gross > 0 && (t.pnl ?? 0) <= 0) {
     return { text: `毛利+${gross.toFixed(0)}被手续费吞`, color: D.orange };
   }
 
@@ -547,7 +547,7 @@ function TradesTable({ trades, bare }: { trades: Trade[]; bare?: boolean }) {
           </div>
           {/* 行 */}
           {trades.map((t) => {
-            const c = pnlColor(t.pnl);
+            const c = pnlColor(t.pnl ?? 0);
             const review = tradeReviewCN(t);
             return (
               <div
@@ -560,20 +560,20 @@ function TradesTable({ trades, bare }: { trades: Trade[]; bare?: boolean }) {
                 <span style={{ color: D.cyan, width: "10ch" }}>{t.code}</span>
                 <span style={{ color: D.fg, width: "12ch" }}>{(t.name || t.code).slice(0, 10)}</span>
                 <span style={{ color: D.fg, width: "9ch", textAlign: "right" }}>
-                  {t.entry_price.toFixed(2)}
+                  {t.entry_price != null ? t.entry_price.toFixed(2) : "-"}
                 </span>
                 <span style={{ color: D.comment, width: "2ch", textAlign: "center" }}>→</span>
                 <span style={{ color: D.fg, width: "9ch", textAlign: "right" }}>
-                  {t.exit_price.toFixed(2)}
+                  {t.exit_price != null ? t.exit_price.toFixed(2) : "-"}
                 </span>
                 <span style={{ color: D.fg, width: "7ch", textAlign: "right" }}>
                   {t.quantity.toLocaleString()}
                 </span>
                 <span style={{ color: c, width: "9ch", textAlign: "right", fontWeight: 500 }}>
-                  {t.pnl >= 0 ? "+" : ""}{t.pnl.toFixed(0)}
+                  {t.pnl != null ? `${t.pnl >= 0 ? "+" : ""}${t.pnl.toFixed(0)}` : "-"}
                 </span>
                 <span style={{ color: c, width: "7ch", textAlign: "right", fontWeight: 500 }}>
-                  {t.pnl_pct * 100 >= 0 ? "+" : ""}{(t.pnl_pct * 100).toFixed(1)}%
+                  {t.pnl_pct != null ? `${t.pnl_pct * 100 >= 0 ? "+" : ""}${(t.pnl_pct * 100).toFixed(1)}%` : "-"}
                 </span>
                 <span title={exitReasonCN(t.exit_reason)} style={{ color: D.orange, width: "9ch", paddingLeft: "1ch", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {exitReasonCN(t.exit_reason)}
@@ -590,7 +590,7 @@ function TradesTable({ trades, bare }: { trades: Trade[]; bare?: boolean }) {
                       const hrs = (t.exit_time - t.entry_time) / 3600000;
                       return hrs >= 24 ? `${Math.round(hrs / 24)}d` : `${Math.round(hrs)}h`;
                     }
-                    return t.hold_days > 0 ? `${t.hold_days}d` : "-";
+                    return (t.hold_days ?? 0) > 0 ? `${t.hold_days}d` : "-";
                   })()}
                 </span>
                 <span title={review.text} style={{ color: review.color, paddingLeft: "1ch", fontWeight: 500 }}>
@@ -1009,8 +1009,8 @@ function OperationsLog({ live }: { live: LiveData }) {
     sortTs: number;
     code: string;
     name: string;
-    entry: { time: string; price: number; qty: number; reason: string };
-    exit?: { time: string; action: string; price: number; qty: number; reason: string; pnl: number };
+    entry: { time: string; price: number | null; qty: number; reason: string };
+    exit?: { time: string; action: string; price: number | null; qty: number; reason: string; pnl: number | null };
     detail?: string; // 持仓的 SL/TP/score 摘要
   }
 
@@ -1023,7 +1023,7 @@ function OperationsLog({ live }: { live: LiveData }) {
       code: t.code,
       name: t.name || t.code,
       entry: {
-        time: tsToTime(t.entry_time, t.entry_date),
+        time: tsToTime(t.entry_time, t.entry_date ?? undefined),
         price: t.entry_price,
         qty: t.quantity,
         reason: strategyCN(t.notes),
@@ -1105,7 +1105,7 @@ function OperationsLog({ live }: { live: LiveData }) {
                 <span style={{ color: D.red, width: "7ch", fontWeight: 700 }}>开仓</span>
                 <span style={{ color: D.cyan, width: "10ch" }}>{g.code}</span>
                 <span style={{ color: D.fg, width: "12ch" }}>{(g.name || g.code).slice(0, 10)}</span>
-                <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>{g.entry.price.toFixed(2)}</span>
+                <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>{g.entry.price != null ? g.entry.price.toFixed(2) : "-"}</span>
                 <span style={{ color: D.fg, width: "8ch", textAlign: "right" }}>{g.entry.qty.toLocaleString()}</span>
                 <span style={{ color: D.comment, width: "10ch", textAlign: "right" }}>-</span>
                 <span style={{ color: D.orange, paddingLeft: "2ch" }}>{g.entry.reason}</span>
@@ -1118,12 +1118,12 @@ function OperationsLog({ live }: { live: LiveData }) {
                   <span style={{ color: exitColors[g.exit.action] || D.fg, width: "7ch", fontWeight: 700 }}>{g.exit.action}</span>
                   <span style={{ color: D.cyan, width: "10ch" }}>{g.code}</span>
                   <span style={{ color: D.fg, width: "12ch" }}>{(g.name || g.code).slice(0, 10)}</span>
-                  <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>{g.exit.price.toFixed(2)}</span>
+                  <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>{g.exit.price != null ? g.exit.price.toFixed(2) : "-"}</span>
                   <span style={{ color: D.fg, width: "8ch", textAlign: "right" }}>{g.exit.qty.toLocaleString()}</span>
                   <span style={{
-                    color: pnlColor(g.exit.pnl), width: "10ch", textAlign: "right", fontWeight: 500,
+                    color: pnlColor(g.exit.pnl ?? 0), width: "10ch", textAlign: "right", fontWeight: 500,
                   }}>
-                    {g.exit.pnl >= 0 ? "+" : ""}{g.exit.pnl.toFixed(0)}
+                    {g.exit.pnl != null ? `${g.exit.pnl >= 0 ? "+" : ""}${g.exit.pnl.toFixed(0)}` : "-"}
                   </span>
                   <span style={{ color: exitColors[g.exit.action] || D.orange, paddingLeft: "2ch" }}>{g.exit.reason}</span>
                 </div>
@@ -1140,7 +1140,7 @@ function CompletedTradesTable({ trades }: { trades: Trade[] }) {
   const [open, setOpen] = useState(true);
   if (trades.length === 0) return null;
 
-  const totalPnl = trades.reduce((s, t) => s + t.pnl, 0);
+  const totalPnl = trades.reduce((s, t) => s + (t.pnl ?? 0), 0);
 
   return (
     <div style={{ padding: "4px 0" }}>

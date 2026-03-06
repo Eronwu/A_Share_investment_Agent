@@ -2331,6 +2331,13 @@ class DailyIndicatorTracker:
         ma60 = float(mas["ma60"].iloc[-1]) if not pd.isna(mas["ma60"].iloc[-1]) else c
         vol = float(ind["volume"].iloc[-1]) if not pd.isna(ind["volume"].iloc[-1]) else 0
         vol_ma20 = float(ind["vol_ma20"].iloc[-1]) if not pd.isna(ind["vol_ma20"].iloc[-1]) else 1
+        # ADX: 衡量趋势强度，ADX<20 为震荡市，动量信号可信度下降
+        adx_val = 25.0  # default: assume trending
+        if "adx" in ind and len(ind["adx"]) > 0:
+            _adx = ind["adx"].iloc[-1]
+            if not pd.isna(_adx):
+                adx_val = float(_adx)
+        choppy_market = adx_val < 20  # 震荡市：MACD/RSI 各减 5 分
 
         scores = {}
 
@@ -2352,24 +2359,30 @@ class DailyIndicatorTracker:
         # DIF/DEA 零轴上方加分
         if dif > 0 and dea > 0:
             macd_score = min(20, macd_score + 2)
+        # ADX 震荡市过滤：动量信号降权
+        if choppy_market:
+            macd_score = max(0, macd_score - 5)
         scores["macd"] = macd_score
 
         # ── RSI (15分) ──
-        # 50-60 中性, 60-70 偏多, 30-50 偏空, 极值区减分
-        if 60 <= rsi_val <= 70:
-            rsi_score = 15
-        elif 50 <= rsi_val < 60:
-            rsi_score = 10
-        elif 70 < rsi_val <= 80:
-            rsi_score = 10  # 偏高但未极端
-        elif 40 <= rsi_val < 50:
-            rsi_score = 7
-        elif 30 <= rsi_val < 40:
-            rsi_score = 4
+        # 适合中线建仓：50-65 为最优区间（温和多头），低位超卖区仍有价值
+        if 50 <= rsi_val <= 65:
+            rsi_score = 15  # 最优：温和上涨动能，未超买
+        elif 45 <= rsi_val < 50:
+            rsi_score = 12  # 中性偏强，回调后入场机会
+        elif 30 <= rsi_val < 45:
+            rsi_score = 10  # 超卖区，中线低位建仓价值
+        elif 65 < rsi_val <= 75:
+            rsi_score = 10  # 偏高，趋势延续但需谨慎
+        elif 75 < rsi_val <= 80:
+            rsi_score = 6   # 超买区，追涨风险上升
         elif rsi_val > 80:
             rsi_score = 3   # 极度超买
         else:
-            rsi_score = 2   # RSI < 30 极度超卖 (反弹可能但风险大)
+            rsi_score = 5   # RSI < 30 极度超卖（高风险高潜力）
+        # ADX 震荡市过滤：RSI 动量信号同样降权
+        if choppy_market:
+            rsi_score = max(0, rsi_score - 5)
         scores["rsi"] = rsi_score
 
         # ── MA 排列 (20分) ──
@@ -2394,7 +2407,7 @@ class DailyIndicatorTracker:
         scores["ma"] = ma_score
 
         # ── 主力资金 (20分) ──
-        # 大额净流入 = 高分，需外部传入 (L2 数据)
+        # L2 实时主力净流入占比（基础分 0-20）
         if main_net_inflow_pct > 0.10:
             cf_score = 20
         elif main_net_inflow_pct > 0.05:
@@ -2407,6 +2420,8 @@ class DailyIndicatorTracker:
             cf_score = 4
         else:
             cf_score = 0
+
+        cf_score = max(0, min(20, cf_score))
         scores["capital_flow"] = cf_score
 
         # ── 量价配合 (15分) ──

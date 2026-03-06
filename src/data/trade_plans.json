@@ -1,70 +1,5 @@
 {
   "plans": {
-    "HK02722_tp": {
-      "name": "重庆机电分批止盈",
-      "symbol": "HK02722",
-      "status": "active",
-      "created_at": "2026-02-27",
-      "orders": [
-        {
-          "id": "sl1",
-          "side": "sell",
-          "op": "<=",
-          "price": 3.4,
-          "shares": 4000,
-          "volume_min": null,
-          "consecutive_days": null,
-          "trailing": null,
-          "label": "固定止损",
-          "triggered": true,
-          "triggered_at": "2026-03-03T09:42:44.818638"
-        },
-        {
-          "id": "sl2",
-          "side": "sell",
-          "op": ">=",
-          "price": 3.8,
-          "shares": 4000,
-          "volume_min": null,
-          "consecutive_days": null,
-          "trailing": {
-            "pct": 8.2,
-            "watermark": null,
-            "active": false
-          },
-          "label": "移动止损",
-          "triggered": false,
-          "triggered_at": null
-        },
-        {
-          "id": "o1",
-          "side": "sell",
-          "op": ">=",
-          "price": 3.9,
-          "shares": 2000,
-          "volume_min": null,
-          "consecutive_days": null,
-          "trailing": null,
-          "label": "减半 Fib2.0+惯性",
-          "triggered": false,
-          "triggered_at": null
-        },
-        {
-          "id": "o2",
-          "side": "sell",
-          "op": ">=",
-          "price": 4.1,
-          "shares": 4000,
-          "volume_min": null,
-          "consecutive_days": null,
-          "trailing": null,
-          "label": "清仓 整数关口4.0上方",
-          "triggered": false,
-          "triggered_at": null
-        }
-      ],
-      "scope": "real"
-    },
     "HK02590_acc": {
       "name": "极智嘉分批建仓",
       "symbol": "HK02590",
@@ -223,7 +158,7 @@
           "id": "sl1",
           "side": "sell",
           "op": "<=",
-          "price": 24.00,
+          "price": 24,
           "shares": 400,
           "label": "硬止损-跌破24整数关口",
           "triggered": false,
@@ -284,6 +219,873 @@
           "label": "止盈375",
           "triggered": true,
           "triggered_at": "2026-03-05T09:20:30.780088"
+        }
+      ],
+      "scope": "real"
+    },
+    "HK03690_hardstop": {
+      "name": "【⚠️深亏-35%】美团硬止损",
+      "symbol": "HK03690",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_hard",
+          "side": "sell",
+          "op": "<=",
+          "price": 72,
+          "shares": 1200,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【⚠️硬止损-40%】跌破72全清——纪律底线，不得犹豫",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp_bounce",
+          "side": "sell",
+          "op": ">=",
+          "price": 90,
+          "shares": 600,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "反弹减半仓——反弹至90减压",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp_relief",
+          "side": "sell",
+          "op": ">=",
+          "price": 105,
+          "shares": 600,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "继续减仓——105清剩余",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK01810_hardstop": {
+      "name": "【⚠️深亏-34%】小米硬止损",
+      "symbol": "HK01810",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_hard",
+          "side": "sell",
+          "op": "<=",
+          "price": 31,
+          "shares": 600,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【⚠️硬止损-40%】跌破31全清——底线，必须执行",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp_bounce",
+          "side": "sell",
+          "op": ">=",
+          "price": 42,
+          "shares": 200,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "反弹减仓1/3——42回补一手",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp_target",
+          "side": "sell",
+          "op": ">=",
+          "price": 48,
+          "shares": 400,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "减亏出场——48清剩余，不恋战",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK09927_hardstop": {
+      "name": "【⚠️深亏-33%】赛力斯硬止损",
+      "symbol": "HK09927",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_hard",
+          "side": "sell",
+          "op": "<=",
+          "price": 79,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【⚠️硬止损-40%】跌破79全清——不赌反转",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp_reduce",
+          "side": "sell",
+          "op": ">=",
+          "price": 100,
+          "shares": 50,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "反弹减半——100卖50股",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp_exit",
+          "side": "sell",
+          "op": ">=",
+          "price": 115,
+          "shares": 50,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "减亏出场——115清仓",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK01211_hardstop": {
+      "name": "【深亏-28%】比亚迪硬止损",
+      "symbol": "HK01211",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_hard",
+          "side": "sell",
+          "op": "<=",
+          "price": 78,
+          "shares": 1000,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【硬止损-40%】跌破78全清——BYD电车竞争格局若继续恶化果断离场",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp_reduce",
+          "side": "sell",
+          "op": ">=",
+          "price": 105,
+          "shares": 500,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "反弹减半——105卖500股",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp_target",
+          "side": "sell",
+          "op": ">=",
+          "price": 125,
+          "shares": 500,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "接近成本出清——125清剩余500股",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK01060_hardstop": {
+      "name": "【深亏-26%】大麦娱乐硬止损",
+      "symbol": "HK01060",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_hard",
+          "side": "sell",
+          "op": "<=",
+          "price": 0.63,
+          "shares": 40000,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【硬止损-40%】跌破0.63全清",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp_bounce",
+          "side": "sell",
+          "op": ">=",
+          "price": 0.9,
+          "shares": 20000,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "反弹减半——0.9卖20000股",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp_exit",
+          "side": "sell",
+          "op": ">=",
+          "price": 1,
+          "shares": 20000,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "接近成本出清——1.0清剩余",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK02359_swing": {
+      "name": "药明康德波段+护盈",
+      "symbol": "HK02359",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_floor",
+          "side": "sell",
+          "op": "<=",
+          "price": 95,
+          "shares": 400,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【护盈底线】跌回95全清——+25%利润不能丢，一旦跌破果断清",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp_swing1",
+          "side": "sell",
+          "op": ">=",
+          "price": 120,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "波段止盈1——120卖100股(25%)，RSI超买区减仓",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp_main",
+          "side": "sell",
+          "op": ">=",
+          "price": 130,
+          "shares": 200,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "主目标——130卖200股(50%)，达成目标减半",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp_trail",
+          "side": "sell",
+          "op": ">=",
+          "price": 140,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": {
+            "pct": 10,
+            "watermark": null,
+            "active": false
+          },
+          "label": "移动止损——140激活10%回撤移动止损，锁住超额收益",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK00700_hold": {
+      "name": "腾讯控股持有策略",
+      "symbol": "HK00700",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_hard",
+          "side": "sell",
+          "op": "<=",
+          "price": 450,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【硬止损-30%】跌破450清仓——非正常下跌信号",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "add_dip",
+          "side": "buy",
+          "op": "<=",
+          "price": 500,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "加仓机会——500整数关口支撑，放量可买100股",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp1",
+          "side": "sell",
+          "op": ">=",
+          "price": 700,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止盈目标——700清仓",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK06809_trail": {
+      "name": "澜起科技持有策略",
+      "symbol": "HK06809",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_cost",
+          "side": "sell",
+          "op": "<=",
+          "price": 148,
+          "shares": 300,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止损——跌破成本价148清仓",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp1",
+          "side": "sell",
+          "op": ">=",
+          "price": 200,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止盈1——200卖100股(1/3)",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp2",
+          "side": "sell",
+          "op": ">=",
+          "price": 220,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": {
+            "pct": 10,
+            "watermark": null,
+            "active": false
+          },
+          "label": "止盈2——220激活10%移动止损护住剩余",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp3",
+          "side": "sell",
+          "op": ">=",
+          "price": 250,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "清仓——250清剩余",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK07709_trail": {
+      "name": "两倍海力士持有策略",
+      "symbol": "HK07709",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_hard",
+          "side": "sell",
+          "op": "<=",
+          "price": 23,
+          "shares": 1500,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【硬止损-18%】跌破23清仓——杠杆ETF不留情",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp1",
+          "side": "sell",
+          "op": ">=",
+          "price": 38,
+          "shares": 500,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止盈1——38减1/3，HBM拉升后部分兑现",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp2",
+          "side": "sell",
+          "op": ">=",
+          "price": 45,
+          "shares": 500,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": {
+            "pct": 12,
+            "watermark": null,
+            "active": false
+          },
+          "label": "止盈2——45激活12%移动止损",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp3",
+          "side": "sell",
+          "op": ">=",
+          "price": 55,
+          "shares": 500,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "清仓——55清剩余500股",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK07226_etf": {
+      "name": "两倍纳指持有策略",
+      "symbol": "HK07226",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_hard",
+          "side": "sell",
+          "op": "<=",
+          "price": 3.2,
+          "shares": 10300,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【硬止损-26%】跌破3.2全清——纳指ETF杠杆风险高",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp1",
+          "side": "sell",
+          "op": ">=",
+          "price": 5.5,
+          "shares": 3300,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止盈1——5.5卖1/3",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp2",
+          "side": "sell",
+          "op": ">=",
+          "price": 6.5,
+          "shares": 7000,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "清仓——6.5清剩余",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK07262_etf": {
+      "name": "两倍日经持有策略",
+      "symbol": "HK07262",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_hard",
+          "side": "sell",
+          "op": "<=",
+          "price": 120,
+          "shares": 80,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【硬止损-21%】跌破120全清——日元升值风险",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp1",
+          "side": "sell",
+          "op": ">=",
+          "price": 180,
+          "shares": 40,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止盈——180卖40股(一半)",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp2",
+          "side": "sell",
+          "op": ">=",
+          "price": 210,
+          "shares": 40,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "清仓——210清剩余",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK09618_hold": {
+      "name": "京东持有策略",
+      "symbol": "HK09618",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_hard",
+          "side": "sell",
+          "op": "<=",
+          "price": 85,
+          "shares": 250,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【硬止损-25%】跌破85清仓",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp1",
+          "side": "sell",
+          "op": ">=",
+          "price": 135,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止盈1——135卖100股(减仓40%)",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp2",
+          "side": "sell",
+          "op": ">=",
+          "price": 160,
+          "shares": 150,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "清仓——160清剩余",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK02577_hold": {
+      "name": "英诺赛科持有策略",
+      "symbol": "HK02577",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_hard",
+          "side": "sell",
+          "op": "<=",
+          "price": 55,
+          "shares": 300,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【止损-21%】跌破55清仓",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp1",
+          "side": "sell",
+          "op": ">=",
+          "price": 85,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止盈1——85减1/3",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp2",
+          "side": "sell",
+          "op": ">=",
+          "price": 100,
+          "shares": 200,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "清仓——100清剩余",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK03033_etf": {
+      "name": "南方恒生科技ETF持有",
+      "symbol": "HK03033",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_hard",
+          "side": "sell",
+          "op": "<=",
+          "price": 4.2,
+          "shares": 3200,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【止损-23%】跌破4.2清仓",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp1",
+          "side": "sell",
+          "op": ">=",
+          "price": 6.5,
+          "shares": 1600,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止盈——6.5减半",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp2",
+          "side": "sell",
+          "op": ">=",
+          "price": 8,
+          "shares": 1600,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "清仓——8.0清剩余",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK03288_hold": {
+      "name": "海天味业持有策略",
+      "symbol": "HK03288",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_hard",
+          "side": "sell",
+          "op": "<=",
+          "price": 30,
+          "shares": 200,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【止损-27%】跌破30清仓",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp1",
+          "side": "sell",
+          "op": ">=",
+          "price": 48,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止盈——48减半",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp2",
+          "side": "sell",
+          "op": ">=",
+          "price": 58,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "清仓——58清仓",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK06060_hold": {
+      "name": "众安在线持有策略",
+      "symbol": "HK06060",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_hard",
+          "side": "sell",
+          "op": "<=",
+          "price": 12,
+          "shares": 300,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【止损-32%】跌破12清仓",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp1",
+          "side": "sell",
+          "op": ">=",
+          "price": 22,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止盈——22减1/3",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp2",
+          "side": "sell",
+          "op": ">=",
+          "price": 28,
+          "shares": 200,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "清仓——28清剩余",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK06651_hold": {
+      "name": "五一视界持有策略",
+      "symbol": "HK06651",
+      "status": "active",
+      "created_at": "2026-03-06",
+      "orders": [
+        {
+          "id": "sl_hard",
+          "side": "sell",
+          "op": "<=",
+          "price": 38,
+          "shares": 200,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "【止损-19%】跌破38清仓",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp1",
+          "side": "sell",
+          "op": ">=",
+          "price": 65,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止盈——65减半",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp2",
+          "side": "sell",
+          "op": ">=",
+          "price": 85,
+          "shares": 100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "清仓——85清剩余",
+          "triggered": false,
+          "triggered_at": null
         }
       ],
       "scope": "real"

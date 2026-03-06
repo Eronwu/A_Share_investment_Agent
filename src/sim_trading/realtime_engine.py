@@ -61,6 +61,7 @@ class RealtimeSimEngine:
         self._daily_tracker = daily_tracker  # DailyIndicatorTracker reference
         self._score_cfg = rules.get("daily_score", {})
         self._last_exit_ts: dict[str, int] = {}  # code → epoch ms of last exit (cooldown)
+        self._low_score_count: dict[str, int] = {}  # code → 连续低分天数（出场惯性保护）
         self._new_positions_today = 0
         self._dip_buy_notified_today: set[str] = set()  # codes already notified for dip_buy today
         self._entry_evaluated_today = False
@@ -906,7 +907,13 @@ class RealtimeSimEngine:
 
         cfg = self._score_cfg
         exit_threshold = cfg.get("exit_threshold", 40)
+        exit_extreme = cfg.get("exit_extreme_threshold", 30)
+        exit_days = cfg.get("exit_consecutive_days", 2)
         now_ts = int(time.time() * 1000)
+
+        # 清理已平仓股票的计数（止损/止盈等途径已平仓）
+        self._low_score_count = {k: v for k, v in self._low_score_count.items()
+                                  if k in self._pos_mgr.positions}
 
         for code in list(self._pos_mgr.positions.keys()):
             score_result = self._get_score(code)
@@ -917,51 +924,74 @@ class RealtimeSimEngine:
                 logger.debug(f"Exit eval skipped for {code}: insufficient data (score={total})")
                 continue
 
-            if total < exit_threshold:
-                pos = self._pos_mgr.positions[code]
-                price = prices.get(code, pos.entry_price)
-                daily_amount = market.get(code, {}).get("amount", 0)
-                atr = self._estimate_atr(code, date)
+            if total >= exit_threshold:
+                # 评分恢复，重置连续低分计数
+                if code in self._low_score_count:
+                    logger.info(f"Exit inertia reset {code}: score={total} recovered above {exit_threshold}")
+                    del self._low_score_count[code]
+                continue
 
-                decision = TradeDecision(
-                    action="SELL",
-                    code=code,
-                    confidence=0.80,
-                    position_pct=1.0,
-                    reason=f"exit_score={total}<{exit_threshold}",
-                    direction="bearish",
-                )
-
-                exec_info = self._engine.execute_trade(decision, price, daily_amount, atr)
-                exec_price = exec_info["exec_price"]
-                cost_info = self._engine.calc_cost(exec_price, pos.quantity, "SELL")
-
-                trade = self._pos_mgr.close_position(
-                    code, exec_price, decision.reason,
-                    pct=1.0,
-                    trade_cost=cost_info["total"],
-                    current_ts=now_ts, current_date=date,
-                    day_index=self._day_index,
-                )
-                # Futu mode: send sell order
-                if self._futu_enabled and self._futu:
-                    sell_result = self._futu.sell(code, exec_price, pos.quantity)
-                    if sell_result.success and self._futu_sync:
-                        self._futu_sync.save_order(
-                            sell_result.order_id, code, "SELL",
-                            exec_price, pos.quantity,
-                            reason=decision.reason,
-                        )
-
-                if trade:
-                    trade["notes"] = decision.reason
-                    self._save_trade(trade)
-                    self._last_exit_ts[code] = now_ts
+            # 极端低分（<exit_extreme）：立即平仓，不等确认
+            immediate_exit = total < exit_extreme
+            if not immediate_exit:
+                # 普通低分：需连续 exit_days 天才平仓
+                self._low_score_count[code] = self._low_score_count.get(code, 0) + 1
+                count = self._low_score_count[code]
+                if count < exit_days:
                     logger.info(
-                        f"RT SELL {code}: @ {exec_price:.2f} "
-                        f"PnL={trade['pnl']:+.0f} score={total} "
-                        f"(exit_review)"
+                        f"Exit candidate {code}: score={total}<{exit_threshold}, "
+                        f"day {count}/{exit_days} — waiting for confirmation"
                     )
+                    continue
+
+            reason = (f"exit_score={total}<{exit_extreme}(extreme)" if immediate_exit
+                      else f"exit_score={total}<{exit_threshold}(day{self._low_score_count[code]})")
+
+            pos = self._pos_mgr.positions[code]
+            price = prices.get(code, pos.entry_price)
+            daily_amount = market.get(code, {}).get("amount", 0)
+            atr = self._estimate_atr(code, date)
+
+            decision = TradeDecision(
+                action="SELL",
+                code=code,
+                confidence=0.80,
+                position_pct=1.0,
+                reason=reason,
+                direction="bearish",
+            )
+
+            exec_info = self._engine.execute_trade(decision, price, daily_amount, atr)
+            exec_price = exec_info["exec_price"]
+            cost_info = self._engine.calc_cost(exec_price, pos.quantity, "SELL")
+
+            trade = self._pos_mgr.close_position(
+                code, exec_price, decision.reason,
+                pct=1.0,
+                trade_cost=cost_info["total"],
+                current_ts=now_ts, current_date=date,
+                day_index=self._day_index,
+            )
+            # Futu mode: send sell order
+            if self._futu_enabled and self._futu:
+                sell_result = self._futu.sell(code, exec_price, pos.quantity)
+                if sell_result.success and self._futu_sync:
+                    self._futu_sync.save_order(
+                        sell_result.order_id, code, "SELL",
+                        exec_price, pos.quantity,
+                        reason=decision.reason,
+                    )
+
+            if trade:
+                trade["notes"] = decision.reason
+                self._save_trade(trade)
+                self._last_exit_ts[code] = now_ts
+                self._low_score_count.pop(code, None)
+                logger.info(
+                    f"RT SELL {code}: @ {exec_price:.2f} "
+                    f"PnL={trade['pnl']:+.0f} score={total} "
+                    f"(exit_review)"
+                )
 
     def _process_signal_v2(self, signal: dict, time_str: str,
                            prices: dict[str, float], market: dict[str, dict]):
