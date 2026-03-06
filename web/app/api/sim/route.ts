@@ -17,16 +17,16 @@ interface TradeRow {
   trade_id: string;
   code: string;
   direction: string;
-  entry_price: number;
-  exit_price: number;
+  entry_price: number | null;
+  exit_price: number | null;
   quantity: number;
-  pnl: number;
-  pnl_pct: number;
-  hold_days: number;
+  pnl: number | null;
+  pnl_pct: number | null;
+  hold_days: number | null;
   exit_reason: string;
   notes: string;
   confidence: number;
-  entry_date: string;
+  entry_date: string | null;
   exit_date: string;
   commission: number;
 }
@@ -65,7 +65,7 @@ function computeSummary(
     };
   }
 
-  const pnls = trades.map((t) => t.pnl);
+  const pnls = trades.map((t) => t.pnl ?? 0);
   const wins = pnls.filter((p) => p > 0);
   const losses = pnls.filter((p) => p <= 0);
   const sumWins = wins.reduce((a, b) => a + b, 0);
@@ -166,8 +166,8 @@ function computeGrouped(
     const key = keyFn(t) || "unknown";
     if (!buckets[key]) buckets[key] = { trades: 0, pnl: 0, wins: 0 };
     buckets[key].trades++;
-    buckets[key].pnl += t.pnl;
-    if (t.pnl > 0) buckets[key].wins++;
+    buckets[key].pnl += (t.pnl ?? 0);
+    if ((t.pnl ?? 0) > 0) buckets[key].wins++;
   }
   // Sort by PnL descending
   const sorted = Object.entries(buckets).sort((a, b) => b[1].pnl - a[1].pnl);
@@ -315,11 +315,11 @@ export async function GET() {
     // For old trades (before migration), pnl only has sell cost — accepted as-is.
     const realizedPnl = liveTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
     const liveCommission = liveTrades.reduce((sum, t) => sum + (t.commission || 0), 0);
-    const liveWins = liveTrades.filter(t => t.pnl > 0);
-    const liveLosses = liveTrades.filter(t => t.pnl <= 0);
+    const liveWins = liveTrades.filter(t => (t.pnl ?? 0) > 0);
+    const liveLosses = liveTrades.filter(t => (t.pnl ?? 0) <= 0 && t.pnl != null);
     const liveWinRate = liveTrades.length > 0 ? liveWins.length / liveTrades.length : 0;
-    const liveWinSum = liveWins.reduce((s, t) => s + t.pnl, 0);
-    const liveLossSum = liveLosses.reduce((s, t) => s + t.pnl, 0);
+    const liveWinSum = liveWins.reduce((s, t) => s + (t.pnl ?? 0), 0);
+    const liveLossSum = liveLosses.reduce((s, t) => s + (t.pnl ?? 0), 0);
     const liveProfitFactor = liveLossSum !== 0
       ? Math.abs(liveWinSum / liveLossSum)
       : (liveWins.length > 0 ? Infinity : 0);

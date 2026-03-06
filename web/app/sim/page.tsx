@@ -590,7 +590,7 @@ function TradesTable({ trades, bare }: { trades: Trade[]; bare?: boolean }) {
                       const hrs = (t.exit_time - t.entry_time) / 3600000;
                       return hrs >= 24 ? `${Math.round(hrs / 24)}d` : `${Math.round(hrs)}h`;
                     }
-                    return (t.hold_days ?? 0) > 0 ? `${t.hold_days}d` : "-";
+                    return (t.hold_days ?? 0) > 0 ? `${t.hold_days ?? 0}d` : "-";
                   })()}
                 </span>
                 <span title={review.text} style={{ color: review.color, paddingLeft: "1ch", fontWeight: 500 }}>
