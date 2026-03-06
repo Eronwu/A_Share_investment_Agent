@@ -482,39 +482,6 @@ function StockRow({
         <span style={{ width: 110, color: D.fg, display: "inline-block" }}>
           {entry.name}
         </span>
-        {/* tags */}
-        <span
-          style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 3, minWidth: 80, cursor: "pointer" }}
-          onClick={() => setTagEditorOpen((v) => !v)}
-          title="Click to edit tags"
-        >
-          {(entry.tags || []).length > 0
-            ? (entry.tags || []).map((t) => (
-                <span
-                  key={t}
-                  style={{
-                    background: tagColor(t),
-                    color: "#282a36",
-                    padding: "0 5px",
-                    borderRadius: 3,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    whiteSpace: "nowrap",
-                  }}
-                >{t}</span>
-              ))
-            : <span style={{ color: D.comment, fontSize: 10 }}>+tag</span>
-          }
-          {tagEditorOpen && (
-            <TagEditor
-              code={code}
-              currentTags={entry.tags || []}
-              allTags={allTags}
-              onSave={onSaveTags}
-              onClose={() => setTagEditorOpen(false)}
-            />
-          )}
-        </span>
         {isHolding && (
           <>
             <EditableCell
@@ -690,6 +657,39 @@ function StockRow({
             </span>
             {entry.hidden ? "hidden" : "hide"}
           </span>
+        {/* tags */}
+        <span
+          style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 3, minWidth: 80, cursor: "pointer" }}
+          onClick={() => setTagEditorOpen((v) => !v)}
+          title="Click to edit tags"
+        >
+          {(entry.tags || []).length > 0
+            ? (entry.tags || []).map((t) => (
+                <span
+                  key={t}
+                  style={{
+                    background: tagColor(t),
+                    color: "#282a36",
+                    padding: "0 5px",
+                    borderRadius: 3,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    whiteSpace: "nowrap",
+                  }}
+                >{t}</span>
+              ))
+            : <span style={{ color: D.comment, fontSize: 10 }}>+tag</span>
+          }
+          {tagEditorOpen && (
+            <TagEditor
+              code={code}
+              currentTags={entry.tags || []}
+              allTags={allTags}
+              onSave={onSaveTags}
+              onClose={() => setTagEditorOpen(false)}
+            />
+          )}
+        </span>
         <button style={deleteBtn} onClick={() => onRemove(code, entry.name)} title="Remove">
           x
         </button>
@@ -1758,14 +1758,15 @@ export default function ManagePage() {
           <span style={{ width: 50 }}>type</span>
           <span style={{ width: 90 }}>code</span>
           <span style={{ width: 110 }}>name</span>
-          <span style={{ minWidth: 80 }}>tags</span>
           <span style={{ width: 80 }}>cost</span>
           <span style={{ width: 80 }}>shares</span>
           <span style={{ width: 60 }}></span>
           <span style={{ width: 75, color: D.orange }}>^ above</span>
           <span style={{ width: 75, color: D.cyan }}>v below</span>
           <span style={{ width: 30 }}>*</span>
+          <span style={{ width: 40 }}>dip</span>
           <span style={{ width: 40 }}>hide</span>
+          <span style={{ minWidth: 80 }}>tags</span>
         </div>
 
         {/* ── prod:A share stocks ── */}
