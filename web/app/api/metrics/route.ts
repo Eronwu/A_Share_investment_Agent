@@ -171,8 +171,8 @@ export async function GET() {
       data.services = data.services.map((s: Record<string, unknown>) => {
         const id = s.id as string;
         const entry = watchlist[id];
+        if (!entry) return null;  // 不在 watchlist 里的股票不返回
         const alert = alerts[id];
-        if (!entry) return { ...s, type: "watching", hidden: false, above: alert?.above ?? null, below: alert?.below ?? null };
 
         const price = Number(s.price) || 0;
         const cost = entry.cost != null ? Number(entry.cost) : null;
@@ -199,7 +199,7 @@ export async function GET() {
           ...(entry.watch_price != null ? { watch_price: Number(entry.watch_price) } : {}),
           ...(entry.watch_price_date ? { watch_price_date: entry.watch_price_date } : {}),
         };
-      });
+      }).filter(Boolean);
     }
 
     data.settings = settings;
