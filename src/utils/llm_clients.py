@@ -8,7 +8,7 @@ from google import genai
 from src.utils.logging_config import setup_logger, SUCCESS_ICON, ERROR_ICON, WAIT_ICON
 
 # 设置日志记录
-logger = setup_logger('llm_clients')
+logger = setup_logger("llm_clients")
 
 
 class LLMClient(ABC):
@@ -29,8 +29,7 @@ class GeminiClient(LLMClient):
 
         if not self.api_key:
             logger.error(f"{ERROR_ICON} 未找到 GEMINI_API_KEY 环境变量")
-            raise ValueError(
-                "GEMINI_API_KEY not found in environment variables")
+            raise ValueError("GEMINI_API_KEY not found in environment variables")
 
         # 初始化 Gemini 客户端
         self.client = genai.Client(api_key=self.api_key)
@@ -41,7 +40,7 @@ class GeminiClient(LLMClient):
         (Exception),
         max_tries=5,
         max_time=300,
-        giveup=lambda e: "AFC is enabled" not in str(e)
+        giveup=lambda e: "AFC is enabled" not in str(e),
     )
     def generate_content_with_retry(self, contents, config=None):
         """带重试机制的内容生成函数"""
@@ -51,9 +50,7 @@ class GeminiClient(LLMClient):
             logger.debug(f"请求配置: {config}")
 
             response = self.client.models.generate_content(
-                model=self.model,
-                contents=contents,
-                config=config
+                model=self.model, contents=contents, config=config
             )
 
             logger.info(f"{SUCCESS_ICON} API 调用成功")
@@ -63,11 +60,13 @@ class GeminiClient(LLMClient):
             error_msg = str(e)
             if "location" in error_msg.lower():
                 logger.info(
-                    f"\033[91m❗ Gemini API 地理位置限制错误: 请使用美国节点VPN后重试\033[0m")
+                    f"\033[91m❗ Gemini API 地理位置限制错误: 请使用美国节点VPN后重试\033[0m"
+                )
                 logger.error(f"详细错误: {error_msg}")
             elif "AFC is enabled" in error_msg:
                 logger.warning(
-                    f"{ERROR_ICON} 触发 API 限制，等待重试... 错误: {error_msg}")
+                    f"{ERROR_ICON} 触发 API 限制，等待重试... 错误: {error_msg}"
+                )
                 time.sleep(5)
             else:
                 logger.error(f"{ERROR_ICON} API 调用失败: {error_msg}")
@@ -98,21 +97,20 @@ class GeminiClient(LLMClient):
                     # 准备配置
                     config = {}
                     if system_instruction:
-                        config['system_instruction'] = system_instruction
+                        config["system_instruction"] = system_instruction
 
                     # 调用 API
                     response = self.generate_content_with_retry(
-                        contents=prompt.strip(),
-                        config=config
+                        contents=prompt.strip(), config=config
                     )
 
                     if response is None:
                         logger.warning(
-                            f"{ERROR_ICON} 尝试 {attempt + 1}/{max_retries}: API 返回空值")
+                            f"{ERROR_ICON} 尝试 {attempt + 1}/{max_retries}: API 返回空值"
+                        )
                         if attempt < max_retries - 1:
-                            retry_delay = initial_retry_delay * (2 ** attempt)
-                            logger.info(
-                                f"{WAIT_ICON} 等待 {retry_delay} 秒后重试...")
+                            retry_delay = initial_retry_delay * (2**attempt)
+                            logger.info(f"{WAIT_ICON} 等待 {retry_delay} 秒后重试...")
                             time.sleep(retry_delay)
                             continue
                         return None
@@ -125,9 +123,10 @@ class GeminiClient(LLMClient):
 
                 except Exception as e:
                     logger.error(
-                        f"{ERROR_ICON} 尝试 {attempt + 1}/{max_retries} 失败: {str(e)}")
+                        f"{ERROR_ICON} 尝试 {attempt + 1}/{max_retries} 失败: {str(e)}"
+                    )
                     if attempt < max_retries - 1:
-                        retry_delay = initial_retry_delay * (2 ** attempt)
+                        retry_delay = initial_retry_delay * (2**attempt)
                         logger.info(f"{WAIT_ICON} 等待 {retry_delay} 秒后重试...")
                         time.sleep(retry_delay)
                     else:
@@ -150,31 +149,26 @@ class OpenAICompatibleClient(LLMClient):
         if not self.api_key:
             logger.error(f"{ERROR_ICON} 未找到 OPENAI_COMPATIBLE_API_KEY 环境变量")
             raise ValueError(
-                "OPENAI_COMPATIBLE_API_KEY not found in environment variables")
+                "OPENAI_COMPATIBLE_API_KEY not found in environment variables"
+            )
 
         if not self.base_url:
             logger.error(f"{ERROR_ICON} 未找到 OPENAI_COMPATIBLE_BASE_URL 环境变量")
             raise ValueError(
-                "OPENAI_COMPATIBLE_BASE_URL not found in environment variables")
+                "OPENAI_COMPATIBLE_BASE_URL not found in environment variables"
+            )
 
         if not self.model:
             logger.error(f"{ERROR_ICON} 未找到 OPENAI_COMPATIBLE_MODEL 环境变量")
             raise ValueError(
-                "OPENAI_COMPATIBLE_MODEL not found in environment variables")
+                "OPENAI_COMPATIBLE_MODEL not found in environment variables"
+            )
 
         # 初始化 OpenAI 客户端
-        self.client = OpenAI(
-            base_url=self.base_url,
-            api_key=self.api_key
-        )
+        self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
         logger.info(f"{SUCCESS_ICON} OpenAI Compatible 客户端初始化成功")
 
-    @backoff.on_exception(
-        backoff.expo,
-        (Exception),
-        max_tries=5,
-        max_time=300
-    )
+    @backoff.on_exception(backoff.expo, (Exception), max_tries=5, max_time=300)
     def call_api_with_retry(self, messages, stream=False):
         """带重试机制的 API 调用函数"""
         try:
@@ -183,9 +177,7 @@ class OpenAICompatibleClient(LLMClient):
             logger.debug(f"模型: {self.model}, 流式: {stream}")
 
             response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                stream=stream
+                model=self.model, messages=messages, stream=stream
             )
 
             logger.info(f"{SUCCESS_ICON} API 调用成功")
@@ -208,11 +200,11 @@ class OpenAICompatibleClient(LLMClient):
 
                     if response is None:
                         logger.warning(
-                            f"{ERROR_ICON} 尝试 {attempt + 1}/{max_retries}: API 返回空值")
+                            f"{ERROR_ICON} 尝试 {attempt + 1}/{max_retries}: API 返回空值"
+                        )
                         if attempt < max_retries - 1:
-                            retry_delay = initial_retry_delay * (2 ** attempt)
-                            logger.info(
-                                f"{WAIT_ICON} 等待 {retry_delay} 秒后重试...")
+                            retry_delay = initial_retry_delay * (2**attempt)
+                            logger.info(f"{WAIT_ICON} 等待 {retry_delay} 秒后重试...")
                             time.sleep(retry_delay)
                             continue
                         return None
@@ -227,9 +219,10 @@ class OpenAICompatibleClient(LLMClient):
 
                 except Exception as e:
                     logger.error(
-                        f"{ERROR_ICON} 尝试 {attempt + 1}/{max_retries} 失败: {str(e)}")
+                        f"{ERROR_ICON} 尝试 {attempt + 1}/{max_retries} 失败: {str(e)}"
+                    )
                     if attempt < max_retries - 1:
-                        retry_delay = initial_retry_delay * (2 ** attempt)
+                        retry_delay = initial_retry_delay * (2**attempt)
                         logger.info(f"{WAIT_ICON} 等待 {retry_delay} 秒后重试...")
                         time.sleep(retry_delay)
                     else:
@@ -241,6 +234,24 @@ class OpenAICompatibleClient(LLMClient):
             return None
 
 
+class OllamaClient(OpenAICompatibleClient):
+    """Ollama 本地模型客户端"""
+
+    def __init__(self, model=None):
+        base_url = os.getenv(
+            "OLLAMA_BASE_URL", os.getenv("OLLAMA_URL", "http://localhost:11434")
+        )
+        if not base_url.endswith("/v1"):
+            base_url = base_url.rstrip("/") + "/v1"
+        api_key = os.getenv("OLLAMA_API_KEY", "ollama")
+        model = model or os.getenv("OLLAMA_MODEL", "llama3")
+
+        super().__init__(api_key=api_key, base_url=base_url, model=model)
+        logger.info(
+            f"{SUCCESS_ICON} Ollama 客户端初始化成功 (base_url: {base_url}, model: {model})"
+        )
+
+
 class LLMClientFactory:
     """LLM 客户端工厂类"""
 
@@ -250,7 +261,7 @@ class LLMClientFactory:
         创建 LLM 客户端
 
         Args:
-            client_type: 客户端类型 ("auto", "gemini", "openai_compatible")
+            client_type: 客户端类型 ("auto", "gemini", "openai_compatible", "ollama")
             **kwargs: 特定客户端的配置参数
 
         Returns:
@@ -258,9 +269,22 @@ class LLMClientFactory:
         """
         # 如果设置为 auto，自动检测可用的客户端
         if client_type == "auto":
+            # 检查是否配置了 ollama
+            if (
+                os.getenv("USE_OLLAMA", "").lower() == "true"
+                or os.getenv("OLLAMA", "").lower() == "true"
+                or os.getenv("OLLAMA_MODEL")
+            ):
+                client_type = "ollama"
+                logger.info(f"{WAIT_ICON} 自动选择 Ollama")
             # 检查是否提供了 OpenAI Compatible API 相关配置
-            if (kwargs.get("api_key") and kwargs.get("base_url") and kwargs.get("model")) or \
-               (os.getenv("OPENAI_COMPATIBLE_API_KEY") and os.getenv("OPENAI_COMPATIBLE_BASE_URL") and os.getenv("OPENAI_COMPATIBLE_MODEL")):
+            elif (
+                kwargs.get("api_key") and kwargs.get("base_url") and kwargs.get("model")
+            ) or (
+                os.getenv("OPENAI_COMPATIBLE_API_KEY")
+                and os.getenv("OPENAI_COMPATIBLE_BASE_URL")
+                and os.getenv("OPENAI_COMPATIBLE_MODEL")
+            ):
                 client_type = "openai_compatible"
                 logger.info(f"{WAIT_ICON} 自动选择 OpenAI Compatible API")
             else:
@@ -269,14 +293,15 @@ class LLMClientFactory:
 
         if client_type == "gemini":
             return GeminiClient(
-                api_key=kwargs.get("api_key"),
-                model=kwargs.get("model")
+                api_key=kwargs.get("api_key"), model=kwargs.get("model")
             )
         elif client_type == "openai_compatible":
             return OpenAICompatibleClient(
                 api_key=kwargs.get("api_key"),
                 base_url=kwargs.get("base_url"),
-                model=kwargs.get("model")
+                model=kwargs.get("model"),
             )
+        elif client_type == "ollama":
+            return OllamaClient(model=kwargs.get("model"))
         else:
             raise ValueError(f"不支持的客户端类型: {client_type}")

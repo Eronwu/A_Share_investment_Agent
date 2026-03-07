@@ -1,10 +1,12 @@
 import sys
+
 import argparse
 import uuid  # Import uuid for run IDs
 import threading  # Import threading for background task
 import uvicorn  # Import uvicorn to run FastAPI
 
 from datetime import datetime, timedelta
+
 # Removed START as it's implicit with set_entry_point
 from langgraph.graph import END, StateGraph
 from langchain_core.messages import HumanMessage
@@ -29,10 +31,7 @@ from src.agents.macro_news_agent import macro_news_agent
 # --- Logging and Backend Imports ---
 from src.utils.output_logger import OutputLogger
 from src.tools.openrouter_config import get_chat_completion
-from src.utils.llm_interaction_logger import (
-    log_agent_execution,
-    set_global_log_storage
-)
+from src.utils.llm_interaction_logger import log_agent_execution, set_global_log_storage
 from backend.dependencies import get_log_storage
 from backend.main import app as fastapi_app
 from src.utils.logging_config import setup_logger
@@ -41,6 +40,7 @@ from src.utils.logging_config import setup_logger
 try:
     from src.utils.summary_report import print_summary_report
     from src.utils.agent_collector import store_final_state, get_enhanced_final_state
+
     HAS_SUMMARY_REPORT = True
 except ImportError:
     HAS_SUMMARY_REPORT = False
@@ -48,6 +48,7 @@ except ImportError:
 # --- Import Structured Terminal Output ---
 try:
     from src.utils.structured_terminal import print_structured_output
+
     HAS_STRUCTURED_OUTPUT = True
 except ImportError:
     HAS_STRUCTURED_OUTPUT = False
@@ -56,15 +57,25 @@ except ImportError:
 log_storage = get_log_storage()
 set_global_log_storage(log_storage)
 sys.stdout = OutputLogger()
-logger = setup_logger('main_workflow')
+logger = setup_logger("main_workflow")
 
 # --- Run the Hedge Fund Workflow ---
 
 
-def run_hedge_fund(run_id: str, ticker: str, start_date: str, end_date: str, portfolio: dict, show_reasoning: bool = False, num_of_news: int = 5, show_summary: bool = False):
+def run_hedge_fund(
+    run_id: str,
+    ticker: str,
+    start_date: str,
+    end_date: str,
+    portfolio: dict,
+    show_reasoning: bool = False,
+    num_of_news: int = 5,
+    show_summary: bool = False,
+):
     print(f"--- Starting Workflow Run ID: {run_id} ---")
     try:
         from backend.state import api_state
+
         api_state.current_run_id = run_id
         print(f"--- API State updated with Run ID: {run_id} ---")
     except Exception as e:
@@ -83,11 +94,12 @@ def run_hedge_fund(run_id: str, ticker: str, start_date: str, end_date: str, por
             "show_reasoning": show_reasoning,
             "run_id": run_id,
             "show_summary": show_summary,
-        }
+        },
     }
 
     try:
         from backend.utils.context_managers import workflow_run
+
         with workflow_run(run_id):
             final_state = app.invoke(initial_state)
             print(f"--- Finished Workflow Run ID: {run_id} ---")
@@ -186,33 +198,54 @@ def run_fastapi():
 if __name__ == "__main__":
     fastapi_thread = threading.Thread(target=run_fastapi, daemon=True)
     fastapi_thread.start()
-    parser = argparse.ArgumentParser(
-        description='Run the hedge fund trading system')
-    parser.add_argument('--ticker', type=str, required=True,
-                        help='Stock ticker symbol')
-    parser.add_argument('--start-date', type=str,
-                        help='Start date (YYYY-MM-DD). Defaults to 1 year before end date')
-    parser.add_argument('--end-date', type=str,
-                        help='End date (YYYY-MM-DD). Defaults to yesterday')
-    parser.add_argument('--show-reasoning', action='store_true',
-                        help='Show reasoning from each agent')
-    parser.add_argument('--num-of-news', type=int, default=20,
-                        help='Number of news articles to analyze for sentiment (default: 20)')
-    parser.add_argument('--initial-capital', type=float, default=100000.0,
-                        help='Initial cash amount (default: 100,000)')
-    parser.add_argument('--initial-position', type=int,
-                        default=0, help='Initial stock position (default: 0)')
-    parser.add_argument('--summary', action='store_true',
-                        help='Show beautiful summary report at the end')
+    parser = argparse.ArgumentParser(description="Run the hedge fund trading system")
+    parser.add_argument("--ticker", type=str, required=True, help="Stock ticker symbol")
+    parser.add_argument(
+        "--start-date",
+        type=str,
+        help="Start date (YYYY-MM-DD). Defaults to 1 year before end date",
+    )
+    parser.add_argument(
+        "--end-date", type=str, help="End date (YYYY-MM-DD). Defaults to yesterday"
+    )
+    parser.add_argument(
+        "--show-reasoning", action="store_true", help="Show reasoning from each agent"
+    )
+    parser.add_argument(
+        "--num-of-news",
+        type=int,
+        default=20,
+        help="Number of news articles to analyze for sentiment (default: 20)",
+    )
+    parser.add_argument(
+        "--initial-capital",
+        type=float,
+        default=100000.0,
+        help="Initial cash amount (default: 100,000)",
+    )
+    parser.add_argument(
+        "--initial-position",
+        type=int,
+        default=0,
+        help="Initial stock position (default: 0)",
+    )
+    parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="Show beautiful summary report at the end",
+    )
     args = parser.parse_args()
     current_date = datetime.now()
     yesterday = current_date - timedelta(days=1)
-    end_date = yesterday if not args.end_date else min(
-        datetime.strptime(args.end_date, '%Y-%m-%d'), yesterday)
+    end_date = (
+        yesterday
+        if not args.end_date
+        else min(datetime.strptime(args.end_date, "%Y-%m-%d"), yesterday)
+    )
     if not args.start_date:
         start_date = end_date - timedelta(days=365)
     else:
-        start_date = datetime.strptime(args.start_date, '%Y-%m-%d')
+        start_date = datetime.strptime(args.start_date, "%Y-%m-%d")
     if start_date > end_date:
         raise ValueError("Start date cannot be after end date")
     if args.num_of_news < 1:
@@ -224,12 +257,12 @@ if __name__ == "__main__":
     result = run_hedge_fund(
         run_id=main_run_id,
         ticker=args.ticker,
-        start_date=start_date.strftime('%Y-%m-%d'),
-        end_date=end_date.strftime('%Y-%m-%d'),
+        start_date=start_date.strftime("%Y-%m-%d"),
+        end_date=end_date.strftime("%Y-%m-%d"),
         portfolio=portfolio,
         show_reasoning=args.show_reasoning,
         num_of_news=args.num_of_news,
-        show_summary=args.summary
+        show_summary=args.summary,
     )
     print("\nFinal Result:")
     print(result)
