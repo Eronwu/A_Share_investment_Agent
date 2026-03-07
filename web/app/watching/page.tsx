@@ -143,7 +143,7 @@ function WatchingContent() {
           </span>
         )}
         <span style={{ color: D.comment, width: "13ch", textAlign: "right" }}>{pad(`${s.low.toFixed(2)}-${s.high.toFixed(2)}`, 12, true)}</span>
-        <span style={{ width: "12ch", overflow: "hidden", whiteSpace: "nowrap" }}>
+        <span style={{ width: "12ch", overflow: "hidden", whiteSpace: "nowrap", marginLeft: 8 }}>
           {(s.tags ?? []).map((t) => (
             <span key={t} style={tagChipStyle(t)} onClick={() => setFilterTag(t)}>{t}</span>
           ))}
@@ -175,7 +175,7 @@ function WatchingContent() {
       {showL2 && <span style={mkHStyle("9ch", "mainNetInflow" as SortKey, true)} onClick={() => toggleWatchSort("mainNetInflow" as SortKey)}>{pad("主力" + mkArrow("mainNetInflow" as SortKey), 8, true)}</span>}
       {showL2 && <span style={mkHStyle("7ch", "mainNetInflowPct" as SortKey, true)} onClick={() => toggleWatchSort("mainNetInflowPct" as SortKey)}>{pad("主力%" + mkArrow("mainNetInflowPct" as SortKey), 6, true)}</span>}
       <span style={{ width: "13ch", textAlign: "right" }}>{pad("高低", 12, true)}</span>
-      <span style={{ width: "12ch", color: D.pink }}>标签</span>
+      <span style={{ width: "12ch", color: D.pink, marginLeft: 8 }}>标签</span>
     </div>
   );
 

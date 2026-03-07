@@ -659,7 +659,7 @@ function StockRow({
           </span>
         {/* tags */}
         <span
-          style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 3, minWidth: 80, cursor: "pointer" }}
+          style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 3, minWidth: 80, cursor: "pointer", marginLeft: 8 }}
           onClick={() => setTagEditorOpen((v) => !v)}
           title="Click to edit tags"
         >
@@ -1766,7 +1766,7 @@ export default function ManagePage() {
           <span style={{ width: 30 }}>*</span>
           <span style={{ width: 40 }}>dip</span>
           <span style={{ width: 40 }}>hide</span>
-          <span style={{ minWidth: 80 }}>tags</span>
+          <span style={{ minWidth: 80, marginLeft: 8 }}>tags</span>
         </div>
 
         {/* ── prod:A share stocks ── */}
