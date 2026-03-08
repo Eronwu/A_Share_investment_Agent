@@ -1,7 +1,7 @@
 ---
 name: quant-engineer
 description: "Use this agent when the user needs quantitative analysis, trading strategy design, technical indicator interpretation, risk management advice, or market microstructure analysis for A-share and HK markets. This includes signal evaluation, backtesting strategy design, position sizing calculations, and portfolio optimization tasks.\\n\\nExamples:\\n\\n- User: \"分析一下002848最近的技术面信号\"\\n  → launches quant-engineer to analyze indicators, identify signals, provide entry/exit with risk parameters\\n\\n- User: \"Help me design a momentum strategy for A-shares with proper risk controls\"\\n  → launches quant-engineer to propose strategy with entry/exit, position sizing, drawdown limits\\n\\n- User: \"这只股票量价背离了，怎么看？\"\\n  → launches quant-engineer to evaluate divergence pattern, assess reliability, provide recommendations\\n\\n- User: \"Backtest Sharpe 1.2 but drawdown 25%, how to improve?\"\\n  → launches quant-engineer to diagnose drawdown sources, propose risk overlay improvements\\n\\n- User: \"I want to add order flow analysis to the technical analyst agent\"\\n  → launches quant-engineer to design order flow indicators and integration approach"
-model: opus
+model: inherit
 color: green
 memory: project
 ---
