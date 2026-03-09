@@ -1460,6 +1460,8 @@ class DailyIndicatorTracker:
         self._index_last_refresh: float = 0
         # {code: set of strategy names already triggered today}
         self._triggered_today: dict[str, set] = {}
+        # {code: main_net_inflow_pct as fraction (0-1)} — updated by L2StrategyEngine.poll_once()
+        self._cf_pct_cache: dict[str, float] = {}
 
     def update(self, code: str, ctx) -> list:
         """刷新 + 检测, 返回 0~N 个信号"""
@@ -2408,15 +2410,19 @@ class DailyIndicatorTracker:
 
         # ── 主力资金 (20分) ──
         # L2 实时主力净流入占比（基础分 0-20）
-        if main_net_inflow_pct > 0.10:
+        # Use cached L2 capital flow if available; caller-provided param as fallback.
+        # _cf_pct_cache stores fraction (0-1); mainNetInflowPct from Futu is percentage (0-100),
+        # converted to fraction when stored via set_capital_flow_pct().
+        effective_cf_pct = self._cf_pct_cache.get(code, main_net_inflow_pct)
+        if effective_cf_pct > 0.10:
             cf_score = 20
-        elif main_net_inflow_pct > 0.05:
+        elif effective_cf_pct > 0.05:
             cf_score = 16
-        elif main_net_inflow_pct > 0:
+        elif effective_cf_pct > 0:
             cf_score = 12
-        elif main_net_inflow_pct > -0.05:
+        elif effective_cf_pct > -0.05:
             cf_score = 8
-        elif main_net_inflow_pct > -0.10:
+        elif effective_cf_pct > -0.10:
             cf_score = 4
         else:
             cf_score = 0
@@ -2481,6 +2487,10 @@ class DailyIndicatorTracker:
             "atr": round(atr, 4),
         }
 
+    def set_capital_flow_pct(self, code: str, pct_fraction: float):
+        """Cache the latest L2 main capital flow pct (as a 0-1 fraction) for use in score()."""
+        self._cf_pct_cache[code] = pct_fraction
+
     def reset(self):
         """每日重置"""
         self._last_refresh.clear()
@@ -2489,6 +2499,7 @@ class DailyIndicatorTracker:
         self._index_kline = None
         self._index_last_refresh = 0
         self._triggered_today.clear()
+        self._cf_pct_cache.clear()
         logger.info("DailyIndicatorTracker daily reset complete")
 
 
@@ -3283,6 +3294,10 @@ class L2StrategyEngine:
                 self._session.feed_ticks(code, ticks)
             for code, data in capital_data.items():
                 self._session.update_capital_flow(code, data)
+                # Feed capital flow pct into DailyIndicatorTracker for score() use.
+                # mainNetInflowPct is a percentage (e.g. 12.5 = 12.5%); convert to fraction (0-1).
+                pct_raw = data.get("mainNetInflowPct", 0)
+                self._daily_indicators.set_capital_flow_pct(code, pct_raw / 100.0)
 
         except Exception as e:
             logger.warning(f"L2 poll error: {e}")

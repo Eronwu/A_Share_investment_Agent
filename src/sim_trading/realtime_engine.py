@@ -185,6 +185,10 @@ class RealtimeSimEngine:
             cash_delta = 0.0
             for t in all_trades:
                 ep, xp, qty = t["entry_price"], t["exit_price"], t["quantity"]
+                # Skip Futu-synced trades with missing entry/exit prices (no cash flow to replay)
+                if ep is None or xp is None:
+                    logger.debug(f"Skipping cash replay for trade {t['trade_id'] if 'trade_id' in t.keys() else '?'}: null entry/exit price")
+                    continue
                 sell_cost = t["commission"]
                 total_cost = t["total_cost"] or sell_cost
                 if abs(total_cost - sell_cost) < 0.01:
@@ -1095,6 +1099,15 @@ class RealtimeSimEngine:
                 current_ts=signal.get("ts", 0), current_date=date,
                 day_index=self._day_index,
             )
+            # Futu mode: send sell order (same as normal exit path)
+            if self._futu_enabled and self._futu:
+                sell_result = self._futu.sell(code, exec_price, pos.quantity)
+                if sell_result.success and self._futu_sync:
+                    self._futu_sync.save_order(
+                        sell_result.order_id, code, "SELL",
+                        exec_price, pos.quantity,
+                        reason=f"T3:{strategy}(v2)",
+                    )
             if trade:
                 trade["notes"] = f"T3:{strategy}(v2)"
                 self._save_trade(trade)

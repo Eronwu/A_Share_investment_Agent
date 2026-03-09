@@ -161,8 +161,8 @@
           "price": 24,
           "shares": 400,
           "label": "硬止损-跌破24整数关口",
-          "triggered": false,
-          "triggered_at": null
+          "triggered": true,
+          "triggered_at": "2026-03-09T09:49:15.334240"
         },
         {
           "id": "tp1",
@@ -657,8 +657,8 @@
           "consecutive_days": null,
           "trailing": null,
           "label": "【硬止损-18%】跌破23清仓——杠杆ETF不留情",
-          "triggered": false,
-          "triggered_at": null
+          "triggered": true,
+          "triggered_at": "2026-03-09T09:35:03.506103"
         },
         {
           "id": "tp1",
@@ -770,8 +770,8 @@
           "consecutive_days": null,
           "trailing": null,
           "label": "【硬止损-21%】跌破120全清——日元升值风险",
-          "triggered": false,
-          "triggered_at": null
+          "triggered": true,
+          "triggered_at": "2026-03-09T09:36:35.275834"
         },
         {
           "id": "tp1",
