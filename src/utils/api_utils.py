@@ -324,10 +324,27 @@ def agent_endpoint(agent_name: str, description: str = ""):
                 if log_content:
                     terminal_outputs.append(log_content)
 
+                duration_seconds = (timestamp_end - timestamp_start).total_seconds()
+
+                if isinstance(result, dict):
+                    result.setdefault("metadata", {})
+                    result.setdefault("data", {})
+                    result["metadata"].setdefault("agent_timings", {})
+                    result["metadata"]["agent_timings"][agent_name] = {
+                        "started_at": timestamp_start.isoformat(),
+                        "ended_at": timestamp_end.isoformat(),
+                        "duration_seconds": duration_seconds,
+                        "status": "completed",
+                    }
+                    result["data"].setdefault("agent_timings", {})
+                    result["data"]["agent_timings"][agent_name] = result["metadata"]["agent_timings"][agent_name]
+
                 # 序列化输出状态
                 serialized_output = serialize_agent_state(result)
                 api_state.update_agent_data(
                     agent_name, "output_state", serialized_output)
+                api_state.update_agent_data(
+                    agent_name, "duration_seconds", duration_seconds)
 
                 # 从状态中提取推理细节（如果有）
                 reasoning_details = None
@@ -391,8 +408,10 @@ def agent_endpoint(agent_name: str, description: str = ""):
 
                 # 更新Agent状态为错误
                 api_state.update_agent_state(agent_name, "error")
+                duration_seconds = (timestamp_end - timestamp_start).total_seconds()
                 # 记录错误信息
                 api_state.update_agent_data(agent_name, "error", error)
+                api_state.update_agent_data(agent_name, "duration_seconds", duration_seconds)
 
                 # --- 添加错误日志到BaseLogStorage ---
                 try:
