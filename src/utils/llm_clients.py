@@ -2,6 +2,7 @@ import os
 import time
 import backoff
 from abc import ABC, abstractmethod
+from typing import Optional
 from dotenv import load_dotenv
 from openai import OpenAI
 from google import genai
@@ -9,6 +10,14 @@ from src.utils.logging_config import setup_logger, SUCCESS_ICON, ERROR_ICON, WAI
 
 # 设置日志记录
 logger = setup_logger("llm_clients")
+stream_logger = setup_logger("ollama_stream")
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 class LLMClient(ABC):
@@ -169,7 +178,7 @@ class OpenAICompatibleClient(LLMClient):
         logger.info(f"{SUCCESS_ICON} OpenAI Compatible 客户端初始化成功")
 
     @backoff.on_exception(backoff.expo, (Exception), max_tries=5, max_time=300)
-    def call_api_with_retry(self, messages, stream=False):
+    def call_api_with_retry(self, messages, stream=False, **kwargs):
         """带重试机制的 API 调用函数"""
         try:
             logger.info(f"{WAIT_ICON} 正在调用 OpenAI Compatible API...")
@@ -177,7 +186,7 @@ class OpenAICompatibleClient(LLMClient):
             logger.debug(f"模型: {self.model}, 流式: {stream}")
 
             response = self.client.chat.completions.create(
-                model=self.model, messages=messages, stream=stream
+                model=self.model, messages=messages, stream=stream, **kwargs
             )
 
             logger.info(f"{SUCCESS_ICON} API 调用成功")
@@ -187,16 +196,97 @@ class OpenAICompatibleClient(LLMClient):
             logger.error(f"{ERROR_ICON} API 调用失败: {error_msg}")
             raise e
 
+    def _collect_streaming_response(
+        self,
+        response,
+        heartbeat_seconds: int = 10,
+        stall_threshold_seconds: int = 120,
+        preview_chars: int = 160,
+    ) -> str:
+        """消费流式响应并输出心跳日志，便于判断本地模型是否仍在持续生成。"""
+        started_at = time.time()
+        first_token_at: Optional[float] = None
+        last_token_at = started_at
+        last_heartbeat_at = started_at
+        chunks = []
+        chunk_count = 0
+        char_count = 0
+
+        msg = f"{WAIT_ICON} 开始接收流式输出 (heartbeat={heartbeat_seconds}s, stall={stall_threshold_seconds}s)"
+        logger.info(msg)
+        stream_logger.info(msg)
+
+        for event in response:
+            now = time.time()
+            delta = None
+            try:
+                choices = getattr(event, "choices", None) or []
+                if choices:
+                    delta = getattr(choices[0], "delta", None)
+            except Exception:
+                delta = None
+
+            text = None
+            if delta is not None:
+                text = getattr(delta, "content", None)
+
+            if text:
+                if first_token_at is None:
+                    first_token_at = now
+                    msg = f"{SUCCESS_ICON} 收到首个 token，耗时 {first_token_at - started_at:.1f}s"
+                    logger.info(msg)
+                    stream_logger.info(msg)
+                chunks.append(text)
+                chunk_count += 1
+                char_count += len(text)
+                last_token_at = now
+
+                if now - last_heartbeat_at >= heartbeat_seconds:
+                    preview = "".join(chunks)[-preview_chars:].replace("\n", " ")
+                    msg = f"{WAIT_ICON} 流式输出进行中：{now - started_at:.1f}s / chunks={chunk_count} / chars={char_count} / 最近预览={preview}"
+                    logger.info(msg)
+                    stream_logger.info(msg)
+                    last_heartbeat_at = now
+            else:
+                if now - last_heartbeat_at >= heartbeat_seconds:
+                    msg = f"{WAIT_ICON} 流式连接仍存活：{now - started_at:.1f}s / chunks={chunk_count} / chars={char_count}"
+                    logger.info(msg)
+                    stream_logger.info(msg)
+                    last_heartbeat_at = now
+
+            if now - last_token_at > stall_threshold_seconds:
+                msg = f"{ERROR_ICON} 流式输出已停滞 {now - last_token_at:.1f}s，可能卡住"
+                logger.warning(msg)
+                stream_logger.warning(msg)
+
+        finished_at = time.time()
+        content = "".join(chunks)
+        msg = f"{SUCCESS_ICON} 流式输出结束：总耗时 {finished_at - started_at:.1f}s / chunks={chunk_count} / chars={len(content)}"
+        logger.info(msg)
+        stream_logger.info(msg)
+        if content:
+            logger.debug(f"API 原始响应: {content[:500]}...")
+        return content
+
     def get_completion(self, messages, max_retries=3, initial_retry_delay=1, **kwargs):
         """获取聊天完成结果，包含重试逻辑"""
         try:
             logger.info(f"{WAIT_ICON} 使用 OpenAI Compatible 模型: {self.model}")
             logger.debug(f"消息内容: {messages}")
 
+            stream = kwargs.pop("stream", None)
+            if stream is None:
+                if isinstance(self, OllamaClient):
+                    stream = _env_bool("LLM_STREAM", True)
+                else:
+                    stream = _env_bool("LLM_STREAM", False)
+            heartbeat_seconds = int(kwargs.pop("heartbeat_seconds", os.getenv("LLM_STREAM_HEARTBEAT_SECONDS", "10")))
+            stall_threshold_seconds = int(kwargs.pop("stall_threshold_seconds", os.getenv("LLM_STREAM_STALL_SECONDS", "120")))
+
             for attempt in range(max_retries):
                 try:
                     # 调用 API
-                    response = self.call_api_with_retry(messages)
+                    response = self.call_api_with_retry(messages, stream=stream)
 
                     if response is None:
                         logger.warning(
@@ -209,9 +299,16 @@ class OpenAICompatibleClient(LLMClient):
                             continue
                         return None
 
-                    # 打印调试信息
-                    content = response.choices[0].message.content
-                    logger.debug(f"API 原始响应: {content[:500]}...")
+                    if stream:
+                        content = self._collect_streaming_response(
+                            response,
+                            heartbeat_seconds=heartbeat_seconds,
+                            stall_threshold_seconds=stall_threshold_seconds,
+                        )
+                    else:
+                        content = response.choices[0].message.content
+                        logger.debug(f"API 原始响应: {content[:500]}...")
+
                     logger.info(f"{SUCCESS_ICON} 成功获取 OpenAI Compatible 响应")
 
                     # 直接返回文本内容

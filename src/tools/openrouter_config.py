@@ -116,6 +116,9 @@ def get_chat_completion(
     client_type="auto",
     api_key=None,
     base_url=None,
+    stream=None,
+    heartbeat_seconds=None,
+    stall_threshold_seconds=None,
 ):
     """
     获取聊天完成结果，包含重试逻辑
@@ -143,6 +146,9 @@ def get_chat_completion(
             messages=messages,
             max_retries=max_retries,
             initial_retry_delay=initial_retry_delay,
+            stream=stream,
+            heartbeat_seconds=heartbeat_seconds,
+            stall_threshold_seconds=stall_threshold_seconds,
         )
     except Exception as e:
         logger.error(f"{ERROR_ICON} get_chat_completion 发生错误: {str(e)}")
