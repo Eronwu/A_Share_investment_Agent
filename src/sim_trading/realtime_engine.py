@@ -21,6 +21,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from .broker import AbstractBroker, VirtualBroker, FutuBroker
 from .db import get_connection, init_db
 from .signal_mapper import TradeSignalMapper, TradeDecision
 from .position_manager import Position, PositionManager
@@ -97,6 +98,18 @@ class RealtimeSimEngine:
                 self._futu_enabled = False
         self._sync_interval = futu_cfg.get("sync_interval_ticks", 10)
 
+        # ── Create AbstractBroker ──
+        # FutuBroker wraps adapter + futu_sync for Futu-first order execution.
+        # VirtualBroker wraps only the shadow PM for pure virtual trading.
+        # Both share the same _pos_mgr so state methods (_load_state, _persist_state)
+        # continue to work without change.
+        if self._futu_enabled and self._futu:
+            self._broker: AbstractBroker = FutuBroker(
+                self._pos_mgr, self._futu, self._futu_sync
+            )
+        else:
+            self._broker = VirtualBroker(self._pos_mgr)
+
         # Load watermark + restore positions from DB (virtual mode)
         if not self._futu_enabled:
             self._load_watermark()
@@ -106,7 +119,7 @@ class RealtimeSimEngine:
             f"RT SimEngine v2 init: capital={self._pos_mgr.cash:.0f}, "
             f"positions={len(self._pos_mgr.positions)}, "
             f"daily_tracker={'yes' if daily_tracker else 'no'}, "
-            f"futu={'ON' if self._futu_enabled else 'OFF'}, "
+            f"broker={'FutuBroker' if self._futu_enabled else 'VirtualBroker'}, "
             f"watermark={self._last_processed_ts}"
         )
 
@@ -251,13 +264,13 @@ class RealtimeSimEngine:
             logger.warning(f"Failed to load state from Futu: {e}")
 
     def _sync_shadow_pm(self):
-        """Futu 模式: 定期同步 Futu 持仓到影子 PM。"""
+        """Futu 模式: 定期同步 Futu 持仓到影子 PM（通过 broker 接口）。"""
         if not self._futu or not self._futu_enabled:
             return
         try:
             positions = self._futu.get_positions()
             funds = self._futu.get_funds()
-            self._pos_mgr.sync_from_futu(positions, funds.cash)
+            self._broker.sync_from_futu(positions, funds.cash)
         except Exception as e:
             logger.debug(f"Shadow PM sync failed: {e}")
 
@@ -493,32 +506,17 @@ class RealtimeSimEngine:
             self._exit_evaluated_today = True
 
         # 4. Risk exits (stop-loss / take-profit / max-hold) — always active
-        if prices and self._pos_mgr.positions:
-            exit_trades = self._pos_mgr.check_exits(
+        # broker.check_exits handles both Futu order submission and shadow PM close.
+        if prices and self._broker.positions:
+            exit_trades = self._broker.check_exits(
                 prices, self._day_index,
-                current_ts=now_ts,
-                current_date=today,
+                ts=now_ts,
+                date=today,
                 cost_calculator=lambda p, q, a: self._engine.calc_cost(p, q, a),
                 min_hold_minutes=cfg.get("min_hold_minutes", 30),
             )
             for trade in exit_trades:
                 trade["notes"] = trade.get("notes", "")
-                # Futu mode: send sell order to Futu for risk exits
-                if self._futu_enabled and self._futu:
-                    result = self._futu.sell(
-                        trade["code"], trade["exit_price"], trade["quantity"]
-                    )
-                    if result.success and self._futu_sync:
-                        self._futu_sync.save_order(
-                            result.order_id, trade["code"], "SELL",
-                            trade["exit_price"], trade["quantity"],
-                            reason=trade.get("exit_reason", "risk_exit"),
-                        )
-                    elif not result.success:
-                        logger.warning(
-                            f"Futu sell failed for risk exit {trade['code']}: "
-                            f"{result.error_msg}"
-                        )
                 self._save_trade(trade)
                 self._last_exit_ts[trade["code"]] = now_ts
                 logger.info(
@@ -538,7 +536,7 @@ class RealtimeSimEngine:
                     # Sync live state from Futu → SQLite
                     daily_scores = {
                         code: self._get_score(code).get("total", 0)
-                        for code in self._pos_mgr.positions
+                        for code in self._broker.positions
                     }
                     self._futu_sync.sync_live_state(daily_scores)
 
@@ -580,7 +578,7 @@ class RealtimeSimEngine:
         candidates = []
         for code in self._get_watchlist_codes():
             # Skip if already holding
-            if code in self._pos_mgr.positions:
+            if code in self._broker.positions:
                 continue
 
             # Check cooldown
@@ -631,15 +629,12 @@ class RealtimeSimEngine:
             exec_info = self._engine.execute_trade(decision, price, daily_amount, atr)
             exec_price = exec_info["exec_price"]
 
-            alloc = self._pos_mgr.cash * position_pct
-            est_qty = self._pos_mgr._align_lot(code, int(alloc / exec_price))
-            if est_qty <= 0:
-                continue
-
             # Min notional filter: avoid tiny positions with disproportionate fees
+            alloc = self._broker.cash * position_pct
+            est_qty = self._pos_mgr._align_lot(code, int(alloc / exec_price))
             notional = exec_price * est_qty
             min_notional = cfg.get("min_notional", 30000)
-            if notional < min_notional:
+            if notional < min_notional or est_qty <= 0:
                 logger.debug(f"Skip {code}: notional {notional:.0f} < min {min_notional}")
                 continue
 
@@ -659,28 +654,11 @@ class RealtimeSimEngine:
             if tp <= 0 or tp <= exec_price or abs(tp - exec_price) / exec_price > 0.15:
                 tp = exec_price + atr * 3
 
-            # Futu mode: send buy order to Futu
-            if self._futu_enabled and self._futu:
-                buy_result = self._futu.buy(code, exec_price, est_qty)
-                if buy_result.success:
-                    if self._futu_sync:
-                        self._futu_sync.save_order(
-                            buy_result.order_id, code, "BUY",
-                            exec_price, est_qty,
-                            reason=f"daily_score={score_result['total']}",
-                        )
-                    logger.info(
-                        f"RT FUTU-BUY {code}: {est_qty} @ {exec_price:.2f} "
-                        f"score={score_result['total']} order={buy_result.order_id}"
-                    )
-                else:
-                    logger.warning(f"Futu buy failed for {code}: {buy_result.error_msg}")
-                    continue  # Skip shadow PM open if Futu order fails
-
-            pos = self._pos_mgr.open_position(
+            # broker.open_position handles Futu-first (FutuBroker) or pure virtual
+            pos = self._broker.open_position(
                 decision, exec_price, atr,
                 trade_cost=cost_info["total"],
-                current_date=date, current_ts=int(time.time() * 1000),
+                date=date, ts=int(time.time() * 1000),
                 day_index=self._day_index,
             )
             if pos:
@@ -776,7 +754,7 @@ class RealtimeSimEngine:
 
         db_entries_today = sum(
             1 for c in self._dip_buy_notified_today
-            if c in self._pos_mgr.positions
+            if c in self._broker.positions
         )
 
         candidates = []
@@ -834,7 +812,7 @@ class RealtimeSimEngine:
             self._dip_buy_notified_today.add(code)
 
             # 2. Sim trade (subject to limits)
-            if code in self._pos_mgr.positions:
+            if code in self._broker.positions:
                 logger.info(f"Dip-buy {code}: already holding, notify only")
                 continue
             if self._new_positions_today >= max_per_day:
@@ -868,7 +846,7 @@ class RealtimeSimEngine:
             exec_info = self._engine.execute_trade(decision, price, daily_amount, atr)
             exec_price = exec_info["exec_price"]
 
-            alloc = self._pos_mgr.cash * position_pct
+            alloc = self._broker.cash * position_pct
             est_qty = self._pos_mgr._align_lot(code, int(alloc / exec_price))
             if est_qty <= 0:
                 continue
@@ -880,10 +858,10 @@ class RealtimeSimEngine:
 
             cost_info = self._engine.calc_cost(exec_price, est_qty, "BUY")
 
-            pos = self._pos_mgr.open_position(
+            pos = self._broker.open_position(
                 decision, exec_price, atr,
                 trade_cost=cost_info["total"],
-                current_date=date, current_ts=now_ts,
+                date=date, ts=now_ts,
                 day_index=self._day_index,
             )
             if pos:
@@ -917,9 +895,9 @@ class RealtimeSimEngine:
 
         # 清理已平仓股票的计数（止损/止盈等途径已平仓）
         self._low_score_count = {k: v for k, v in self._low_score_count.items()
-                                  if k in self._pos_mgr.positions}
+                                  if k in self._broker.positions}
 
-        for code in list(self._pos_mgr.positions.keys()):
+        for code in list(self._broker.positions.keys()):
             score_result = self._get_score(code)
             total = score_result.get("total", 0)
 
@@ -951,7 +929,7 @@ class RealtimeSimEngine:
             reason = (f"exit_score={total}<{exit_extreme}(extreme)" if immediate_exit
                       else f"exit_score={total}<{exit_threshold}(day{self._low_score_count[code]})")
 
-            pos = self._pos_mgr.positions[code]
+            pos = self._broker.positions[code]
             price = prices.get(code, pos.entry_price)
             daily_amount = market.get(code, {}).get("amount", 0)
             atr = self._estimate_atr(code, date)
@@ -969,22 +947,14 @@ class RealtimeSimEngine:
             exec_price = exec_info["exec_price"]
             cost_info = self._engine.calc_cost(exec_price, pos.quantity, "SELL")
 
-            trade = self._pos_mgr.close_position(
+            # broker.close_position handles Futu-first (FutuBroker) or pure virtual
+            trade = self._broker.close_position(
                 code, exec_price, decision.reason,
                 pct=1.0,
                 trade_cost=cost_info["total"],
-                current_ts=now_ts, current_date=date,
+                ts=now_ts, date=date,
                 day_index=self._day_index,
             )
-            # Futu mode: send sell order
-            if self._futu_enabled and self._futu:
-                sell_result = self._futu.sell(code, exec_price, pos.quantity)
-                if sell_result.success and self._futu_sync:
-                    self._futu_sync.save_order(
-                        sell_result.order_id, code, "SELL",
-                        exec_price, pos.quantity,
-                        reason=decision.reason,
-                    )
 
             if trade:
                 trade["notes"] = decision.reason
@@ -1021,7 +991,7 @@ class RealtimeSimEngine:
         tier1_strategies = set(self._rules.get("tiers", {}).get("1_independent", {}).keys())
 
         # ── T3 correction: with cost filter + min_hold ──
-        if strategy in tier3_strategies and code in self._pos_mgr.positions:
+        if strategy in tier3_strategies and code in self._broker.positions:
             self._handle_t3_with_filters(signal, prices, market, date)
             return
 
@@ -1038,7 +1008,7 @@ class RealtimeSimEngine:
         """
         code = signal.get("code", "")
         strategy = signal.get("strategy", "")
-        pos = self._pos_mgr.positions.get(code)
+        pos = self._broker.positions.get(code)
         if not pos:
             return
 
@@ -1073,14 +1043,14 @@ class RealtimeSimEngine:
         if pnl_pct > 0:
             # Profitable: T3 can tighten stop instead of selling
             atr = self._estimate_atr(code, date)
-            self._pos_mgr.tighten_stop(code, 1.0, current_price, atr)
+            self._broker.tighten_stop(code, 1.0, current_price, atr)
             logger.info(f"T3 {strategy} → tighten SL for {code} (profitable, pnl={pnl_pct:.2%})")
             return
 
         # Proceed with T3 sell
-        equity = self._pos_mgr.get_equity(prices) if prices else self._pos_mgr.cash
+        equity = self._broker.get_equity(prices) if prices else self._broker.cash
         decision = self._mapper.process_signal(
-            signal, self._pos_mgr.positions, equity, date,
+            signal, self._broker.positions, equity, date,
         )
         if not decision:
             return
@@ -1092,22 +1062,14 @@ class RealtimeSimEngine:
             exec_price = exec_info["exec_price"]
             cost_info = self._engine.calc_cost(exec_price, pos.quantity, "SELL")
 
-            trade = self._pos_mgr.close_position(
+            # broker.close_position handles Futu-first (FutuBroker) or pure virtual
+            trade = self._broker.close_position(
                 code, exec_price, f"T3:{strategy}(v2)",
                 pct=decision.position_pct,
                 trade_cost=cost_info["total"],
-                current_ts=signal.get("ts", 0), current_date=date,
+                ts=signal.get("ts", 0), date=date,
                 day_index=self._day_index,
             )
-            # Futu mode: send sell order (same as normal exit path)
-            if self._futu_enabled and self._futu:
-                sell_result = self._futu.sell(code, exec_price, pos.quantity)
-                if sell_result.success and self._futu_sync:
-                    self._futu_sync.save_order(
-                        sell_result.order_id, code, "SELL",
-                        exec_price, pos.quantity,
-                        reason=f"T3:{strategy}(v2)",
-                    )
             if trade:
                 trade["notes"] = f"T3:{strategy}(v2)"
                 self._save_trade(trade)
@@ -1119,7 +1081,7 @@ class RealtimeSimEngine:
 
         elif decision.action == "TIGHTEN_SL":
             atr = self._estimate_atr(code, date)
-            self._pos_mgr.tighten_stop(code, decision.stop_atr, current_price, atr)
+            self._broker.tighten_stop(code, decision.stop_atr, current_price, atr)
             logger.info(f"RT T3-TIGHTEN {code} ({strategy})")
 
     def _handle_intraday_exception(self, signal: dict, prices: dict[str, float],
@@ -1152,7 +1114,7 @@ class RealtimeSimEngine:
             return
 
         # Already holding
-        if code in self._pos_mgr.positions:
+        if code in self._broker.positions:
             return
 
         # Daily limit
@@ -1198,7 +1160,7 @@ class RealtimeSimEngine:
         exec_info = self._engine.execute_trade(decision, price, daily_amount, atr)
         exec_price = exec_info["exec_price"]
 
-        alloc = self._pos_mgr.cash * position_pct
+        alloc = self._broker.cash * position_pct
         est_qty = self._pos_mgr._align_lot(code, int(alloc / exec_price))
         if est_qty <= 0:
             return
@@ -1212,10 +1174,10 @@ class RealtimeSimEngine:
 
         cost_info = self._engine.calc_cost(exec_price, est_qty, "BUY")
 
-        pos = self._pos_mgr.open_position(
+        pos = self._broker.open_position(
             decision, exec_price, atr,
             trade_cost=cost_info["total"],
-            current_date=date, current_ts=signal.get("ts", 0),
+            date=date, ts=signal.get("ts", 0),
             day_index=self._day_index,
         )
         if pos:
