@@ -21,9 +21,17 @@ def get_latest_message_by_name(messages: list, name: str):
             return msg
     logger.warning(
         f"Message from agent '{name}' not found in portfolio_management_agent.")
-    # Return a dummy message object or raise an error, depending on desired handling
-    # For now, returning a dummy message to avoid crashing, but content will be None.
-    return HumanMessage(content=json.dumps({"signal": "error", "details": f"Message from {name} not found"}), name=name)
+    return None
+
+
+def build_message_from_data(name: str, payload):
+    if payload is None:
+        return None
+    if isinstance(payload, str):
+        content = payload
+    else:
+        content = json.dumps(payload, ensure_ascii=False)
+    return HumanMessage(content=content, name=name)
 
 
 @agent_endpoint("portfolio_management", "负责投资组合管理和最终交易决策")
@@ -67,6 +75,16 @@ def portfolio_management_agent(state: AgentState):
         cleaned_messages_for_processing, "risk_management_agent")
     tool_based_macro_message = get_latest_message_by_name(
         cleaned_messages_for_processing, "macro_analyst_agent")  # This is the main analysis path output
+
+    # Fallback to merged state data when message aggregation misses some branch outputs
+    if not risk_message:
+        risk_message = build_message_from_data(
+            "risk_management_agent", state["data"].get("risk_analysis")
+        )
+    if not tool_based_macro_message:
+        tool_based_macro_message = build_message_from_data(
+            "macro_analyst_agent", state["data"].get("macro_analysis")
+        )
 
     # Extract content, handling potential None if message not found by get_latest_message_by_name
     technical_content = technical_message.content if technical_message else json.dumps(
