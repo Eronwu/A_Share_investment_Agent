@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import re
 from datetime import datetime, timedelta
 import time
 import pandas as pd
@@ -523,11 +524,37 @@ def get_news_sentiment(news_list: list, num_of_news: int = 5) -> float:
 
         # 提取数字结果
         try:
-            sentiment_score = float(result.strip())
-        except ValueError as e:
-            print(f"Error parsing sentiment score: {e}")
-            print(f"Raw result: {result}")
-            return 0.0
+            sentiment_score = float(str(result).strip())
+        except ValueError:
+            raw_text = str(result).strip()
+            json_score = None
+            try:
+                json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+                if json_match:
+                    payload = json.loads(json_match.group(0))
+                    for key in ("score", "sentiment_score", "value"):
+                        if key in payload:
+                            json_score = float(payload[key])
+                            break
+            except Exception:
+                json_score = None
+
+            if json_score is None:
+                number_matches = re.findall(r'-?\d+(?:\.\d+)?', raw_text)
+                for token in number_matches:
+                    try:
+                        value = float(token)
+                    except ValueError:
+                        continue
+                    if -1.0 <= value <= 1.0:
+                        json_score = value
+                        break
+
+            if json_score is None:
+                print(f"Error parsing sentiment score from result: {raw_text}")
+                return 0.0
+
+            sentiment_score = json_score
 
         # 确保分数在-1到1之间
         sentiment_score = max(-1.0, min(1.0, sentiment_score))
