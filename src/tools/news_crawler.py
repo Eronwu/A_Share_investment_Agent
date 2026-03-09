@@ -25,6 +25,16 @@ except ImportError:
     ak = None
 
 
+def is_etf_symbol(symbol: str) -> bool:
+    """
+    判断是否为 ETF 代码
+    A股 ETF 代码通常以 15、16、50、51、58 开头
+    """
+    if len(symbol) != 6:
+        return False
+    return symbol.startswith(("15", "16", "50", "51", "58"))
+
+
 def build_search_query(symbol: str, date: str = None) -> str:
     """
     构建针对股票新闻的 Google 搜索查询
@@ -36,8 +46,14 @@ def build_search_query(symbol: str, date: str = None) -> str:
     Returns:
         构建好的搜索查询字符串
     """
-    # 基础查询：股票代码 + 新闻关键词
-    base_query = f"{symbol} 股票 新闻 财经"
+    # 判断是否为 ETF
+    is_etf = is_etf_symbol(symbol)
+
+    # 根据类型选择搜索关键词
+    if is_etf:
+        base_query = f"{symbol} ETF 基金 行情"
+    else:
+        base_query = f"{symbol} 股票 新闻 财经"
 
     # 添加时间限制（搜索指定日期之前的新闻）
     if date:
@@ -57,7 +73,7 @@ def build_search_query(symbol: str, date: str = None) -> str:
         "site:163.com",
         "site:eastmoney.com",
         "site:cnstock.com",
-        "site:hexun.com"
+        "site:hexun.com",
     ]
 
     # 添加网站限制
@@ -89,8 +105,25 @@ def convert_search_results_to_news_format(search_results, symbol: str) -> list:
     news_list = []
 
     for result in search_results:
-        # 过滤掉明显不相关的结果
-        if any(keyword in result.title.lower() for keyword in ['招聘', '求职', '广告', '登录', '注册']):
+        # 过滤掉明显不相关的结果和错误页面
+        title_lower = result.title.lower()
+        if any(
+            keyword in title_lower
+            for keyword in [
+                "招聘",
+                "求职",
+                "广告",
+                "登录",
+                "注册",
+                "搜索失败",
+                "page not found",
+                "404",
+            ]
+        ):
+            continue
+
+        # 过滤掉URL明显异常的搜索结果（如搜索出错页面）
+        if not result.link or "google" in result.link or "search" in result.link:
             continue
 
         # 尝试从snippet中提取时间信息
@@ -98,12 +131,13 @@ def convert_search_results_to_news_format(search_results, symbol: str) -> list:
         if result.snippet:
             # 查找常见的时间模式
             import re
+
             time_patterns = [
-                r'(\d{1,2}天前)',
-                r'(\d{1,2}小时前)',
-                r'(\d{4}-\d{2}-\d{2})',
-                r'(\d{4}年\d{1,2}月\d{1,2}日)',
-                r'(\d{2}-\d{2})'
+                r"(\d{1,2}天前)",
+                r"(\d{1,2}小时前)",
+                r"(\d{4}-\d{2}-\d{2})",
+                r"(\d{4}年\d{1,2}月\d{1,2}日)",
+                r"(\d{2}-\d{2})",
             ]
 
             for pattern in time_patterns:
@@ -112,18 +146,16 @@ def convert_search_results_to_news_format(search_results, symbol: str) -> list:
                     time_str = match.group(1)
                     try:
                         # 处理相对时间
-                        if '天前' in time_str:
-                            days = int(time_str.replace('天前', ''))
+                        if "天前" in time_str:
+                            days = int(time_str.replace("天前", ""))
                             publish_date = datetime.now() - timedelta(days=days)
-                            publish_time = publish_date.strftime(
-                                '%Y-%m-%d %H:%M:%S')
-                        elif '小时前' in time_str:
-                            hours = int(time_str.replace('小时前', ''))
+                            publish_time = publish_date.strftime("%Y-%m-%d %H:%M:%S")
+                        elif "小时前" in time_str:
+                            hours = int(time_str.replace("小时前", ""))
                             publish_date = datetime.now() - timedelta(hours=hours)
-                            publish_time = publish_date.strftime(
-                                '%Y-%m-%d %H:%M:%S')
+                            publish_time = publish_date.strftime("%Y-%m-%d %H:%M:%S")
                         # YYYY-MM-DD格式
-                        elif '-' in time_str and len(time_str) == 10:
+                        elif "-" in time_str and len(time_str) == 10:
                             publish_time = f"{time_str} 00:00:00"
                         break
                     except:
@@ -135,7 +167,7 @@ def convert_search_results_to_news_format(search_results, symbol: str) -> list:
             "source": extract_domain(result.link),
             "url": result.link,
             "keyword": symbol,
-            "search_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # 搜索时间
+            "search_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  # 搜索时间
         }
 
         # 只有当能提取到发布时间时才添加，否则不包含这个字段
@@ -164,7 +196,9 @@ def get_stock_news_via_akshare(symbol: str, max_news: int = 10) -> list:
         # 实际可获取的新闻数量
         available_news_count = len(news_df)
         if available_news_count < max_news:
-            print(f"警告：实际可获取的新闻数量({available_news_count})少于请求的数量({max_news})")
+            print(
+                f"警告：实际可获取的新闻数量({available_news_count})少于请求的数量({max_news})"
+            )
             max_news = available_news_count
 
         # 获取指定条数的新闻（考虑到可能有些新闻内容为空，多获取50%）
@@ -172,8 +206,11 @@ def get_stock_news_via_akshare(symbol: str, max_news: int = 10) -> list:
         for _, row in news_df.head(int(max_news * 1.5)).iterrows():
             try:
                 # 获取新闻内容
-                content = row["新闻内容"] if "新闻内容" in row and not pd.isna(
-                    row["新闻内容"]) else ""
+                content = (
+                    row["新闻内容"]
+                    if "新闻内容" in row and not pd.isna(row["新闻内容"])
+                    else ""
+                )
                 if not content:
                     content = row["新闻标题"]
 
@@ -183,8 +220,11 @@ def get_stock_news_via_akshare(symbol: str, max_news: int = 10) -> list:
                     continue
 
                 # 获取关键词
-                keyword = row["关键词"] if "关键词" in row and not pd.isna(
-                    row["关键词"]) else ""
+                keyword = (
+                    row["关键词"]
+                    if "关键词" in row and not pd.isna(row["关键词"])
+                    else ""
+                )
 
                 # 添加新闻
                 news_item = {
@@ -193,7 +233,7 @@ def get_stock_news_via_akshare(symbol: str, max_news: int = 10) -> list:
                     "publish_time": row["发布时间"],
                     "source": row["文章来源"].strip(),
                     "url": row["新闻链接"].strip(),
-                    "keyword": keyword.strip()
+                    "keyword": keyword.strip(),
                 }
                 news_list.append(news_item)
                 print(f"成功添加新闻: {news_item['title']}")
@@ -267,17 +307,19 @@ def get_stock_news(symbol: str, max_news: int = 10, date: str = None) -> list:
                 cache_valid = cache_date_obj == today
 
             if cache_valid:
-                with open(news_file, 'r', encoding='utf-8') as f:
+                with open(news_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     cached_news = data.get("news", [])
 
                     if len(cached_news) >= max_news:
                         print(
-                            f"使用缓存的新闻数据: {news_file} (缓存数量: {len(cached_news)})")
+                            f"使用缓存的新闻数据: {news_file} (缓存数量: {len(cached_news)})"
+                        )
                         return cached_news[:max_news]
                     else:
                         print(
-                            f"缓存的新闻数量({len(cached_news)})不足，需要获取更多新闻({max_news}条)")
+                            f"缓存的新闻数量({len(cached_news)})不足，需要获取更多新闻({max_news}条)"
+                        )
             else:
                 print(f"缓存文件已过期，将重新获取新闻")
 
@@ -285,7 +327,7 @@ def get_stock_news(symbol: str, max_news: int = 10, date: str = None) -> list:
             print(f"读取缓存文件失败: {e}")
             cached_news = []
 
-    print(f'开始获取{symbol}的新闻数据...')
+    print(f"开始获取{symbol}的新闻数据...")
 
     # 计算需要获取的新闻数量
     need_more_news = max_news - len(cached_news)
@@ -305,7 +347,7 @@ def get_stock_news(symbol: str, max_news: int = 10, date: str = None) -> list:
             search_options = SearchOptions(
                 limit=fetch_count * 2,  # 获取更多结果以便过滤
                 timeout=30000,
-                locale="zh-CN"
+                locale="zh-CN",
             )
 
             search_response = google_search_sync(search_query, search_options)
@@ -313,7 +355,8 @@ def get_stock_news(symbol: str, max_news: int = 10, date: str = None) -> list:
             if search_response.results:
                 # 转换搜索结果为新闻格式
                 new_news_list = convert_search_results_to_news_format(
-                    search_response.results, symbol)
+                    search_response.results, symbol
+                )
 
                 print(f"通过 Google 搜索成功获取到{len(new_news_list)}条新闻")
             else:
@@ -330,25 +373,24 @@ def get_stock_news(symbol: str, max_news: int = 10, date: str = None) -> list:
     # 合并缓存和新获取的新闻，去重
     if cached_news and new_news_list:
         # 创建已有新闻的标题集合用于去重
-        existing_titles = {news['title'] for news in cached_news}
+        existing_titles = {news["title"] for news in cached_news}
 
         # 过滤掉重复的新闻
         unique_new_news = [
-            news for news in new_news_list
-            if news['title'] not in existing_titles
+            news for news in new_news_list if news["title"] not in existing_titles
         ]
 
         # 合并新闻列表
         combined_news = cached_news + unique_new_news
         print(
-            f"合并缓存新闻({len(cached_news)}条)和新获取新闻({len(unique_new_news)}条)，总计{len(combined_news)}条")
+            f"合并缓存新闻({len(cached_news)}条)和新获取新闻({len(unique_new_news)}条)，总计{len(combined_news)}条"
+        )
     else:
         combined_news = new_news_list or cached_news
 
     # 按发布时间排序（如果有发布时间信息）
     try:
-        combined_news.sort(key=lambda x: x.get(
-            "publish_time", ""), reverse=True)
+        combined_news.sort(key=lambda x: x.get("publish_time", ""), reverse=True)
     except:
         pass  # 如果排序失败，保持原顺序
 
@@ -360,15 +402,19 @@ def get_stock_news(symbol: str, max_news: int = 10, date: str = None) -> list:
         try:
             save_data = {
                 "date": cache_date,
-                "method": "online_search" if new_news_list and google_search_sync else "akshare",
-                "query": build_search_query(symbol, date) if new_news_list and google_search_sync else None,
+                "method": "online_search"
+                if new_news_list and google_search_sync
+                else "akshare",
+                "query": build_search_query(symbol, date)
+                if new_news_list and google_search_sync
+                else None,
                 "news": combined_news,  # 保存所有新闻，不只是返回的部分
                 "cached_count": len(cached_news),
                 "new_count": len(new_news_list),
                 "total_count": len(combined_news),
-                "last_updated": datetime.now().isoformat()
+                "last_updated": datetime.now().isoformat(),
             }
-            with open(news_file, 'w', encoding='utf-8') as f:
+            with open(news_file, "w", encoding="utf-8") as f:
                 json.dump(save_data, f, ensure_ascii=False, indent=2)
             print(f"成功保存{len(combined_news)}条新闻到文件: {news_file}")
         except Exception as e:
@@ -400,16 +446,18 @@ def get_news_sentiment(news_list: list, num_of_news: int = 5) -> float:
     os.makedirs(os.path.dirname(cache_file), exist_ok=True)
 
     # 生成新闻内容的唯一标识
-    news_key = "|".join([
-        f"{news['title']}|{news['content'][:100]}|{news['publish_time']}"
-        for news in news_list[:num_of_news]
-    ])
+    news_key = "|".join(
+        [
+            f"{news['title']}|{news['content'][:100]}|{news['publish_time']}"
+            for news in news_list[:num_of_news]
+        ]
+    )
 
     # 检查缓存
     if os.path.exists(cache_file):
         print("发现情感分析缓存文件")
         try:
-            with open(cache_file, 'r', encoding='utf-8') as f:
+            with open(cache_file, "r", encoding="utf-8") as f:
                 cache = json.load(f)
                 if news_key in cache:
                     print("使用缓存的情感分析结果")
@@ -447,21 +495,23 @@ def get_news_sentiment(news_list: list, num_of_news: int = 5) -> float:
         1. 新闻的真实性和可靠性
         2. 新闻的时效性和影响范围
         3. 对公司基本面的实际影响
-        4. A股市场的特殊反应规律"""
+        4. A股市场的特殊反应规律""",
     }
 
     # 准备新闻内容
-    news_content = "\n\n".join([
-        f"标题：{news['title']}\n"
-        f"来源：{news['source']}\n"
-        f"时间：{news['publish_time']}\n"
-        f"内容：{news['content']}"
-        for news in news_list[:num_of_news]  # 使用指定数量的新闻
-    ])
+    news_content = "\n\n".join(
+        [
+            f"标题：{news['title']}\n"
+            f"来源：{news['source']}\n"
+            f"时间：{news['publish_time']}\n"
+            f"内容：{news['content']}"
+            for news in news_list[:num_of_news]  # 使用指定数量的新闻
+        ]
+    )
 
     user_message = {
         "role": "user",
-        "content": f"请分析以下A股上市公司相关新闻的情感倾向：\n\n{news_content}\n\n请直接返回一个数字，范围是-1到1，无需解释。"
+        "content": f"请分析以下A股上市公司相关新闻的情感倾向：\n\n{news_content}\n\n请直接返回一个数字，范围是-1到1，无需解释。",
     }
 
     try:
@@ -485,7 +535,7 @@ def get_news_sentiment(news_list: list, num_of_news: int = 5) -> float:
         # 缓存结果
         cache[news_key] = sentiment_score
         try:
-            with open(cache_file, 'w', encoding='utf-8') as f:
+            with open(cache_file, "w", encoding="utf-8") as f:
                 json.dump(cache, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"Error writing cache: {e}")

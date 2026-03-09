@@ -2,6 +2,7 @@ from langchain_core.messages import HumanMessage
 from src.tools.openrouter_config import get_chat_completion
 from src.agents.state import AgentState, show_agent_reasoning, show_workflow_status
 from src.tools.api import get_financial_metrics, get_financial_statements, get_market_data, get_price_history
+from src.tools.news_crawler import is_etf_symbol
 from src.utils.logging_config import setup_logger
 from src.utils.api_utils import agent_endpoint, log_llm_interaction
 
@@ -42,6 +43,8 @@ def market_data_agent(state: AgentState):
     # Get all required data
     ticker = data["ticker"]
 
+    security_type = "etf" if is_etf_symbol(ticker) else "stock"
+
     # 获取价格数据并验证
     prices_df = get_price_history(ticker, start_date, end_date)
     if prices_df is None or prices_df.empty:
@@ -50,18 +53,26 @@ def market_data_agent(state: AgentState):
             columns=['close', 'open', 'high', 'low', 'volume'])
 
     # 获取财务指标
-    try:
-        financial_metrics = get_financial_metrics(ticker)
-    except Exception as e:
-        logger.error(f"获取财务指标失败: {str(e)}")
-        financial_metrics = {}
+    if security_type == "etf":
+        logger.info(f"{ticker} 被识别为 ETF，跳过公司财务指标抓取")
+        financial_metrics = []
+    else:
+        try:
+            financial_metrics = get_financial_metrics(ticker)
+        except Exception as e:
+            logger.error(f"获取财务指标失败: {str(e)}")
+            financial_metrics = []
 
     # 获取财务报表
-    try:
-        financial_line_items = get_financial_statements(ticker)
-    except Exception as e:
-        logger.error(f"获取财务报表失败: {str(e)}")
-        financial_line_items = {}
+    if security_type == "etf":
+        logger.info(f"{ticker} 被识别为 ETF，跳过公司财务报表抓取")
+        financial_line_items = []
+    else:
+        try:
+            financial_line_items = get_financial_statements(ticker)
+        except Exception as e:
+            logger.error(f"获取财务报表失败: {str(e)}")
+            financial_line_items = []
 
     # 获取市场数据
     try:
@@ -81,6 +92,7 @@ def market_data_agent(state: AgentState):
     # 保存推理信息到metadata供API使用
     market_data_summary = {
         "ticker": ticker,
+        "security_type": security_type,
         "start_date": start_date,
         "end_date": end_date,
         "data_collected": {
@@ -101,6 +113,7 @@ def market_data_agent(state: AgentState):
         "data": {
             **data,
             "prices": prices_dict,
+            "security_type": security_type,
             "start_date": start_date,
             "end_date": end_date,
             "financial_metrics": financial_metrics,
