@@ -75,6 +75,41 @@ def _get_sina_financial_symbol(symbol: str) -> str:
     return _get_market_symbol(symbol)
 
 
+def _is_etf_symbol(symbol: str) -> bool:
+    return symbol.startswith(("15", "16", "50", "51", "56", "58"))
+
+
+def _fetch_etf_history(symbol: str, start_date: datetime, end_date: datetime, adjust: str = "qfq") -> pd.DataFrame:
+    df = ak.fund_etf_hist_em(
+        symbol=symbol,
+        period="daily",
+        start_date=start_date.strftime("%Y%m%d"),
+        end_date=end_date.strftime("%Y%m%d"),
+        adjust=adjust,
+    )
+    if df is None or df.empty:
+        return pd.DataFrame()
+    df = df.rename(columns={
+        "日期": "date",
+        "开盘": "open",
+        "收盘": "close",
+        "最高": "high",
+        "最低": "low",
+        "成交量": "volume",
+        "成交额": "amount",
+        "振幅": "amplitude",
+        "涨跌幅": "pct_change",
+        "涨跌额": "change_amount",
+        "换手率": "turnover",
+    }).copy()
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"])
+    for col in ["open", "close", "high", "low", "volume", "amount", "amplitude", "pct_change", "change_amount", "turnover"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df
+
+
 def _fetch_history_from_sina_or_tx(
     symbol: str, start_date: datetime, end_date: datetime, adjust: str = "qfq"
 ) -> pd.DataFrame:
@@ -116,10 +151,13 @@ def _fetch_history_from_sina_or_tx(
 
 
 def _get_latest_trade_snapshot(symbol: str) -> Dict[str, float]:
-    """基于新浪/腾讯历史数据生成最新交易快照和估值基础数据"""
+    """基于历史数据生成最新交易快照和估值基础数据"""
     end_date = datetime.now()
     start_date = end_date - timedelta(days=400)
-    history_df = _fetch_history_from_sina_or_tx(symbol, start_date, end_date, adjust="qfq")
+    if _is_etf_symbol(symbol):
+        history_df = _fetch_etf_history(symbol, start_date, end_date, adjust="qfq")
+    else:
+        history_df = _fetch_history_from_sina_or_tx(symbol, start_date, end_date, adjust="qfq")
     if history_df is None or history_df.empty:
         raise ValueError(f"no history snapshot available for {symbol}")
 
@@ -473,7 +511,10 @@ def get_market_data(symbol: str) -> Dict[str, Any]:
     except Exception as e:
         logger.warning(f"Sina/Tencent market data failed, trying Eastmoney/Akshare: {e}")
         try:
-            realtime_data = ak.stock_zh_a_spot_em()
+            if _is_etf_symbol(symbol):
+                realtime_data = ak.fund_etf_spot_em()
+            else:
+                realtime_data = ak.stock_zh_a_spot_em()
             stock_data = realtime_data[realtime_data['代码'] == symbol].iloc[0]
             return {
                 "market_cap": float(stock_data.get("总市值", 0)),
@@ -582,11 +623,14 @@ def get_price_history(symbol: str, start_date: str = None, end_date: str = None,
 
         def get_and_process_data(start_date, end_date):
             try:
-                df = _fetch_history_from_sina_or_tx(symbol, start_date, end_date, adjust=adjust)
+                if _is_etf_symbol(symbol):
+                    df = _fetch_etf_history(symbol, start_date, end_date, adjust=adjust)
+                else:
+                    df = _fetch_history_from_sina_or_tx(symbol, start_date, end_date, adjust=adjust)
                 if df is None or df.empty:
-                    raise ValueError("empty price history from Sina/Tencent")
+                    raise ValueError("empty price history from primary source")
             except Exception as e:
-                logger.warning(f"Sina/Tencent price history failed, trying Eastmoney: {e}")
+                logger.warning(f"Primary price history failed, trying Eastmoney: {e}")
                 try:
                     df = fetch_with_curl(symbol, start_date, end_date)
                 except Exception:
