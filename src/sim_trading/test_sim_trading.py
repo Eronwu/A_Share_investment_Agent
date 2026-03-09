@@ -7,8 +7,9 @@ import json
 import math
 import sqlite3
 import tempfile
+import time
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -842,3 +843,413 @@ class TestEmergencyStop:
         assert len(closed) == 1
         # Emergency stop takes priority since it's checked first
         assert "emergency_stop" in closed[0]["exit_reason"]
+
+
+# ---------------------------------------------------------------------------
+# Broker layer tests
+# ---------------------------------------------------------------------------
+
+def _make_decision(code="HK09988", position_pct=0.10):
+    return TradeDecision(
+        action="BUY", code=code, confidence=0.70,
+        position_pct=position_pct, stop_atr=2.0, max_hold_days=5,
+        trigger_signal_ids=[1], reason="test",
+    )
+
+
+def _make_adapter(buy_success=True, sell_success=True, order_id="ORD001",
+                  fill_price=100.0, fill_status="FILLED_ALL"):
+    """Build a minimal FutuTradeAdapter mock."""
+    adapter = MagicMock()
+
+    buy_result = MagicMock()
+    buy_result.success = buy_success
+    buy_result.order_id = order_id
+    buy_result.error_msg = "buy_err"
+    adapter.buy.return_value = buy_result
+
+    sell_result = MagicMock()
+    sell_result.success = sell_success
+    sell_result.order_id = order_id
+    sell_result.error_msg = "sell_err"
+    adapter.sell.return_value = sell_result
+
+    order_stub = MagicMock()
+    order_stub.order_id = order_id
+    order_stub.status = fill_status
+    order_stub.avg_fill_price = fill_price
+    adapter.get_today_orders.return_value = [order_stub]
+
+    return adapter
+
+
+# ---------------------------------------------------------------------------
+# VirtualBroker
+# ---------------------------------------------------------------------------
+
+class TestVirtualBroker:
+
+    def _make(self, rules):
+        from .broker import VirtualBroker
+        pm = PositionManager(500_000, rules.get("lot_sizes", {}))
+        return VirtualBroker(pm), pm
+
+    def test_open_position_delegates_to_pm(self, rules):
+        broker, pm = self._make(rules)
+        decision = _make_decision("HK09988")
+        pos = broker.open_position(decision, exec_price=100.0, atr=2.0,
+                                   trade_cost=50.0, date="2026-01-01",
+                                   ts=1_000_000, day_index=0)
+        assert pos is not None
+        assert pos.code == "HK09988"
+        assert "HK09988" in pm.positions
+
+    def test_close_position_delegates_to_pm(self, rules):
+        broker, pm = self._make(rules)
+        decision = _make_decision("HK09988")
+        broker.open_position(decision, exec_price=100.0, atr=2.0,
+                             trade_cost=50.0, date="2026-01-01",
+                             ts=1_000_000, day_index=0)
+        trade = broker.close_position("HK09988", exec_price=105.0,
+                                      reason="test", ts=2_000_000,
+                                      date="2026-01-02", day_index=1)
+        assert trade is not None
+        assert "HK09988" not in pm.positions
+
+    def test_check_exits_delegates_to_pm(self, rules):
+        broker, pm = self._make(rules)
+        decision = _make_decision("HK09988")
+        pos = broker.open_position(decision, exec_price=100.0, atr=2.0,
+                                   trade_cost=50.0, date="2026-01-01",
+                                   ts=1_000_000, day_index=0)
+        # Price dropped below SL
+        closed = broker.check_exits(
+            {"HK09988": pos.stop_loss - 1},
+            day_index=1, ts=2_000_000, date="2026-01-02",
+        )
+        assert len(closed) == 1
+        assert "HK09988" not in pm.positions
+
+    def test_tighten_stop_delegates_to_pm(self, rules):
+        broker, pm = self._make(rules)
+        decision = _make_decision("HK09988")
+        pos = broker.open_position(decision, exec_price=100.0, atr=2.0,
+                                   trade_cost=50.0, date="2026-01-01",
+                                   ts=1_000_000, day_index=0)
+        old_sl = pos.stop_loss
+        broker.tighten_stop("HK09988", stop_atr=1.5, price=110.0, atr=2.0)
+        assert pm.positions["HK09988"].stop_loss >= old_sl
+
+    def test_positions_and_cash_properties(self, rules):
+        broker, pm = self._make(rules)
+        assert broker.positions is pm.positions
+        assert broker.cash == pm.cash
+
+    def test_get_equity(self, rules):
+        broker, pm = self._make(rules)
+        equity = broker.get_equity({"HK09988": 100.0})
+        assert equity == broker.cash  # no positions yet
+
+    def test_sync_from_futu_is_noop(self, rules):
+        broker, pm = self._make(rules)
+        # Should not raise; VirtualBroker.sync_from_futu delegates to PM
+        broker.sync_from_futu({}, 100_000.0)
+
+
+# ---------------------------------------------------------------------------
+# FutuBroker.open_position
+# ---------------------------------------------------------------------------
+
+class TestFutuBrokerOpenPosition:
+
+    def _make(self, rules, **adapter_kwargs):
+        from .broker import FutuBroker
+        pm = PositionManager(500_000, rules.get("lot_sizes", {}))
+        adapter = _make_adapter(**adapter_kwargs)
+        broker = FutuBroker(pm, adapter)
+        return broker, pm, adapter
+
+    def test_success_path_opens_shadow_pm(self, rules):
+        """Futu buy succeeds → PM position opened with fill_price."""
+        broker, pm, adapter = self._make(rules, fill_price=101.0)
+        decision = _make_decision("HK09988")
+        pos = broker.open_position(decision, exec_price=100.0, atr=2.0,
+                                   trade_cost=50.0, date="2026-01-01",
+                                   ts=1_000_000, day_index=0)
+        assert pos is not None
+        assert "HK09988" in pm.positions
+        adapter.buy.assert_called_once()
+        # PM should use fill_price (101), not exec_price (100)
+        assert pm.positions["HK09988"].entry_price == 101.0
+
+    def test_futu_buy_failure_does_not_open_pm(self, rules):
+        """Futu buy fails → PM must NOT record any position."""
+        broker, pm, adapter = self._make(rules, buy_success=False)
+        decision = _make_decision("HK09988")
+        pos = broker.open_position(decision, exec_price=100.0, atr=2.0,
+                                   trade_cost=50.0, date="2026-01-01",
+                                   ts=1_000_000, day_index=0)
+        assert pos is None
+        assert "HK09988" not in pm.positions
+
+    def test_fill_timeout_falls_back_to_exec_price(self, rules):
+        """If _wait_for_fill times out, use exec_price for PM."""
+        broker, pm, adapter = self._make(rules, fill_status="SUBMITTED")
+        decision = _make_decision("HK09988")
+        # Patch timeout to 0 so the poll loop never fires
+        with patch("src.sim_trading.broker.FILL_TIMEOUT", 0):
+            pos = broker.open_position(decision, exec_price=100.0, atr=2.0,
+                                       trade_cost=50.0, date="2026-01-01",
+                                       ts=1_000_000, day_index=0)
+        # Should still open (using exec_price fallback)
+        assert pos is not None
+        assert pm.positions["HK09988"].entry_price == 100.0
+
+    def test_order_audit_saved_when_futu_sync_present(self, rules):
+        """save_order() called on futu_sync when buy succeeds."""
+        broker, pm, adapter = self._make(rules, fill_price=100.0)
+        futu_sync = MagicMock()
+        broker._futu_sync = futu_sync
+        decision = _make_decision("HK09988")
+        broker.open_position(decision, exec_price=100.0, atr=2.0,
+                             trade_cost=50.0, date="2026-01-01",
+                             ts=1_000_000, day_index=0)
+        futu_sync.save_order.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# FutuBroker.close_position
+# ---------------------------------------------------------------------------
+
+class TestFutuBrokerClosePosition:
+
+    def _make_with_open_position(self, rules, close_fill_price=105.0):
+        from .broker import FutuBroker
+        pm = PositionManager(500_000, rules.get("lot_sizes", {}))
+        adapter = _make_adapter(fill_price=100.0)  # open at 100
+        broker = FutuBroker(pm, adapter)
+        decision = _make_decision("HK09988")
+        # Open position: patch _wait_for_fill so entry is deterministically 100
+        with patch.object(broker, '_wait_for_fill', return_value=100.0):
+            broker.open_position(decision, exec_price=100.0, atr=2.0,
+                                 trade_cost=50.0, date="2026-01-01",
+                                 ts=1_000_000, day_index=0)
+        # Now configure adapter to fill the SELL at close_fill_price
+        adapter.get_today_orders.return_value[0].avg_fill_price = close_fill_price
+        return broker, pm, adapter
+
+    def test_success_path_closes_shadow_pm(self, rules):
+        broker, pm, adapter = self._make_with_open_position(rules, close_fill_price=105.0)
+        trade = broker.close_position("HK09988", exec_price=105.0,
+                                      reason="take_profit", ts=2_000_000,
+                                      date="2026-01-02", day_index=1)
+        assert trade is not None
+        assert "HK09988" not in pm.positions
+        # entry=100, exit=105 — pnl positive after commission allocation
+        assert trade["exit_price"] == 105.0
+
+    def test_futu_sell_failure_does_not_close_pm(self, rules):
+        """Futu SELL fails → PM position must remain open."""
+        broker, pm, adapter = self._make_with_open_position(rules)
+        adapter.sell.return_value.success = False
+        trade = broker.close_position("HK09988", exec_price=105.0,
+                                      reason="manual", ts=2_000_000,
+                                      date="2026-01-02", day_index=1)
+        assert trade is None
+        assert "HK09988" in pm.positions
+
+    def test_close_nonexistent_position_returns_none(self, rules):
+        from .broker import FutuBroker
+        pm = PositionManager(500_000, {})
+        broker = FutuBroker(pm, _make_adapter())
+        result = broker.close_position("HK99999", exec_price=100.0, reason="test")
+        assert result is None
+
+
+# ---------------------------------------------------------------------------
+# FutuBroker.check_exits
+# ---------------------------------------------------------------------------
+
+class TestFutuBrokerCheckExits:
+
+    def _setup(self, rules, sell_success=True):
+        from .broker import FutuBroker
+        pm = PositionManager(500_000, rules.get("lot_sizes", {}))
+        adapter = _make_adapter(sell_success=sell_success, fill_price=94.0)
+        broker = FutuBroker(pm, adapter)
+        # Patch _wait_for_fill so entry is deterministically 100
+        # → SL = 100 - 2*2 = 96, TP ~ 100 + 3*2 = 106
+        decision = _make_decision("HK09988")
+        with patch.object(broker, '_wait_for_fill', return_value=100.0):
+            broker.open_position(decision, exec_price=100.0, atr=2.0,
+                                 trade_cost=50.0, date="2026-01-01",
+                                 ts=1_000_000, day_index=0)
+        return broker, pm, adapter
+
+    def test_futu_sell_success_closes_pm(self, rules):
+        """Futu SELL fills → PM position closed."""
+        broker, pm, adapter = self._setup(rules, sell_success=True)
+        # Price 94 < SL (96) → stop_loss
+        closed = broker.check_exits({"HK09988": 94.0}, day_index=1,
+                                    ts=2_000_000, date="2026-01-02")
+        assert len(closed) == 1
+        assert "HK09988" not in pm.positions
+        adapter.sell.assert_called_once()
+
+    def test_futu_sell_failure_still_closes_pm(self, rules):
+        """Risk control priority: PM closes even when Futu SELL fails."""
+        broker, pm, adapter = self._setup(rules, sell_success=False)
+        # Price 94 < SL (96) — should trigger stop_loss
+        closed = broker.check_exits({"HK09988": 94.0}, day_index=1,
+                                    ts=2_000_000, date="2026-01-02")
+        assert len(closed) == 1
+        assert "HK09988" not in pm.positions  # PM still closed
+
+    def test_no_exit_candidates_returns_empty(self, rules):
+        broker, pm, _ = self._setup(rules)
+        # 102 is between SL (96) and TP (~106) — no exit
+        closed = broker.check_exits({"HK09988": 102.0}, day_index=1,
+                                    ts=2_000_000, date="2026-01-02")
+        assert closed == []
+        assert "HK09988" in pm.positions
+
+    def test_missing_price_skipped(self, rules):
+        broker, pm, _ = self._setup(rules)
+        closed = broker.check_exits({}, day_index=1, ts=2_000_000, date="2026-01-02")
+        assert closed == []
+
+
+# ---------------------------------------------------------------------------
+# FutuBroker._wait_for_fill
+# ---------------------------------------------------------------------------
+
+class TestFutuBrokerWaitForFill:
+
+    def _make_broker(self, rules):
+        from .broker import FutuBroker
+        pm = PositionManager(500_000, {})
+        adapter = MagicMock()
+        return FutuBroker(pm, adapter), adapter
+
+    def test_immediate_fill_returns_price(self, rules):
+        broker, adapter = self._make_broker(rules)
+        order_stub = MagicMock()
+        order_stub.order_id = "X1"
+        order_stub.status = "FILLED_ALL"
+        order_stub.avg_fill_price = 123.45
+        adapter.get_today_orders.return_value = [order_stub]
+
+        price = broker._wait_for_fill("X1", "HK09988")
+        assert price == 123.45
+
+    def test_fill_after_two_polls(self, rules):
+        broker, adapter = self._make_broker(rules)
+        pending = MagicMock()
+        pending.order_id = "X2"
+        pending.status = "SUBMITTED"
+        pending.avg_fill_price = 0.0
+
+        filled = MagicMock()
+        filled.order_id = "X2"
+        filled.status = "FILLED_ALL"
+        filled.avg_fill_price = 99.0
+
+        # First call returns pending, second returns filled
+        adapter.get_today_orders.side_effect = [[pending], [filled]]
+
+        with patch("src.sim_trading.broker.FILL_POLL_INTERVAL", 0):
+            price = broker._wait_for_fill("X2", "HK09988")
+        assert price == 99.0
+
+    def test_timeout_returns_none(self, rules):
+        broker, adapter = self._make_broker(rules)
+        order_stub = MagicMock()
+        order_stub.order_id = "X3"
+        order_stub.status = "SUBMITTED"
+        order_stub.avg_fill_price = 0.0
+        adapter.get_today_orders.return_value = [order_stub]
+
+        with patch("src.sim_trading.broker.FILL_TIMEOUT", 0):
+            price = broker._wait_for_fill("X3", "HK09988")
+        assert price is None
+
+    def test_poll_exception_is_swallowed(self, rules):
+        """Transient errors during polling should not crash."""
+        broker, adapter = self._make_broker(rules)
+        # First call raises, second returns filled
+        filled = MagicMock()
+        filled.order_id = "X4"
+        filled.status = "FILLED_ALL"
+        filled.avg_fill_price = 50.0
+        adapter.get_today_orders.side_effect = [Exception("connection lost"), [filled]]
+
+        with patch("src.sim_trading.broker.FILL_POLL_INTERVAL", 0):
+            price = broker._wait_for_fill("X4", "HK09988")
+        assert price == 50.0
+
+
+# ---------------------------------------------------------------------------
+# FutuBroker._get_exit_candidates (condition logic)
+# ---------------------------------------------------------------------------
+
+class TestFutuBrokerGetExitCandidates:
+
+    def _setup(self, rules):
+        from .broker import FutuBroker
+        pm = PositionManager(500_000, rules.get("lot_sizes", {}))
+        broker = FutuBroker(pm, _make_adapter())
+        decision = _make_decision("HK09988")
+        # Open: entry 100, SL=96, TP via take_profit field
+        broker.open_position(decision, exec_price=100.0, atr=2.0,
+                             trade_cost=50.0, date="2026-01-01",
+                             ts=1_000_000, day_index=0)
+        return broker, pm
+
+    def test_stop_loss_candidate(self, rules):
+        broker, pm = self._setup(rules)
+        sl = pm.positions["HK09988"].stop_loss
+        candidates = broker._get_exit_candidates(
+            {"HK09988": sl - 0.5}, day_index=1, ts=2_000_000, min_hold_minutes=0
+        )
+        assert len(candidates) == 1
+        code, price, reason, qty = candidates[0]
+        assert code == "HK09988"
+        assert "stop_loss" in reason
+
+    def test_emergency_stop_candidate(self, rules):
+        broker, _ = self._setup(rules)
+        # -6% → emergency_stop
+        candidates = broker._get_exit_candidates(
+            {"HK09988": 94.0}, day_index=1, ts=2_000_000, min_hold_minutes=0
+        )
+        assert len(candidates) == 1
+        assert "emergency_stop" in candidates[0][2]
+
+    def test_max_hold_candidate(self, rules):
+        broker, pm = self._setup(rules)
+        max_hold = pm.positions["HK09988"].max_hold_days
+        candidates = broker._get_exit_candidates(
+            {"HK09988": 100.0}, day_index=max_hold + 1,
+            ts=2_000_000, min_hold_minutes=0
+        )
+        assert len(candidates) == 1
+        assert "max_hold" in candidates[0][2]
+
+    def test_hold_period_blocks_sl(self, rules):
+        broker, pm = self._setup(rules)
+        sl = pm.positions["HK09988"].stop_loss
+        # Within 30 min hold period
+        entry_ts = 1_000_000
+        now_ts = entry_ts + 10 * 60 * 1000
+        candidates = broker._get_exit_candidates(
+            {"HK09988": sl - 0.5}, day_index=1,
+            ts=now_ts, min_hold_minutes=30
+        )
+        assert candidates == []
+
+    def test_no_candidates_when_price_ok(self, rules):
+        broker, _ = self._setup(rules)
+        candidates = broker._get_exit_candidates(
+            {"HK09988": 102.0}, day_index=1, ts=2_000_000, min_hold_minutes=0
+        )
+        assert candidates == []
