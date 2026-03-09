@@ -20,6 +20,15 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _coerce_int(value, default: int) -> int:
+    if value is None or value == "":
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 class LLMClient(ABC):
     """LLM 客户端抽象基类"""
 
@@ -280,8 +289,14 @@ class OpenAICompatibleClient(LLMClient):
                     stream = _env_bool("LLM_STREAM", True)
                 else:
                     stream = _env_bool("LLM_STREAM", False)
-            heartbeat_seconds = int(kwargs.pop("heartbeat_seconds", os.getenv("LLM_STREAM_HEARTBEAT_SECONDS", "10")))
-            stall_threshold_seconds = int(kwargs.pop("stall_threshold_seconds", os.getenv("LLM_STREAM_STALL_SECONDS", "120")))
+            heartbeat_seconds = _coerce_int(
+                kwargs.pop("heartbeat_seconds", None),
+                _coerce_int(os.getenv("LLM_STREAM_HEARTBEAT_SECONDS", "10"), 10),
+            )
+            stall_threshold_seconds = _coerce_int(
+                kwargs.pop("stall_threshold_seconds", None),
+                _coerce_int(os.getenv("LLM_STREAM_STALL_SECONDS", "120"), 120),
+            )
 
             for attempt in range(max_retries):
                 try:
