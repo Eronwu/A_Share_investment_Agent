@@ -48,164 +48,164 @@ const KIND_LABELS: Record<string, { label: string; color: string }> = {
   MAINLINE: { label: "主线行情", color: "#ff5555" },
 };
 
-/** Parse display text into structured fields for cleaner rendering */
-function parseAlert(e: AlertEvent): {
-  stockName: string;  // "海天味业"
-  stockCode: string;  // "03288"
-  signal: string;     // actual signal name: "均线多排", "MACD底背离"
+// ── Alert 解析器类型 ──────────────────────────────────────────────────────────
+
+type ParsedAlert = {
+  stockName: string;   // "海天味业"
+  stockCode: string;   // "03288"
+  signal: string;      // "均线多排" / "高开低走" 等
   signalColor: string;
-  price: string;      // "33.84"
-  detail: string;     // remaining detail stripped of redundancy
-} {
+  price: string;       // "33.84"
+  detail: string;
+};
+
+type AlertParser = (e: AlertEvent, d: string, sym: string, shortCode: string) => ParsedAlert | null;
+
+// ── 各 kind 的解析函数 ────────────────────────────────────────────────────────
+// 新增形态只需：① 写一个函数，② 在 KIND_PARSERS 里加一行，完成。
+
+function parseL2Strategy(e: AlertEvent, d: string, _sym: string, shortCode: string): ParsedAlert | null {
+  const priceSplit = d.split(/\s*\|\s*现价/);
+  const mainPart = priceSplit[0] || "";
+  const priceTail = priceSplit[1] || "";
+  const price = priceTail.match(/^([\d.]+)/)?.[1] || "";
+  const tail = priceTail.replace(/^[\d.]+\s*/, "").replace(/^日[涨跌][+-]?[\d.]+%\s*/, "").trim();
+  const signalKeywords = "MACD|RSI|均线|布林|ADX|趋势|放量|缩量|突破|破位|吞没|看涨|看跌|星|盘口|委比|量价|相对|散户|机构|主力|主买|主卖|大单|动量|资金|尾盘|多头|空头";
+  const m = mainPart.match(new RegExp(`^(?:HK|KR)?\\d+\\s+(.+?)\\s+((?:${signalKeywords})[^:：]*)(?:[:：]\\s*(.*))?$`));
+  if (!m) return null;
+  return {
+    stockName: m[1].trim(),
+    stockCode: shortCode,
+    signal: m[2].trim(),
+    signalColor: getSignalColor(m[2].trim()),
+    price,
+    detail: [m[3]?.trim(), tail].filter(Boolean).join(" "),
+  };
+}
+
+function parseBigMove(_e: AlertEvent, d: string, _sym: string, shortCode: string): ParsedAlert | null {
+  const m = d.match(/^(?:HK|KR)?\d+\s+(.+?)\s+(涨幅|跌幅)\s+([\d.]+)%(?:\s+现价([\d.]+))?/);
+  if (!m) return null;
+  return {
+    stockName: m[1].trim(),
+    stockCode: shortCode,
+    signal: m[2] === "涨幅" ? "大涨" : "大跌",
+    signalColor: m[2] === "涨幅" ? D.red : D.green,
+    price: m[4] || "",
+    detail: `${m[2]}${m[3]}%`,
+  };
+}
+
+function parseThreshold(_e: AlertEvent, d: string, _sym: string, shortCode: string): ParsedAlert | null {
+  const m = d.match(/^(?:HK|KR)?\d+\s+(.+?)\s+触价告警\s*(.*)/);
+  if (!m) return null;
+  return {
+    stockName: m[1].trim(),
+    stockCode: shortCode,
+    signal: "触价",
+    signalColor: D.red,
+    price: m[2]?.replace(/[! ]/g, "") || "",
+    detail: "触及阈值",
+  };
+}
+
+function parseGapFade(_e: AlertEvent, d: string, _sym: string, shortCode: string): ParsedAlert | null {
+  // "{code} {name} 高开低走: 高开+X.X% 回落-Y.Y%[ 缺口完全回吐] | 现价Z.ZZ"
+  const m = d.match(/^(?:HK|KR)?\d+\s+(.+?)\s+高开低走:\s*高开([+\d.]+%)\s+回落([-\d.]+%)([^|]*)\|\s*现价([\d.]+)/);
+  if (!m) return null;
+  return {
+    stockName: m[1].trim(),
+    stockCode: shortCode,
+    signal: m[4].includes("缺口完全回吐") ? "高开低走 缺口回吐" : "高开低走",
+    signalColor: "#ff6b6b",
+    price: m[5],
+    detail: `高开${m[2]} 回落${m[3]}`,
+  };
+}
+
+function parseGapRecover(_e: AlertEvent, d: string, _sym: string, shortCode: string): ParsedAlert | null {
+  // "{code} {name} 低开高走: 低开-X.X% 反弹+Y.Y%[ 缺口完全收复] | 现价Z.ZZ"
+  const m = d.match(/^(?:HK|KR)?\d+\s+(.+?)\s+低开高走:\s*低开([-\d.]+%)\s+反弹([+\d.]+%)([^|]*)\|\s*现价([\d.]+)/);
+  if (!m) return null;
+  return {
+    stockName: m[1].trim(),
+    stockCode: shortCode,
+    signal: m[4].includes("缺口完全收复") ? "低开高走 缺口收复" : "低开高走",
+    signalColor: "#50fa7b",
+    price: m[5],
+    detail: `低开${m[2]} 反弹${m[3]}`,
+  };
+}
+
+function parseDrift(e: AlertEvent, d: string, sym: string, shortCode: string): ParsedAlert | null {
+  const isIndex = sym.startsWith("tag:");
+  const direction = e.change_pct > 0;
+  const price = d.match(/(?:现价|当前)([\d.]+)/)?.[1] || "";
+  const name = d.match(/^📊\s*(.+?)(?:\([\dA-Z]+\)|\s+距)/)?.[1]?.trim() || "";
+  return {
+    stockName: isIndex ? sym.replace("tag:", "") + "指数" : name,
+    stockCode: isIndex ? "" : shortCode,
+    signal: direction ? `距关注涨${Math.abs(e.change_pct).toFixed(1)}%` : `距关注跌${Math.abs(e.change_pct).toFixed(1)}%`,
+    signalColor: direction ? "#50fa7b" : "#ff5555",
+    price,
+    detail: d.replace(/^📊\s*/, ""),
+  };
+}
+
+function parseMainline(_e: AlertEvent, d: string, sym: string, _shortCode: string): ParsedAlert | null {
+  const isApproaching = d.includes("接近主线");
+  return {
+    stockName: sym.replace("tag:", "") + "指数",
+    stockCode: "",
+    signal: isApproaching ? "接近主线" : "主线确认",
+    signalColor: isApproaching ? "#ffb86c" : "#ff5555",
+    price: "",
+    detail: d.replace(/^[🔥⚡]\s*/, ""),
+  };
+}
+
+function parseStale(_e: AlertEvent, d: string, _sym: string, _shortCode: string): ParsedAlert | null {
+  const isRecovery = d.includes("恢复") || d.startsWith("[OK]");
+  return {
+    stockName: isRecovery ? "恢复" : "系统",
+    stockCode: "",
+    signal: isRecovery ? "数据恢复" : "数据异常",
+    signalColor: isRecovery ? D.green : "#ff6b6b",
+    price: "",
+    detail: d.replace(/^\[(OK|WARN)\]\s*/, ""),
+  };
+}
+
+function parsePortfolio(_e: AlertEvent, d: string, _sym: string, _shortCode: string): ParsedAlert | null {
+  return { stockName: "组合", stockCode: "", signal: "组合P&L", signalColor: D.purple, price: "", detail: d };
+}
+
+// ── 注册表：新增形态只改这里 ─────────────────────────────────────────────────
+const KIND_PARSERS: Record<string, AlertParser> = {
+  l2_strategy: parseL2Strategy,
+  big_move:    parseBigMove,
+  threshold:   parseThreshold,
+  gap_fade:    parseGapFade,
+  gap_recover: parseGapRecover,
+  DRIFT:       parseDrift,
+  MAINLINE:    parseMainline,
+  STALE:       parseStale,
+  portfolio:   parsePortfolio,
+};
+
+// ── 统一入口 ──────────────────────────────────────────────────────────────────
+function parseAlert(e: AlertEvent): ParsedAlert {
   const d = e.display || "";
   const sym = e.symbol || "";
-  // Strip HK prefix for compact display; tag: prefix → show tag name
   const shortCode = sym.startsWith("tag:") ? sym.replace("tag:", "") : sym.replace(/^(?:HK|KR)/, "");
 
-  if (e.kind === "l2_strategy") {
-    // L2 format: "{code} {name} {signal}: {detail} | 现价{price} 日涨{chg}% ..."
-    // or: "{code} {name} {signal} | 现价{price} ..."
-    // Split on " | 现价" first to isolate price
-    const priceSplit = d.split(/\s*\|\s*现价/);
-    const mainPart = priceSplit[0] || "";
-    const priceTail = priceSplit[1] || "";
-    const priceMatch = priceTail.match(/^([\d.]+)/);
-    const price = priceMatch?.[1] || "";
-    // Extract trailing info after price (净流入/净流出)
-    const tail = priceTail.replace(/^[\d.]+\s*/, "").replace(/^日[涨跌][+-]?[\d.]+%\s*/, "").trim();
-
-    // Parse main part: "{code} {name} {signal}: {detail}" or "{code} {name} {signal}"
-    // Name can contain full-width chars (－Ｗ), digits, latin — match greedily up to known signal keywords
-    const signalKeywords = "MACD|RSI|均线|布林|ADX|趋势|放量|缩量|突破|破位|吞没|看涨|看跌|星|盘口|委比|量价|相对|散户|机构|主力|主买|主卖|大单|动量|资金|尾盘|多头|空头";
-    const mainMatch = mainPart.match(new RegExp(`^(?:HK|KR)?\\d+\\s+(.+?)\\s+((?:${signalKeywords})[^:：]*)(?:[:：]\\s*(.*))?$`));
-    if (mainMatch) {
-      const name = mainMatch[1].trim();
-      const signal = mainMatch[2].trim();
-      const detailPart = mainMatch[3]?.trim() || "";
-      const detail = [detailPart, tail].filter(Boolean).join(" ");
-      return {
-        stockName: name,
-        stockCode: shortCode,
-        signal,
-        signalColor: getSignalColor(signal),
-        price,
-        detail,
-      };
-    }
+  const parser = KIND_PARSERS[e.kind];
+  if (parser) {
+    const result = parser(e, d, sym, shortCode);
+    if (result) return result;
   }
 
-  if (e.kind === "big_move") {
-    // big_move: "{code} {name} 涨幅/跌幅 X.X% 现价X.XX"
-    const m = d.match(/^(?:HK|KR)?\d+\s+(.+?)\s+(涨幅|跌幅)\s+([\d.]+)%(?:\s+现价([\d.]+))?/);
-    if (m) {
-      return {
-        stockName: m[1].trim(),
-        stockCode: shortCode,
-        signal: m[2] === "涨幅" ? "大涨" : "大跌",
-        signalColor: m[2] === "涨幅" ? D.red : D.green,
-        price: m[4] || "",
-        detail: `${m[2]}${m[3]}%`,
-      };
-    }
-  }
-
-  if (e.kind === "threshold") {
-    const m = d.match(/^(?:HK|KR)?\d+\s+(.+?)\s+触价告警\s*(.*)/);
-    if (m) {
-      return {
-        stockName: m[1].trim(),
-        stockCode: shortCode,
-        signal: "触价",
-        signalColor: D.red,
-        price: m[2]?.replace(/[! ]/g, "") || "",
-        detail: "触及阈值",
-      };
-    }
-  }
-
-  if (e.kind === "gap_fade") {
-    // display: "{code} {name} 高开低走: 高开+X.X% 回落-Y.Y%[ 缺口完全回吐] | 现价Z.ZZ"
-    const m = d.match(/^(?:HK|KR)?\d+\s+(.+?)\s+高开低走:\s*高开([+\d.]+%)\s+回落([-\d.]+%)([^|]*)\|\s*现价([\d.]+)/);
-    if (m) {
-      const erased = m[4].includes("缺口完全回吐");
-      return {
-        stockName: m[1].trim(),
-        stockCode: shortCode,
-        signal: erased ? "高开低走 缺口回吐" : "高开低走",
-        signalColor: "#ff6b6b",
-        price: m[5],
-        detail: `高开${m[2]} 回落${m[3]}`,
-      };
-    }
-  }
-
-  if (e.kind === "gap_recover") {
-    // display: "{code} {name} 低开高走: 低开-X.X% 反弹+Y.Y%[ 缺口完全收复] | 现价Z.ZZ"
-    const m = d.match(/^(?:HK|KR)?\d+\s+(.+?)\s+低开高走:\s*低开([-\d.]+%)\s+反弹([+\d.]+%)([^|]*)\|\s*现价([\d.]+)/);
-    if (m) {
-      const recovered = m[4].includes("缺口完全收复");
-      return {
-        stockName: m[1].trim(),
-        stockCode: shortCode,
-        signal: recovered ? "低开高走 缺口收复" : "低开高走",
-        signalColor: "#50fa7b",
-        price: m[5],
-        detail: `低开${m[2]} 反弹${m[3]}`,
-      };
-    }
-  }
-
-  if (e.kind === "DRIFT") {
-    // display: "📊 {name}({code}) 距关注价{wp}{direction}{drift}%，现价{price}"
-    // or index: "📊 {tag}指数 距创建{direction}{drift}%，当前{value}"
-    const isIndex = sym.startsWith("tag:");
-    const direction = e.change_pct > 0;
-    // Extract price from display: "现价X.XX" or "当前X.XX"
-    const driftPriceMatch = d.match(/(?:现价|当前)([\d.]+)/);
-    // Extract name from display: "📊 NAME(CODE)" or "📊 NAME指数"
-    const driftNameMatch = d.match(/^📊\s*(.+?)(?:\([\dA-Z]+\)|\s+距)/);
-    return {
-      stockName: isIndex ? sym.replace("tag:", "") + "指数" : (driftNameMatch?.[1]?.trim() || ""),
-      stockCode: isIndex ? "" : shortCode,
-      signal: direction ? `距关注涨${Math.abs(e.change_pct).toFixed(1)}%` : `距关注跌${Math.abs(e.change_pct).toFixed(1)}%`,
-      signalColor: direction ? "#50fa7b" : "#ff5555",
-      price: driftPriceMatch?.[1] || "",
-      detail: d.replace(/^📊\s*/, ""),
-    };
-  }
-
-  if (e.kind === "MAINLINE") {
-    // display: "🔥 {tag}指数 主线行情 累涨{pct}% 斜率{s} R²={r}"
-    // or: "⚡ {tag}指数 接近主线 累涨{pct}%"
-    const isApproaching = d.includes("接近主线");
-    const tagName = sym.replace("tag:", "");
-    return {
-      stockName: tagName + "指数",
-      stockCode: "",
-      signal: isApproaching ? "接近主线" : "主线确认",
-      signalColor: isApproaching ? "#ffb86c" : "#ff5555",
-      price: "",
-      detail: d.replace(/^[🔥⚡]\s*/, ""),
-    };
-  }
-
-  if (e.kind === "STALE") {
-    const isRecovery = d.includes("恢复") || d.startsWith("[OK]");
-    return {
-      stockName: isRecovery ? "恢复" : "系统",
-      stockCode: "",
-      signal: isRecovery ? "数据恢复" : "数据异常",
-      signalColor: isRecovery ? D.green : "#ff6b6b",
-      price: "",
-      detail: d.replace(/^\[(OK|WARN)\]\s*/, ""),
-    };
-  }
-
-  if (e.kind === "portfolio") {
-    return { stockName: "组合", stockCode: "", signal: "组合P&L", signalColor: D.purple, price: "", detail: d };
-  }
-
-  // Fallback
+  // Fallback：未注册 kind 或解析失败
   return { stockName: "", stockCode: shortCode, signal: e.kind, signalColor: D.comment, price: "", detail: d };
 }
 

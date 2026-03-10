@@ -157,6 +157,45 @@ def is_any_market_open(has_hk: bool = False) -> bool:
 
 
 # ══════════════════════════════════════════
+# 1b. PatternEngine — 通用形态引擎基类 + 注册表
+# ══════════════════════════════════════════
+
+class PatternEngine:
+    """通用形态检测引擎基类。
+
+    子类实现 check() 即可接入主循环，无需手动接线。
+    - check(quotes)  → list[dict]  每 tick 调用
+    - reset()                      每日 08:00 重置状态
+    - update_config(config)        config 变更时同步
+    """
+
+    def check(self, quotes: dict) -> list[dict]:
+        return []
+
+    def reset(self):
+        pass
+
+    def update_config(self, config: dict):
+        pass
+
+
+# 全局注册表 — 主循环统一驱动
+_pattern_engines: list[PatternEngine] = []
+
+
+def register_pattern_engine(engine: PatternEngine) -> PatternEngine:
+    """注册引擎到全局注册表，返回引擎本身（支持链式写法）。
+
+    注册后，引擎自动获得：
+    - 每 tick check() 调用（结果并入 all_alerts）
+    - 每日 08:00 reset() 重置
+    - config 变更时 update_config() 同步
+    """
+    _pattern_engines.append(engine)
+    return engine
+
+
+# ══════════════════════════════════════════
 # 2. File reading helpers
 # ══════════════════════════════════════════
 
@@ -813,7 +852,7 @@ def _linear_regression(ys: list[float]):
 #     高开低走 / 低开高走
 # ══════════════════════════════════════════
 
-class GapFadeEngine:
+class GapFadeEngine(PatternEngine):
     """检测高开低走 & 低开高走形态，每只股票每种形态每日最多触发一次。
 
     高开低走触发条件（同时满足）：
@@ -918,6 +957,9 @@ class GapFadeEngine:
                     logger.info(f"GapRecover↑: {symbol} {name} 低开{gap_str} 反弹{recover_str}{recovered_str}")
 
         return alerts
+
+    def update_config(self, config: dict):
+        self.config = config
 
 
 def check_mainline_alerts() -> list[dict]:
@@ -1834,6 +1876,38 @@ class WatchDriftTracker:
         return tier_value
 
 
+class WatchDriftPatternEngine(PatternEngine):
+    """WatchDriftTracker 的 PatternEngine 适配器。
+
+    将 check_stocks() + check_indices() 两个调用合并为单一 check()，
+    内部自行完成 sector_daily DB 查询，对外接口统一。
+    """
+
+    def __init__(self, alert_config_path):
+        self._tracker = WatchDriftTracker(alert_config_path)
+
+    def reset(self):
+        self._tracker.reset()
+
+    def check(self, quotes: dict) -> list[dict]:
+        alerts = self._tracker.check_stocks(quotes)
+        try:
+            from src.sim_trading.db import get_connection as _gc
+            import datetime as _dt
+            today_str = _dt.date.today().strftime("%Y-%m-%d")
+            conn = _gc()
+            rows = conn.execute(
+                "SELECT index_id, index_value FROM sector_daily WHERE date = ?",
+                (today_str,),
+            ).fetchall()
+            conn.close()
+            index_values = {r[0]: r[1] for r in rows}
+            alerts.extend(self._tracker.check_indices(index_values))
+        except Exception:
+            pass
+        return alerts
+
+
 # ══════════════════════════════════════════
 # 7. Main loop
 # ══════════════════════════════════════════
@@ -1888,9 +1962,11 @@ def run():
     last_checked_count = len(watchlist)
     engine = DeltaAlertEngine(config)
     plan_engine = TradePlanEngine()
-    gap_fade_engine = GapFadeEngine(config)
-    drift_tracker = WatchDriftTracker(ALERT_CONFIG_PATH)
     watchdog = DataFreshnessWatchdog(poll_interval=settings.get("poll_interval", 30))
+
+    # ── 注册通用形态引擎（新增形态只需在此 register 一行）──
+    register_pattern_engine(GapFadeEngine(config))
+    register_pattern_engine(WatchDriftPatternEngine(ALERT_CONFIG_PATH))
     sent_open_today = False
     sent_close_today = False
     sent_summary_today = False
@@ -1914,8 +1990,8 @@ def run():
             latest_hkd_cny_rate = None
             last_alert_date = today
             engine.reset()  # clear delta tracking for new day
-            gap_fade_engine.reset()  # clear gap-fade fired set for new day
-            drift_tracker.reset()  # clear drift tier tracking for new day
+            for _eng in _pattern_engines:
+                _eng.reset()
             watchdog.reset()  # clear staleness tracking for new day
             check_l2_signals._daily_counts = {}  # reset per-stock L2 cap
             # 归档昨日数据 + 清空（新交易日重新开始）
@@ -1928,6 +2004,8 @@ def run():
                 settings = config.get("settings", {})
                 has_hk = any(is_hk_symbol(s) for s in watchlist)
                 engine.config = config
+                for _eng in _pattern_engines:
+                    _eng.update_config(config)
                 watchdog.update_poll_interval(settings.get("poll_interval", 30))
 
         trading = is_any_market_open(has_hk)
@@ -1947,6 +2025,8 @@ def run():
                 settings = config.get("settings", {})
                 has_hk = any(is_hk_symbol(s) for s in watchlist)
                 engine.config = config
+                for _eng in _pattern_engines:
+                    _eng.update_config(config)
 
             market = read_json_safe(MARKET_DATA_PATH)
             if market is not None:
@@ -1983,29 +2063,14 @@ def run():
                         write_alert_events(plan_alerts)
                         all_alerts.extend(plan_alerts)
 
-                    # ── Watch drift (stock + tag index) ──
-                    drift_alerts = drift_tracker.check_stocks(quotes)
-                    try:
-                        from src.sim_trading.db import get_connection as _get_conn
-                        import datetime as _dt
-                        _today_str = _dt.date.today().strftime("%Y-%m-%d")
-                        _conn = _get_conn()
-                        _idx_rows = _conn.execute(
-                            "SELECT index_id, index_value FROM sector_daily WHERE date = ?",
-                            (_today_str,),
-                        ).fetchall()
-                        _conn.close()
-                        _index_values = {r[0]: r[1] for r in _idx_rows}
-                        drift_alerts.extend(drift_tracker.check_indices(_index_values))
-                    except Exception:
-                        pass  # sector_daily may not have today's data yet
-                    if drift_alerts:
-                        all_alerts.extend(drift_alerts)
-
-                    # ── Gap-fade（高开低走）──
-                    gap_alerts = gap_fade_engine.check(quotes)
-                    if gap_alerts:
-                        all_alerts.extend(gap_alerts)
+                    # ── 注册表形态引擎（统一驱动，隔离异常）──
+                    for _eng in _pattern_engines:
+                        try:
+                            _eng_alerts = _eng.check(quotes)
+                            if _eng_alerts:
+                                all_alerts.extend(_eng_alerts)
+                        except Exception as _e:
+                            logger.warning(f"{type(_eng).__name__} check failed: {_e}")
 
                     if all_alerts:
                         print()
