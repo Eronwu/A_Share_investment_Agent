@@ -1,237 +1,6 @@
 {
   "signals": [
     {
-      "ts": 1772778429161,
-      "time": "14:27:09",
-      "strategy": "macd_top_divergence",
-      "code": "HK07262",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "XL二南方看多日经 MACD顶背离",
-      "display": "HK07262 XL二南方看多日经 MACD顶背离: 价格138.00>136.25 但DIF2.1268<3.3385 | 现价137.90 日涨+1.0%",
-      "detail": {
-        "price": 138.0,
-        "prior_high": 136.25,
-        "dif": 2.1268,
-        "prior_dif": 3.3385,
-        "lookback": 20
-      }
-    },
-    {
-      "ts": 1772778429161,
-      "time": "14:27:09",
-      "strategy": "relative_strength",
-      "code": "HK07262",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方看多日经 相对强弱",
-      "display": "HK07262 XL二南方看多日经 相对强弱: 60日强于恒指 个股+17.4% 恒指-1.3% 超额+18.7% | 现价137.90 日涨+1.0%",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 17.4,
-        "index_return_60d": -1.3,
-        "excess_return": 18.7
-      }
-    },
-    {
-      "ts": 1772778429224,
-      "time": "14:27:09",
-      "strategy": "relative_strength",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方海力士 相对强弱",
-      "display": "HK07709 XL二南方海力士 相对强弱: 60日强于恒指 个股+148.5% 恒指-1.3% 超额+149.8% | 现价28.58 日跌-4.3%",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 148.5,
-        "index_return_60d": -1.3,
-        "excess_return": 149.8
-      }
-    },
-    {
-      "ts": 1772778429283,
-      "time": "14:27:09",
-      "strategy": "ma_bearish_align",
-      "code": "HK09618",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "京东-SW 均线空头排列",
-      "display": "HK09618 京东-SW 均线空头排列: MA5=100.55 MA10=103.17 MA20=105.38 MA60=110.97 斜率-2.12% | 现价106.00 日涨+9.3% 量比1.6",
-      "detail": {
-        "ma5": 100.55,
-        "ma10": 103.17,
-        "ma20": 105.38,
-        "ma60": 110.97,
-        "ma20_slope_pct": -2.12
-      }
-    },
-    {
-      "ts": 1772778429342,
-      "time": "14:27:09",
-      "strategy": "ma_bearish_align",
-      "code": "HK09927",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "赛力斯 均线空头排列",
-      "display": "HK09927 赛力斯 均线空头排列: MA5=88.93 MA10=92.30 MA20=95.04 MA60=102.53 斜率-1.74% | 现价88.05 日涨+0.9%",
-      "detail": {
-        "ma5": 88.93,
-        "ma10": 92.3,
-        "ma20": 95.04,
-        "ma60": 102.53,
-        "ma20_slope_pct": -1.74
-      }
-    },
-    {
-      "ts": 1772778429342,
-      "time": "14:27:09",
-      "strategy": "relative_strength",
-      "code": "HK09927",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "赛力斯 相对强弱",
-      "display": "HK09927 赛力斯 相对强弱: 60日弱于恒指 个股-23.1% 恒指-1.3% 超额-21.9% | 现价88.05 日涨+0.9%",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -23.1,
-        "index_return_60d": -1.3,
-        "excess_return": -21.9
-      }
-    },
-    {
-      "ts": 1772778429400,
-      "time": "14:27:09",
-      "strategy": "rsi_extreme_oversold",
-      "code": "HK09973",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "HK09973 RSI严重超卖",
-      "display": "HK09973 HK09973 RSI严重超卖: RSI=18.5 <20 | 现价24.90 日跌-1.6%",
-      "detail": {
-        "rsi": 18.5,
-        "prev_rsi": 20.2,
-        "threshold": 20,
-        "consecutive_days": 1
-      }
-    },
-    {
-      "ts": 1772778429400,
-      "time": "14:27:09",
-      "strategy": "ma_bearish_align",
-      "code": "HK09973",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "HK09973 均线空头排列",
-      "display": "HK09973 HK09973 均线空头排列: MA5=25.68 MA10=26.81 MA20=27.58 MA60=29.29 斜率-2.13% | 现价24.90 日跌-1.6%",
-      "detail": {
-        "ma5": 25.68,
-        "ma10": 26.81,
-        "ma20": 27.58,
-        "ma60": 29.29,
-        "ma20_slope_pct": -2.13
-      }
-    },
-    {
-      "ts": 1772778429400,
-      "time": "14:27:09",
-      "strategy": "relative_strength",
-      "code": "HK09973",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "HK09973 相对强弱",
-      "display": "HK09973 HK09973 相对强弱: 60日弱于恒指 个股-24.3% 恒指-1.3% 超额-23.0% | 现价24.90 日跌-1.6%",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -24.3,
-        "index_return_60d": -1.3,
-        "excess_return": -23.0
-      }
-    },
-    {
-      "ts": 1772778429463,
-      "time": "14:27:09",
-      "strategy": "ma_bearish_align",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ 均线空头排列",
-      "display": "HK09988 阿里巴巴－Ｗ 均线空头排列: MA5=131.68 MA10=139.28 MA20=148.06 MA60=152.84 斜率-4.66% | 现价131.00 日涨+3.7%",
-      "detail": {
-        "ma5": 131.68,
-        "ma10": 139.28,
-        "ma20": 148.06,
-        "ma60": 152.84,
-        "ma20_slope_pct": -4.66
-      }
-    },
-    {
-      "ts": 1772780230990,
-      "time": "14:57:10",
-      "strategy": "macd_golden_cross",
-      "code": "HK03288",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "海天味业 MACD金叉",
-      "display": "HK03288 海天味业 MACD金叉: DIF=0.3913 DEA=0.3848 | 现价34.52 日涨+2.1% 净流出202万",
-      "detail": {
-        "hist": 0.0128,
-        "prev_hist": -0.0868,
-        "dif": 0.3913,
-        "dea": 0.3848
-      }
-    },
-    {
-      "ts": 1772783097295,
-      "time": "15:44:57",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK02359",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "药明康德 散户机构分歧",
-      "display": "HK02359 药明康德 散户机构分歧: 主力出散户进 | 机构净-4100万 散户净+4882万 | 现价111.50 日涨+2.8% 净流出4100万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -40998040.0,
-        "retail_net": 48819230.0,
-        "super_net": -26717480.0,
-        "big_net": -14280560.0
-      }
-    },
-    {
-      "ts": 1772783097399,
-      "time": "15:44:57",
-      "strategy": "macd_golden_cross",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "腾讯控股 MACD金叉",
-      "display": "HK00700 腾讯控股 MACD金叉: DIF=-21.1710 DEA=-21.4644 | 现价518.00 日涨+3.2% 净流入5866万",
-      "detail": {
-        "hist": 0.5867,
-        "prev_hist": -2.0595,
-        "dif": -21.171,
-        "dea": -21.4644
-      }
-    },
-    {
-      "ts": 1772783097399,
-      "time": "15:44:57",
-      "strategy": "ma_bearish_align",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "腾讯控股 均线空头排列",
-      "display": "HK00700 腾讯控股 均线空头排列: MA5=510.00 MA10=516.05 MA20=530.30 MA60=582.97 斜率-3.38% | 现价518.00 日涨+3.2% 净流入5866万",
-      "detail": {
-        "ma5": 510.0,
-        "ma10": 516.05,
-        "ma20": 530.3,
-        "ma60": 582.97,
-        "ma20_slope_pct": -3.38
-      }
-    },
-    {
       "ts": 1772783097450,
       "time": "15:44:57",
       "strategy": "ma_bearish_align",
@@ -3308,6 +3077,246 @@
         "super_net": 13550900.0,
         "big_net": 12866725.0
       }
+    },
+    {
+      "ts": 1773118830478,
+      "time": "13:00:30",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 散户机构分歧",
+      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力出散户进 | 机构净-2212万 散户净+70591万 | 现价132.30 日涨+2.8% 净流出2212万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -22120800.0,
+        "retail_net": 705907890.0,
+        "super_net": -88765840.0,
+        "big_net": 66645040.0
+      }
+    },
+    {
+      "ts": 1773120504844,
+      "time": "13:28:24",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK07226",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "南方两倍做多纳指 散户机构分歧",
+      "display": "HK07226 南方两倍做多纳指 散户机构分歧: 主力出散户进 | 机构净-3150万 散户净+610万 | 现价4.12 日涨+4.2% 净流出3150万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -31499963.0,
+        "retail_net": 6097324.0,
+        "super_net": -35113238.0,
+        "big_net": 3613275.0
+      }
+    },
+    {
+      "ts": 1773120537858,
+      "time": "13:28:57",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 散户机构分歧",
+      "display": "HK00700 腾讯控股 散户机构分歧: 主力出散户进 | 机构净-6536万 散户净+215879万 | 现价549.50 日涨+6.5% 量比2.3 净流出6536万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -65362100.0,
+        "retail_net": 2158786850.0,
+        "super_net": 364726500.0,
+        "big_net": -430088600.0
+      }
+    },
+    {
+      "ts": 1773120803184,
+      "time": "13:33:23",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "金山云 散户机构分歧",
+      "display": "HK03896 金山云 散户机构分歧: 主力出散户进 | 机构净-8608万 散户净+5871万 | 现价7.00 日跌-4.4% 量比2.5 净流出8608万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -86075620.0,
+        "retail_net": 58708060.0,
+        "super_net": -11145340.0,
+        "big_net": -74930280.0
+      }
+    },
+    {
+      "ts": 1773121890157,
+      "time": "13:51:30",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 散户机构分歧",
+      "display": "HK07709 XL二南方海力士 散户机构分歧: 主力进散户出 | 机构净+1153万 散户净-15609万 | 现价28.26 日涨+19.3% 净流入1153万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 11527104.0,
+        "retail_net": -156086742.0,
+        "super_net": 79472998.0,
+        "big_net": -67945894.0
+      }
+    },
+    {
+      "ts": 1773121923018,
+      "time": "13:52:03",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK03986",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "兆易创新 散户机构分歧",
+      "display": "HK03986 兆易创新 散户机构分歧: 主力出散户进 | 机构净-2100万 散户净+2438万 | 现价378.00 日涨+3.3% 净流出2100万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -21001960.0,
+        "retail_net": 24384860.0,
+        "super_net": -11954180.0,
+        "big_net": -9047780.0
+      }
+    },
+    {
+      "ts": 1773122023012,
+      "time": "13:53:43",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK02577",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "英诺赛科 散户机构分歧",
+      "display": "HK02577 英诺赛科 散户机构分歧: 主力进散户出 | 机构净+4707万 散户净-1490万 | 现价65.80 日涨+4.8% 净流入4707万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 47074830.0,
+        "retail_net": -14901665.0,
+        "super_net": 27705830.0,
+        "big_net": 19369000.0
+      }
+    },
+    {
+      "ts": 1773122615376,
+      "time": "14:03:35",
+      "strategy": "momentum_alert",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "阿里巴巴－Ｗ 动量确认",
+      "display": "HK09988 阿里巴巴－Ｗ 动量确认: 日涨3.5% | 大单净买入3367万(6笔) | 资金流入 | 无背离 | 现价133.20 日涨+3.5% 净流入5763万",
+      "detail": {
+        "daily_change_pct": 3.5,
+        "large_order_buy_count": 6,
+        "large_order_net_amount": 33674890.0,
+        "main_net_inflow": 57626040.0,
+        "session_direction": "bullish",
+        "session_score": 5
+      }
+    },
+    {
+      "ts": 1773124574566,
+      "time": "14:36:14",
+      "strategy": "momentum_alert",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "腾讯控股 动量确认",
+      "display": "HK00700 腾讯控股 动量确认: 日涨7.6% | 大单净买入68074万(77笔) | 资金流入 | 无背离 | 现价555.00 日涨+7.6% 量比2.0 净流入13102万",
+      "detail": {
+        "daily_change_pct": 7.56,
+        "large_order_buy_count": 77,
+        "large_order_net_amount": 680743600.0,
+        "main_net_inflow": 131018000.0,
+        "session_direction": "bullish",
+        "session_score": 5
+      }
+    },
+    {
+      "ts": 1773125159733,
+      "time": "14:45:59",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 散户机构分歧",
+      "display": "HK01810 小米集团－Ｗ 散户机构分歧: 主力出散户进 | 机构净-1496万 散户净+10763万 | 现价33.48 日跌-0.6% 净流出1496万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -14962764.0,
+        "retail_net": 107626536.0,
+        "super_net": 65458080.0,
+        "big_net": -80420844.0
+      }
+    },
+    {
+      "ts": 1773125193160,
+      "time": "14:46:33",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK02359",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "药明康德 散户机构分歧",
+      "display": "HK02359 药明康德 散户机构分歧: 主力出散户进 | 机构净-1037万 散户净+3634万 | 现价111.00 日涨+2.0% 净流出1037万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -10369260.0,
+        "retail_net": 36335950.0,
+        "super_net": -7924840.0,
+        "big_net": -2444420.0
+      }
+    },
+    {
+      "ts": 1773126982346,
+      "time": "15:16:22",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 散户机构分歧",
+      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力出散户进 | 机构净-6729万 散户净+113964万 | 现价133.70 日涨+3.9% 净流出6729万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -67285790.0,
+        "retail_net": 1139643940.0,
+        "super_net": -75452780.0,
+        "big_net": 8166990.0
+      }
+    },
+    {
+      "ts": 1773127743000,
+      "time": "15:29:03",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 散户机构分歧",
+      "display": "HK00700 腾讯控股 散户机构分歧: 主力出散户进 | 机构净-13246万 散户净+306699万 | 现价552.00 日涨+7.0% 量比1.9 净流出13246万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -132461300.0,
+        "retail_net": 3066989750.0,
+        "super_net": 657708600.0,
+        "big_net": -790169900.0
+      }
+    },
+    {
+      "ts": 1773128082633,
+      "time": "15:34:42",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "金山云 散户机构分歧",
+      "display": "HK03896 金山云 散户机构分歧: 主力出散户进 | 机构净-10939万 散户净+9775万 | 现价7.06 日跌-3.6% 量比1.9 净流出10939万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -109385460.0,
+        "retail_net": 97749280.0,
+        "super_net": -23466080.0,
+        "big_net": -85919380.0
+      }
     }
   ],
   "session": {
@@ -3315,9 +3324,9 @@
       "direction": "bullish",
       "score": 2,
       "tick": {
-        "buy_vol": 259900,
-        "sell_vol": 128300,
-        "imbalance": 0.339,
+        "buy_vol": 451700,
+        "sell_vol": 241400,
+        "imbalance": 0.303,
         "direction_score": 1
       },
       "large_order": {
@@ -3330,8 +3339,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -375178.0,
-        "main_net_inflow_pct": 0,
+        "main_net_inflow": -355340.0,
+        "main_net_inflow_pct": -4.96,
         "direction_score": 0
       }
     },
@@ -3339,9 +3348,9 @@
       "direction": "bullish",
       "score": 1,
       "tick": {
-        "buy_vol": 38145200,
-        "sell_vol": 43405500,
-        "imbalance": -0.065,
+        "buy_vol": 61288900,
+        "sell_vol": 59491900,
+        "imbalance": 0.015,
         "direction_score": 0
       },
       "large_order": {
@@ -3354,18 +3363,18 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 7703554.0,
-        "main_net_inflow_pct": -5.44,
+        "main_net_inflow": 119936826.0,
+        "main_net_inflow_pct": 253.26,
         "direction_score": 1
       }
     },
     "HK09927": {
       "direction": "bullish",
-      "score": 2,
+      "score": 3,
       "tick": {
-        "buy_vol": 209000,
-        "sell_vol": 145300,
-        "imbalance": 0.18,
+        "buy_vol": 389600,
+        "sell_vol": 218700,
+        "imbalance": 0.281,
         "direction_score": 1
       },
       "large_order": {
@@ -3378,18 +3387,18 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -1426100.0,
-        "main_net_inflow_pct": -25.12,
-        "direction_score": 0
+        "main_net_inflow": 5536025.0,
+        "main_net_inflow_pct": 41.63,
+        "direction_score": 1
       }
     },
     "HK06060": {
-      "direction": "neutral",
-      "score": 0,
+      "direction": "bullish",
+      "score": 1,
       "tick": {
-        "buy_vol": 1892600,
-        "sell_vol": 1640400,
-        "imbalance": 0.071,
+        "buy_vol": 3190700,
+        "sell_vol": 3299200,
+        "imbalance": -0.017,
         "direction_score": 0
       },
       "large_order": {
@@ -3402,19 +3411,19 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 4551956.0,
+        "main_net_inflow": 6808123.0,
         "main_net_inflow_pct": 0,
-        "direction_score": 0
+        "direction_score": 1
       }
     },
     "HK01211": {
       "direction": "bullish",
-      "score": 1,
+      "score": 3,
       "tick": {
-        "buy_vol": 7452300,
-        "sell_vol": 6590600,
-        "imbalance": 0.061,
-        "direction_score": 0
+        "buy_vol": 13476000,
+        "sell_vol": 10685000,
+        "imbalance": 0.116,
+        "direction_score": 1
       },
       "large_order": {
         "buy_count": 0,
@@ -3432,8 +3441,8 @@
         ]
       },
       "capital_flow": {
-        "main_net_inflow": 10596955.0,
-        "main_net_inflow_pct": 14.89,
+        "main_net_inflow": 45777770.0,
+        "main_net_inflow_pct": 17.8,
         "direction_score": 1
       }
     },
@@ -3441,9 +3450,9 @@
       "direction": "bullish",
       "score": 3,
       "tick": {
-        "buy_vol": 609449200,
-        "sell_vol": 419559400,
-        "imbalance": 0.185,
+        "buy_vol": 1171819200,
+        "sell_vol": 872247000,
+        "imbalance": 0.147,
         "direction_score": 1
       },
       "large_order": {
@@ -3456,8 +3465,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 498978560.0,
-        "main_net_inflow_pct": 54.18,
+        "main_net_inflow": 1101487354.8,
+        "main_net_inflow_pct": 75.42,
         "direction_score": 1
       }
     },
@@ -3465,9 +3474,9 @@
       "direction": "neutral",
       "score": 0,
       "tick": {
-        "buy_vol": 4410,
-        "sell_vol": 10550,
-        "imbalance": -0.41,
+        "buy_vol": 7030,
+        "sell_vol": 14560,
+        "imbalance": -0.349,
         "direction_score": 0
       },
       "large_order": {
@@ -3480,27 +3489,27 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -490156.0,
+        "main_net_inflow": -751556.0,
         "main_net_inflow_pct": 0,
         "direction_score": 0
       }
     },
     "HK09988": {
-      "direction": "bearish",
-      "score": -1,
+      "direction": "bullish",
+      "score": 3,
       "tick": {
-        "buy_vol": 23924600,
-        "sell_vol": 18154400,
-        "imbalance": 0.137,
+        "buy_vol": 44592500,
+        "sell_vol": 32965200,
+        "imbalance": 0.15,
         "direction_score": 1
       },
       "large_order": {
-        "buy_count": 4,
-        "sell_count": 6,
-        "buy_amount": 85994350.0,
-        "sell_amount": 119577560.0,
-        "net_amount": -33583210.0,
-        "direction_score": -1,
+        "buy_count": 12,
+        "sell_count": 13,
+        "buy_amount": 280354940.0,
+        "sell_amount": 264964560.0,
+        "net_amount": 15390380.0,
+        "direction_score": 1,
         "orders": [
           [
             1773106322.2994711,
@@ -3556,12 +3565,97 @@
             1773113833.822432,
             "SELL",
             26133840.0
+          ],
+          [
+            1773122577.667105,
+            "BUY",
+            39900000.0
+          ],
+          [
+            1773122577.667105,
+            "BUY",
+            27358100.0
+          ],
+          [
+            1773123136.387458,
+            "SELL",
+            17502800.0
+          ],
+          [
+            1773124607.805501,
+            "SELL",
+            21810900.0
+          ],
+          [
+            1773124620.9458392,
+            "NEUTRAL",
+            41690730.0
+          ],
+          [
+            1773124620.9458392,
+            "NEUTRAL",
+            28347570.0
+          ],
+          [
+            1773124725.423838,
+            "BUY",
+            29503500.0
+          ],
+          [
+            1773124792.474026,
+            "SELL",
+            40050000.0
+          ],
+          [
+            1773124792.474027,
+            "BUY",
+            16020000.0
+          ],
+          [
+            1773124859.9537191,
+            "BUY",
+            21605920.0
+          ],
+          [
+            1773124913.168863,
+            "BUY",
+            19079880.0
+          ],
+          [
+            1773125063.949285,
+            "SELL",
+            16334600.0
+          ],
+          [
+            1773126303.464208,
+            "BUY",
+            20198550.0
+          ],
+          [
+            1773127114.3964002,
+            "SELL",
+            17702100.0
+          ],
+          [
+            1773127420.68716,
+            "SELL",
+            16220250.0
+          ],
+          [
+            1773127441.554545,
+            "BUY",
+            20694640.0
+          ],
+          [
+            1773128809.348067,
+            "SELL",
+            15766350.0
           ]
         ]
       },
       "capital_flow": {
-        "main_net_inflow": -129958520.0,
-        "main_net_inflow_pct": -54.85,
+        "main_net_inflow": -27903200.0,
+        "main_net_inflow_pct": -1.75,
         "direction_score": -1
       }
     },
@@ -3569,9 +3663,9 @@
       "direction": "bearish",
       "score": -1,
       "tick": {
-        "buy_vol": 55588000,
-        "sell_vol": 63710000,
-        "imbalance": -0.068,
+        "buy_vol": 78744000,
+        "sell_vol": 84470000,
+        "imbalance": -0.035,
         "direction_score": 0
       },
       "large_order": {
@@ -3584,8 +3678,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -80525040.0,
-        "main_net_inflow_pct": 126.1,
+        "main_net_inflow": -106628660.0,
+        "main_net_inflow_pct": 233.42,
         "direction_score": -1
       }
     },
@@ -3593,9 +3687,9 @@
       "direction": "bearish",
       "score": -1,
       "tick": {
-        "buy_vol": 306600,
-        "sell_vol": 339700,
-        "imbalance": -0.051,
+        "buy_vol": 550900,
+        "sell_vol": 507600,
+        "imbalance": 0.041,
         "direction_score": 0
       },
       "large_order": {
@@ -3608,18 +3702,18 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -19915040.0,
-        "main_net_inflow_pct": 131.21,
+        "main_net_inflow": -14125780.0,
+        "main_net_inflow_pct": -102.45,
         "direction_score": -1
       }
     },
     "HK01810": {
       "direction": "bullish",
-      "score": 3,
+      "score": 1,
       "tick": {
-        "buy_vol": 36179600,
-        "sell_vol": 33984400,
-        "imbalance": 0.031,
+        "buy_vol": 57963200,
+        "sell_vol": 57587800,
+        "imbalance": 0.003,
         "direction_score": 0
       },
       "large_order": {
@@ -3648,19 +3742,19 @@
         ]
       },
       "capital_flow": {
-        "main_net_inflow": 30513712.0,
-        "main_net_inflow_pct": 33.78,
-        "direction_score": 1
+        "main_net_inflow": -83730372.0,
+        "main_net_inflow_pct": -241.03,
+        "direction_score": -1
       }
     },
     "HK09618": {
       "direction": "bearish",
-      "score": -1,
+      "score": -3,
       "tick": {
-        "buy_vol": 2020100,
-        "sell_vol": 2342850,
-        "imbalance": -0.074,
-        "direction_score": 0
+        "buy_vol": 4126000,
+        "sell_vol": 5839500,
+        "imbalance": -0.172,
+        "direction_score": -1
       },
       "large_order": {
         "buy_count": 0,
@@ -3672,18 +3766,18 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -55463950.0,
-        "main_net_inflow_pct": 169.04,
+        "main_net_inflow": -141569945.0,
+        "main_net_inflow_pct": 87.63,
         "direction_score": -1
       }
     },
     "HK02722": {
-      "direction": "neutral",
-      "score": 0,
+      "direction": "bullish",
+      "score": 1,
       "tick": {
-        "buy_vol": 4258000,
-        "sell_vol": 4568000,
-        "imbalance": -0.035,
+        "buy_vol": 6996000,
+        "sell_vol": 6990000,
+        "imbalance": 0.0,
         "direction_score": 0
       },
       "large_order": {
@@ -3696,19 +3790,19 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 3176560.0,
+        "main_net_inflow": 5688340.0,
         "main_net_inflow_pct": 0,
-        "direction_score": 0
+        "direction_score": 1
       }
     },
     "HK02590": {
-      "direction": "neutral",
-      "score": 0,
+      "direction": "bullish",
+      "score": 2,
       "tick": {
-        "buy_vol": 1155200,
-        "sell_vol": 1116000,
-        "imbalance": 0.017,
-        "direction_score": 0
+        "buy_vol": 2740200,
+        "sell_vol": 1702200,
+        "imbalance": 0.234,
+        "direction_score": 1
       },
       "large_order": {
         "buy_count": 0,
@@ -3720,19 +3814,19 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -4831864.0,
-        "main_net_inflow_pct": 0,
+        "main_net_inflow": 389718.0,
+        "main_net_inflow_pct": 1.87,
         "direction_score": 0
       }
     },
     "HK02577": {
       "direction": "bullish",
-      "score": 1,
+      "score": 3,
       "tick": {
-        "buy_vol": 1395600,
-        "sell_vol": 1207900,
-        "imbalance": 0.072,
-        "direction_score": 0
+        "buy_vol": 2788000,
+        "sell_vol": 2234200,
+        "imbalance": 0.11,
+        "direction_score": 1
       },
       "large_order": {
         "buy_count": 0,
@@ -3744,8 +3838,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 26417625.0,
-        "main_net_inflow_pct": 165.79,
+        "main_net_inflow": 56011370.0,
+        "main_net_inflow_pct": 139.09,
         "direction_score": 1
       }
     },
@@ -3753,9 +3847,9 @@
       "direction": "bearish",
       "score": -1,
       "tick": {
-        "buy_vol": 94105800,
-        "sell_vol": 107107700,
-        "imbalance": -0.065,
+        "buy_vol": 146816400,
+        "sell_vol": 155494500,
+        "imbalance": -0.029,
         "direction_score": 0
       },
       "large_order": {
@@ -3768,19 +3862,19 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -51899180.4,
-        "main_net_inflow_pct": 97.77,
+        "main_net_inflow": -56112190.4,
+        "main_net_inflow_pct": 158.13,
         "direction_score": -1
       }
     },
     "HK06651": {
-      "direction": "bearish",
-      "score": -2,
+      "direction": "neutral",
+      "score": 0,
       "tick": {
-        "buy_vol": 263400,
-        "sell_vol": 329800,
-        "imbalance": -0.112,
-        "direction_score": -1
+        "buy_vol": 413000,
+        "sell_vol": 472400,
+        "imbalance": -0.067,
+        "direction_score": 0
       },
       "large_order": {
         "buy_count": 0,
@@ -3792,26 +3886,26 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -2822636.0,
+        "main_net_inflow": -2594052.0,
         "main_net_inflow_pct": 0,
         "direction_score": 0
       }
     },
     "HK00700": {
       "direction": "bullish",
-      "score": 5,
+      "score": 3,
       "tick": {
-        "buy_vol": 14813800,
-        "sell_vol": 10224700,
-        "imbalance": 0.183,
+        "buy_vol": 27603300,
+        "sell_vol": 19748100,
+        "imbalance": 0.166,
         "direction_score": 1
       },
       "large_order": {
-        "buy_count": 45,
-        "sell_count": 27,
-        "buy_amount": 1006206000.0,
-        "sell_amount": 512790450.0,
-        "net_amount": 493415550.0,
+        "buy_count": 94,
+        "sell_count": 68,
+        "buy_amount": 2185332950.0,
+        "sell_amount": 1398686850.0,
+        "net_amount": 786646100.0,
         "direction_score": 1,
         "orders": [
           [
@@ -4183,23 +4277,483 @@
             1773114852.1095328,
             "SELL",
             15177600.0
+          ],
+          [
+            1773118830.4765031,
+            "BUY",
+            15480100.0
+          ],
+          [
+            1773118830.476504,
+            "SELL",
+            27101250.0
+          ],
+          [
+            1773118954.928999,
+            "SELL",
+            16869650.0
+          ],
+          [
+            1773118959.9189792,
+            "SELL",
+            15467700.0
+          ],
+          [
+            1773119046.297777,
+            "BUY",
+            16485000.0
+          ],
+          [
+            1773119124.726936,
+            "BUY",
+            18573100.0
+          ],
+          [
+            1773119305.0488052,
+            "SELL",
+            26705700.0
+          ],
+          [
+            1773119477.128435,
+            "BUY",
+            16589250.0
+          ],
+          [
+            1773119691.406786,
+            "BUY",
+            34485000.0
+          ],
+          [
+            1773119854.718199,
+            "SELL",
+            15950000.0
+          ],
+          [
+            1773119858.637582,
+            "BUY",
+            15785000.0
+          ],
+          [
+            1773119891.40623,
+            "BUY",
+            15880550.0
+          ],
+          [
+            1773119960.797413,
+            "BUY",
+            16500000.0
+          ],
+          [
+            1773119997.497057,
+            "SELL",
+            16445000.0
+          ],
+          [
+            1773120030.3583639,
+            "BUY",
+            16225000.0
+          ],
+          [
+            1773120207.4348958,
+            "BUY",
+            16515000.0
+          ],
+          [
+            1773120282.202048,
+            "SELL",
+            21725000.0
+          ],
+          [
+            1773120495.355266,
+            "SELL",
+            56477500.0
+          ],
+          [
+            1773120495.355266,
+            "SELL",
+            16530000.0
+          ],
+          [
+            1773120517.048599,
+            "SELL",
+            15979000.0
+          ],
+          [
+            1773120517.0486,
+            "NEUTRAL",
+            26754300.0
+          ],
+          [
+            1773120517.0486,
+            "SELL",
+            27084600.0
+          ],
+          [
+            1773120517.0486012,
+            "SELL",
+            25245000.0
+          ],
+          [
+            1773120546.0788732,
+            "BUY",
+            27255200.0
+          ],
+          [
+            1773120557.785096,
+            "SELL",
+            30249900.0
+          ],
+          [
+            1773120565.7189171,
+            "SELL",
+            19800850.0
+          ],
+          [
+            1773120565.7189178,
+            "SELL",
+            20550000.0
+          ],
+          [
+            1773120598.7859452,
+            "SELL",
+            24166800.0
+          ],
+          [
+            1773120830.706242,
+            "SELL",
+            16470000.0
+          ],
+          [
+            1773121101.98843,
+            "BUY",
+            26950000.0
+          ],
+          [
+            1773121222.989962,
+            "BUY",
+            16500000.0
+          ],
+          [
+            1773121222.989963,
+            "BUY",
+            15180000.0
+          ],
+          [
+            1773121397.762785,
+            "SELL",
+            16485000.0
+          ],
+          [
+            1773121744.57892,
+            "SELL",
+            17301000.0
+          ],
+          [
+            1773121860.917067,
+            "BUY",
+            16440000.0
+          ],
+          [
+            1773122080.1227,
+            "SELL",
+            16485000.0
+          ],
+          [
+            1773122155.651246,
+            "SELL",
+            15056300.0
+          ],
+          [
+            1773122326.235046,
+            "BUY",
+            16404900.0
+          ],
+          [
+            1773122409.166997,
+            "BUY",
+            26282700.0
+          ],
+          [
+            1773122461.281704,
+            "SELL",
+            16530000.0
+          ],
+          [
+            1773122656.017591,
+            "BUY",
+            16560000.0
+          ],
+          [
+            1773122714.313795,
+            "SELL",
+            16946400.0
+          ],
+          [
+            1773122883.161258,
+            "BUY",
+            16590000.0
+          ],
+          [
+            1773123035.008427,
+            "SELL",
+            28674750.0
+          ],
+          [
+            1773123090.497236,
+            "BUY",
+            18470200.0
+          ],
+          [
+            1773123189.4433548,
+            "SELL",
+            16545000.0
+          ],
+          [
+            1773123387.845217,
+            "BUY",
+            30055050.0
+          ],
+          [
+            1773123387.845217,
+            "BUY",
+            18226600.0
+          ],
+          [
+            1773123404.571593,
+            "BUY",
+            26425800.0
+          ],
+          [
+            1773123457.1571488,
+            "SELL",
+            19503250.0
+          ],
+          [
+            1773124210.051934,
+            "SELL",
+            27600000.0
+          ],
+          [
+            1773124312.4154189,
+            "BUY",
+            44571800.0
+          ],
+          [
+            1773124312.4154198,
+            "BUY",
+            31992300.0
+          ],
+          [
+            1773124332.382656,
+            "BUY",
+            24520050.0
+          ],
+          [
+            1773124353.7558668,
+            "BUY",
+            30276450.0
+          ],
+          [
+            1773124432.840172,
+            "BUY",
+            19095750.0
+          ],
+          [
+            1773124499.8829608,
+            "BUY",
+            23046400.0
+          ],
+          [
+            1773124546.403672,
+            "NEUTRAL",
+            34354500.0
+          ],
+          [
+            1773124546.403672,
+            "BUY",
+            108447000.0
+          ],
+          [
+            1773124546.4036732,
+            "BUY",
+            16650000.0
+          ],
+          [
+            1773124570.144935,
+            "BUY",
+            18814500.0
+          ],
+          [
+            1773124636.850128,
+            "SELL",
+            16650000.0
+          ],
+          [
+            1773124662.2623,
+            "BUY",
+            27775000.0
+          ],
+          [
+            1773124721.432833,
+            "SELL",
+            18387050.0
+          ],
+          [
+            1773124821.634261,
+            "SELL",
+            22381600.0
+          ],
+          [
+            1773124890.609339,
+            "BUY",
+            16605000.0
+          ],
+          [
+            1773125063.948433,
+            "SELL",
+            16635000.0
+          ],
+          [
+            1773125188.818657,
+            "SELL",
+            16494300.0
+          ],
+          [
+            1773125572.9035552,
+            "SELL",
+            16560000.0
+          ],
+          [
+            1773126158.704391,
+            "BUY",
+            20865600.0
+          ],
+          [
+            1773126405.515174,
+            "SELL",
+            18806150.0
+          ],
+          [
+            1773126587.194921,
+            "BUY",
+            15069600.0
+          ],
+          [
+            1773126621.0480058,
+            "SELL",
+            15276550.0
+          ],
+          [
+            1773126948.061523,
+            "BUY",
+            20717600.0
+          ],
+          [
+            1773127224.728972,
+            "SELL",
+            27600000.0
+          ],
+          [
+            1773127449.898734,
+            "BUY",
+            16530000.0
+          ],
+          [
+            1773127672.896263,
+            "BUY",
+            57736250.0
+          ],
+          [
+            1773128082.6315598,
+            "BUY",
+            15497150.0
+          ],
+          [
+            1773128082.631562,
+            "BUY",
+            16560000.0
+          ],
+          [
+            1773128082.631563,
+            "BUY",
+            20700000.0
+          ],
+          [
+            1773128082.631563,
+            "BUY",
+            27625000.0
+          ],
+          [
+            1773128082.631563,
+            "BUY",
+            27625000.0
+          ],
+          [
+            1773128230.396126,
+            "SELL",
+            15456000.0
+          ],
+          [
+            1773128483.4840782,
+            "SELL",
+            55150000.0
+          ],
+          [
+            1773128483.484087,
+            "SELL",
+            16545000.0
+          ],
+          [
+            1773128548.5086222,
+            "BUY",
+            16545000.0
+          ],
+          [
+            1773128583.6086662,
+            "BUY",
+            16545000.0
+          ],
+          [
+            1773128583.608674,
+            "BUY",
+            36729900.0
+          ],
+          [
+            1773128661.27023,
+            "BUY",
+            27569750.0
+          ],
+          [
+            1773128670.113153,
+            "SELL",
+            16560000.0
+          ],
+          [
+            1773128895.766491,
+            "SELL",
+            29450100.0
+          ],
+          [
+            1773128961.068929,
+            "BUY",
+            27158400.0
           ]
         ]
       },
       "capital_flow": {
-        "main_net_inflow": 104421850.0,
-        "main_net_inflow_pct": 4.03,
-        "direction_score": 1
+        "main_net_inflow": -27729800.0,
+        "main_net_inflow_pct": -0.63,
+        "direction_score": -1
       }
     },
     "HK09973": {
-      "direction": "bullish",
-      "score": 2,
+      "direction": "neutral",
+      "score": 0,
       "tick": {
-        "buy_vol": 414500,
-        "sell_vol": 322400,
-        "imbalance": 0.125,
-        "direction_score": 1
+        "buy_vol": 677900,
+        "sell_vol": 632500,
+        "imbalance": 0.035,
+        "direction_score": 0
       },
       "large_order": {
         "buy_count": 0,
@@ -4211,7 +4765,7 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 466440.0,
+        "main_net_inflow": -473494.0,
         "main_net_inflow_pct": 0,
         "direction_score": 0
       }
@@ -4220,9 +4774,9 @@
       "direction": "bullish",
       "score": 3,
       "tick": {
-        "buy_vol": 597000,
-        "sell_vol": 391500,
-        "imbalance": 0.208,
+        "buy_vol": 1162100,
+        "sell_vol": 717600,
+        "imbalance": 0.236,
         "direction_score": 1
       },
       "large_order": {
@@ -4235,19 +4789,19 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 10754930.0,
-        "main_net_inflow_pct": 28.86,
+        "main_net_inflow": 25181520.0,
+        "main_net_inflow_pct": 31.54,
         "direction_score": 1
       }
     },
     "HK01060": {
       "direction": "bearish",
-      "score": -1,
+      "score": -3,
       "tick": {
-        "buy_vol": 23530000,
-        "sell_vol": 27000000,
-        "imbalance": -0.069,
-        "direction_score": 0
+        "buy_vol": 46150000,
+        "sell_vol": 98030000,
+        "imbalance": -0.36,
+        "direction_score": -1
       },
       "large_order": {
         "buy_count": 0,
@@ -4259,19 +4813,19 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -11203600.0,
-        "main_net_inflow_pct": 0,
+        "main_net_inflow": -13393600.0,
+        "main_net_inflow_pct": 36.7,
         "direction_score": -1
       }
     },
     "HK02359": {
-      "direction": "bullish",
-      "score": 2,
+      "direction": "bearish",
+      "score": -1,
       "tick": {
-        "buy_vol": 1256800,
-        "sell_vol": 947400,
-        "imbalance": 0.14,
-        "direction_score": 1
+        "buy_vol": 2078200,
+        "sell_vol": 1761000,
+        "imbalance": 0.083,
+        "direction_score": 0
       },
       "large_order": {
         "buy_count": 0,
@@ -4283,16 +4837,16 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -209110.0,
-        "main_net_inflow_pct": -0.6,
-        "direction_score": 0
+        "main_net_inflow": -5796120.0,
+        "main_net_inflow_pct": -16.43,
+        "direction_score": -1
       }
     }
   },
   "indicators": {
     "HK00700": {
-      "rsi": 51.69,
-      "macd_hist": 7.636749,
+      "rsi": 54.15,
+      "macd_hist": 8.530196,
       "macd_hist_list": [
         -6.084492,
         -6.015449,
@@ -4303,14 +4857,14 @@
         -2.059005,
         0.77862,
         2.524415,
-        7.636749
+        8.530196
       ],
-      "vol_ratio": 1.03,
-      "updated_at": 1773115259878
+      "vol_ratio": 1.76,
+      "updated_at": 1773129120688
     },
     "HK01060": {
-      "rsi": 37.4,
-      "macd_hist": -0.025478,
+      "rsi": 34.03,
+      "macd_hist": -0.02803,
       "macd_hist_list": [
         -0.037,
         -0.036721,
@@ -4321,14 +4875,14 @@
         -0.05079,
         -0.038789,
         -0.033701,
-        -0.025478
+        -0.02803
       ],
-      "vol_ratio": 0.28,
-      "updated_at": 1773115259878
+      "vol_ratio": 0.7,
+      "updated_at": 1773129120688
     },
     "HK01211": {
-      "rsi": 49.18,
-      "macd_hist": -0.146021,
+      "rsi": 50.5,
+      "macd_hist": -0.050295,
       "macd_hist_list": [
         1.001816,
         0.428826,
@@ -4339,14 +4893,14 @@
         -0.641928,
         -0.642867,
         -0.180049,
-        -0.146021
+        -0.050295
       ],
-      "vol_ratio": 0.6,
-      "updated_at": 1773115259878
+      "vol_ratio": 0.89,
+      "updated_at": 1773129120688
     },
     "HK01810": {
-      "rsi": 41.32,
-      "macd_hist": -0.17902,
+      "rsi": 42.33,
+      "macd_hist": -0.15094,
       "macd_hist_list": [
         0.356931,
         0.232505,
@@ -4357,14 +4911,14 @@
         -0.689104,
         -0.490192,
         -0.2914,
-        -0.17902
+        -0.15094
       ],
-      "vol_ratio": 0.52,
-      "updated_at": 1773115259878
+      "vol_ratio": 0.77,
+      "updated_at": 1773129120688
     },
     "HK02359": {
-      "rsi": 43.99,
-      "macd_hist": -3.143676,
+      "rsi": 43.22,
+      "macd_hist": -3.207493,
       "macd_hist_list": [
         0.376964,
         -0.909836,
@@ -4375,14 +4929,14 @@
         -3.91464,
         -3.550865,
         -3.565095,
-        -3.143676
+        -3.207493
       ],
-      "vol_ratio": 0.55,
-      "updated_at": 1773115259878
+      "vol_ratio": 0.85,
+      "updated_at": 1773129120688
     },
     "HK02577": {
-      "rsi": 52.64,
-      "macd_hist": 0.380767,
+      "rsi": 53.8,
+      "macd_hist": 0.476494,
       "macd_hist_list": [
         3.416004,
         3.480015,
@@ -4393,14 +4947,14 @@
         0.474585,
         0.51834,
         0.257632,
-        0.380767
+        0.476494
       ],
-      "vol_ratio": 0.42,
-      "updated_at": 1773115259878
+      "vol_ratio": 0.75,
+      "updated_at": 1773129120688
     },
     "HK02590": {
-      "rsi": 30.15,
-      "macd_hist": -1.146765,
+      "rsi": 34.7,
+      "macd_hist": -1.043381,
       "macd_hist_list": [
         -0.855438,
         -1.029619,
@@ -4411,14 +4965,14 @@
         -1.376982,
         -1.278071,
         -1.288905,
-        -1.146765
+        -1.043381
       ],
-      "vol_ratio": 0.52,
-      "updated_at": 1773115259878
+      "vol_ratio": 0.97,
+      "updated_at": 1773129120688
     },
     "HK02722": {
-      "rsi": 56.58,
-      "macd_hist": -0.051628,
+      "rsi": 56.99,
+      "macd_hist": -0.049075,
       "macd_hist_list": [
         0.082682,
         0.112232,
@@ -4429,14 +4983,14 @@
         0.02603,
         -0.00069,
         -0.03842,
-        -0.051628
+        -0.049075
       ],
-      "vol_ratio": 0.34,
-      "updated_at": 1773115259878
+      "vol_ratio": 0.51,
+      "updated_at": 1773129120688
     },
     "HK03033": {
-      "rsi": 39.21,
-      "macd_hist": -0.027193,
+      "rsi": 41.16,
+      "macd_hist": -0.022598,
       "macd_hist_list": [
         -0.037511,
         -0.051052,
@@ -4447,14 +5001,14 @@
         -0.098733,
         -0.0746,
         -0.054622,
-        -0.027193
+        -0.022598
       ],
-      "vol_ratio": 0.61,
-      "updated_at": 1773115259878
+      "vol_ratio": 1.17,
+      "updated_at": 1773129120688
     },
     "HK03288": {
-      "rsi": 57.55,
-      "macd_hist": 0.050686,
+      "rsi": 57.92,
+      "macd_hist": 0.058344,
       "macd_hist_list": [
         0.488512,
         0.430728,
@@ -4465,14 +5019,14 @@
         -0.086782,
         -0.010133,
         0.021265,
-        0.050686
+        0.058344
       ],
-      "vol_ratio": 0.19,
-      "updated_at": 1773115259878
+      "vol_ratio": 0.31,
+      "updated_at": 1773129120688
     },
     "HK03896": {
-      "rsi": 52.81,
-      "macd_hist": -0.047964,
+      "rsi": 53.32,
+      "macd_hist": -0.042858,
       "macd_hist_list": [
         -0.13926,
         -0.189616,
@@ -4483,14 +5037,14 @@
         -0.28804,
         -0.253426,
         -0.106778,
-        -0.047964
+        -0.042858
       ],
-      "vol_ratio": 1.53,
-      "updated_at": 1773115259878
+      "vol_ratio": 1.98,
+      "updated_at": 1773129120689
     },
     "HK06060": {
-      "rsi": 39.66,
-      "macd_hist": -0.275258,
+      "rsi": 39.01,
+      "macd_hist": -0.28164,
       "macd_hist_list": [
         -0.024611,
         -0.085022,
@@ -4501,14 +5055,14 @@
         -0.532597,
         -0.449985,
         -0.391598,
-        -0.275258
+        -0.28164
       ],
-      "vol_ratio": 0.41,
-      "updated_at": 1773115259879
+      "vol_ratio": 0.65,
+      "updated_at": 1773129120689
     },
     "HK07226": {
-      "rsi": 37.51,
-      "macd_hist": -0.041048,
+      "rsi": 39.41,
+      "macd_hist": -0.033646,
       "macd_hist_list": [
         -0.069903,
         -0.093201,
@@ -4519,14 +5073,14 @@
         -0.164587,
         -0.123426,
         -0.088821,
-        -0.041048
+        -0.033646
       ],
-      "vol_ratio": 0.78,
-      "updated_at": 1773115259879
+      "vol_ratio": 1.1,
+      "updated_at": 1773129120689
     },
     "HK07262": {
-      "rsi": 41.44,
-      "macd_hist": -7.231271,
+      "rsi": 45.55,
+      "macd_hist": -6.599476,
       "macd_hist_list": [
         1.432472,
         1.502987,
@@ -4537,14 +5091,14 @@
         -5.026976,
         -5.203066,
         -7.130849,
-        -7.231271
+        -6.599476
       ],
-      "vol_ratio": 0.83,
-      "updated_at": 1773115259879
+      "vol_ratio": 1.17,
+      "updated_at": 1773129120689
     },
     "HK07709": {
-      "rsi": 47.79,
-      "macd_hist": -2.80968,
+      "rsi": 49.62,
+      "macd_hist": -2.625886,
       "macd_hist_list": [
         1.265971,
         2.149572,
@@ -4555,14 +5109,14 @@
         -1.644678,
         -2.045202,
         -2.85272,
-        -2.80968
+        -2.625886
       ],
-      "vol_ratio": 1.3,
-      "updated_at": 1773115259879
+      "vol_ratio": 1.8,
+      "updated_at": 1773129120689
     },
     "HK09618": {
-      "rsi": 52.63,
-      "macd_hist": 1.017411,
+      "rsi": 53.57,
+      "macd_hist": 1.093993,
       "macd_hist_list": [
         -0.311505,
         -0.476886,
@@ -4573,14 +5127,14 @@
         -1.655571,
         -0.444655,
         0.24479,
-        1.017411
+        1.093993
       ],
-      "vol_ratio": 0.33,
-      "updated_at": 1773115259879
+      "vol_ratio": 0.63,
+      "updated_at": 1773129120689
     },
     "HK09927": {
-      "rsi": 34.49,
-      "macd_hist": -0.932783,
+      "rsi": 34.35,
+      "macd_hist": -0.939165,
       "macd_hist_list": [
         0.458064,
         0.157498,
@@ -4591,14 +5145,14 @@
         -1.320526,
         -1.250269,
         -1.252247,
-        -0.932783
+        -0.939165
       ],
-      "vol_ratio": 0.55,
-      "updated_at": 1773115259879
+      "vol_ratio": 0.78,
+      "updated_at": 1773129120689
     },
     "HK09973": {
-      "rsi": 21.27,
-      "macd_hist": -0.619601,
+      "rsi": 20.65,
+      "macd_hist": -0.624706,
       "macd_hist_list": [
         0.084994,
         -0.001254,
@@ -4609,14 +5163,14 @@
         -0.523918,
         -0.567359,
         -0.654337,
-        -0.619601
+        -0.624706
       ],
-      "vol_ratio": 0.4,
-      "updated_at": 1773115259879
+      "vol_ratio": 0.64,
+      "updated_at": 1773129120689
     },
     "HK09988": {
-      "rsi": 35.36,
-      "macd_hist": -3.472579,
+      "rsi": 36.72,
+      "macd_hist": -3.344944,
       "macd_hist_list": [
         -3.631866,
         -4.02864,
@@ -4627,11 +5181,11 @@
         -5.874678,
         -5.18943,
         -4.652326,
-        -3.472579
+        -3.344944
       ],
-      "vol_ratio": 0.6,
-      "updated_at": 1773115259879
+      "vol_ratio": 1.0,
+      "updated_at": 1773129120689
     }
   },
-  "lastUpdated": 1773115259880
+  "lastUpdated": 1773129120690
 }
