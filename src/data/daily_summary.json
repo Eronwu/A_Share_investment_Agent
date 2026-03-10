@@ -1,105 +1,116 @@
 {
-  "date": "2026-03-09",
-  "generatedAt": 1773057164990,
+  "date": "2026-03-10",
+  "generatedAt": 1773129941102,
   "market": "HK",
   "stats": {
-    "totalSignals": 82,
-    "totalAlerts": 489,
+    "totalSignals": 91,
+    "totalAlerts": 454,
     "l1Count": 37,
     "bullish": 0,
     "bearish": 0,
-    "stockCount": 28,
-    "upCount": 6,
-    "downCount": 22
+    "stockCount": 33,
+    "upCount": 23,
+    "downCount": 9
   },
   "perStock": [
     {
       "code": "HK09988",
       "name": "阿里巴巴－Ｗ",
-      "change": -1.53,
-      "signalCount": 10,
-      "direction": "偏空",
+      "change": 3.5,
+      "signalCount": 6,
+      "direction": "偏多",
       "keySignals": [
         "散户机构分歧x3",
-        "RSI超卖x2",
         "均线空排x2",
-        "动量卖出确认x2",
-        "相对强弱",
+        "动量确认",
         "大幅异动"
-      ]
-    },
-    {
-      "code": "HK02590",
-      "name": "极智嘉-W",
-      "change": -6.04,
-      "signalCount": 6,
-      "direction": "中性",
-      "keySignals": [
-        "RSI超卖x2",
-        "均线空排x2",
-        "相对强弱x2",
-        "触价告警x4"
       ]
     },
     {
       "code": "HK06809",
       "name": "澜起科技",
-      "change": -2.41,
+      "change": 11.51,
       "signalCount": 0,
       "direction": "偏多",
       "keySignals": [
-        "大幅异动x4"
+        "大幅异动x6"
       ]
     },
     {
-      "code": "HK03986",
-      "name": "兆易创新",
-      "change": -6.59,
-      "signalCount": 0,
-      "direction": "偏空",
+      "code": "HK02590",
+      "name": "极智嘉-W",
+      "change": 5.4,
+      "signalCount": 5,
+      "direction": "偏多",
       "keySignals": [
-        "大幅异动x3"
+        "均线空排x2",
+        "相对强弱x2",
+        "RSI超卖",
+        "触价告警x5"
       ]
     },
     {
       "code": "HK07709",
       "name": "XL二南方海力士",
-      "change": -16.8,
-      "signalCount": 6,
+      "change": 21.71,
+      "signalCount": 5,
       "direction": "偏多",
       "keySignals": [
         "散户机构分歧x3",
         "相对强弱x2",
-        "破位下跌",
-        "大幅异动x12",
-        "trade_planx2"
+        "大幅异动x6"
+      ]
+    },
+    {
+      "code": "HK03986",
+      "name": "兆易创新",
+      "change": 3.12,
+      "signalCount": 4,
+      "direction": "偏空",
+      "keySignals": [
+        "散户机构分歧x4",
+        "大幅异动x3"
       ]
     },
     {
       "code": "HK03896",
       "name": "金山云",
-      "change": 13.66,
-      "signalCount": 2,
+      "change": -4.51,
+      "signalCount": 7,
       "direction": "偏多",
       "keySignals": [
+        "散户机构分歧x4",
         "相对强弱x2",
-        "大幅异动x4"
+        "MACD金叉",
+        "大幅异动x5",
+        "gap_fade"
       ]
     },
     {
       "code": "HK01211",
       "name": "比亚迪股份",
-      "change": 3.54,
-      "signalCount": 1,
-      "direction": "偏多",
+      "change": -1.02,
+      "signalCount": 3,
+      "direction": "中性",
       "keySignals": [
-        "动量确认"
+        "散户机构分歧x2",
+        "MACD金叉"
       ]
     },
     {
       "code": "000338",
       "name": "潍柴动力",
-      "change": -5.33,
+      "change": 4.35,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": [
+        "大幅异动"
+      ]
+    },
+    {
+      "code": "002475",
+      "name": "立讯精密",
+      "change": 6.22,
       "signalCount": 0,
       "direction": "中性",
       "keySignals": [
@@ -109,214 +120,193 @@
     {
       "code": "HK00700",
       "name": "腾讯控股",
-      "change": -0.58,
-      "signalCount": 5,
+      "change": 7.66,
+      "signalCount": 9,
       "direction": "偏多",
       "keySignals": [
         "散户机构分歧x3",
-        "均线空排x2"
-      ]
-    },
-    {
-      "code": "002080",
-      "name": "中材科技",
-      "change": -0.87,
-      "signalCount": 0,
-      "direction": "中性",
-      "keySignals": [
+        "动量确认x3",
+        "均线空排x2",
+        "相对强弱",
         "大幅异动x2"
       ]
     },
     {
       "code": "HK02359",
       "name": "药明康德",
-      "change": -2.86,
-      "signalCount": 0,
-      "direction": "偏多",
+      "change": 2.02,
+      "signalCount": 1,
+      "direction": "偏空",
       "keySignals": [
-        "大幅异动"
+        "散户机构分歧"
       ]
     },
     {
       "code": "HK07226",
       "name": "南方两倍做多纳指",
-      "change": -0.6,
+      "change": 5.46,
       "signalCount": 6,
       "direction": "偏多",
       "keySignals": [
-        "均线空排x2",
-        "相对强弱x2",
-        "散户机构分歧",
-        "RSI超卖",
-        "大幅异动x3"
-      ]
-    },
-    {
-      "code": "HK09618",
-      "name": "京东-SW",
-      "change": -1.03,
-      "signalCount": 5,
-      "direction": "偏空",
-      "keySignals": [
-        "MACD金叉x2",
-        "均线空排x2",
-        "散户机构分歧",
-        "大幅异动"
-      ]
-    },
-    {
-      "code": "600673",
-      "name": "东阳光",
-      "change": 5.82,
-      "signalCount": 0,
-      "direction": "中性",
-      "keySignals": [
-        "大幅异动x5"
-      ]
-    },
-    {
-      "code": "000063",
-      "name": "中兴通讯",
-      "change": -4.55,
-      "signalCount": 0,
-      "direction": "中性",
-      "keySignals": [
-        "大幅异动x2"
-      ]
-    },
-    {
-      "code": "HK01060",
-      "name": "大麦娱乐",
-      "change": -5.19,
-      "signalCount": 4,
-      "direction": "偏多",
-      "keySignals": [
-        "均线空排x2",
-        "相对强弱x2",
-        "大幅异动x3"
-      ]
-    },
-    {
-      "code": "603596",
-      "name": "伯特利",
-      "change": -4.43,
-      "signalCount": 0,
-      "direction": "中性",
-      "keySignals": [
-        "大幅异动x2"
-      ]
-    },
-    {
-      "code": "HK02577",
-      "name": "英诺赛科",
-      "change": -3.16,
-      "signalCount": 3,
-      "direction": "偏多",
-      "keySignals": [
-        "相对强弱x2",
-        "MACD死叉",
-        "大幅异动x2"
-      ]
-    },
-    {
-      "code": "HK03033",
-      "name": "南方恒生科技",
-      "change": -0.29,
-      "signalCount": 4,
-      "direction": "偏多",
-      "keySignals": [
-        "散户机构分歧x2",
-        "均线空排x2"
-      ]
-    },
-    {
-      "code": "HK02722",
-      "name": "重庆机电",
-      "change": -4.06,
-      "signalCount": 2,
-      "direction": "偏空",
-      "keySignals": [
-        "相对强弱x2",
-        "大幅异动x3"
-      ]
-    },
-    {
-      "code": "HK07262",
-      "name": "XL二南方看多日经",
-      "change": -11.37,
-      "signalCount": 2,
-      "direction": "偏空",
-      "keySignals": [
-        "破位下跌x2",
-        "大幅异动x2",
-        "trade_planx2"
-      ]
-    },
-    {
-      "code": "HK06651",
-      "name": "五一视界",
-      "change": 7.38,
-      "signalCount": 0,
-      "direction": "偏空",
-      "keySignals": [
-        "大幅异动x5"
-      ]
-    },
-    {
-      "code": "HK09973",
-      "name": "HK09973",
-      "change": -3.2,
-      "signalCount": 6,
-      "direction": "偏多",
-      "keySignals": [
-        "RSI严重超卖x2",
-        "均线空排x2",
-        "相对强弱x2",
-        "trade_planx2"
-      ]
-    },
-    {
-      "code": "HK09927",
-      "name": "赛力斯",
-      "change": -1.48,
-      "signalCount": 6,
-      "direction": "偏空",
-      "keySignals": [
-        "RSI超卖x2",
-        "均线空排x2",
-        "相对强弱x2"
-      ]
-    },
-    {
-      "code": "HK03288",
-      "name": "海天味业",
-      "change": -0.23,
-      "signalCount": 4,
-      "direction": "中性",
-      "keySignals": [
-        "突破回踩x2",
-        "MACD金叉x2"
-      ]
-    },
-    {
-      "code": "HK01810",
-      "name": "小米集团－Ｗ",
-      "change": 0.78,
-      "signalCount": 8,
-      "direction": "中性",
-      "keySignals": [
-        "MACD底背离x2",
         "均线空排x2",
         "相对强弱x2",
         "散户机构分歧x2"
       ]
     },
     {
+      "code": "HK02577",
+      "name": "英诺赛科",
+      "change": 5.02,
+      "signalCount": 6,
+      "direction": "偏多",
+      "keySignals": [
+        "散户机构分歧x4",
+        "相对强弱x2"
+      ]
+    },
+    {
+      "code": "HK09618",
+      "name": "京东-SW",
+      "change": 1.71,
+      "signalCount": 3,
+      "direction": "偏空",
+      "keySignals": [
+        "均线空排x2",
+        "MACD金叉"
+      ]
+    },
+    {
+      "code": "603163",
+      "name": "圣晖集成",
+      "change": 2.93,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": [
+        "gap_fade"
+      ]
+    },
+    {
+      "code": "HK01060",
+      "name": "大麦娱乐",
+      "change": -1.37,
+      "signalCount": 5,
+      "direction": "偏空",
+      "keySignals": [
+        "均线空排x2",
+        "相对强弱x2",
+        "散户机构分歧"
+      ]
+    },
+    {
+      "code": "HK07262",
+      "name": "XL二南方看多日经",
+      "change": 9.11,
+      "signalCount": 1,
+      "direction": "偏空",
+      "keySignals": [
+        "破位下跌",
+        "大幅异动x3"
+      ]
+    },
+    {
+      "code": "HK03033",
+      "name": "南方恒生科技",
+      "change": 2.61,
+      "signalCount": 3,
+      "direction": "偏多",
+      "keySignals": [
+        "均线空排x2",
+        "散户机构分歧"
+      ]
+    },
+    {
+      "code": "HK01810",
+      "name": "小米集团－Ｗ",
+      "change": -0.24,
+      "signalCount": 8,
+      "direction": "偏多",
+      "keySignals": [
+        "MACD底背离x2",
+        "均线空排x2",
+        "相对强弱x2",
+        "散户机构分歧x2",
+        "gap_fade"
+      ]
+    },
+    {
+      "code": "HK02722",
+      "name": "重庆机电",
+      "change": 5.21,
+      "signalCount": 3,
+      "direction": "中性",
+      "keySignals": [
+        "相对强弱x2",
+        "突破回踩"
+      ]
+    },
+    {
+      "code": "600673",
+      "name": "东阳光",
+      "change": -2.73,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": [
+        "大幅异动x2"
+      ]
+    },
+    {
+      "code": "HK09973",
+      "name": "奇瑞汽车",
+      "change": 1.32,
+      "signalCount": 6,
+      "direction": "中性",
+      "keySignals": [
+        "均线空排x2",
+        "相对强弱x2",
+        "RSI严重超卖",
+        "吞没形态"
+      ]
+    },
+    {
+      "code": "HK06651",
+      "name": "五一视界",
+      "change": -3.44,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": [
+        "gap_fade"
+      ]
+    },
+    {
+      "code": "HK09927",
+      "name": "赛力斯",
+      "change": 2.42,
+      "signalCount": 5,
+      "direction": "偏多",
+      "keySignals": [
+        "均线空排x2",
+        "相对强弱x2",
+        "RSI超卖"
+      ]
+    },
+    {
+      "code": "HK03288",
+      "name": "海天味业",
+      "change": 0.0,
+      "signalCount": 3,
+      "direction": "偏多",
+      "keySignals": [
+        "MACD金叉",
+        "突破回踩",
+        "均线多排"
+      ]
+    },
+    {
       "code": "HK06060",
       "name": "众安在线",
-      "change": -1.34,
+      "change": 3.28,
       "signalCount": 2,
-      "direction": "偏空",
+      "direction": "中性",
       "keySignals": [
         "均线空排x2"
       ]
@@ -324,13 +314,73 @@
     {
       "code": "603778",
       "name": "国晟科技",
-      "change": 3.57,
+      "change": 6.83,
       "signalCount": 0,
       "direction": "中性",
       "keySignals": [
-        "大幅异动x2"
+        "大幅异动"
+      ]
+    },
+    {
+      "code": "600268",
+      "name": "国电南自",
+      "change": -1.35,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": [
+        "gap_fade"
+      ]
+    },
+    {
+      "code": "688012",
+      "name": "中微公司",
+      "change": 1.11,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": [
+        "gap_fade"
+      ]
+    },
+    {
+      "code": "688072",
+      "name": "拓荆科技",
+      "change": 1.86,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": [
+        "gap_fade"
+      ]
+    },
+    {
+      "code": "688196",
+      "name": "卓越新能",
+      "change": -1.35,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": [
+        "gap_recover"
+      ]
+    },
+    {
+      "code": "688361",
+      "name": "中科飞测",
+      "change": 0.7,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": [
+        "gap_fade"
+      ]
+    },
+    {
+      "code": "688525",
+      "name": "佰维存储",
+      "change": -1.34,
+      "signalCount": 0,
+      "direction": "中性",
+      "keySignals": [
+        "gap_fade"
       ]
     }
   ],
-  "report": "## 市场整体评估\n今日市场整体偏空，港股和A股均出现资金流出迹象。持仓中仅5只股票收涨，22只收跌，空头氛围明显。主力资金净流出约12亿，其中港股流出约8亿，A股流出约4亿。板块分化明显，科技股和新能源板块资金流出较多，而部分消费和医药股出现资金回流迹象。\n\n## 重点关注\n1. **HK09988 阿里巴巴－Ｗ** [★重点] — 今日大单净卖出0.15亿，tick偏卖5.7%，主力资金净流出0.01亿，三维共振偏空。散户机构分歧加剧，RSI超卖信号频现，提示短期超跌反弹可能性。但均线空头排列和动量卖出信号确认，中期趋势仍偏弱。建议关注125整数关口支撑力度，若跌破则需警惕进一步下行风险。\n   - 重点解读：\n     - 大单与主力资金流向一致，但tick偏卖幅度不大，显示空头力量尚未完全释放。\n     - RSI超卖与均线空排矛盾，提示短期反弹与中期下跌趋势的博弈。\n\n2. **HK02590 极智嘉-W** [★重点] — 今日大单净买入0.00亿，tick偏买7.5%，但主力资金净流出0.04亿，量价背离明显。RSI连续超卖，均线空头排列，提示中期趋势仍偏弱。但tick偏买显示有资金在低位吸筹，建议关注24.5元支撑位，若能放量站上则有望迎来反弹。\n   - 重点解读：\n     - 大单与tick方向一致，但主力资金流出，提示主力可能在借机出货。\n     - RSI超卖与均线空排矛盾，提示短期反弹与中期下跌趋势的博弈。\n\n3. **HK06809 澜起科技** [★重点] — 今日大单净买入0.00亿，tick偏卖2.9%，主力资金净流出0.19亿，量价背离。大幅异动信号频现，提示资金分歧加剧。但tick偏卖幅度不大，显示空头力量有限。建议关注157.67元成本价支撑，若跌破则需警惕进一步下行风险。\n   - 重点解读：\n     - 大单与tick方向不一致，提示资金博弈激烈。\n     - 主力资金流出但tick偏卖幅度不大，提示主力可能在借机洗盘。\n\n4. **HK03986 兆易创新** [★重点] — 今日大单净买入0.00亿，tick偏卖16.4%，主力资金净流出0.37亿，三维共振偏空。tick偏卖幅度较大，提示空头力量较强。但RSI未超卖，均线仍处于多头排列，提示中期趋势尚未完全转空。建议关注363.30元成本价支撑，若跌破则需警惕进一步下行风险。\n   - 重点解读：\n     - 大单与tick方向一致，但主力资金流出，提示主力可能在借机出货。\n     - tick偏卖幅度较大，提示空头力量较强。\n\n5. **HK07709 XL二南方海力士** [★重点] — 今日大单净买入0.00亿，tick偏买25.3%，但主力资金净流出2.05亿，量价背离明显。tick偏买幅度较大，提示有资金在低位吸筹。但均线空头排列，大幅异动信号频现，提示中期趋势仍偏弱。建议关注28.11元成本价支撑，若跌破则需警惕进一步下行风险。\n   - 重点解读：\n     - 大单与tick方向一致，但主力资金流出，提示主力可能在借机出货。\n     - tick偏买幅度较大，提示有资金在低位吸筹。\n\n## 逐股速览\n- **HK01211 比亚迪股份** — tick偏买21.2%+主力流入3.35亿，多头格局。\n- **HK07709 XL二南方海力士** — tick偏买25.3%-主力流出2.05亿，量价背离。\n- **HK03986 兆易创新** — tick偏卖16.4%-主力流出0.37亿，空头格局。\n- **HK02722 重庆机电** — tick偏卖33.1%-主力流出0.10亿，空头格局。\n- **HK07262 XL二南方看多日经** — tick偏卖85.8%-主力流出0.01亿，空头格局。\n\n## 操作建议\n1. **阿里巴巴**距买入条件单125仅3.5%，建议密切关注，若放量跌破则需警惕进一步下行风险。\n2. **极智嘉**建议关注24.5元支撑位，若能放量站上则可考虑加仓。\n3. **澜起科技**建议关注157.67元成本价支撑，若跌破则需减仓避险。\n4. **兆易创新**建议关注363.30元成本价支撑，若跌破则需减仓避险。\n5. **XL二南方海力士**建议关注28.11元成本价支撑，若跌破则需减仓避险。\n6. **比亚迪股份**建议持有，若继续上涨可考虑逢高减仓。\n7. **海天味业**建议关注34.00元支撑位，若跌破则需减仓避险。\n8. **众安在线**建议关注14.00元支撑位，若跌破则需减仓避险。\n9. **南方两倍做多纳指**建议关注3.94元支撑位，若跌破则需减仓避险。\n10. **京东**建议关注105.30元支撑位，若跌破则需减仓避险。"
+  "report": "## 市场整体评估\n今日市场整体呈现多头氛围，港股表现强于A股。主力资金净流入约15亿，其中港股贡献主要增量。持仓中21只标的tick偏买超过10%，显示资金做多意愿较强。板块方面，恒生科技指数相关标的资金流入明显，而部分A股标的仍处于资金流出状态，分化较为明显。\n\n## 重点关注\n1. **HK09988 阿里巴巴－Ｗ** — [★重点]  \n   今日大单净买入0.39亿，tick偏买14.3%，但主力资金净流出0.28亿，显示出机构与散户之间存在分歧。三维共振综合评分+2，方向偏多但力度有限。  \n   重点解读：  \n   - 主力资金流出可能源于算法拆单或对倒行为，而非真实抛压  \n   - tick偏买显示日内买盘力量较强，但大单净额较小，暗示主力仍在观望  \n   - 均线空头排列压制反弹空间，需关注135附近阻力位  \n\n2. **HK06809 澜起科技** — [★重点]  \n   今日无大单交易，tick偏买23.2%，主力资金净流入0.25亿，显示出散户主导的强势上涨行情。三维共振综合评分+3，方向偏多。  \n   重点解读：  \n   - 缺乏大单支撑的上涨可能缺乏持续性，需警惕回调风险  \n   - tick偏买幅度较大，显示市场情绪高涨，但需警惕过度乐观  \n\n3. **HK02590 极智嘉-W** — [★重点]  \n   今日无大单交易，tick偏买23.5%，主力资金微量流入0.01亿，显示出散户积极买入但主力参与度不高。三维共振综合评分+3，方向偏多。  \n   重点解读：  \n   - RSI超卖区域反弹，短期内仍有上行空间  \n   - 均线空头排列未改，反弹持续性存疑  \n\n4. **HK07709 XL二南方海力士** — [★重点]  \n   今日无大单交易，tick偏买1.8%，主力资金净流入1.20亿，显示出主力资金主导的上涨行情。三维共振综合评分+1，方向中性偏多。  \n   重点解读：  \n   - 主力资金大幅流入，但tick偏买幅度较小，暗示主力可能在逢低吸纳  \n   - 需关注HBM概念后续催化力度  \n\n5. **HK03986 兆易创新** — [★重点]  \n   今日无大单交易，tick偏买5.4%，主力资金净流出0.12亿，显示出主力资金小幅流出。三维共振综合评分-1，方向中性偏空。  \n   重点解读：  \n   - 主力资金流出与tick偏买方向矛盾，可能源于获利盘了结  \n   - 需关注350元附近支撑力度  \n\n## 逐股速览\n- **HK00700 腾讯控股** — tick偏买16%+主力流入1.31亿，多头格局强劲  \n- **HK01810 小米集团－Ｗ** — 大单净买0.52亿，但tick偏卖0.7%，主力流出1.47亿，多空分歧明显  \n- **HK09618 京东-SW** — tick偏卖16.9%+主力流出1.42亿，空头格局  \n- **HK07226 南方两倍做多纳指** — tick偏卖3.1%+主力流出0.56亿，谨慎观望  \n- **HK01060 大麦娱乐** — tick偏卖35.6%+主力流出0.13亿，弱势格局  \n\n## 操作建议\n1. **阿里巴巴**距买入条件单125仅3.5%，建议密切关注资金流向，若大单净额转正可分批建仓。  \n2. **腾讯控股**强势上涨，建议继续持有，但需警惕获利盘了结风险，可考虑在700元附近部分止盈。  \n3. **小米集团**多空分歧明显，建议观望为主，若跌破31元硬止损线需坚决离场。  \n4. **京东**空头格局明显，建议逢高减仓，止损线设在85元。  \n5. **澜起科技**无大单支撑的上涨需警惕回调风险，建议逢高减仓，锁定利润。  \n6. **极智嘉-W** RSI超卖反弹，建议持有观察，但需设置好止损线。"
 }

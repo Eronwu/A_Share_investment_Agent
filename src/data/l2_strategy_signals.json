@@ -1,40 +1,6 @@
 {
   "signals": [
     {
-      "ts": 1772783097450,
-      "time": "15:44:57",
-      "strategy": "ma_bearish_align",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "大麦娱乐 均线空头排列",
-      "display": "HK01060 大麦娱乐 均线空头排列: MA5=0.74 MA10=0.79 MA20=0.87 MA60=0.89 斜率-5.31% | 现价0.77 日涨+10.0% 量比1.5 净流入2369万",
-      "detail": {
-        "ma5": 0.74,
-        "ma10": 0.79,
-        "ma20": 0.87,
-        "ma60": 0.89,
-        "ma20_slope_pct": -5.31
-      }
-    },
-    {
-      "ts": 1772783097450,
-      "time": "15:44:57",
-      "strategy": "engulfing_pattern",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 吞没形态",
-      "display": "HK01060 大麦娱乐 看涨吞没形态 | 现价0.77 日涨+10.0% 量比1.5 净流入2369万",
-      "detail": {
-        "direction": "bullish",
-        "prev_open": 0.72,
-        "prev_close": 0.7,
-        "curr_open": 0.69,
-        "curr_close": 0.77
-      }
-    },
-    {
       "ts": 1772783097567,
       "time": "15:44:57",
       "strategy": "macd_bottom_divergence",
@@ -3317,6 +3283,40 @@
         "super_net": -23466080.0,
         "big_net": -85919380.0
       }
+    },
+    {
+      "ts": 1773129172342,
+      "time": "15:52:52",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK03986",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "兆易创新 散户机构分歧",
+      "display": "HK03986 兆易创新 散户机构分歧: 主力出散户进 | 机构净-1413万 散户净+3577万 | 现价376.80 日涨+3.0% 净流出1413万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -14125780.0,
+        "retail_net": 35772700.0,
+        "super_net": -9455420.0,
+        "big_net": -4670360.0
+      }
+    },
+    {
+      "ts": 1773129228206,
+      "time": "15:53:48",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK02577",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "英诺赛科 散户机构分歧",
+      "display": "HK02577 英诺赛科 散户机构分歧: 主力进散户出 | 机构净+5601万 散户净-2297万 | 现价66.00 日涨+5.1% 净流入5601万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 56011370.0,
+        "retail_net": -22973635.0,
+        "super_net": 35512410.0,
+        "big_net": 20498960.0
+      }
     }
   ],
   "session": {
@@ -3324,9 +3324,9 @@
       "direction": "bullish",
       "score": 2,
       "tick": {
-        "buy_vol": 451700,
-        "sell_vol": 241400,
-        "imbalance": 0.303,
+        "buy_vol": 455300,
+        "sell_vol": 254000,
+        "imbalance": 0.284,
         "direction_score": 1
       },
       "large_order": {
@@ -3340,7 +3340,7 @@
       },
       "capital_flow": {
         "main_net_inflow": -355340.0,
-        "main_net_inflow_pct": -4.96,
+        "main_net_inflow_pct": -5.08,
         "direction_score": 0
       }
     },
@@ -3348,9 +3348,9 @@
       "direction": "bullish",
       "score": 1,
       "tick": {
-        "buy_vol": 61288900,
-        "sell_vol": 59491900,
-        "imbalance": 0.015,
+        "buy_vol": 63401800,
+        "sell_vol": 60089500,
+        "imbalance": 0.027,
         "direction_score": 0
       },
       "large_order": {
@@ -3372,9 +3372,9 @@
       "direction": "bullish",
       "score": 3,
       "tick": {
-        "buy_vol": 389600,
-        "sell_vol": 218700,
-        "imbalance": 0.281,
+        "buy_vol": 400200,
+        "sell_vol": 231000,
+        "imbalance": 0.268,
         "direction_score": 1
       },
       "large_order": {
@@ -3387,8 +3387,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 5536025.0,
-        "main_net_inflow_pct": 41.63,
+        "main_net_inflow": 6371440.0,
+        "main_net_inflow_pct": 42.31,
         "direction_score": 1
       }
     },
@@ -3396,9 +3396,9 @@
       "direction": "bullish",
       "score": 1,
       "tick": {
-        "buy_vol": 3190700,
-        "sell_vol": 3299200,
-        "imbalance": -0.017,
+        "buy_vol": 3360700,
+        "sell_vol": 3575400,
+        "imbalance": -0.031,
         "direction_score": 0
       },
       "large_order": {
@@ -3411,7 +3411,7 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 6808123.0,
+        "main_net_inflow": 6549463.0,
         "main_net_inflow_pct": 0,
         "direction_score": 1
       }
@@ -3420,8 +3420,8 @@
       "direction": "bullish",
       "score": 3,
       "tick": {
-        "buy_vol": 13476000,
-        "sell_vol": 10685000,
+        "buy_vol": 14035400,
+        "sell_vol": 11115700,
         "imbalance": 0.116,
         "direction_score": 1
       },
@@ -3441,8 +3441,8 @@
         ]
       },
       "capital_flow": {
-        "main_net_inflow": 45777770.0,
-        "main_net_inflow_pct": 17.8,
+        "main_net_inflow": 38165210.0,
+        "main_net_inflow_pct": 14.14,
         "direction_score": 1
       }
     },
@@ -3450,9 +3450,9 @@
       "direction": "bullish",
       "score": 3,
       "tick": {
-        "buy_vol": 1171819200,
-        "sell_vol": 872247000,
-        "imbalance": 0.147,
+        "buy_vol": 1190029400,
+        "sell_vol": 882550400,
+        "imbalance": 0.148,
         "direction_score": 1
       },
       "large_order": {
@@ -3465,8 +3465,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 1101487354.8,
-        "main_net_inflow_pct": 75.42,
+        "main_net_inflow": 1142896410.8,
+        "main_net_inflow_pct": 76.17,
         "direction_score": 1
       }
     },
@@ -3474,9 +3474,9 @@
       "direction": "neutral",
       "score": 0,
       "tick": {
-        "buy_vol": 7030,
-        "sell_vol": 14560,
-        "imbalance": -0.349,
+        "buy_vol": 7130,
+        "sell_vol": 14570,
+        "imbalance": -0.343,
         "direction_score": 0
       },
       "large_order": {
@@ -3498,17 +3498,17 @@
       "direction": "bullish",
       "score": 3,
       "tick": {
-        "buy_vol": 44592500,
-        "sell_vol": 32965200,
-        "imbalance": 0.15,
+        "buy_vol": 46162400,
+        "sell_vol": 34786800,
+        "imbalance": 0.141,
         "direction_score": 1
       },
       "large_order": {
-        "buy_count": 12,
-        "sell_count": 13,
-        "buy_amount": 280354940.0,
-        "sell_amount": 264964560.0,
-        "net_amount": 15390380.0,
+        "buy_count": 14,
+        "sell_count": 14,
+        "buy_amount": 320448740.0,
+        "sell_amount": 281810760.0,
+        "net_amount": 38637980.0,
         "direction_score": 1,
         "orders": [
           [
@@ -3650,12 +3650,27 @@
             1773128809.348067,
             "SELL",
             15766350.0
+          ],
+          [
+            1773129237.7666738,
+            "SELL",
+            16846200.0
+          ],
+          [
+            1773129302.985358,
+            "BUY",
+            21643200.0
+          ],
+          [
+            1773129302.98536,
+            "BUY",
+            18450600.0
           ]
         ]
       },
       "capital_flow": {
-        "main_net_inflow": -27903200.0,
-        "main_net_inflow_pct": -1.75,
+        "main_net_inflow": -53264240.0,
+        "main_net_inflow_pct": -3.35,
         "direction_score": -1
       }
     },
@@ -3663,9 +3678,9 @@
       "direction": "bearish",
       "score": -1,
       "tick": {
-        "buy_vol": 78744000,
-        "sell_vol": 84470000,
-        "imbalance": -0.035,
+        "buy_vol": 80404000,
+        "sell_vol": 87052000,
+        "imbalance": -0.04,
         "direction_score": 0
       },
       "large_order": {
@@ -3678,8 +3693,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -106628660.0,
-        "main_net_inflow_pct": 233.42,
+        "main_net_inflow": -106334220.0,
+        "main_net_inflow_pct": 200.73,
         "direction_score": -1
       }
     },
@@ -3687,9 +3702,9 @@
       "direction": "bearish",
       "score": -1,
       "tick": {
-        "buy_vol": 550900,
-        "sell_vol": 507600,
-        "imbalance": 0.041,
+        "buy_vol": 574800,
+        "sell_vol": 516200,
+        "imbalance": 0.054,
         "direction_score": 0
       },
       "large_order": {
@@ -3702,8 +3717,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -14125780.0,
-        "main_net_inflow_pct": -102.45,
+        "main_net_inflow": -11142460.0,
+        "main_net_inflow_pct": -56.95,
         "direction_score": -1
       }
     },
@@ -3711,9 +3726,9 @@
       "direction": "bullish",
       "score": 1,
       "tick": {
-        "buy_vol": 57963200,
-        "sell_vol": 57587800,
-        "imbalance": 0.003,
+        "buy_vol": 60502600,
+        "sell_vol": 61605800,
+        "imbalance": -0.009,
         "direction_score": 0
       },
       "large_order": {
@@ -3742,8 +3757,8 @@
         ]
       },
       "capital_flow": {
-        "main_net_inflow": -83730372.0,
-        "main_net_inflow_pct": -241.03,
+        "main_net_inflow": -150863368.0,
+        "main_net_inflow_pct": 762.16,
         "direction_score": -1
       }
     },
@@ -3751,9 +3766,9 @@
       "direction": "bearish",
       "score": -3,
       "tick": {
-        "buy_vol": 4126000,
-        "sell_vol": 5839500,
-        "imbalance": -0.172,
+        "buy_vol": 4431500,
+        "sell_vol": 6152900,
+        "imbalance": -0.163,
         "direction_score": -1
       },
       "large_order": {
@@ -3766,8 +3781,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -141569945.0,
-        "main_net_inflow_pct": 87.63,
+        "main_net_inflow": -159127165.0,
+        "main_net_inflow_pct": 87.31,
         "direction_score": -1
       }
     },
@@ -3775,9 +3790,9 @@
       "direction": "bullish",
       "score": 1,
       "tick": {
-        "buy_vol": 6996000,
-        "sell_vol": 6990000,
-        "imbalance": 0.0,
+        "buy_vol": 7754000,
+        "sell_vol": 7070000,
+        "imbalance": 0.046,
         "direction_score": 0
       },
       "large_order": {
@@ -3799,9 +3814,9 @@
       "direction": "bullish",
       "score": 2,
       "tick": {
-        "buy_vol": 2740200,
-        "sell_vol": 1702200,
-        "imbalance": 0.234,
+        "buy_vol": 2822400,
+        "sell_vol": 1772400,
+        "imbalance": 0.229,
         "direction_score": 1
       },
       "large_order": {
@@ -3814,8 +3829,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 389718.0,
-        "main_net_inflow_pct": 1.87,
+        "main_net_inflow": 815318.0,
+        "main_net_inflow_pct": 3.8,
         "direction_score": 0
       }
     },
@@ -3823,9 +3838,9 @@
       "direction": "bullish",
       "score": 3,
       "tick": {
-        "buy_vol": 2788000,
-        "sell_vol": 2234200,
-        "imbalance": 0.11,
+        "buy_vol": 2828500,
+        "sell_vol": 2300200,
+        "imbalance": 0.103,
         "direction_score": 1
       },
       "large_order": {
@@ -3838,8 +3853,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 56011370.0,
-        "main_net_inflow_pct": 139.09,
+        "main_net_inflow": 54625550.0,
+        "main_net_inflow_pct": 141.92,
         "direction_score": 1
       }
     },
@@ -3847,9 +3862,9 @@
       "direction": "bearish",
       "score": -1,
       "tick": {
-        "buy_vol": 146816400,
-        "sell_vol": 155494500,
-        "imbalance": -0.029,
+        "buy_vol": 153428700,
+        "sell_vol": 162361500,
+        "imbalance": -0.028,
         "direction_score": 0
       },
       "large_order": {
@@ -3862,8 +3877,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -56112190.4,
-        "main_net_inflow_pct": 158.13,
+        "main_net_inflow": -60439486.4,
+        "main_net_inflow_pct": 162.17,
         "direction_score": -1
       }
     },
@@ -3871,9 +3886,9 @@
       "direction": "neutral",
       "score": 0,
       "tick": {
-        "buy_vol": 413000,
-        "sell_vol": 472400,
-        "imbalance": -0.067,
+        "buy_vol": 425200,
+        "sell_vol": 478800,
+        "imbalance": -0.059,
         "direction_score": 0
       },
       "large_order": {
@@ -3895,17 +3910,17 @@
       "direction": "bullish",
       "score": 3,
       "tick": {
-        "buy_vol": 27603300,
-        "sell_vol": 19748100,
-        "imbalance": 0.166,
+        "buy_vol": 28218900,
+        "sell_vol": 20407800,
+        "imbalance": 0.161,
         "direction_score": 1
       },
       "large_order": {
-        "buy_count": 94,
-        "sell_count": 68,
-        "buy_amount": 2185332950.0,
-        "sell_amount": 1398686850.0,
-        "net_amount": 786646100.0,
+        "buy_count": 96,
+        "sell_count": 69,
+        "buy_amount": 2232614450.0,
+        "sell_amount": 1429433250.0,
+        "net_amount": 803181200.0,
         "direction_score": 1,
         "orders": [
           [
@@ -4737,12 +4752,27 @@
             1773128961.068929,
             "BUY",
             27158400.0
+          ],
+          [
+            1773129154.627696,
+            "BUY",
+            16590000.0
+          ],
+          [
+            1773129188.575252,
+            "SELL",
+            30746400.0
+          ],
+          [
+            1773129462.720556,
+            "BUY",
+            30691500.0
           ]
         ]
       },
       "capital_flow": {
-        "main_net_inflow": -27729800.0,
-        "main_net_inflow_pct": -0.63,
+        "main_net_inflow": -36299900.0,
+        "main_net_inflow_pct": -0.83,
         "direction_score": -1
       }
     },
@@ -4750,9 +4780,9 @@
       "direction": "neutral",
       "score": 0,
       "tick": {
-        "buy_vol": 677900,
-        "sell_vol": 632500,
-        "imbalance": 0.035,
+        "buy_vol": 704100,
+        "sell_vol": 669800,
+        "imbalance": 0.025,
         "direction_score": 0
       },
       "large_order": {
@@ -4765,7 +4795,7 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -473494.0,
+        "main_net_inflow": -787862.0,
         "main_net_inflow_pct": 0,
         "direction_score": 0
       }
@@ -4774,9 +4804,9 @@
       "direction": "bullish",
       "score": 3,
       "tick": {
-        "buy_vol": 1162100,
-        "sell_vol": 717600,
-        "imbalance": 0.236,
+        "buy_vol": 1173300,
+        "sell_vol": 739400,
+        "imbalance": 0.227,
         "direction_score": 1
       },
       "large_order": {
@@ -4789,8 +4819,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 25181520.0,
-        "main_net_inflow_pct": 31.54,
+        "main_net_inflow": 25839240.0,
+        "main_net_inflow_pct": 32.65,
         "direction_score": 1
       }
     },
@@ -4798,9 +4828,9 @@
       "direction": "bearish",
       "score": -3,
       "tick": {
-        "buy_vol": 46150000,
-        "sell_vol": 98030000,
-        "imbalance": -0.36,
+        "buy_vol": 47810000,
+        "sell_vol": 101270000,
+        "imbalance": -0.359,
         "direction_score": -1
       },
       "large_order": {
@@ -4814,17 +4844,17 @@
       },
       "capital_flow": {
         "main_net_inflow": -13393600.0,
-        "main_net_inflow_pct": 36.7,
+        "main_net_inflow_pct": 35.62,
         "direction_score": -1
       }
     },
     "HK02359": {
-      "direction": "bearish",
-      "score": -1,
+      "direction": "neutral",
+      "score": 0,
       "tick": {
-        "buy_vol": 2078200,
-        "sell_vol": 1761000,
-        "imbalance": 0.083,
+        "buy_vol": 2185600,
+        "sell_vol": 1804300,
+        "imbalance": 0.096,
         "direction_score": 0
       },
       "large_order": {
@@ -4837,9 +4867,9 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -5796120.0,
-        "main_net_inflow_pct": -16.43,
-        "direction_score": -1
+        "main_net_inflow": -2430970.0,
+        "main_net_inflow_pct": -5.68,
+        "direction_score": 0
       }
     }
   },
@@ -4860,7 +4890,7 @@
         8.530196
       ],
       "vol_ratio": 1.76,
-      "updated_at": 1773129120688
+      "updated_at": 1773129659580
     },
     "HK01060": {
       "rsi": 34.03,
@@ -4878,7 +4908,7 @@
         -0.02803
       ],
       "vol_ratio": 0.7,
-      "updated_at": 1773129120688
+      "updated_at": 1773129659580
     },
     "HK01211": {
       "rsi": 50.5,
@@ -4896,7 +4926,7 @@
         -0.050295
       ],
       "vol_ratio": 0.89,
-      "updated_at": 1773129120688
+      "updated_at": 1773129659580
     },
     "HK01810": {
       "rsi": 42.33,
@@ -4914,7 +4944,7 @@
         -0.15094
       ],
       "vol_ratio": 0.77,
-      "updated_at": 1773129120688
+      "updated_at": 1773129659580
     },
     "HK02359": {
       "rsi": 43.22,
@@ -4932,7 +4962,7 @@
         -3.207493
       ],
       "vol_ratio": 0.85,
-      "updated_at": 1773129120688
+      "updated_at": 1773129659580
     },
     "HK02577": {
       "rsi": 53.8,
@@ -4950,7 +4980,7 @@
         0.476494
       ],
       "vol_ratio": 0.75,
-      "updated_at": 1773129120688
+      "updated_at": 1773129659580
     },
     "HK02590": {
       "rsi": 34.7,
@@ -4968,7 +4998,7 @@
         -1.043381
       ],
       "vol_ratio": 0.97,
-      "updated_at": 1773129120688
+      "updated_at": 1773129659580
     },
     "HK02722": {
       "rsi": 56.99,
@@ -4986,7 +5016,7 @@
         -0.049075
       ],
       "vol_ratio": 0.51,
-      "updated_at": 1773129120688
+      "updated_at": 1773129659580
     },
     "HK03033": {
       "rsi": 41.16,
@@ -5004,7 +5034,7 @@
         -0.022598
       ],
       "vol_ratio": 1.17,
-      "updated_at": 1773129120688
+      "updated_at": 1773129659580
     },
     "HK03288": {
       "rsi": 57.92,
@@ -5022,7 +5052,7 @@
         0.058344
       ],
       "vol_ratio": 0.31,
-      "updated_at": 1773129120688
+      "updated_at": 1773129659580
     },
     "HK03896": {
       "rsi": 53.32,
@@ -5040,7 +5070,7 @@
         -0.042858
       ],
       "vol_ratio": 1.98,
-      "updated_at": 1773129120689
+      "updated_at": 1773129659580
     },
     "HK06060": {
       "rsi": 39.01,
@@ -5058,7 +5088,7 @@
         -0.28164
       ],
       "vol_ratio": 0.65,
-      "updated_at": 1773129120689
+      "updated_at": 1773129659580
     },
     "HK07226": {
       "rsi": 39.41,
@@ -5076,7 +5106,7 @@
         -0.033646
       ],
       "vol_ratio": 1.1,
-      "updated_at": 1773129120689
+      "updated_at": 1773129659580
     },
     "HK07262": {
       "rsi": 45.55,
@@ -5094,7 +5124,7 @@
         -6.599476
       ],
       "vol_ratio": 1.17,
-      "updated_at": 1773129120689
+      "updated_at": 1773129659580
     },
     "HK07709": {
       "rsi": 49.62,
@@ -5112,7 +5142,7 @@
         -2.625886
       ],
       "vol_ratio": 1.8,
-      "updated_at": 1773129120689
+      "updated_at": 1773129659580
     },
     "HK09618": {
       "rsi": 53.57,
@@ -5130,7 +5160,7 @@
         1.093993
       ],
       "vol_ratio": 0.63,
-      "updated_at": 1773129120689
+      "updated_at": 1773129659580
     },
     "HK09927": {
       "rsi": 34.35,
@@ -5148,7 +5178,7 @@
         -0.939165
       ],
       "vol_ratio": 0.78,
-      "updated_at": 1773129120689
+      "updated_at": 1773129659581
     },
     "HK09973": {
       "rsi": 20.65,
@@ -5166,7 +5196,7 @@
         -0.624706
       ],
       "vol_ratio": 0.64,
-      "updated_at": 1773129120689
+      "updated_at": 1773129659581
     },
     "HK09988": {
       "rsi": 36.72,
@@ -5184,8 +5214,8 @@
         -3.344944
       ],
       "vol_ratio": 1.0,
-      "updated_at": 1773129120689
+      "updated_at": 1773129659581
     }
   },
-  "lastUpdated": 1773129120690
+  "lastUpdated": 1773129659582
 }

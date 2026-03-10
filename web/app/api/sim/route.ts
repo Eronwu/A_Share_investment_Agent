@@ -330,17 +330,35 @@ export async function GET() {
     const currentEquity = initialCapital + totalPnl;
     const cashAvailable = currentEquity - totalMktVal;
 
-    // Today's P&L = today's realized (closed today) + today's unrealized change (positions day pnl)
+    // Today's P&L = today's price change for open positions + today's price change for trades closed today
+    // Key: use chgAmt (today's change from yesterday close), NOT total trade pnl
     const today = new Date().toISOString().slice(0, 10);
-    const todayRealizedPnl = liveTrades
+    const todayClosedDayPnl = liveTrades
       .filter(t => t.exit_date === today)
-      .reduce((sum, t) => sum + (t.pnl || 0), 0);
+      .reduce((sum, t) => {
+        const code = t.code as string;
+        const qty = Number(t.quantity) || 0;
+        const mkt = marketLookup[code];
+        if (mkt && mkt.chgAmt) {
+          // Market data available: use today's change per share
+          return sum + mkt.chgAmt * qty;
+        }
+        // Market data unavailable (stock no longer in watchlist):
+        // Approximate from exit_price and change%: chgAmt ≈ exit_price * change / (100 + change)
+        const exitPrice = Number(t.exit_price) || 0;
+        if (mkt && mkt.change && exitPrice > 0) {
+          const approxChg = exitPrice * mkt.change / (100 + mkt.change);
+          return sum + approxChg * qty;
+        }
+        // No market data at all — today's portion unknown, use 0 (conservative)
+        return sum;
+      }, 0);
     const todayUnrealizedPnl = livePositions.reduce((sum, p) => {
       const qty = Number(p.quantity) || 0;
       const chgAmt = Number(p.chgAmt) || 0;
       return sum + chgAmt * qty;
     }, 0);
-    const todayPnl = todayRealizedPnl + todayUnrealizedPnl;
+    const todayPnl = todayClosedDayPnl + todayUnrealizedPnl;
     // Today's return% = todayPnl / yesterday's equity (equity before today's change)
     const yesterdayEquity = currentEquity - todayPnl;
     const todayReturn = yesterdayEquity > 0 ? todayPnl / yesterdayEquity : 0;

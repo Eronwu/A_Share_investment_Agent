@@ -106,7 +106,7 @@ function Home() {
   function derivedVal(s: Service, key: SortKey): number {
     if (key === "mktVal") return s.shares != null ? s.price * s.shares : -Infinity;
     if (key === "totalPnl") return s.cost != null && s.shares != null ? (s.price - s.cost) * s.shares : -Infinity;
-    if (key === "dayPnl") return s.shares != null ? calcDayPnl(s, s.id.startsWith("HK") ? fxRate : 1) : -Infinity;
+    if (key === "dayPnl") return s.shares != null ? calcDayPnl(s, 1) : -Infinity;
     return (s[key as keyof Service] as number) ?? -Infinity;
   }
 
@@ -138,8 +138,6 @@ function Home() {
     : "--:--:--";
   const isStale = (ts > 0 && Date.now() - ts > pollMs * 3) || fetchError !== null;
 
-  const FALLBACK_HKD_CNY = 0.92;
-  const fxRate = hkdCnyRate ?? FALLBACK_HKD_CNY;
 
   // ── 当前 Tab 统计 ──
   const tabUp = tabHoldingAll.filter((s) => s.change > 0).length;
@@ -151,11 +149,10 @@ function Home() {
 
   // ── 当前 Tab P&L ──
   const tabHoldings = tabServices.filter((s) => s.type === "holding" && s.pnl !== null && s.cost && s.shares);
-  const tabFx = activeTab === "HK" ? fxRate : 1;
-  const tabPnl = tabHoldings.reduce((sum, s) => sum + (s.price - s.cost!) * s.shares! * tabFx, 0);
-  const tabTodayPnl = tabHoldings.reduce((sum, s) => sum + calcDayPnl(s, tabFx), 0);
-  const tabPosition = tabHoldings.reduce((sum, s) => sum + s.price * s.shares! * tabFx, 0);
-  const tabCostBasis = tabHoldings.reduce((sum, s) => sum + s.cost! * s.shares! * tabFx, 0);
+  const tabPnl = tabHoldings.reduce((sum, s) => sum + (s.price - s.cost!) * s.shares!, 0);
+  const tabTodayPnl = tabHoldings.reduce((sum, s) => sum + calcDayPnl(s, 1), 0);
+  const tabPosition = tabHoldings.reduce((sum, s) => sum + s.price * s.shares!, 0);
+  const tabCostBasis = tabHoldings.reduce((sum, s) => sum + s.cost! * s.shares!, 0);
   const tabReturnPct = tabCostBasis > 0 ? (tabPnl / tabCostBasis) * 100 : 0;
 
   /* ── sort header helpers (per-section) ── */
@@ -190,10 +187,9 @@ function Home() {
   function HoldRow({ s }: { s: Service }) {
     const sign = s.change > 0 ? "+" : "";
     const pnlPctStr = s.pnl !== null ? `${s.pnl >= 0 ? "+" : ""}${s.pnl.toFixed(1)}%` : "-";
-    const rowFx = s.id.startsWith("HK") ? fxRate : 1;
-    const mktVal = s.shares != null ? s.price * s.shares * rowFx : null;
-    const totalPnlRaw = s.cost != null && s.cost !== 0 && s.shares != null ? (s.price - s.cost) * s.shares * rowFx : null;
-    const dayPnl = s.shares != null ? calcDayPnl(s, rowFx) : null;
+    const mktVal = s.shares != null ? s.price * s.shares : null;
+    const totalPnlRaw = s.cost != null && s.cost !== 0 && s.shares != null ? (s.price - s.cost) * s.shares : null;
+    const dayPnl = s.shares != null ? calcDayPnl(s, 1) : null;
     // Near alert threshold indicator
     const nearAlert =
       (s.above && s.price > 0 && (s.above - s.price) / s.price < 0.03) ||
@@ -415,22 +411,29 @@ function Home() {
             })`}</span>
           </div>
         )}
+        {/* FX rate — HK tab only */}
+        {activeTab === "HK" && (
+          <div style={{ color: D.comment, marginBottom: 6 }}>
+            {hkdCnyRate ? (
+              <>FX:<span style={{ color: D.fg }}>{hkdCnyRate.toFixed(4)}</span> <span style={{ color: D.comment }}>HKD/CNY</span></>
+            ) : (
+              <span style={{ color: D.orange }}>[WARN FX unavailable — using 0.92 fallback]</span>
+            )}
+          </div>
+        )}
         {/* tab portfolio summary */}
         {tabHoldings.length > 0 && (
           <div style={{ color: D.comment, marginBottom: 6 }}>
             position:<span style={{ color: D.fg }}>{fmtMoney(tabPosition).replace("+", "")}</span>
-            <span style={{ color: D.comment }}>¥</span>
+            <span style={{ color: D.comment }}>{activeTab === "HK" ? "HK$" : "¥"}</span>
             {"  "}
             yield:<span style={{ color: chgColor(tabPnl) }}>{fmtMoney(tabPnl)}</span>
-            <span style={{ color: D.comment }}>¥</span>
+            <span style={{ color: D.comment }}>{activeTab === "HK" ? "HK$" : "¥"}</span>
             {"  "}
             return:<span style={{ color: chgColor(tabReturnPct) }}>{tabReturnPct >= 0 ? "+" : ""}{tabReturnPct.toFixed(1)}%</span>
             {"  "}
             today:<span style={{ color: chgColor(tabTodayPnl) }}>{fmtMoney(tabTodayPnl)}</span>
-            <span style={{ color: D.comment }}>¥</span>
-            {activeTab === "HK" && !hkdCnyRate && (
-              <span style={{ color: D.yellow, fontSize: 11, fontWeight: 500 }}> [WARN FX unavailable, fallback≈{FALLBACK_HKD_CNY}]</span>
-            )}
+            <span style={{ color: D.comment }}>{activeTab === "HK" ? "HK$" : "¥"}</span>
           </div>
         )}
 
