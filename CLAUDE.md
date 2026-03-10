@@ -15,7 +15,7 @@ poetry run python src/backtester.py --ticker 301157 --start-date 2024-12-11 --en
 poetry run python run_with_backend.py                   # FastAPI on :8000 (Swagger at /docs)
 poetry run python run_with_backend.py --ticker 002848   # API server + immediate analysis
 poetry run python -m src.sim_trading.replay_runner       # sim trading replay (writes to sim_trading.db)
-poetry run pytest src/sim_trading/test_sim_trading.py -v # sim trading tests (62 tests)
+poetry run pytest src/sim_trading/test_sim_trading.py -v # sim trading tests (101 tests)
 ```
 
 ### Web Dashboard (Next.js)
@@ -372,20 +372,31 @@ Web:  sim_trading.db → /api/sim → /sim 页面
 |------|------|
 | `signal_archiver.py` | 实时归档 L2 信号 + 30s 价格快照到 SQLite |
 | `realtime_engine.py` | **v2 实时引擎**: 日线评分入场、时间窗口控制、T3 手续费过滤、per-tick score 缓存 |
+| `broker.py` | **AbstractBroker 策略模式**: VirtualBroker（纯虚拟 PM）/ FutuBroker（Futu-first + 影子 PM），Plan A 写一致性 |
 | `signal_mapper.py` | 4 层信号规则引擎 (Tier1 独立→Tier2 增强→Tier3 纠偏→Tier4 仅日志) |
 | `position_manager.py` | 虚拟持仓管理 (lot-size 对齐, SL/TP/max-hold 退出) |
 | `simulation_engine.py` | HK 交易成本 (佣金+印花税+交易费+结算费) + 流动性滑点 |
 | `trade_analyzer.py` | 绩效分析: 胜率/Sharpe/最大回撤/Calmar/归因 |
 | `replay_runner.py` | 历史回放入口 |
-| `futu_trade_adapter.py` | **Futu 模拟盘交易适配器**: 连接 OpenD (port 11111)，buy/sell 下单，get_positions/get_funds 查询，HK+A 股双市场自动路由，15 orders/30s 限频，A 股 T+1 本地拦截 |
+| `futu_trade_adapter.py` | **Futu 模拟盘交易适配器**: 连接 OpenD (port 11111)，buy/sell 下单（HK 自动 tick size 取整），get_positions/get_funds 查询，HK+A 股双市场自动路由，15 orders/30s 限频，A 股 T+1 本地拦截 |
 | `futu_position_sync.py` | **Futu 持仓同步**: Futu positions → live_state 表，检测平仓 → trades 表，get_funds → daily_pnl 表，futu_orders 审计 |
 
 **Futu 模拟盘交易**:
 - **连接**: 需要 Futu OpenD 运行（端口 11111），`FutuTradeAdapter.connect()` 自动发现 HK/A 股模拟账户
 - **下单**: `adapter.sell(code, price, qty, order_type="MARKET")` 市价卖出，`adapter.buy()` 买入
+- **HK tick size 取整**: `_round_to_hk_tick(price)` 在 `buy()`/`sell()` 中自动将价格对齐港交所 tick size（避免 Futu `价格参数精度不符合规范` 拒单）。tick table: <0.25→0.001, 0.25-0.50→0.005, 0.50-10→0.01, 10-20→0.02, 20-100→0.05, 100-200→0.10, 200-500→0.20, 500-1000→0.50
 - **持仓同步**: daemon 每 tick 调用 `FutuPositionSync.sync_live_state()` → live_state 表，`detect_and_save_closed()` 检测平仓写入 trades 表
 - **审计**: 所有订单记录到 `futu_orders` 表 (order_id, code, side, price, qty, status)
 - **限制**: 盘后提交的市价单在下个交易日开盘成交；15 orders/30s 滑窗限频
+
+**AbstractBroker 架构** (`broker.py`):
+- **策略模式**: `RealtimeSimEngine` 通过 `AbstractBroker` 接口执行下单，不关心是虚拟还是实盘
+- **VirtualBroker**: 纯委托 PositionManager，回放/测试用
+- **FutuBroker**: Futu-first + 影子 PM。Plan A 写一致性:
+  - BUY: Futu 下单 → 等成交 → 写影子 PM
+  - SELL: Futu 下单 → 等成交 → 关影子 PM
+  - 风控退出: 评估条件 → 尝试 Futu SELL（best-effort）→ **无论 Futu 成败，always 关影子 PM**（风控不能被连接问题阻塞）
+- **`_wait_for_fill(order_id)`**: 轮询 `get_today_orders()`，0.5s 间隔，30s 超时，返回成交均价或 None
 
 **DailyIndicatorTracker 评分系统** (`l2_strategy_engine.py`):
 - `score(code, main_net_inflow_pct)` → 0-100 分，6 个子维度
@@ -417,8 +428,10 @@ Web:  sim_trading.db → /api/sim → /sim 页面
 L2StrategyEngine (poll_once → L2 signals)
   ├── _daily_indicators: DailyIndicatorTracker (日K指标 + 评分)
   └── 传递引用 → RealtimeSimEngine(rules, daily_tracker=engine._daily_indicators)
+       ├── _broker: FutuBroker(shadow_pm, adapter) 或 VirtualBroker(pm)
        ├── tick() 每 3s 调用（交易时段）
        ├── _evaluate_entries() → 10:00-10:30 评分选股
+       │     └── _run_candidates() → 按评分排序遍历，top 失败则 fallback 到下一个
        ├── _process_signal_v2() → T3 过滤 + 日内例外
        ├── _evaluate_exits() → 15:30 收盘评估
        └── _persist_state() → live_state 表 (含 daily_score)
@@ -437,7 +450,7 @@ nohup poetry run python src/tools/l2_strategy_daemon.py >> logs/l2_daemon_out.lo
 tail -f logs/l2_daemon.log | grep rt_sim   # 观察 v2 RT 日志
 ```
 
-**测试**: `poetry run pytest src/sim_trading/test_sim_trading.py -v` (62 tests)
+**测试**: `poetry run pytest src/sim_trading/test_sim_trading.py -v` (101 tests)
 
 **SQLite 数据库 (`src/data/sim_trading.db`)**:
 - `signals`: 归档的 L2 信号 (strategy, code, direction, price_at_signal) — 180 天保留
@@ -544,9 +557,17 @@ Order 字段: `side` (buy/sell), `op` (>=/<= 价格方向), `price` (触发价),
 - **告警计算单一数据源。** Notifier (`stock_notifier.py` DeltaAlertEngine) 是唯一的告警计算引擎，产出写入 `sim_trading.db` 的 `alert_events` 表。Web 前端 (`useAlerts`) 只读取展示，不做任何告警计算。确保 terminal 弹窗和 web 日志完全一致，不重复计算，不重复告警。
 - **手续费单一计算源。** 交易成本只在 Python `SimulationEngine.calc_cost()` 中计算，`position_manager.close_position` 写入 DB 的 `pnl` 字段已包含买卖双边手续费（`buy_cost_per_share` 按比例分配）。Web `/api/sim` 直接读 DB pnl，不重新计算手续费。
 
-### HK Stock Codes
+### Stock Code Prefixes
 
-Hong Kong stocks use `HK` prefix (e.g., `HK09988`). The web metrics API strips the prefix for 东方财富 API calls and maps market code `116` for HK stocks, vs `1` (Shanghai) / `0` (Shenzhen) for A-shares. See `emMarket()` and `rawCode()` in `web/app/api/metrics/route.ts`.
+| 前缀 | 市场 | 示例 | 东方财富 market code |
+|------|------|------|---------------------|
+| `HK` | 港股 | `HK09988` | 116 |
+| `KR` | 韩国 | `KR005930` | (不支持实时行情) |
+| (无) | A 股 | `000792`, `688676` | 1 (沪) / 0 (深) |
+
+The web metrics API strips the prefix for 东方财富 API calls. See `emMarket()` and `rawCode()` in `web/app/api/metrics/route.ts`。KR 股票目前不走东方财富接口，poller 跳过行情获取。
+
+**Poller 自动填充股票名称**: watchlist 中 name 缺失的股票，poller 从东方财富行情数据中提取名称并回写到 `monitor_watchlist` 表 + JSON 快照。
 
 **HK P&L FX 转换**: 行级和汇总级都乘 `fxRate`（来自 poller 的 `hkdCnyRate`，fallback 0.92）。`HoldRow` 中 `rowFx = s.id.startsWith("HK") ? fxRate : 1` 应用于 `mktVal`、`totalPnlRaw`、`dayPnl`。百分比字段（`pnl%`、`change%`）不转换。
 
@@ -561,6 +582,7 @@ Hong Kong stocks use `HK` prefix (e.g., `HK09988`). The web metrics API strips t
 - **量比/换手率继承**: 新浪不提供 `turnover`/`volRatio`，降级时从上一轮 `market_data.json` 继承（而非写 0 覆盖）
 - **汇率继承**: `hkdCnyRate` 获取失败时从旧数据继承上次有效值（而非写 null 触发前端 WARN）
 - **孤儿进程防护**: `start_monitor.sh` 的 `_stop_one` 使用进程组 kill + `pkill -f` 兜底清理；`_ensure_no_orphan` 在启动前检测并清理 PID 文件失效但进程仍在的孤儿，防止 restart 后出现多实例
+- **日志按日期轮转**: `start_monitor.sh` 启动时按当天日期创建日志文件 `logs/l2_daemon_YYYY-MM-DD.log`，每天重启自动切换到新日志文件
 
 ### Stock Notifier (`src/tools/stock_notifier.py`)
 
