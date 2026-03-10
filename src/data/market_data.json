@@ -1,6 +1,27 @@
 {
   "services": [
     {
+      "id": "HK09988",
+      "name": "阿里巴巴-W",
+      "price": 132.6,
+      "change": 3.03,
+      "chgAmt": 3.9,
+      "vol": 48142684,
+      "amount": 6346447595.0,
+      "amp": 2.797,
+      "turnover": 0.25,
+      "volRatio": 0.89,
+      "high": 133.6,
+      "low": 130.0,
+      "open": 131.0,
+      "prevClose": 128.7,
+      "bidAskRatio": 12.42,
+      "avgPrice": 131.825,
+      "mainNetInflow": -129958520.0,
+      "retailNetInflow": 0,
+      "mainNetInflowPct": -2.05
+    },
+    {
       "id": "000001",
       "name": "平安银行",
       "price": 10.76,
@@ -2386,27 +2407,6 @@
       "mainNetInflowPct": 2.2
     },
     {
-      "id": "HK09988",
-      "name": "阿里巴巴-W",
-      "price": 132.6,
-      "change": 3.03,
-      "chgAmt": 3.9,
-      "vol": 48142684,
-      "amount": 6346447595.0,
-      "amp": 2.797,
-      "turnover": 0.25,
-      "volRatio": 0.89,
-      "high": 133.6,
-      "low": 130.0,
-      "open": 131.0,
-      "prevClose": 128.7,
-      "bidAskRatio": 7.12,
-      "avgPrice": 131.825,
-      "mainNetInflow": -129958520.0,
-      "retailNetInflow": 0,
-      "mainNetInflowPct": -2.05
-    },
-    {
       "id": "KR000660",
       "name": "SK hynix",
       "price": 943000.0,
@@ -2809,19 +2809,8 @@
       "avgPrice": 1.798
     }
   ],
-  "ts": 1773116240889,
-  "settings": {
-    "big_move_pct": 5,
-    "cooldown_minutes": 10,
-    "l1_cooldown_min": 5,
-    "l1_delta_pct": 3,
-    "l1_trigger_pct": 4,
-    "l2_cooldown_min": 15,
-    "l2_delta_pct": 5,
-    "l2_trigger_pct": 6,
-    "l3_cooldown_min": 30,
-    "poll_interval": 30
-  },
+  "ts": 1773117455498,
+  "settings": {},
   "hkdCnyRate": null,
   "marketTurnover": {
     "sh": 6869,

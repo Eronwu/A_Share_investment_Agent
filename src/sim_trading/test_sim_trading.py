@@ -1253,3 +1253,162 @@ class TestFutuBrokerGetExitCandidates:
             {"HK09988": 102.0}, day_index=1, ts=2_000_000, min_hold_minutes=0
         )
         assert candidates == []
+
+
+# ── TestHKTickRounding ─────────────────────────────────────────────────────────
+
+
+class TestHKTickRounding:
+    """FutuTradeAdapter._round_to_hk_tick — 港交所 tick size 取整。"""
+
+    def _r(self, price):
+        from src.sim_trading.futu_trade_adapter import FutuTradeAdapter
+        return FutuTradeAdapter._round_to_hk_tick(price)
+
+    def test_sub_025_tick_0001(self):
+        assert self._r(0.123) == 0.123
+        assert self._r(0.1234) == 0.123
+
+    def test_025_to_050_tick_0005(self):
+        assert self._r(0.333) == 0.335
+        assert self._r(0.450) == 0.450
+
+    def test_050_to_10_tick_001(self):
+        assert self._r(3.4168) == 3.42
+        assert self._r(5.005) == 5.00  # banker's rounding: 500.5 → 500
+
+    def test_20_to_100_tick_005(self):
+        # Previously failing: slippage-rounded price rejected by Futu
+        assert self._r(65.13) == 65.15
+        assert self._r(98.12) == 98.10
+
+    def test_100_to_200_tick_010(self):
+        assert self._r(130.44) == 130.40
+        assert self._r(150.16) == 150.20
+
+    def test_200_to_500_tick_020(self):
+        assert self._r(250.13) == 250.20   # 200-500 range, tick=0.2
+        assert self._r(299.91) == 300.00
+
+    def test_500_to_1000_tick_050(self):
+        assert self._r(526.23) == 526.00   # 500-1000 range, tick=0.5
+
+    def test_already_aligned_unchanged(self):
+        assert self._r(65.15) == 65.15
+        assert self._r(130.4) == 130.4
+        assert self._r(3.42) == 3.42
+
+    def test_buy_applies_tick_rounding(self):
+        """buy() 下单前自动取整，不会因精度被 Futu 拒绝。"""
+        from src.sim_trading.futu_trade_adapter import FutuTradeAdapter
+        adapter = MagicMock(spec=FutuTradeAdapter)
+        adapter._round_to_hk_tick = FutuTradeAdapter._round_to_hk_tick
+        adapter.buy = FutuTradeAdapter.buy.__get__(adapter, FutuTradeAdapter)
+
+        captured = []
+        def fake_place_order(code, price, qty, side, order_type):
+            captured.append(price)
+            return MagicMock(success=True, order_id="X")
+        adapter._place_order = fake_place_order
+
+        adapter.buy("HK02577", 65.13, 100)
+        assert captured[0] == 65.15, f"Expected 65.15, got {captured[0]}"
+
+    def test_sell_applies_tick_rounding(self):
+        """sell() 下单前自动取整。"""
+        from src.sim_trading.futu_trade_adapter import FutuTradeAdapter
+        adapter = MagicMock(spec=FutuTradeAdapter)
+        adapter._round_to_hk_tick = FutuTradeAdapter._round_to_hk_tick
+        adapter.sell = FutuTradeAdapter.sell.__get__(adapter, FutuTradeAdapter)
+
+        captured = []
+        def fake_place_order(code, price, qty, side, order_type):
+            captured.append(price)
+            return MagicMock(success=True, order_id="X")
+        adapter._place_order = fake_place_order
+        # Bypass T+1 guard (non-HK not needed, but make it HK)
+        adapter._get_today_buy_qty = MagicMock(return_value=0)
+
+        adapter.sell("HK09988", 130.44, 100)
+        assert captured[0] == 130.40, f"Expected 130.40, got {captured[0]}"
+
+    def test_a_share_not_rounded(self):
+        """A 股不走港交所 tick size 逻辑。"""
+        from src.sim_trading.futu_trade_adapter import FutuTradeAdapter
+        adapter = MagicMock(spec=FutuTradeAdapter)
+        adapter._round_to_hk_tick = FutuTradeAdapter._round_to_hk_tick
+        adapter.buy = FutuTradeAdapter.buy.__get__(adapter, FutuTradeAdapter)
+
+        captured = []
+        def fake_place_order(code, price, qty, side, order_type):
+            captured.append(price)
+            return MagicMock(success=True, order_id="X")
+        adapter._place_order = fake_place_order
+
+        adapter.buy("000792", 18.513, 100)
+        assert captured[0] == 18.513  # A 股原价传入，不取整
+
+
+# ── TestEvaluateEntriesFallback ───────────────────────────────────────────────
+
+
+class TestEvaluateEntriesFallback:
+    """当第一候选股 Futu 下单失败时，应继续尝试下一候选股。"""
+
+    def test_fallback_to_second_candidate_when_first_futu_fails(self, rules):
+        """top candidate Futu 拒绝 → second candidate 成功开仓。"""
+        from src.sim_trading.broker import FutuBroker
+        from src.sim_trading.realtime_engine import RealtimeSimEngine
+
+        lot_sizes = rules.get("lot_sizes", {})
+        pm = PositionManager(initial_capital=500_000, lot_sizes=lot_sizes)
+        adapter = MagicMock()
+
+        # First BUY call fails (price precision), second succeeds
+        fail_result = MagicMock(); fail_result.success = False
+        fail_result.error_msg = "价格参数精度不符合规范"
+        ok_result = MagicMock(); ok_result.success = True; ok_result.order_id = "ORD002"
+        adapter.buy.side_effect = [fail_result, ok_result]
+
+        order_stub = MagicMock()
+        order_stub.order_id = "ORD002"
+        order_stub.status = "FILLED_ALL"
+        order_stub.avg_fill_price = 98.0
+        adapter.get_today_orders.return_value = [order_stub]
+
+        broker = FutuBroker(pm, adapter)
+
+        engine = RealtimeSimEngine.__new__(RealtimeSimEngine)
+        engine._broker = broker
+        engine._pos_mgr = pm
+        engine._new_positions_today = 0
+        engine._last_exit_ts = {}
+        engine._day_index = 1
+
+        # Inject two candidates directly (bypass scoring)
+        from unittest.mock import patch
+        score_high = {"total": 76, "action": "BUY", "atr": 2.0,
+                      "stop_loss": 63.0, "take_profit": 71.0}
+        score_low  = {"total": 73, "action": "BUY", "atr": 2.0,
+                      "stop_loss": 94.0, "take_profit": 106.0}
+        candidates = [("HK02577", score_high), ("HK01211", score_low)]
+
+        from src.sim_trading.simulation_engine import SimulationEngine
+        sim_engine = MagicMock(spec=SimulationEngine)
+        sim_engine.execute_trade.side_effect = lambda d, p, amt, atr: {"exec_price": p, "slippage_pct": 0}
+        sim_engine.calc_cost.return_value = {"total": 50}
+
+        engine._engine = sim_engine
+        engine._score_cfg = rules.get("daily_score", {})
+
+        prices  = {"HK02577": 65.15, "HK01211": 98.0}
+        market  = {"HK02577": {"amount": 1e8}, "HK01211": {"amount": 1e8}}
+
+        with patch.object(engine, '_get_watchlist_codes', return_value=[]):
+            # Call internal loop directly
+            engine._run_candidates(candidates, prices, market, "2026-03-10")
+
+        # HK02577 failed → HK01211 opened
+        assert "HK01211" in pm.positions
+        assert "HK02577" not in pm.positions
+        assert engine._new_positions_today == 1

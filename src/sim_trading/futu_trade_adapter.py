@@ -211,9 +211,41 @@ class FutuTradeAdapter:
 
     # ── Order placement ────────────────────────────────────
 
+    @staticmethod
+    def _round_to_hk_tick(price: float) -> float:
+        """将价格取整到港交所 tick size（避免 Futu 价格精度错误）。"""
+        if price < 0.25:
+            tick = 0.001
+        elif price < 0.50:
+            tick = 0.005
+        elif price < 10.0:
+            tick = 0.010
+        elif price < 20.0:
+            tick = 0.020
+        elif price < 100.0:
+            tick = 0.050
+        elif price < 200.0:
+            tick = 0.100
+        elif price < 500.0:
+            tick = 0.200
+        elif price < 1000.0:
+            tick = 0.500
+        elif price < 2000.0:
+            tick = 1.000
+        elif price < 5000.0:
+            tick = 2.000
+        else:
+            tick = 5.000
+        return round(round(price / tick) * tick, 3)
+
     def buy(self, code: str, price: float, quantity: int,
             order_type: str = "NORMAL") -> OrderResult:
         """下买单。返回 OrderResult。"""
+        if code.startswith("HK"):
+            rounded = self._round_to_hk_tick(price)
+            if rounded != price:
+                logger.debug(f"Tick-align BUY {code}: {price} → {rounded}")
+            price = rounded
         return self._place_order(code, price, quantity, "BUY", order_type)
 
     def sell(self, code: str, price: float, quantity: int,
@@ -237,6 +269,11 @@ class FutuTradeAdapter:
                     )
                     quantity = sellable
 
+        if code.startswith("HK"):
+            rounded = self._round_to_hk_tick(price)
+            if rounded != price:
+                logger.debug(f"Tick-align SELL {code}: {price} → {rounded}")
+            price = rounded
         return self._place_order(code, price, quantity, "SELL", order_type)
 
     def _place_order(self, code: str, price: float, quantity: int,

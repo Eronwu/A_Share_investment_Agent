@@ -601,10 +601,26 @@ class RealtimeSimEngine:
 
         # Sort by score descending
         candidates.sort(key=lambda x: x[1]["total"], reverse=True)
+        self._run_candidates(candidates, prices, market, date)
 
-        # Open positions for top candidates
-        slots = max_per_day - self._new_positions_today
-        for code, score_result in candidates[:slots]:
+    def _run_candidates(
+        self,
+        candidates: list,
+        prices: dict,
+        market: dict,
+        date: str,
+    ) -> None:
+        """候选股开仓执行循环。按评分从高到低尝试，直到 max_new_positions_per_day 用满。
+        单只股票 Futu 下单失败时，继续尝试下一候选股（fallback）。
+        """
+        cfg = self._score_cfg
+        max_per_day = cfg.get("max_new_positions_per_day", 1)
+        position_pct = cfg.get("position_pct", 0.25)
+        max_hold = cfg.get("max_hold_days", 10)
+
+        for code, score_result in candidates:
+            if self._new_positions_today >= max_per_day:
+                break
             price = prices.get(code, 0)
             if price <= 0:
                 continue
@@ -672,6 +688,11 @@ class RealtimeSimEngine:
                     f"score={score_result['total']} "
                     f"SL={sl:.2f} TP={tp:.2f} "
                     f"(daily_score entry)"
+                )
+            else:
+                logger.warning(
+                    f"open_position failed for {code}@{exec_price:.4f} "
+                    f"score={score_result['total']} — trying next candidate"
                 )
 
     def _get_dip_buy_codes(self) -> list[str]:
