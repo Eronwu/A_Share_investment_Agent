@@ -10,6 +10,7 @@ Market data poller — 轻量守护脚本
 """
 
 import json
+import sqlite3
 import sys
 import time
 from datetime import datetime
@@ -24,7 +25,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 EM_UT = "fa5fd1943c7b386f172d6893dbfba10b"
 
 from src.tools.futu_enricher import FutuL2Enricher
-from src.tools.stock_monitor import fetch_realtime_eastmoney, fetch_realtime_sina, fetch_realtime_yahoo, is_kr_symbol, load_config
+from src.tools.stock_monitor import fetch_realtime_eastmoney, fetch_realtime_sina, fetch_realtime_yahoo, is_kr_symbol, load_config, save_config
 from src.utils.logging_config import setup_logger
 
 logger = setup_logger("market_data_poller")
@@ -34,6 +35,63 @@ _futu_enricher = FutuL2Enricher()
 
 CONFIG_PATH = PROJECT_ROOT / "src" / "data" / "monitor_config.json"
 OUTPUT_PATH = PROJECT_ROOT / "src" / "data" / "market_data.json"
+DB_PATH = PROJECT_ROOT / "src" / "data" / "sim_trading.db"
+
+
+def _backfill_missing_names(stocks: list[dict], config: dict) -> bool:
+    """用行情抓取结果填充 watchlist 中名称缺失的股票（name 为空或与 symbol 相同）。
+
+    同步写入 DB（monitor_watchlist）和 JSON 快照（monitor_config.json）。
+    返回 True 表示有更新。
+    """
+    watchlist = config.get("watchlist", {})
+    updates: dict[str, str] = {}
+
+    for s in stocks:
+        code = s.get("code", "")
+        name = s.get("name", "").strip()
+        if not code or not name:
+            continue
+        existing = watchlist.get(code, {})
+        existing_name = (existing.get("name") or "").strip()
+        # 名称缺失或与 symbol 相同视为未填充
+        if not existing_name or existing_name == code:
+            updates[code] = name
+
+    if not updates:
+        return False
+
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # 更新 DB
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.execute("PRAGMA journal_mode=WAL")
+        cur = conn.cursor()
+        for code, name in updates.items():
+            cur.execute(
+                "UPDATE monitor_watchlist SET name = ?, updated_at = ? WHERE symbol = ? AND (name IS NULL OR name = '' OR name = symbol)",
+                (name, now, code),
+            )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.warning(f"backfill names DB write failed: {e}")
+
+    # 更新 JSON 快照（config 是 load_config() 的直接引用，直接改并保存）
+    changed = False
+    for section in ("watchlist", "holdings", "watching"):
+        for code, name in updates.items():
+            if code in config.get(section, {}):
+                entry = config[section][code]
+                if not entry.get("name") or entry["name"] == code:
+                    entry["name"] = name
+                    changed = True
+    if changed:
+        save_config(config)
+
+    logger.info(f"自动填充股票名称: {updates}")
+    return True
 
 
 def fetch_realtime_with_fallback(symbols: list[str]) -> tuple[list[dict], bool]:
@@ -269,6 +327,9 @@ def poll_once() -> bool:
         if turnover:
             logger.info(f"大盘数据已更新: 两市 {turnover['total']:,}亿 ({turnover['verdict']})")
         return False
+
+    # 自动填充缺失的股票名称（只在首次抓到名称时写入，后续 no-op）
+    _backfill_missing_names(stocks, config)
 
     services = build_services(stocks, watchlist)
 
