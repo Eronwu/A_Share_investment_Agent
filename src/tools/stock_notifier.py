@@ -809,31 +809,41 @@ def _linear_regression(ys: list[float]):
 
 
 # ══════════════════════════════════════════
-# 5b. Gap-fade detection（高开低走）
+# 5b. Gap-fade / Gap-recover detection
+#     高开低走 / 低开高走
 # ══════════════════════════════════════════
 
 class GapFadeEngine:
-    """检测高开低走形态，每只股票每日最多触发一次。
+    """检测高开低走 & 低开高走形态，每只股票每种形态每日最多触发一次。
 
-    触发条件（同时满足）：
-      1. 高开幅度 >= gap_pct（默认 1.5%）：开盘价显著高于昨收
-      2. 从开盘价跌落 >= fade_pct（默认 2.0%）：日内明显回落
+    高开低走触发条件（同时满足）：
+      1. 开盘价 > 昨收 >= gap_pct（默认 1.5%）
+      2. 现价从开盘价跌落 >= fade_pct（默认 2.0%）
 
-    告警级别：
-      - ★ 持仓 L1（弹窗+声音）
-      - 持仓（非星标）L2（弹窗静默）
-      - 自选 L3（仅 web）
+    低开高走触发条件（同时满足）：
+      1. 开盘价 < 昨收 >= gap_pct（默认 1.5%）
+      2. 现价从开盘价反弹 >= fade_pct（默认 2.0%）
+
+    告警级别：★持仓 L1 / 持仓 L2 / 自选 L3
+    Settings 覆盖：gap_fade_gap_pct / gap_fade_fade_pct
     """
 
-    DEFAULT_GAP_PCT = 1.5   # 最小高开幅度（可在 settings 中覆盖 gap_fade_gap_pct）
-    DEFAULT_FADE_PCT = 2.0  # 从开盘回落幅度（可在 settings 中覆盖 gap_fade_fade_pct）
+    DEFAULT_GAP_PCT = 1.5
+    DEFAULT_FADE_PCT = 2.0
 
     def __init__(self, config: dict):
         self.config = config
-        self._fired: dict[str, str] = {}  # {symbol: date_str}
+        # {symbol: {date: set_of_patterns}} — 同一天同一形态只触发一次
+        self._fired: dict[str, dict[str, set]] = {}
 
     def reset(self):
         self._fired.clear()
+
+    def _already_fired(self, symbol: str, pattern: str, today: str) -> bool:
+        return pattern in self._fired.get(symbol, {}).get(today, set())
+
+    def _mark_fired(self, symbol: str, pattern: str, today: str):
+        self._fired.setdefault(symbol, {}).setdefault(today, set()).add(pattern)
 
     def check(self, quotes: dict) -> list[dict]:
         settings = self.config.get("settings", {})
@@ -844,9 +854,6 @@ class GapFadeEngine:
 
         alerts = []
         for symbol, q in quotes.items():
-            if self._fired.get(symbol) == today:
-                continue
-
             open_px = q.get("open", 0)
             prev_close = q.get("prev_close", 0)
             price = q.get("price", 0)
@@ -855,43 +862,60 @@ class GapFadeEngine:
             if open_px <= 0 or prev_close <= 0 or price <= 0:
                 continue
 
-            # 1. 高开幅度
-            actual_gap_pct = (open_px - prev_close) / prev_close * 100
-            if actual_gap_pct < gap_pct:
-                continue
-
-            # 2. 从开盘回落幅度
-            actual_fade_pct = (open_px - price) / open_px * 100
-            if actual_fade_pct < fade_pct:
-                continue
-
-            gap_erased = price <= prev_close  # 缺口已完全回吐
-
             entry = watchlist.get(symbol, {})
             level = resolve_level(entry)
             if level == 4:
                 continue
 
-            self._fired[symbol] = today
+            gap_from_prev = (open_px - prev_close) / prev_close * 100  # 正=高开, 负=低开
 
-            gap_str = f"+{actual_gap_pct:.1f}%"
-            fade_str = f"-{actual_fade_pct:.1f}%"
-            erased_str = " 缺口完全回吐" if gap_erased else ""
-            msg = f"{symbol} {name} 高开{gap_str} 回落{fade_str}{erased_str} 现价{price:.2f}"
-            display = f"{symbol} {name} 高开低走: 高开{gap_str} 回落{fade_str}{erased_str} | 现价{price:.2f}"
+            # ── 高开低走 ──
+            if gap_from_prev >= gap_pct and not self._already_fired(symbol, "fade", today):
+                fade = (open_px - price) / open_px * 100
+                if fade >= fade_pct:
+                    gap_erased = price <= prev_close
+                    self._mark_fired(symbol, "fade", today)
+                    gap_str = f"+{gap_from_prev:.1f}%"
+                    fade_str = f"-{fade:.1f}%"
+                    erased_str = " 缺口完全回吐" if gap_erased else ""
+                    display = f"{symbol} {name} 高开低走: 高开{gap_str} 回落{fade_str}{erased_str} | 现价{price:.2f}"
+                    msg = f"{symbol} {name} 高开{gap_str} 回落{fade_str}{erased_str} 现价{price:.2f}"
+                    alerts.append({
+                        "symbol": symbol,
+                        "title": f"{name} 高开低走",
+                        "message": msg,
+                        "display": display,
+                        "_kind": "gap_fade",
+                        "_level": level,
+                        "_price": price,
+                        "_change_pct": q.get("change_pct", 0),
+                        "_stealth": msg,
+                    })
+                    logger.info(f"GapFade↓: {symbol} {name} 高开{gap_str} 回落{fade_str}{erased_str}")
 
-            alerts.append({
-                "symbol": symbol,
-                "title": f"{name} 高开低走",
-                "message": msg,
-                "display": display,
-                "_kind": "gap_fade",
-                "_level": level,
-                "_price": price,
-                "_change_pct": q.get("change_pct", 0),
-                "_stealth": msg,
-            })
-            logger.info(f"GapFade: {symbol} {name} 高开{gap_str} 回落{fade_str}{erased_str}")
+            # ── 低开高走 ──
+            elif gap_from_prev <= -gap_pct and not self._already_fired(symbol, "recover", today):
+                recover = (price - open_px) / abs(open_px) * 100
+                if recover >= fade_pct:
+                    gap_recovered = price >= prev_close
+                    self._mark_fired(symbol, "recover", today)
+                    gap_str = f"{gap_from_prev:.1f}%"  # 已含负号
+                    recover_str = f"+{recover:.1f}%"
+                    recovered_str = " 缺口完全收复" if gap_recovered else ""
+                    display = f"{symbol} {name} 低开高走: 低开{gap_str} 反弹{recover_str}{recovered_str} | 现价{price:.2f}"
+                    msg = f"{symbol} {name} 低开{gap_str} 反弹{recover_str}{recovered_str} 现价{price:.2f}"
+                    alerts.append({
+                        "symbol": symbol,
+                        "title": f"{name} 低开高走",
+                        "message": msg,
+                        "display": display,
+                        "_kind": "gap_recover",
+                        "_level": level,
+                        "_price": price,
+                        "_change_pct": q.get("change_pct", 0),
+                        "_stealth": msg,
+                    })
+                    logger.info(f"GapRecover↑: {symbol} {name} 低开{gap_str} 反弹{recover_str}{recovered_str}")
 
         return alerts
 
@@ -1032,7 +1056,7 @@ def write_alert_events(alerts: list[dict]):
         # 中文可读格式
         if kind == "STALE":
             display = a.get("display", a.get("message", ""))
-        elif kind == "gap_fade":
+        elif kind in ("gap_fade", "gap_recover"):
             display = a.get("display", a.get("message", ""))
         elif kind == "l2_strategy":
             display = a.get("message", f"{symbol} L2 signal")

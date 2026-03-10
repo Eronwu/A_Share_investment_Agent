@@ -139,6 +139,22 @@ function parseAlert(e: AlertEvent): {
     }
   }
 
+  if (e.kind === "gap_recover") {
+    // display: "{code} {name} 低开高走: 低开-X.X% 反弹+Y.Y%[ 缺口完全收复] | 现价Z.ZZ"
+    const m = d.match(/^(?:HK|KR)?\d+\s+(.+?)\s+低开高走:\s*低开([-\d.]+%)\s+反弹([+\d.]+%)([^|]*)\|\s*现价([\d.]+)/);
+    if (m) {
+      const recovered = m[4].includes("缺口完全收复");
+      return {
+        stockName: m[1].trim(),
+        stockCode: shortCode,
+        signal: recovered ? "低开高走 缺口收复" : "低开高走",
+        signalColor: "#50fa7b",
+        price: m[5],
+        detail: `低开${m[2]} 反弹${m[3]}`,
+      };
+    }
+  }
+
   if (e.kind === "DRIFT") {
     // display: "📊 {name}({code}) 距关注价{wp}{direction}{drift}%，现价{price}"
     // or index: "📊 {tag}指数 距创建{direction}{drift}%，当前{value}"
