@@ -49,7 +49,7 @@ export default function Page() {
 }
 
 function Home() {
-  const { services, ts, tick, loading, settings, hkdCnyRate, fetchError, alertEvents, marketTurnover } = useMetrics();
+  const { services, ts, tick, loading, settings, fetchError, alertEvents, marketTurnover } = useMetrics();
   // tab state: URL ?tab=A|HK, default by time (before 15:00 → A, after → HK)
   const searchParams = useSearchParams();
 
@@ -409,16 +409,6 @@ function Home() {
             <span style={{ color: D.comment }}>{` (${
               {extreme_high:"天量",high:"放量",above_avg:"偏强",normal:"正常",below_avg:"偏弱",low:"缩量",extreme_low:"地量"}[marketTurnover.verdict] || ""
             })`}</span>
-          </div>
-        )}
-        {/* FX rate — HK tab only */}
-        {activeTab === "HK" && (
-          <div style={{ color: D.comment, marginBottom: 6 }}>
-            {hkdCnyRate ? (
-              <>FX:<span style={{ color: D.fg }}>{hkdCnyRate.toFixed(4)}</span> <span style={{ color: D.comment }}>HKD/CNY</span></>
-            ) : (
-              <span style={{ color: D.orange }}>[WARN FX unavailable — using 0.92 fallback]</span>
-            )}
           </div>
         )}
         {/* tab portfolio summary */}
