@@ -86,12 +86,13 @@ def build_conservative_portfolio_decision(risk_payload=None, technical_payload=N
     }
 
 
-def get_latest_message_by_name(messages: list, name: str):
+def get_latest_message_by_name(messages: list, name: str, warn_if_missing: bool = True):
     for msg in reversed(messages):
         if msg.name == name:
             return msg
-    logger.warning(
-        f"Message from agent '{name}' not found in portfolio_management_agent.")
+    if warn_if_missing:
+        logger.warning(
+            f"Message from agent '{name}' not found in portfolio_management_agent.")
     return None
 
 
@@ -129,7 +130,6 @@ def portfolio_management_agent(state: AgentState):
     # logger.info(
     # f"--- DEBUG: {agent_name} CLEANED messages for processing: {[msg.name for msg in cleaned_messages_for_processing]} ---")
 
-    show_workflow_status(f"{agent_name}: --- Executing Portfolio Manager ---")
     show_reasoning_flag = state["metadata"]["show_reasoning"]
     portfolio = state["data"]["portfolio"]
 
@@ -143,9 +143,9 @@ def portfolio_management_agent(state: AgentState):
     valuation_message = get_latest_message_by_name(
         cleaned_messages_for_processing, "valuation_agent")
     risk_message = get_latest_message_by_name(
-        cleaned_messages_for_processing, "risk_management_agent")
+        cleaned_messages_for_processing, "risk_management_agent", warn_if_missing=False)
     tool_based_macro_message = get_latest_message_by_name(
-        cleaned_messages_for_processing, "macro_analyst_agent")  # This is the main analysis path output
+        cleaned_messages_for_processing, "macro_analyst_agent", warn_if_missing=False)  # This is the main analysis path output
 
     # Fallback to merged state data when message aggregation misses some branch outputs
     if not risk_message:
@@ -156,6 +156,33 @@ def portfolio_management_agent(state: AgentState):
         tool_based_macro_message = build_message_from_data(
             "macro_analyst_agent", state["data"].get("macro_analysis")
         )
+
+    # Guard against premature execution when upstream branches have not finished yet.
+    # LangGraph may invoke this node once before late-stage branches merge; in that case
+    # do not emit a half-baked portfolio decision into messages/metadata.
+    if not risk_message or not tool_based_macro_message:
+        missing_inputs = []
+        if not risk_message:
+            missing_inputs.append("risk_management_agent")
+        if not tool_based_macro_message:
+            missing_inputs.append("macro_analyst_agent")
+        logger.info(
+            f"Deferring portfolio manager output until required upstream inputs arrive: {', '.join(missing_inputs)}"
+        )
+        show_workflow_status(
+            f"{agent_name}: waiting for upstream inputs ({', '.join(missing_inputs)})"
+        )
+        return {
+            "messages": cleaned_messages_for_processing,
+            "data": state["data"],
+            "metadata": {
+                **state["metadata"],
+                f"{agent_name}_deferred": True,
+                f"{agent_name}_missing_inputs": missing_inputs,
+            },
+        }
+
+    show_workflow_status(f"{agent_name}: --- Executing Portfolio Manager ---")
 
     # Extract content, handling potential None if message not found by get_latest_message_by_name
     technical_content = technical_message.content if technical_message else json.dumps(
