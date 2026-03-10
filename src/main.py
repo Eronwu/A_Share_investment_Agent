@@ -57,10 +57,19 @@ except ImportError:
 # --- Initialize Logging ---
 log_storage = get_log_storage()
 set_global_log_storage(log_storage)
-sys.stdout = OutputLogger()
+OUTPUT_LOGGER = OutputLogger()
+sys.stdout = OUTPUT_LOGGER
 logger = setup_logger("main_workflow")
 
 # --- Run the Hedge Fund Workflow ---
+
+
+def _append_debug_checkpoint(text: str):
+    try:
+        with open("logs/summary_debug_trace.txt", "a", encoding="utf-8") as f:
+            f.write(text + "\n")
+    except Exception:
+        pass
 
 
 def run_hedge_fund(
@@ -110,24 +119,40 @@ def run_hedge_fund(
         from backend.utils.context_managers import workflow_run
 
         with workflow_run(run_id):
+            _append_debug_checkpoint(f"before_app_invoke:{run_id}")
             final_state = app.invoke(initial_state)
+            _append_debug_checkpoint(f"after_app_invoke:{run_id}")
             print(f"--- Finished Workflow Run ID: {run_id} ---")
 
             if HAS_SUMMARY_REPORT and show_summary:
+                _append_debug_checkpoint(f"before_summary:{run_id}")
                 store_final_state(final_state)
                 enhanced_state = get_enhanced_final_state()
+                print("\n" + "#" * 96)
+                print("# FINAL SUMMARY REPORT".ljust(95) + "#")
+                print("#" * 96)
                 print_summary_report(enhanced_state)
+                print(f"\n[summary log file] {OUTPUT_LOGGER.filename}")
+                _append_debug_checkpoint(f"after_summary:{run_id}")
 
             if HAS_STRUCTURED_OUTPUT and show_reasoning:
                 print_structured_output(final_state)
     except ImportError:
+        _append_debug_checkpoint(f"before_app_invoke_importerror:{run_id}")
         final_state = app.invoke(initial_state)
+        _append_debug_checkpoint(f"after_app_invoke_importerror:{run_id}")
         print(f"--- Finished Workflow Run ID: {run_id} ---")
 
         if HAS_SUMMARY_REPORT and show_summary:
+            _append_debug_checkpoint(f"before_summary_importerror:{run_id}")
             store_final_state(final_state)
             enhanced_state = get_enhanced_final_state()
+            print("\n" + "#" * 96)
+            print("# FINAL SUMMARY REPORT".ljust(95) + "#")
+            print("#" * 96)
             print_summary_report(enhanced_state)
+            print(f"\n[summary log file] {OUTPUT_LOGGER.filename}")
+            _append_debug_checkpoint(f"after_summary_importerror:{run_id}")
 
         if HAS_STRUCTURED_OUTPUT and show_reasoning:
             print_structured_output(final_state)
