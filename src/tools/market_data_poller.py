@@ -25,7 +25,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 EM_UT = "fa5fd1943c7b386f172d6893dbfba10b"
 
 from src.tools.futu_enricher import FutuL2Enricher
-from src.tools.stock_monitor import fetch_realtime_eastmoney, fetch_realtime_sina, fetch_realtime_yahoo, is_kr_symbol, load_config, save_config
+from src.tools.stock_monitor import (
+    fetch_realtime_eastmoney, fetch_realtime_sina,
+    fetch_realtime_yahoo, is_kr_symbol,
+)
 from src.utils.logging_config import setup_logger
 
 logger = setup_logger("market_data_poller")
@@ -38,13 +41,72 @@ OUTPUT_PATH = PROJECT_ROOT / "src" / "data" / "market_data.json"
 DB_PATH = PROJECT_ROOT / "src" / "data" / "sim_trading.db"
 
 
-def _backfill_missing_names(stocks: list[dict], config: dict) -> bool:
-    """用行情抓取结果填充 watchlist 中名称缺失的股票（name 为空或与 symbol 相同）。
+def load_watchlist_from_db() -> tuple[dict, dict]:
+    """从 DB 读取 watchlist 和 settings，单一数据源。
 
-    同步写入 DB（monitor_watchlist）和 JSON 快照（monitor_config.json）。
-    返回 True 表示有更新。
+    Returns:
+        (watchlist, settings) — watchlist: {symbol: {name, type, ...}}
     """
-    watchlist = config.get("watchlist", {})
+    watchlist: dict = {}
+    settings: dict = {}
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        # watchlist
+        rows = conn.execute(
+            "SELECT symbol, name, list_type, cost, shares, lot, "
+            "hidden, star, tags, watch_price FROM monitor_watchlist"
+        ).fetchall()
+        for row in rows:
+            entry: dict = {
+                "name": row["name"] or "",
+                "type": row["list_type"] or "watching",
+            }
+            if row["cost"]:
+                entry["cost"] = row["cost"]
+            if row["shares"]:
+                entry["shares"] = row["shares"]
+            if row["lot"]:
+                entry["lot"] = row["lot"]
+            if row["hidden"]:
+                entry["hidden"] = bool(row["hidden"])
+            if row["star"]:
+                entry["star"] = bool(row["star"])
+            if row["tags"]:
+                entry["tags"] = row["tags"]
+            if row["watch_price"]:
+                entry["watch_price"] = row["watch_price"]
+            watchlist[row["symbol"]] = entry
+        # settings
+        setting_rows = conn.execute(
+            "SELECT key, value FROM monitor_settings"
+        ).fetchall()
+        for row in setting_rows:
+            try:
+                settings[row["key"]] = int(row["value"])
+            except (TypeError, ValueError):
+                try:
+                    settings[row["key"]] = float(row["value"])
+                except (TypeError, ValueError):
+                    settings[row["key"]] = row["value"]
+        conn.close()
+    except Exception as e:
+        logger.error(f"load_watchlist_from_db 失败，回退 JSON: {e}")
+        # 降级到 JSON（应急 fallback，避免 poller 停摆）
+        try:
+            with open(CONFIG_PATH, encoding="utf-8") as f:
+                cfg = json.load(f)
+            return cfg.get("watchlist", {}), cfg.get("settings", {})
+        except Exception:
+            return {}, {}
+    return watchlist, settings
+
+
+def _backfill_missing_names(stocks: list[dict], watchlist: dict) -> bool:
+    """用行情抓取结果填充 watchlist 中名称缺失的股票。
+
+    只写 DB（单一数据源）。返回 True 表示有更新。
+    """
     updates: dict[str, str] = {}
 
     for s in stocks:
@@ -52,9 +114,7 @@ def _backfill_missing_names(stocks: list[dict], config: dict) -> bool:
         name = s.get("name", "").strip()
         if not code or not name:
             continue
-        existing = watchlist.get(code, {})
-        existing_name = (existing.get("name") or "").strip()
-        # 名称缺失或与 symbol 相同视为未填充
+        existing_name = (watchlist.get(code, {}).get("name") or "").strip()
         if not existing_name or existing_name == code:
             updates[code] = name
 
@@ -62,33 +122,21 @@ def _backfill_missing_names(stocks: list[dict], config: dict) -> bool:
         return False
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    # 更新 DB
     try:
         conn = sqlite3.connect(str(DB_PATH))
         conn.execute("PRAGMA journal_mode=WAL")
         cur = conn.cursor()
         for code, name in updates.items():
             cur.execute(
-                "UPDATE monitor_watchlist SET name = ?, updated_at = ? WHERE symbol = ? AND (name IS NULL OR name = '' OR name = symbol)",
+                "UPDATE monitor_watchlist SET name = ?, updated_at = ? "
+                "WHERE symbol = ? "
+                "AND (name IS NULL OR name = '' OR name = symbol)",
                 (name, now, code),
             )
         conn.commit()
         conn.close()
     except Exception as e:
         logger.warning(f"backfill names DB write failed: {e}")
-
-    # 更新 JSON 快照（config 是 load_config() 的直接引用，直接改并保存）
-    changed = False
-    for section in ("watchlist", "holdings", "watching"):
-        for code, name in updates.items():
-            if code in config.get(section, {}):
-                entry = config[section][code]
-                if not entry.get("name") or entry["name"] == code:
-                    entry["name"] = name
-                    changed = True
-    if changed:
-        save_config(config)
 
     logger.info(f"自动填充股票名称: {updates}")
     return True
@@ -285,9 +333,7 @@ def poll_once() -> bool:
     即使个股行情抓取失败，也尝试写入大盘数据（成交额/汇率），
     确保 dashboard 至少能看到市场概览。
     """
-    config = load_config()
-    watchlist = config.get("watchlist", {})
-    settings = config.get("settings", {})
+    watchlist, settings = load_watchlist_from_db()
     symbols = list(watchlist.keys())
 
     if not symbols:
@@ -329,7 +375,7 @@ def poll_once() -> bool:
         return False
 
     # 自动填充缺失的股票名称（只在首次抓到名称时写入，后续 no-op）
-    _backfill_missing_names(stocks, config)
+    _backfill_missing_names(stocks, watchlist)
 
     services = build_services(stocks, watchlist)
 
@@ -409,15 +455,14 @@ def poll_once() -> bool:
 
 
 def main():
-    config = load_config()
-    interval = config.get("settings", {}).get("poll_interval", 30)
-    symbols = list(config.get("watchlist", {}).keys())
+    watchlist, settings = load_watchlist_from_db()
+    interval = settings.get("poll_interval", 30)
 
-    print(f"Market Data Poller 启动")
-    print(f"  标的数: {len(symbols)}")
+    print("Market Data Poller 启动")
+    print(f"  标的数: {len(watchlist)}")
     print(f"  轮询间隔: {interval}s")
     print(f"  输出文件: {OUTPUT_PATH}")
-    print(f"  按 Ctrl+C 退出\n")
+    print("  按 Ctrl+C 退出\n")
 
     # 启动时立即执行一次
     poll_once()
@@ -425,9 +470,9 @@ def main():
     try:
         while True:
             time.sleep(interval)
-            # 每轮重新读取 config，这样 watchlist 变化能自动生效
-            config = load_config()
-            interval = config.get("settings", {}).get("poll_interval", 30)
+            # 每轮重新读取 DB，这样 watchlist 变化能自动生效
+            _, settings = load_watchlist_from_db()
+            interval = settings.get("poll_interval", 30)
             poll_once()
     except KeyboardInterrupt:
         print("\nPoller 已停止")

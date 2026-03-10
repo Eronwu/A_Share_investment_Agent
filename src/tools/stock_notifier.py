@@ -686,7 +686,8 @@ class DataFreshnessWatchdog:
         if not services:
             return []
         alerts = []
-        freeze_threshold = self._poll_interval * 5
+        # HK data sources update less frequently than A-share; use a higher threshold
+        freeze_thresholds = {"A": self._poll_interval * 5, "HK": self._poll_interval * 8}
 
         for mkt in (["A", "HK"] if has_hk else ["A"]):
             if not self._is_market_active(mkt, has_hk):
@@ -707,7 +708,7 @@ class DataFreshnessWatchdog:
                     ))
             else:
                 elapsed = now - prev["first_seen"]
-                if elapsed >= freeze_threshold and not self._price_frozen_alerted.get(mkt):
+                if elapsed >= freeze_thresholds.get(mkt, freeze_thresholds["A"]) and not self._price_frozen_alerted.get(mkt):
                     key = f"price_frozen_{mkt}"
                     if self._cooled(key, now):
                         self._fire(key, now)
