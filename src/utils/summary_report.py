@@ -110,6 +110,94 @@ def _label_action(action: Any) -> str:
     return ACTION_LABELS.get(str(action).lower(), str(action).upper())
 
 
+def _format_numeric(value: Any, digits: int = 2) -> str:
+    try:
+        num = float(value)
+    except Exception:
+        return str(value) if value is not None else "N/A"
+    return f"{num:.{digits}f}"
+
+
+def _format_percent_maybe(value: Any, digits: int = 2) -> str:
+    try:
+        num = float(value)
+    except Exception:
+        return str(value) if value is not None else "N/A"
+    return f"{num * 100:.{digits}f}%"
+
+
+def _format_large_number(value: Any) -> str:
+    try:
+        num = float(value)
+    except Exception:
+        return str(value) if value is not None else "N/A"
+    abs_num = abs(num)
+    if abs_num >= 1e8:
+        return f"{num / 1e8:.2f}亿"
+    if abs_num >= 1e4:
+        return f"{num / 1e4:.2f}万"
+    return f"{num:.2f}"
+
+
+def _translate_reasoning(text: Any) -> str:
+    if not isinstance(text, str) or not text.strip():
+        return "N/A"
+
+    translated = text.strip()
+
+    exact_replacements = [
+        ("The risk management signal is the primary driver for this trade, with a confidence level of 1.0.", "本次决策以风险管理信号为首要依据，且该信号置信度最高。"),
+        ("The risk management signal is the highest priority and dictates the 'hold' action.", "风险管理信号优先级最高，因此直接约束了最终持有动作。"),
+        ("The general macro analysis is negative, affecting the stock negatively.", "个股宏观分析偏负面，对标的形成压制。"),
+        ("The sentiment analysis is highly bearish, reflecting negative news about specific sectors.", "情绪分析明显偏空，反映出相关行业新闻面对股价形成压力。"),
+        ("The technical analysis and valuation analysis provide mixed signals, with the technical signal being neutral and the valuation signal bullish.", "技术面与估值面给出混合信号：技术面偏中性，估值面偏多。"),
+        ("Both macro and daily news summaries indicate market不确定性, but do not strongly sway the decision.", "宏观摘要和日度新闻摘要都提示市场存在不确定性，但不足以单独改变最终决策。"),
+        ("The valuation analysis, while compelling, is outweighed by the other signals.", "估值虽然有吸引力，但整体权重仍被其他信号所平衡。"),
+        ("Bullish arguments more convincing", "多头论据更有说服力"),
+        ("Bearish arguments more convincing", "空头论据更有说服力"),
+        ("Balanced debate with strong arguments on both sides", "多空双方都有较强论据，整体仍属均衡争论"),
+        ("Bullish thesis based on comprehensive analysis of technical, fundamental, sentiment, and valuation factors", "多头观点认为，技术面、基本面、情绪面与估值面综合来看仍具备正向机会。"),
+        ("Bearish thesis based on comprehensive analysis of technical, fundamental, sentiment, and valuation factors", "空头观点认为，技术面、基本面、情绪面与估值面综合来看仍需保持谨慎。"),
+    ]
+    for src, dst in exact_replacements:
+        translated = translated.replace(src, dst)
+
+    generic_replacements = [
+        ("Technical indicators may be conservative, presenting buying opportunities", "技术指标偏保守，意味着当前位置可能存在买入机会"),
+        ("Strong fundamentals with", "基本面较强，置信度为"),
+        ("Positive market sentiment with", "市场情绪偏正面，置信度为"),
+        ("Negative market sentiment with", "市场情绪偏负面，置信度为"),
+        ("Market sentiment may be overly pessimistic, creating value opportunities", "市场情绪可能过度悲观，从而带来价值型机会"),
+        ("Technical rally may be temporary, suggesting potential reversal", "技术性反弹可能只是短期现象，存在回落风险"),
+        ("Current fundamental strength may not be sustainable", "当前基本面强势未必具备持续性"),
+        ("Current valuation may not fully reflect downside risks", "当前估值可能尚未充分计入下行风险"),
+        ("Stock appears undervalued", "标的看起来存在低估"),
+        ("Stock appears overvalued", "标的看起来存在高估"),
+        ("The final decision is buy", "最终决策为买入"),
+        ("The final decision is hold", "最终决策为持有"),
+        ("The final decision is sell", "最终决策为卖出"),
+        ("buy ", "买入 "),
+        ("hold", "持有"),
+        ("sell", "卖出"),
+        ("shares", "股"),
+        ("confidence", "置信度"),
+        ("market sentiment", "市场情绪"),
+        ("fundamental", "基本面"),
+        ("fundamentals", "基本面"),
+        ("valuation", "估值"),
+        ("technical", "技术面"),
+        ("macro", "宏观"),
+        ("risk management", "风险管理"),
+        ("bullish", "看多"),
+        ("bearish", "看空"),
+        ("neutral", "中性"),
+    ]
+    for src, dst in generic_replacements:
+        translated = translated.replace(src, dst)
+
+    return translated
+
+
 def _extract_number(text: str, pattern: str) -> str | None:
     if not isinstance(text, str):
         return None
@@ -205,7 +293,7 @@ def _find_signal_payload(technical: Any = None):
     return technical
 
 
-def print_summary_report(state: Dict[str, Any]) -> None:
+def build_summary_report(state: Dict[str, Any]) -> str:
     data = state.get("data", {})
     metadata = state.get("metadata", {})
     timings = data.get("agent_timings", {}) or metadata.get("agent_timings", {}) or {}
@@ -246,7 +334,7 @@ def print_summary_report(state: Dict[str, Any]) -> None:
     lines.append(f"- 风险等级: {risk_score}/10")
     lines.append(f"- 风控动作: {risk_action}")
     if isinstance(portfolio, dict) and portfolio.get("reasoning"):
-        lines.append(f"- 一句话结论: {portfolio.get('reasoning')}")
+        lines.append(f"- 一句话结论: {_translate_reasoning(portfolio.get('reasoning'))}")
 
     lines.append("")
     lines.append("[2] 决策摘要")
@@ -306,12 +394,12 @@ def print_summary_report(state: Dict[str, Any]) -> None:
         lines.append("- 技术分析师")
         lines.append(f"  · 结论: {_label_signal(technical.get('signal'))}")
         lines.append(f"  · 置信度: {_format_confidence(technical.get('confidence'))}")
-        lines.append(f"  · 1月动量: {momentum.get('momentum_1m', 'N/A')}")
-        lines.append(f"  · 3月动量: {momentum.get('momentum_3m', 'N/A')}")
-        lines.append(f"  · 6月动量: {momentum.get('momentum_6m', 'N/A')}")
-        lines.append(f"  · ADX: {trend.get('adx', 'N/A')}")
-        lines.append(f"  · 均值回归 z-score: {mean_rev.get('z_score', 'N/A')}")
-        lines.append(f"  · 历史波动率: {vol.get('historical_volatility', 'N/A')}")
+        lines.append(f"  · 1月动量: {_format_percent_maybe(momentum.get('momentum_1m', 'N/A'))}")
+        lines.append(f"  · 3月动量: {_format_percent_maybe(momentum.get('momentum_3m', 'N/A'))}")
+        lines.append(f"  · 6月动量: {_format_percent_maybe(momentum.get('momentum_6m', 'N/A'))}")
+        lines.append(f"  · ADX: {_format_numeric(trend.get('adx', 'N/A'))}")
+        lines.append(f"  · 均值回归 z-score: {_format_numeric(mean_rev.get('z_score', 'N/A'))}")
+        lines.append(f"  · 历史波动率: {_format_percent_maybe(vol.get('historical_volatility', 'N/A'))}")
     if isinstance(fundamentals, dict):
         r = fundamentals.get("reasoning", {}) or {}
         lines.append("- 基本面分析师")
@@ -325,8 +413,8 @@ def print_summary_report(state: Dict[str, Any]) -> None:
         lines.append(f"  · 结论: {_label_signal(sentiment.get('signal'))}")
         lines.append(f"  · 置信度: {_format_confidence(sentiment.get('confidence'))}")
         lines.append(f"  · 新闻样本: {_extract_sentiment_sample_count(sentiment) or 'N/A'} 条")
-        lines.append(f"  · 情绪分数: {_extract_sentiment_score(sentiment) if _extract_sentiment_score(sentiment) is not None else 'N/A'}")
-        lines.append(f"  · 解读: {sentiment.get('reasoning', 'N/A')}")
+        lines.append(f"  · 情绪分数: {_format_numeric(_extract_sentiment_score(sentiment), 2) if _extract_sentiment_score(sentiment) is not None else 'N/A'}")
+        lines.append(f"  · 解读: {_translate_reasoning(sentiment.get('reasoning', 'N/A'))}")
     if isinstance(valuation, dict):
         vr = valuation.get("reasoning", {}) or {}
         lines.append("- 估值分析师")
@@ -338,7 +426,7 @@ def print_summary_report(state: Dict[str, Any]) -> None:
     lines.append("")
     lines.append("[5] 多头研究员观点")
     if isinstance(bull, dict):
-        lines.append(f"- 核心主张: {bull.get('reasoning', 'N/A')}")
+        lines.append(f"- 核心主张: {_translate_reasoning(bull.get('reasoning', 'N/A'))}")
         for idx, point in enumerate((bull.get('thesis_points') or [])[:3], start=1):
             lines.append(f"  {idx}. {point}")
     else:
@@ -347,7 +435,7 @@ def print_summary_report(state: Dict[str, Any]) -> None:
     lines.append("")
     lines.append("[6] 空头研究员观点")
     if isinstance(bear, dict):
-        lines.append(f"- 核心主张: {bear.get('reasoning', 'N/A')}")
+        lines.append(f"- 核心主张: {_translate_reasoning(bear.get('reasoning', 'N/A'))}")
         for idx, point in enumerate((bear.get('thesis_points') or [])[:3], start=1):
             lines.append(f"  {idx}. {point}")
     else:
@@ -358,9 +446,9 @@ def print_summary_report(state: Dict[str, Any]) -> None:
     if isinstance(debate, dict):
         lines.append(f"- 辩论倾向: {_label_signal(debate.get('signal'))}")
         lines.append(f"- 辩论分数: {debate.get('mixed_confidence_diff', 'N/A')}")
-        lines.append(f"- 裁决: {debate.get('reasoning', 'N/A')}")
+        lines.append(f"- 裁决: {_translate_reasoning(debate.get('reasoning', 'N/A'))}")
         if debate.get("llm_analysis"):
-            lines.append(f"- 第三方分析: {debate.get('llm_analysis')}")
+            lines.append(f"- 第三方分析: {_translate_reasoning(debate.get('llm_analysis'))}")
     else:
         lines.append("- N/A")
 
@@ -370,7 +458,7 @@ def print_summary_report(state: Dict[str, Any]) -> None:
         lines.append(f"- 风险分数: {risk.get('risk_score', 'N/A')} / 10")
         lines.append(f"- 最大建议仓位: {risk.get('max_position_size', 'N/A')}")
         lines.append(f"- 交易动作: {_label_action(risk.get('trading_action'))}")
-        lines.append(f"- 风控解释: {risk.get('reasoning', 'N/A')}")
+        lines.append(f"- 风控解释: {_translate_reasoning(risk.get('reasoning', 'N/A'))}")
     else:
         lines.append("- N/A")
 
@@ -392,7 +480,7 @@ def print_summary_report(state: Dict[str, Any]) -> None:
     if isinstance(portfolio, dict):
         lines.append(f"- 最终动作: {final_action}")
         lines.append(f"- 置信度: {final_conf}")
-        lines.append(f"- 拍板原因: {portfolio.get('reasoning', 'N/A')}")
+        lines.append(f"- 拍板原因: {_translate_reasoning(portfolio.get('reasoning', 'N/A'))}")
     else:
         lines.append("- N/A")
 
@@ -414,4 +502,8 @@ def print_summary_report(state: Dict[str, Any]) -> None:
             lines.append(f"- {agent_name}: {_fmt_duration(info.get('duration_seconds'))} ({info.get('status', 'completed')})")
 
     lines.append("=" * 96)
-    print("\n" + "\n".join(lines))
+    return "\n" + "\n".join(lines)
+
+
+def print_summary_report(state: Dict[str, Any]) -> None:
+    print(build_summary_report(state))

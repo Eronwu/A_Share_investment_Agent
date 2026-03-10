@@ -39,7 +39,7 @@ from src.utils.logging_config import setup_logger
 
 # --- Import Summary Report Generator ---
 try:
-    from src.utils.summary_report import print_summary_report
+    from src.utils.summary_report import print_summary_report, build_summary_report
     from src.utils.agent_collector import store_final_state, get_enhanced_final_state
 
     HAS_SUMMARY_REPORT = True
@@ -128,11 +128,15 @@ def run_hedge_fund(
                 _append_debug_checkpoint(f"before_summary:{run_id}")
                 store_final_state(final_state)
                 enhanced_state = get_enhanced_final_state()
+                summary_text = build_summary_report(enhanced_state)
+                with open("logs/last_summary_report.txt", "w", encoding="utf-8") as f:
+                    f.write(summary_text + "\n")
                 print("\n" + "#" * 96)
                 print("# FINAL SUMMARY REPORT".ljust(95) + "#")
                 print("#" * 96)
-                print_summary_report(enhanced_state)
+                print(summary_text)
                 print(f"\n[summary log file] {OUTPUT_LOGGER.filename}")
+                print("[summary text file] logs/last_summary_report.txt")
                 _append_debug_checkpoint(f"after_summary:{run_id}")
 
             if HAS_STRUCTURED_OUTPUT and show_reasoning:
@@ -147,11 +151,15 @@ def run_hedge_fund(
             _append_debug_checkpoint(f"before_summary_importerror:{run_id}")
             store_final_state(final_state)
             enhanced_state = get_enhanced_final_state()
+            summary_text = build_summary_report(enhanced_state)
+            with open("logs/last_summary_report.txt", "w", encoding="utf-8") as f:
+                f.write(summary_text + "\n")
             print("\n" + "#" * 96)
             print("# FINAL SUMMARY REPORT".ljust(95) + "#")
             print("#" * 96)
-            print_summary_report(enhanced_state)
+            print(summary_text)
             print(f"\n[summary log file] {OUTPUT_LOGGER.filename}")
+            print("[summary text file] logs/last_summary_report.txt")
             _append_debug_checkpoint(f"after_summary_importerror:{run_id}")
 
         if HAS_STRUCTURED_OUTPUT and show_reasoning:
