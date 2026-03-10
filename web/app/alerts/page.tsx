@@ -60,7 +60,7 @@ function parseAlert(e: AlertEvent): {
   const d = e.display || "";
   const sym = e.symbol || "";
   // Strip HK prefix for compact display; tag: prefix → show tag name
-  const shortCode = sym.startsWith("tag:") ? sym.replace("tag:", "") : sym.replace(/^HK/, "");
+  const shortCode = sym.startsWith("tag:") ? sym.replace("tag:", "") : sym.replace(/^(?:HK|KR)/, "");
 
   if (e.kind === "l2_strategy") {
     // L2 format: "{code} {name} {signal}: {detail} | 现价{price} 日涨{chg}% ..."
@@ -77,7 +77,7 @@ function parseAlert(e: AlertEvent): {
     // Parse main part: "{code} {name} {signal}: {detail}" or "{code} {name} {signal}"
     // Name can contain full-width chars (－Ｗ), digits, latin — match greedily up to known signal keywords
     const signalKeywords = "MACD|RSI|均线|布林|ADX|趋势|放量|缩量|突破|破位|吞没|看涨|看跌|星|盘口|委比|量价|相对|散户|机构|主力|主买|主卖|大单|动量|资金|尾盘|多头|空头";
-    const mainMatch = mainPart.match(new RegExp(`^(?:HK)?\\d+\\s+(.+?)\\s+((?:${signalKeywords})[^:：]*)(?:[:：]\\s*(.*))?$`));
+    const mainMatch = mainPart.match(new RegExp(`^(?:HK|KR)?\\d+\\s+(.+?)\\s+((?:${signalKeywords})[^:：]*)(?:[:：]\\s*(.*))?$`));
     if (mainMatch) {
       const name = mainMatch[1].trim();
       const signal = mainMatch[2].trim();
@@ -96,7 +96,7 @@ function parseAlert(e: AlertEvent): {
 
   if (e.kind === "big_move") {
     // big_move: "{code} {name} 涨幅/跌幅 X.X% 现价X.XX"
-    const m = d.match(/^(?:HK)?\d+\s+(.+?)\s+(涨幅|跌幅)\s+([\d.]+)%(?:\s+现价([\d.]+))?/);
+    const m = d.match(/^(?:HK|KR)?\d+\s+(.+?)\s+(涨幅|跌幅)\s+([\d.]+)%(?:\s+现价([\d.]+))?/);
     if (m) {
       return {
         stockName: m[1].trim(),
@@ -110,7 +110,7 @@ function parseAlert(e: AlertEvent): {
   }
 
   if (e.kind === "threshold") {
-    const m = d.match(/^(?:HK)?\d+\s+(.+?)\s+触价告警\s*(.*)/);
+    const m = d.match(/^(?:HK|KR)?\d+\s+(.+?)\s+触价告警\s*(.*)/);
     if (m) {
       return {
         stockName: m[1].trim(),

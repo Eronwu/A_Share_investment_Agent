@@ -1959,12 +1959,17 @@ def run():
                     logger.error(f"Mainline detection failed: {e}")
 
                 # Compute today's custom index values for historical record
-                try:
-                    from src.tools.sector_index_engine import compute_custom_indices
-                    compute_custom_indices()
-                    logger.info("sector indices computed for today")
-                except Exception as e:
-                    logger.warning(f"sector index computation failed: {e}")
+                # Run in background thread — takes ~50min, must not block main loop
+                # (blocking would cause daily summary window 16:05-16:15 to be missed)
+                def _run_sector_indices():
+                    try:
+                        from src.tools.sector_index_engine import compute_custom_indices
+                        compute_custom_indices()
+                        logger.info("sector indices computed for today")
+                    except Exception as e:
+                        logger.warning(f"sector index computation failed: {e}")
+                import threading
+                threading.Thread(target=_run_sector_indices, daemon=True, name="sector-indices").start()
 
         # ── Daily summary generation (16:05-16:15 after HK close) ──
         if not sent_summary_today:

@@ -24,7 +24,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 EM_UT = "fa5fd1943c7b386f172d6893dbfba10b"
 
 from src.tools.futu_enricher import FutuL2Enricher
-from src.tools.stock_monitor import fetch_realtime_eastmoney, fetch_realtime_sina, load_config
+from src.tools.stock_monitor import fetch_realtime_eastmoney, fetch_realtime_sina, fetch_realtime_yahoo, is_kr_symbol, load_config
 from src.utils.logging_config import setup_logger
 
 logger = setup_logger("market_data_poller")
@@ -236,7 +236,16 @@ def poll_once() -> bool:
         logger.warning("watchlist 为空，跳过本轮")
         return False
 
-    stocks, is_sina_fallback = fetch_realtime_with_fallback(symbols)
+    # 分离 KR 股票（Yahoo Finance），其余走东方财富/新浪
+    kr_symbols = [s for s in symbols if is_kr_symbol(s)]
+    em_symbols = [s for s in symbols if not is_kr_symbol(s)]
+
+    stocks, is_sina_fallback = fetch_realtime_with_fallback(em_symbols)
+
+    # 追加 Yahoo Finance 数据（KR 股票）
+    if kr_symbols:
+        kr_stocks = fetch_realtime_yahoo(kr_symbols)
+        stocks = stocks + kr_stocks
 
     # 两市成交额（新浪源，独立于东方财富，不受其故障影响）
     turnover = fetch_market_turnover()

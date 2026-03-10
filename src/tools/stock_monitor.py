@@ -126,6 +126,61 @@ def hk_code(symbol: str) -> str:
     return symbol.upper().removeprefix("HK")
 
 
+def is_kr_symbol(symbol: str) -> bool:
+    """判断是否为韩国股票代码（以 KR 开头，如 KR000660）"""
+    return symbol.upper().startswith("KR")
+
+
+def kr_code(symbol: str) -> str:
+    """提取韩国纯数字代码，如 KR000660 -> 000660"""
+    return symbol.upper().removeprefix("KR")
+
+
+def fetch_realtime_yahoo(symbols: list[str]) -> list[dict]:
+    """通过 Yahoo Finance API 批量获取韩国股票实时行情（KR 前缀）
+
+    仅用于 KR 前缀股票，不含量比/换手率。价格单位为 KRW，不做换算。
+    """
+    results = []
+    for sym in symbols:
+        if not is_kr_symbol(sym):
+            continue
+        ticker = f"{kr_code(sym)}.KS"
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=1d"
+        try:
+            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=8)
+            data = resp.json()
+            result = data.get("chart", {}).get("result", [])
+            if not result:
+                continue
+            meta = result[0]["meta"]
+            price = meta.get("regularMarketPrice", 0)
+            prev = meta.get("previousClose") or meta.get("chartPreviousClose", 0)
+            if not price:
+                continue
+            pct = round((price - prev) / prev * 100, 2) if prev else 0
+            chg = round(price - prev, 2) if prev else 0
+            results.append({
+                "code": sym,
+                "name": meta.get("shortName", sym),
+                "price": price,
+                "pct": pct,
+                "change": chg,
+                "volume": meta.get("regularMarketVolume", 0),
+                "amount": 0,
+                "amplitude": 0,
+                "turnover": 0,
+                "vol_ratio": 0,
+                "high": meta.get("regularMarketDayHigh", price),
+                "low": meta.get("regularMarketDayLow", price),
+                "open": meta.get("regularMarketOpen", price),
+                "prev_close": prev,
+            })
+        except Exception as e:
+            logger.debug(f"Yahoo Finance fetch({sym}) error: {e}")
+    return results
+
+
 def _sina_code(symbol: str) -> str:
     """转换为新浪格式: A股 sh600089/sz002335, 港股 rt_hk00700
 
