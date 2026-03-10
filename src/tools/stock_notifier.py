@@ -234,6 +234,10 @@ def merge_data(market: dict, config: dict) -> dict:
             "change_pct": change_pct,
             "chg_amt": chg_amt,
             "amount": svc.get("amount", 0),
+            "open": svc.get("open", 0),
+            "prev_close": svc.get("prevClose", 0),
+            "high": svc.get("high", 0),
+            "low": svc.get("low", 0),
         }
 
     # Inject technical indicators from L2 daemon
@@ -804,6 +808,94 @@ def _linear_regression(ys: list[float]):
     return slope, r_squared
 
 
+# ══════════════════════════════════════════
+# 5b. Gap-fade detection（高开低走）
+# ══════════════════════════════════════════
+
+class GapFadeEngine:
+    """检测高开低走形态，每只股票每日最多触发一次。
+
+    触发条件（同时满足）：
+      1. 高开幅度 >= gap_pct（默认 1.5%）：开盘价显著高于昨收
+      2. 从开盘价跌落 >= fade_pct（默认 2.0%）：日内明显回落
+
+    告警级别：
+      - ★ 持仓 L1（弹窗+声音）
+      - 持仓（非星标）L2（弹窗静默）
+      - 自选 L3（仅 web）
+    """
+
+    DEFAULT_GAP_PCT = 1.5   # 最小高开幅度（可在 settings 中覆盖 gap_fade_gap_pct）
+    DEFAULT_FADE_PCT = 2.0  # 从开盘回落幅度（可在 settings 中覆盖 gap_fade_fade_pct）
+
+    def __init__(self, config: dict):
+        self.config = config
+        self._fired: dict[str, str] = {}  # {symbol: date_str}
+
+    def reset(self):
+        self._fired.clear()
+
+    def check(self, quotes: dict) -> list[dict]:
+        settings = self.config.get("settings", {})
+        watchlist = self.config.get("watchlist", {})
+        gap_pct = settings.get("gap_fade_gap_pct", self.DEFAULT_GAP_PCT)
+        fade_pct = settings.get("gap_fade_fade_pct", self.DEFAULT_FADE_PCT)
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        alerts = []
+        for symbol, q in quotes.items():
+            if self._fired.get(symbol) == today:
+                continue
+
+            open_px = q.get("open", 0)
+            prev_close = q.get("prev_close", 0)
+            price = q.get("price", 0)
+            name = q.get("name", symbol)
+
+            if open_px <= 0 or prev_close <= 0 or price <= 0:
+                continue
+
+            # 1. 高开幅度
+            actual_gap_pct = (open_px - prev_close) / prev_close * 100
+            if actual_gap_pct < gap_pct:
+                continue
+
+            # 2. 从开盘回落幅度
+            actual_fade_pct = (open_px - price) / open_px * 100
+            if actual_fade_pct < fade_pct:
+                continue
+
+            gap_erased = price <= prev_close  # 缺口已完全回吐
+
+            entry = watchlist.get(symbol, {})
+            level = resolve_level(entry)
+            if level == 4:
+                continue
+
+            self._fired[symbol] = today
+
+            gap_str = f"+{actual_gap_pct:.1f}%"
+            fade_str = f"-{actual_fade_pct:.1f}%"
+            erased_str = " 缺口完全回吐" if gap_erased else ""
+            msg = f"{symbol} {name} 高开{gap_str} 回落{fade_str}{erased_str} 现价{price:.2f}"
+            display = f"{symbol} {name} 高开低走: 高开{gap_str} 回落{fade_str}{erased_str} | 现价{price:.2f}"
+
+            alerts.append({
+                "symbol": symbol,
+                "title": f"{name} 高开低走",
+                "message": msg,
+                "display": display,
+                "_kind": "gap_fade",
+                "_level": level,
+                "_price": price,
+                "_change_pct": q.get("change_pct", 0),
+                "_stealth": msg,
+            })
+            logger.info(f"GapFade: {symbol} {name} 高开{gap_str} 回落{fade_str}{erased_str}")
+
+        return alerts
+
+
 def check_mainline_alerts() -> list[dict]:
     """Read sector_daily + tag_meta from DB, run mainline detection, return alerts.
 
@@ -939,6 +1031,8 @@ def write_alert_events(alerts: list[dict]):
 
         # 中文可读格式
         if kind == "STALE":
+            display = a.get("display", a.get("message", ""))
+        elif kind == "gap_fade":
             display = a.get("display", a.get("message", ""))
         elif kind == "l2_strategy":
             display = a.get("message", f"{symbol} L2 signal")
@@ -1770,6 +1864,7 @@ def run():
     last_checked_count = len(watchlist)
     engine = DeltaAlertEngine(config)
     plan_engine = TradePlanEngine()
+    gap_fade_engine = GapFadeEngine(config)
     drift_tracker = WatchDriftTracker(ALERT_CONFIG_PATH)
     watchdog = DataFreshnessWatchdog(poll_interval=settings.get("poll_interval", 30))
     sent_open_today = False
@@ -1795,6 +1890,7 @@ def run():
             latest_hkd_cny_rate = None
             last_alert_date = today
             engine.reset()  # clear delta tracking for new day
+            gap_fade_engine.reset()  # clear gap-fade fired set for new day
             drift_tracker.reset()  # clear drift tier tracking for new day
             watchdog.reset()  # clear staleness tracking for new day
             check_l2_signals._daily_counts = {}  # reset per-stock L2 cap
@@ -1881,6 +1977,11 @@ def run():
                         pass  # sector_daily may not have today's data yet
                     if drift_alerts:
                         all_alerts.extend(drift_alerts)
+
+                    # ── Gap-fade（高开低走）──
+                    gap_alerts = gap_fade_engine.check(quotes)
+                    if gap_alerts:
+                        all_alerts.extend(gap_alerts)
 
                     if all_alerts:
                         print()

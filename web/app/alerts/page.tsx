@@ -123,6 +123,22 @@ function parseAlert(e: AlertEvent): {
     }
   }
 
+  if (e.kind === "gap_fade") {
+    // display: "{code} {name} 高开低走: 高开+X.X% 回落-Y.Y%[ 缺口完全回吐] | 现价Z.ZZ"
+    const m = d.match(/^(?:HK|KR)?\d+\s+(.+?)\s+高开低走:\s*高开([+\d.]+%)\s+回落([-\d.]+%)([^|]*)\|\s*现价([\d.]+)/);
+    if (m) {
+      const erased = m[4].includes("缺口完全回吐");
+      return {
+        stockName: m[1].trim(),
+        stockCode: shortCode,
+        signal: erased ? "高开低走 缺口回吐" : "高开低走",
+        signalColor: "#ff6b6b",
+        price: m[5],
+        detail: `高开${m[2]} 回落${m[3]}`,
+      };
+    }
+  }
+
   if (e.kind === "DRIFT") {
     // display: "📊 {name}({code}) 距关注价{wp}{direction}{drift}%，现价{price}"
     // or index: "📊 {tag}指数 距创建{direction}{drift}%，当前{value}"
