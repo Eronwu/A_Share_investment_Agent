@@ -13,6 +13,8 @@ if [[ $# -lt 1 ]]; then
   ./stock 159316
   ./stock 000661 --summary
   ./stock 600519 --show-reasoning --num-of-news 10
+  ./stock 601985 --hq
+  ./stock 601985 --model deepseek-v3.1:671b-cloud
 EOF
   exit 1
 fi

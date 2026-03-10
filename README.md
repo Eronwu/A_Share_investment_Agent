@@ -300,6 +300,14 @@ poetry run python run_with_backend.py
 ./stock 600519 --show-reasoning --num-of-news 10
 ```
 
+默认情况下使用本地 Ollama 模型（当前推荐默认：`qwen2.5-coder:7b`）。
+如果你想临时切到高质量云端模型，可以用：
+
+```bash
+./stock 601985 --hq
+./stock 601985 --model deepseek-v3.1:671b-cloud
+```
+
 Ollama 本地模型的流式观测默认可通过 `.env` 控制：
 
 ```env

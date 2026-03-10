@@ -1,4 +1,5 @@
 import sys
+import os
 
 import argparse
 import uuid  # Import uuid for run IDs
@@ -71,8 +72,15 @@ def run_hedge_fund(
     show_reasoning: bool = False,
     num_of_news: int = 5,
     show_summary: bool = False,
+    ollama_model: str | None = None,
 ):
     print(f"--- Starting Workflow Run ID: {run_id} ---")
+    previous_ollama_model = os.environ.get("OLLAMA_MODEL")
+    if ollama_model:
+        os.environ["OLLAMA_MODEL"] = ollama_model
+        print(f"--- Using run-specific Ollama model override: {ollama_model} ---")
+    else:
+        print(f"--- Using default Ollama model from environment: {previous_ollama_model or 'llama3'} ---")
     try:
         from backend.state import api_state
 
@@ -89,6 +97,7 @@ def run_hedge_fund(
             "start_date": start_date,
             "end_date": end_date,
             "num_of_news": num_of_news,
+            "ollama_model": ollama_model,
         },
         "metadata": {
             "show_reasoning": show_reasoning,
@@ -126,6 +135,11 @@ def run_hedge_fund(
             api_state.complete_run(run_id, "completed")
         except Exception:
             pass
+    if ollama_model:
+        if previous_ollama_model is None:
+            os.environ.pop("OLLAMA_MODEL", None)
+        else:
+            os.environ["OLLAMA_MODEL"] = previous_ollama_model
     return final_state["messages"][-1].content
 
 
@@ -234,6 +248,16 @@ if __name__ == "__main__":
         action="store_true",
         help="Show beautiful summary report at the end",
     )
+    parser.add_argument(
+        "--hq",
+        action="store_true",
+        help="Use Ollama cloud high-quality model (deepseek-v3.1:671b-cloud)",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        help="Override Ollama model for this run only",
+    )
     args = parser.parse_args()
     current_date = datetime.now()
     yesterday = current_date - timedelta(days=1)
@@ -254,6 +278,10 @@ if __name__ == "__main__":
         raise ValueError("Number of news articles cannot exceed 100")
     portfolio = {"cash": args.initial_capital, "stock": args.initial_position}
     main_run_id = str(uuid.uuid4())
+    selected_model = args.model
+    if args.hq and not selected_model:
+        selected_model = "deepseek-v3.1:671b-cloud"
+
     result = run_hedge_fund(
         run_id=main_run_id,
         ticker=args.ticker,
@@ -263,6 +291,7 @@ if __name__ == "__main__":
         show_reasoning=args.show_reasoning,
         num_of_news=args.num_of_news,
         show_summary=args.summary,
+        ollama_model=selected_model,
     )
     print("\nFinal Result:")
     print(result)

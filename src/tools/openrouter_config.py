@@ -57,7 +57,7 @@ elif not api_key:
 
 if use_ollama or ollama_model:
     model = ollama_model or "llama3"
-    logger.info(f"{WAIT_ICON} 使用 Ollama 模型: {model}")
+    logger.info(f"{WAIT_ICON} 默认 Ollama 模型: {model}")
 else:
     if not api_key:
         logger.error(f"{ERROR_ICON} 未找到 GEMINI_API_KEY 环境变量")
@@ -136,9 +136,21 @@ def get_chat_completion(
         str: 模型回答内容或 None（如果出错）
     """
     try:
+        effective_model = model
+        if not effective_model:
+            use_ollama_now = (
+                os.getenv("USE_OLLAMA", "").lower() == "true"
+                or os.getenv("OLLAMA", "").lower() == "true"
+                or bool(os.getenv("OLLAMA_MODEL"))
+            )
+            if use_ollama_now:
+                effective_model = os.getenv("OLLAMA_MODEL") or "llama3"
+            else:
+                effective_model = os.getenv("GEMINI_MODEL") or model
+
         # 创建客户端
         client = LLMClientFactory.create_client(
-            client_type=client_type, api_key=api_key, base_url=base_url, model=model
+            client_type=client_type, api_key=api_key, base_url=base_url, model=effective_model
         )
 
         # 获取回答
