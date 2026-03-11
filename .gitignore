@@ -61,6 +61,9 @@ structure.drawio
 # logs
 logs/
 
+# generated reports
+reports/
+
 # data
 src/data/stock_news
 src/data/sentiment_cache.json

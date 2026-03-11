@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 
 import argparse
 import uuid  # Import uuid for run IDs
@@ -7,6 +8,7 @@ import threading  # Import threading for background task
 import uvicorn  # Import uvicorn to run FastAPI
 
 from datetime import datetime, timedelta
+from pathlib import Path
 
 # Removed START as it's implicit with set_entry_point
 from langgraph.graph import END, StateGraph
@@ -39,7 +41,7 @@ from src.utils.logging_config import setup_logger
 
 # --- Import Summary Report Generator ---
 try:
-    from src.utils.summary_report import print_summary_report, build_summary_report
+    from src.utils.summary_report import print_summary_report, build_summary_report, build_summary_payload
     from src.utils.agent_collector import store_final_state, get_enhanced_final_state
 
     HAS_SUMMARY_REPORT = True
@@ -82,6 +84,8 @@ def run_hedge_fund(
     num_of_news: int = 5,
     show_summary: bool = False,
     ollama_model: str | None = None,
+    summary_json_out: str | None = None,
+    summary_text_out: str | None = None,
 ):
     print(f"--- Starting Workflow Run ID: {run_id} ---")
     previous_ollama_model = os.environ.get("OLLAMA_MODEL")
@@ -115,6 +119,42 @@ def run_hedge_fund(
         },
     }
 
+    def persist_summary_artifacts(final_state):
+        if not HAS_SUMMARY_REPORT:
+            return
+        if not (show_summary or summary_json_out or summary_text_out):
+            return
+
+        store_final_state(final_state)
+        enhanced_state = get_enhanced_final_state()
+        summary_text = build_summary_report(enhanced_state)
+
+        if show_summary:
+            with open("logs/last_summary_report.txt", "w", encoding="utf-8") as f:
+                f.write(summary_text + "\n")
+            print("\n" + "#" * 96)
+            print("# FINAL SUMMARY REPORT".ljust(95) + "#")
+            print("#" * 96)
+            print(summary_text)
+            print(f"\n[summary log file] {OUTPUT_LOGGER.filename}")
+            print("[summary text file] logs/last_summary_report.txt")
+
+        if summary_text_out:
+            summary_text_path = Path(summary_text_out)
+            summary_text_path.parent.mkdir(parents=True, exist_ok=True)
+            summary_text_path.write_text(summary_text + "\n", encoding="utf-8")
+
+        if summary_json_out:
+            summary_json_path = Path(summary_json_out)
+            summary_json_path.parent.mkdir(parents=True, exist_ok=True)
+            summary_payload = build_summary_payload(enhanced_state)
+            summary_payload["run_id"] = run_id
+            summary_payload["log_path"] = OUTPUT_LOGGER.filename
+            summary_json_path.write_text(
+                json.dumps(summary_payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
     try:
         from backend.utils.context_managers import workflow_run
 
@@ -124,19 +164,9 @@ def run_hedge_fund(
             _append_debug_checkpoint(f"after_app_invoke:{run_id}")
             print(f"--- Finished Workflow Run ID: {run_id} ---")
 
-            if HAS_SUMMARY_REPORT and show_summary:
+            if HAS_SUMMARY_REPORT and (show_summary or summary_json_out or summary_text_out):
                 _append_debug_checkpoint(f"before_summary:{run_id}")
-                store_final_state(final_state)
-                enhanced_state = get_enhanced_final_state()
-                summary_text = build_summary_report(enhanced_state)
-                with open("logs/last_summary_report.txt", "w", encoding="utf-8") as f:
-                    f.write(summary_text + "\n")
-                print("\n" + "#" * 96)
-                print("# FINAL SUMMARY REPORT".ljust(95) + "#")
-                print("#" * 96)
-                print(summary_text)
-                print(f"\n[summary log file] {OUTPUT_LOGGER.filename}")
-                print("[summary text file] logs/last_summary_report.txt")
+                persist_summary_artifacts(final_state)
                 _append_debug_checkpoint(f"after_summary:{run_id}")
 
             if HAS_STRUCTURED_OUTPUT and show_reasoning:
@@ -147,19 +177,9 @@ def run_hedge_fund(
         _append_debug_checkpoint(f"after_app_invoke_importerror:{run_id}")
         print(f"--- Finished Workflow Run ID: {run_id} ---")
 
-        if HAS_SUMMARY_REPORT and show_summary:
+        if HAS_SUMMARY_REPORT and (show_summary or summary_json_out or summary_text_out):
             _append_debug_checkpoint(f"before_summary_importerror:{run_id}")
-            store_final_state(final_state)
-            enhanced_state = get_enhanced_final_state()
-            summary_text = build_summary_report(enhanced_state)
-            with open("logs/last_summary_report.txt", "w", encoding="utf-8") as f:
-                f.write(summary_text + "\n")
-            print("\n" + "#" * 96)
-            print("# FINAL SUMMARY REPORT".ljust(95) + "#")
-            print("#" * 96)
-            print(summary_text)
-            print(f"\n[summary log file] {OUTPUT_LOGGER.filename}")
-            print("[summary text file] logs/last_summary_report.txt")
+            persist_summary_artifacts(final_state)
             _append_debug_checkpoint(f"after_summary_importerror:{run_id}")
 
         if HAS_STRUCTURED_OUTPUT and show_reasoning:
@@ -291,6 +311,16 @@ if __name__ == "__main__":
         type=str,
         help="Override Ollama model for this run only",
     )
+    parser.add_argument(
+        "--summary-json-out",
+        type=str,
+        help="Optional path to write a machine-readable summary JSON artifact",
+    )
+    parser.add_argument(
+        "--summary-text-out",
+        type=str,
+        help="Optional path to write the rendered summary text artifact",
+    )
     args = parser.parse_args()
     current_date = datetime.now()
     yesterday = current_date - timedelta(days=1)
@@ -325,6 +355,8 @@ if __name__ == "__main__":
         num_of_news=args.num_of_news,
         show_summary=args.summary,
         ollama_model=selected_model,
+        summary_json_out=args.summary_json_out,
+        summary_text_out=args.summary_text_out,
     )
     print("\nFinal Result:")
     print(result)
