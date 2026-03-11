@@ -216,8 +216,8 @@ function Home() {
         onClick={() => setDrawerSymbol(s.id)}
         title="点击查看详情"
       >
-        {/* Plan/Star indicators — replaces type column */}
-        <span style={{ width: "6ch", display: "inline-flex", gap: 2, alignItems: "center" }}>
+        {/* Plan/Star/Dip indicators — replaces type column */}
+        <span style={{ width: "9ch", display: "inline-flex", gap: 2, alignItems: "center" }}>
           {s.star && (
             <span style={{
               border: `1px solid ${D.yellow}`, color: D.yellow,
@@ -231,6 +231,13 @@ function Home() {
               fontSize: 10, padding: "0 2px", lineHeight: "1.4",
               fontFamily: "JetBrains Mono, monospace",
             }}>条</span>
+          )}
+          {s.dip_buy && (
+            <span style={{
+              border: `1px solid ${D.green}`, color: D.green,
+              fontSize: 10, padding: "0 2px", lineHeight: "1.4",
+              fontFamily: "JetBrains Mono, monospace",
+            }}>dip</span>
           )}
         </span>
         <span style={{ color: D.cyan, width: "10ch" }}>{pad(s.id, 9)}</span>
