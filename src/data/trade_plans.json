@@ -36,8 +36,8 @@
           "price": 20.8,
           "shares": 800,
           "label": "反弹减仓1/3——20.8(3/6高点阻力)",
-          "triggered": false,
-          "triggered_at": null
+          "triggered": true,
+          "triggered_at": "2026-03-11T09:36:41.749044"
         },
         {
           "id": "reduce2",
@@ -963,8 +963,8 @@
           "consecutive_days": null,
           "trailing": null,
           "label": "止损-27% 跌破35清仓",
-          "triggered": false,
-          "triggered_at": null
+          "triggered": true,
+          "triggered_at": "2026-03-11T09:15:53.156258"
         },
         {
           "id": "tp1",
@@ -1046,7 +1046,7 @@
     "HK06651_hold": {
       "name": "五一视界持有策略",
       "symbol": "HK06651",
-      "status": "completed",
+      "status": "paused",
       "created_at": "2026-03-06",
       "orders": [
         {
@@ -1280,6 +1280,154 @@
           "price": 4.5,
           "shares": 2000,
           "label": "清仓——4.5清剩余",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "HK06651_entry": {
+      "name": "五一视界 回踩分批建仓",
+      "symbol": "HK06651",
+      "status": "active",
+      "created_at": "2026-03-11",
+      "orders": [
+        {
+          "id": "buy1",
+          "side": "buy",
+          "op": "<=",
+          "price": 58,
+          "shares": 200,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "主力成本区上沿试探",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "buy2",
+          "side": "buy",
+          "op": "<=",
+          "price": 55,
+          "shares": 200,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "主力成本区+MA20",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "buy3",
+          "side": "buy",
+          "op": "<=",
+          "price": 50,
+          "shares": 200,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "磨底平台顶部",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "sl1",
+          "side": "sell",
+          "op": "<=",
+          "price": 45,
+          "shares": 600,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止损：跌破3月低点全清",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp1",
+          "side": "sell",
+          "op": ">=",
+          "price": 75,
+          "shares": 200,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止盈1：Fib 61.8%",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp2",
+          "side": "sell",
+          "op": ">=",
+          "price": 85,
+          "shares": 200,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止盈2：前期密集成交区",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "tp3",
+          "side": "sell",
+          "op": ">=",
+          "price": 95,
+          "shares": 200,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "清仓：接近前高",
+          "triggered": false,
+          "triggered_at": null
+        }
+      ],
+      "scope": "real"
+    },
+    "600673_add": {
+      "name": "东阳光 回调分批加仓2000股",
+      "symbol": "600673",
+      "status": "active",
+      "created_at": "2026-03-11",
+      "orders": [
+        {
+          "id": "buy1",
+          "side": "buy",
+          "op": "<=",
+          "price": 33,
+          "shares": 1000,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "第一档：缺口上沿(33.25)附近",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "buy2",
+          "side": "buy",
+          "op": "<=",
+          "price": 29,
+          "shares": 1000,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "第二档：MA60上方极端超跌",
+          "triggered": false,
+          "triggered_at": null
+        },
+        {
+          "id": "sl1",
+          "side": "sell",
+          "op": "<=",
+          "price": 26.5,
+          "shares": 2100,
+          "volume_min": null,
+          "consecutive_days": null,
+          "trailing": null,
+          "label": "止损：跌破MA60全清",
           "triggered": false,
           "triggered_at": null
         }

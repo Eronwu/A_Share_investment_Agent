@@ -1,2379 +1,6 @@
 {
   "signals": [
     {
-      "ts": 1772783097567,
-      "time": "15:44:57",
-      "strategy": "macd_bottom_divergence",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "小米集团－Ｗ MACD底背离",
-      "display": "HK01810 小米集团－Ｗ MACD底背离: 价格33.58<34.60 但DIF-1.0680>-1.1837 | 现价33.58 日涨+4.3% 净流入38153万",
-      "detail": {
-        "price": 33.58,
-        "prior_low": 34.6,
-        "dif": -1.068,
-        "prior_dif": -1.1837,
-        "lookback": 20
-      }
-    },
-    {
-      "ts": 1772783097567,
-      "time": "15:44:57",
-      "strategy": "ma_bearish_align",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "小米集团－Ｗ 均线空头排列",
-      "display": "HK01810 小米集团－Ｗ 均线空头排列: MA5=32.50 MA10=34.05 MA20=34.89 MA60=37.35 斜率-1.75% | 现价33.58 日涨+4.3% 净流入38153万",
-      "detail": {
-        "ma5": 32.5,
-        "ma10": 34.05,
-        "ma20": 34.89,
-        "ma60": 37.35,
-        "ma20_slope_pct": -1.75
-      }
-    },
-    {
-      "ts": 1772783097567,
-      "time": "15:44:57",
-      "strategy": "relative_strength",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 相对强弱",
-      "display": "HK01810 小米集团－Ｗ 相对强弱: 60日弱于恒指 个股-21.5% 恒指-1.3% 超额-20.2% | 现价33.58 日涨+4.3% 净流入38153万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -21.5,
-        "index_return_60d": -1.3,
-        "excess_return": -20.2
-      }
-    },
-    {
-      "ts": 1772783097626,
-      "time": "15:44:57",
-      "strategy": "engulfing_pattern",
-      "code": "HK02359",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "药明康德 吞没形态",
-      "display": "HK02359 药明康德 看涨吞没形态 | 现价111.50 日涨+2.8% 净流出4100万",
-      "detail": {
-        "direction": "bullish",
-        "prev_open": 108.9,
-        "prev_close": 108.5,
-        "curr_open": 108.0,
-        "curr_close": 111.5
-      }
-    },
-    {
-      "ts": 1772783097626,
-      "time": "15:44:57",
-      "strategy": "morning_evening_star",
-      "code": "HK02359",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "药明康德 晨暮星",
-      "display": "HK02359 药明康德 晨星形态 | 现价111.50 日涨+2.8% 净流出4100万",
-      "detail": {
-        "direction": "bullish",
-        "pattern": "morning_star",
-        "day1_body": -2.9,
-        "day2_body": -0.4,
-        "day3_body": 3.5
-      }
-    },
-    {
-      "ts": 1772783097684,
-      "time": "15:44:57",
-      "strategy": "relative_strength",
-      "code": "HK02577",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "英诺赛科 相对强弱",
-      "display": "HK02577 英诺赛科 相对强弱: 60日弱于恒指 个股-19.2% 恒指-1.3% 超额-17.8% | 现价65.35 日涨+0.5% 净流出6937万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -19.2,
-        "index_return_60d": -1.3,
-        "excess_return": -17.8
-      }
-    },
-    {
-      "ts": 1772783097740,
-      "time": "15:44:57",
-      "strategy": "ma_bearish_align",
-      "code": "HK02590",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "极智嘉-W 均线空头排列",
-      "display": "HK02590 极智嘉-W 均线空头排列: MA5=21.24 MA10=23.13 MA20=24.96 MA60=25.60 斜率-6.15% | 现价20.70 日涨+0.0% 净流入285万",
-      "detail": {
-        "ma5": 21.24,
-        "ma10": 23.13,
-        "ma20": 24.96,
-        "ma60": 25.6,
-        "ma20_slope_pct": -6.15
-      }
-    },
-    {
-      "ts": 1772783097740,
-      "time": "15:44:57",
-      "strategy": "relative_strength",
-      "code": "HK02590",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "极智嘉-W 相对强弱",
-      "display": "HK02590 极智嘉-W 相对强弱: 60日弱于恒指 个股-16.5% 恒指-1.3% 超额-15.2% | 现价20.70 日涨+0.0% 净流入285万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -16.5,
-        "index_return_60d": -1.3,
-        "excess_return": -15.2
-      }
-    },
-    {
-      "ts": 1772783097799,
-      "time": "15:44:57",
-      "strategy": "macd_death_cross",
-      "code": "HK02722",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "重庆机电 MACD死叉",
-      "display": "HK02722 重庆机电 MACD死叉: DIF=0.2416 DEA=0.2425 | 现价3.19 日跌-5.1% 净流出266万",
-      "detail": {
-        "hist": -0.002,
-        "prev_hist": 0.026,
-        "dif": 0.2416,
-        "dea": 0.2425
-      }
-    },
-    {
-      "ts": 1772783097799,
-      "time": "15:44:57",
-      "strategy": "breakout_pullback",
-      "code": "HK02722",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "重庆机电 突破回踩",
-      "display": "HK02722 重庆机电 突破回踩: 回踩支撑3.00 现价3.19 缩量0.91x | 现价3.19 日跌-5.1% 净流出266万",
-      "detail": {
-        "close": 3.19,
-        "support_level": 3.0,
-        "breakout_close": 3.39,
-        "vol_shrink": 0.91
-      }
-    },
-    {
-      "ts": 1772783097799,
-      "time": "15:44:57",
-      "strategy": "relative_strength",
-      "code": "HK02722",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "重庆机电 相对强弱",
-      "display": "HK02722 重庆机电 相对强弱: 60日强于恒指 个股+60.3% 恒指-1.3% 超额+61.6% | 现价3.19 日跌-5.1% 净流出266万",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 60.3,
-        "index_return_60d": -1.3,
-        "excess_return": 61.6
-      }
-    },
-    {
-      "ts": 1772783097866,
-      "time": "15:44:57",
-      "strategy": "ma_bearish_align",
-      "code": "HK03033",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "南方恒生科技 均线空头排列",
-      "display": "HK03033 南方恒生科技 均线空头排列: MA5=4.78 MA10=4.95 MA20=5.11 MA60=5.39 斜率-2.90% | 现价4.84 日涨+3.1% 净流入11332万",
-      "detail": {
-        "ma5": 4.78,
-        "ma10": 4.95,
-        "ma20": 5.11,
-        "ma60": 5.39,
-        "ma20_slope_pct": -2.9
-      }
-    },
-    {
-      "ts": 1772783097925,
-      "time": "15:44:57",
-      "strategy": "macd_golden_cross",
-      "code": "HK03288",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "海天味业 MACD金叉",
-      "display": "HK03288 海天味业 MACD金叉: DIF=0.3928 DEA=0.3851 | 现价34.50 日涨+2.1% 净流出301万",
-      "detail": {
-        "hist": 0.0154,
-        "prev_hist": -0.0868,
-        "dif": 0.3928,
-        "dea": 0.3851
-      }
-    },
-    {
-      "ts": 1772783097981,
-      "time": "15:44:57",
-      "strategy": "engulfing_pattern",
-      "code": "HK03896",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "金山云 吞没形态",
-      "display": "HK03896 金山云 看涨吞没形态 | 现价6.45 日涨+2.4% 净流入3120万",
-      "detail": {
-        "direction": "bullish",
-        "prev_open": 6.35,
-        "prev_close": 6.3,
-        "curr_open": 6.25,
-        "curr_close": 6.45
-      }
-    },
-    {
-      "ts": 1772783098080,
-      "time": "15:44:58",
-      "strategy": "ma_bearish_align",
-      "code": "HK06060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "众安在线 均线空头排列",
-      "display": "HK06060 众安在线 均线空头排列: MA5=14.07 MA10=14.99 MA20=15.49 MA60=16.06 斜率-3.12% | 现价14.24 日涨+4.5% 净流入1454万",
-      "detail": {
-        "ma5": 14.07,
-        "ma10": 14.99,
-        "ma20": 15.49,
-        "ma60": 16.06,
-        "ma20_slope_pct": -3.12
-      }
-    },
-    {
-      "ts": 1772783098245,
-      "time": "15:44:58",
-      "strategy": "ma_bearish_align",
-      "code": "HK07226",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "南方两倍做多纳指 均线空头排列",
-      "display": "HK07226 南方两倍做多纳指 均线空头排列: MA5=3.89 MA10=4.19 MA20=4.49 MA60=5.08 斜率-6.02% | 现价3.98 日涨+6.0% 净流入9214万",
-      "detail": {
-        "ma5": 3.89,
-        "ma10": 4.19,
-        "ma20": 4.49,
-        "ma60": 5.08,
-        "ma20_slope_pct": -6.02
-      }
-    },
-    {
-      "ts": 1772783098245,
-      "time": "15:44:58",
-      "strategy": "relative_strength",
-      "code": "HK07226",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "南方两倍做多纳指 相对强弱",
-      "display": "HK07226 南方两倍做多纳指 相对强弱: 60日弱于恒指 个股-26.8% 恒指-1.3% 超额-25.5% | 现价3.98 日涨+6.0% 净流入9214万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -26.8,
-        "index_return_60d": -1.3,
-        "excess_return": -25.5
-      }
-    },
-    {
-      "ts": 1772783098306,
-      "time": "15:44:58",
-      "strategy": "macd_top_divergence",
-      "code": "HK07262",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "XL二南方看多日经 MACD顶背离",
-      "display": "HK07262 XL二南方看多日经 MACD顶背离: 价格137.60>136.25 但DIF2.0949<3.3385 | 现价137.60 日涨+0.8%",
-      "detail": {
-        "price": 137.6,
-        "prior_high": 136.25,
-        "dif": 2.0949,
-        "prior_dif": 3.3385,
-        "lookback": 20
-      }
-    },
-    {
-      "ts": 1772783098306,
-      "time": "15:44:58",
-      "strategy": "relative_strength",
-      "code": "HK07262",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方看多日经 相对强弱",
-      "display": "HK07262 XL二南方看多日经 相对强弱: 60日强于恒指 个股+17.1% 恒指-1.3% 超额+18.4% | 现价137.60 日涨+0.8%",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 17.1,
-        "index_return_60d": -1.3,
-        "excess_return": 18.4
-      }
-    },
-    {
-      "ts": 1772783098372,
-      "time": "15:44:58",
-      "strategy": "relative_strength",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方海力士 相对强弱",
-      "display": "HK07709 XL二南方海力士 相对强弱: 60日强于恒指 个股+148.5% 恒指-1.3% 超额+149.9% | 现价28.58 日跌-4.3% 净流入4917万",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 148.5,
-        "index_return_60d": -1.3,
-        "excess_return": 149.9
-      }
-    },
-    {
-      "ts": 1772783098448,
-      "time": "15:44:58",
-      "strategy": "ma_bearish_align",
-      "code": "HK09618",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "京东-SW 均线空头排列",
-      "display": "HK09618 京东-SW 均线空头排列: MA5=100.35 MA10=103.08 MA20=105.33 MA60=110.96 斜率-2.17% | 现价105.20 日涨+8.5% 量比1.7 净流入36969万",
-      "detail": {
-        "ma5": 100.35,
-        "ma10": 103.08,
-        "ma20": 105.33,
-        "ma60": 110.96,
-        "ma20_slope_pct": -2.17
-      }
-    },
-    {
-      "ts": 1772783098501,
-      "time": "15:44:58",
-      "strategy": "ma_bearish_align",
-      "code": "HK09927",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "赛力斯 均线空头排列",
-      "display": "HK09927 赛力斯 均线空头排列: MA5=88.95 MA10=92.30 MA20=95.05 MA60=102.53 斜率-1.74% | 现价88.20 日涨+1.0% 净流出341万",
-      "detail": {
-        "ma5": 88.95,
-        "ma10": 92.3,
-        "ma20": 95.05,
-        "ma60": 102.53,
-        "ma20_slope_pct": -1.74
-      }
-    },
-    {
-      "ts": 1772783098501,
-      "time": "15:44:58",
-      "strategy": "relative_strength",
-      "code": "HK09927",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "赛力斯 相对强弱",
-      "display": "HK09927 赛力斯 相对强弱: 60日弱于恒指 个股-23.0% 恒指-1.3% 超额-21.7% | 现价88.20 日涨+1.0% 净流出341万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -23.0,
-        "index_return_60d": -1.3,
-        "excess_return": -21.7
-      }
-    },
-    {
-      "ts": 1772783098552,
-      "time": "15:44:58",
-      "strategy": "rsi_extreme_oversold",
-      "code": "HK09973",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "HK09973 RSI严重超卖",
-      "display": "HK09973 HK09973 RSI严重超卖: RSI=18.3 <20 | 现价24.84 日跌-1.8% 净流入974万",
-      "detail": {
-        "rsi": 18.3,
-        "prev_rsi": 20.2,
-        "threshold": 20,
-        "consecutive_days": 1
-      }
-    },
-    {
-      "ts": 1772783098552,
-      "time": "15:44:58",
-      "strategy": "ma_bearish_align",
-      "code": "HK09973",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "HK09973 均线空头排列",
-      "display": "HK09973 HK09973 均线空头排列: MA5=25.68 MA10=26.80 MA20=27.58 MA60=29.29 斜率-2.13% | 现价24.84 日跌-1.8% 净流入974万",
-      "detail": {
-        "ma5": 25.68,
-        "ma10": 26.8,
-        "ma20": 27.58,
-        "ma60": 29.29,
-        "ma20_slope_pct": -2.13
-      }
-    },
-    {
-      "ts": 1772783098552,
-      "time": "15:44:58",
-      "strategy": "relative_strength",
-      "code": "HK09973",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "HK09973 相对强弱",
-      "display": "HK09973 HK09973 相对强弱: 60日弱于恒指 个股-24.4% 恒指-1.3% 超额-23.1% | 现价24.84 日跌-1.8% 净流入974万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -24.4,
-        "index_return_60d": -1.3,
-        "excess_return": -23.1
-      }
-    },
-    {
-      "ts": 1772783098617,
-      "time": "15:44:58",
-      "strategy": "ma_bearish_align",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ 均线空头排列",
-      "display": "HK09988 阿里巴巴－Ｗ 均线空头排列: MA5=131.62 MA10=139.25 MA20=148.05 MA60=152.83 斜率-4.67% | 现价130.80 日涨+3.6% 净流入21667万",
-      "detail": {
-        "ma5": 131.62,
-        "ma10": 139.25,
-        "ma20": 148.05,
-        "ma60": 152.83,
-        "ma20_slope_pct": -4.67
-      }
-    },
-    {
-      "ts": 1773021727037,
-      "time": "10:02:07",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 散户机构分歧",
-      "display": "HK00700 腾讯控股 散户机构分歧: 主力出散户进 | 机构净-16879万 散户净+5532万 | 现价506.00 日跌-2.5% 量比3.7 净流出16879万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -168790950.0,
-        "retail_net": 55318500.0,
-        "super_net": -149745250.0,
-        "big_net": -19045700.0
-      }
-    },
-    {
-      "ts": 1773021727037,
-      "time": "10:02:07",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK03033",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "南方恒生科技 散户机构分歧",
-      "display": "HK03033 南方恒生科技 散户机构分歧: 主力进散户出 | 机构净+7043万 散户净-3992万 | 现价4.70 日跌-2.8% 净流入7043万",
-      "detail": {
-        "direction": "bullish",
-        "institutional_net": 70428657.0,
-        "retail_net": -39916356.0,
-        "super_net": 96153716.0,
-        "big_net": -25725059.0
-      }
-    },
-    {
-      "ts": 1773021727037,
-      "time": "10:02:07",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK07226",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "南方两倍做多纳指 散户机构分歧",
-      "display": "HK07226 南方两倍做多纳指 散户机构分歧: 主力出散户进 | 机构净-2611万 散户净+812万 | 现价3.75 日跌-5.6% 量比3.0 净流出2611万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -26109731.0,
-        "retail_net": 8115897.0,
-        "super_net": -20226826.0,
-        "big_net": -5882905.0
-      }
-    },
-    {
-      "ts": 1773021727037,
-      "time": "10:02:07",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方海力士 散户机构分歧",
-      "display": "HK07709 XL二南方海力士 散户机构分歧: 主力出散户进 | 机构净-1666万 散户净+4341万 | 现价21.92 日跌-23.0% 量比3.8 净流出1666万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -16658096.0,
-        "retail_net": 43412472.0,
-        "super_net": -18504882.0,
-        "big_net": 1846786.0
-      }
-    },
-    {
-      "ts": 1773021727308,
-      "time": "10:02:07",
-      "strategy": "ma_bearish_align",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "腾讯控股 均线空头排列",
-      "display": "HK00700 腾讯控股 均线空头排列: MA5=508.60 MA10=512.95 MA20=527.75 MA60=581.25 斜率-2.86% | 现价506.00 日跌-2.5% 量比3.7 净流出16879万",
-      "detail": {
-        "ma5": 508.6,
-        "ma10": 512.95,
-        "ma20": 527.75,
-        "ma60": 581.25,
-        "ma20_slope_pct": -2.86
-      }
-    },
-    {
-      "ts": 1773021727370,
-      "time": "10:02:07",
-      "strategy": "ma_bearish_align",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "大麦娱乐 均线空头排列",
-      "display": "HK01060 大麦娱乐 均线空头排列: MA5=0.73 MA10=0.77 MA20=0.86 MA60=0.89 斜率-5.21% | 现价0.74 日跌-3.9% 净流入239万",
-      "detail": {
-        "ma5": 0.73,
-        "ma10": 0.77,
-        "ma20": 0.86,
-        "ma60": 0.89,
-        "ma20_slope_pct": -5.21
-      }
-    },
-    {
-      "ts": 1773021727538,
-      "time": "10:02:07",
-      "strategy": "macd_bottom_divergence",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "小米集团－Ｗ MACD底背离",
-      "display": "HK01810 小米集团－Ｗ MACD底背离: 价格32.90<33.96 但DIF-1.0799>-1.2496 | 现价32.88 日跌-1.6% 量比1.9 净流出411万",
-      "detail": {
-        "price": 32.9,
-        "prior_low": 33.96,
-        "dif": -1.0799,
-        "prior_dif": -1.2496,
-        "lookback": 20
-      }
-    },
-    {
-      "ts": 1773021727538,
-      "time": "10:02:07",
-      "strategy": "ma_bearish_align",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "小米集团－Ｗ 均线空头排列",
-      "display": "HK01810 小米集团－Ｗ 均线空头排列: MA5=32.42 MA10=33.67 MA20=34.83 MA60=37.18 斜率-1.22% | 现价32.88 日跌-1.6% 量比1.9 净流出411万",
-      "detail": {
-        "ma5": 32.42,
-        "ma10": 33.67,
-        "ma20": 34.83,
-        "ma60": 37.18,
-        "ma20_slope_pct": -1.22
-      }
-    },
-    {
-      "ts": 1773021727538,
-      "time": "10:02:07",
-      "strategy": "relative_strength",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 相对强弱",
-      "display": "HK01810 小米集团－Ｗ 相对强弱: 60日弱于恒指 个股-22.7% 恒指-3.2% 超额-19.6% | 现价32.88 日跌-1.6% 量比1.9 净流出411万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -22.7,
-        "index_return_60d": -3.2,
-        "excess_return": -19.6
-      }
-    },
-    {
-      "ts": 1773021727706,
-      "time": "10:02:07",
-      "strategy": "macd_death_cross",
-      "code": "HK02577",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "英诺赛科 MACD死叉",
-      "display": "HK02577 英诺赛科 MACD死叉: DIF=-0.0921 DEA=-0.0485 | 现价60.00 日跌-7.5% 量比4.8 净流出4264万",
-      "detail": {
-        "hist": -0.0872,
-        "prev_hist": 0.5181,
-        "dif": -0.0921,
-        "dea": -0.0485
-      }
-    },
-    {
-      "ts": 1773021727706,
-      "time": "10:02:07",
-      "strategy": "relative_strength",
-      "code": "HK02577",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "英诺赛科 相对强弱",
-      "display": "HK02577 英诺赛科 相对强弱: 60日弱于恒指 个股-28.4% 恒指-3.2% 超额-25.2% | 现价60.00 日跌-7.5% 量比4.8 净流出4264万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -28.4,
-        "index_return_60d": -3.2,
-        "excess_return": -25.2
-      }
-    },
-    {
-      "ts": 1773021727809,
-      "time": "10:02:07",
-      "strategy": "rsi_oversold",
-      "code": "HK02590",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "极智嘉-W RSI超卖",
-      "display": "HK02590 极智嘉-W RSI超卖: RSI=26.0 (前日30.4) 跌破30 | 现价18.84 日跌-9.0% 量比5.7 净流出721万",
-      "detail": {
-        "rsi": 26.0,
-        "prev_rsi": 30.4,
-        "threshold": 30
-      }
-    },
-    {
-      "ts": 1773021727809,
-      "time": "10:02:07",
-      "strategy": "ma_bearish_align",
-      "code": "HK02590",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "极智嘉-W 均线空头排列",
-      "display": "HK02590 极智嘉-W 均线空头排列: MA5=20.50 MA10=22.30 MA20=24.49 MA60=25.50 斜率-6.39% | 现价18.84 日跌-9.0% 量比5.7 净流出721万",
-      "detail": {
-        "ma5": 20.5,
-        "ma10": 22.3,
-        "ma20": 24.49,
-        "ma60": 25.5,
-        "ma20_slope_pct": -6.39
-      }
-    },
-    {
-      "ts": 1773021727809,
-      "time": "10:02:07",
-      "strategy": "relative_strength",
-      "code": "HK02590",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "极智嘉-W 相对强弱",
-      "display": "HK02590 极智嘉-W 相对强弱: 60日弱于恒指 个股-23.4% 恒指-3.2% 超额-20.2% | 现价18.84 日跌-9.0% 量比5.7 净流出721万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -23.4,
-        "index_return_60d": -3.2,
-        "excess_return": -20.2
-      }
-    },
-    {
-      "ts": 1773021727917,
-      "time": "10:02:07",
-      "strategy": "relative_strength",
-      "code": "HK02722",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "重庆机电 相对强弱",
-      "display": "HK02722 重庆机电 相对强弱: 60日强于恒指 个股+41.5% 恒指-3.2% 超额+44.7% | 现价2.83 日跌-11.6% 量比4.9 净流出811万",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 41.5,
-        "index_return_60d": -3.2,
-        "excess_return": 44.7
-      }
-    },
-    {
-      "ts": 1773021728035,
-      "time": "10:02:08",
-      "strategy": "ma_bearish_align",
-      "code": "HK03033",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "南方恒生科技 均线空头排列",
-      "display": "HK03033 南方恒生科技 均线空头排列: MA5=4.74 MA10=4.89 MA20=5.08 MA60=5.38 斜率-2.54% | 现价4.70 日跌-2.8% 净流入7043万",
-      "detail": {
-        "ma5": 4.74,
-        "ma10": 4.89,
-        "ma20": 5.08,
-        "ma60": 5.38,
-        "ma20_slope_pct": -2.54
-      }
-    },
-    {
-      "ts": 1773021728124,
-      "time": "10:02:08",
-      "strategy": "breakout_pullback",
-      "code": "HK03288",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "海天味业 突破回踩",
-      "display": "HK03288 海天味业 突破回踩: 回踩支撑34.00 现价33.92 缩量0.09x | 现价33.92 日跌-1.2%",
-      "detail": {
-        "close": 33.92,
-        "support_level": 34.0,
-        "breakout_close": 34.98,
-        "vol_shrink": 0.09
-      }
-    },
-    {
-      "ts": 1773021728296,
-      "time": "10:02:08",
-      "strategy": "ma_bearish_align",
-      "code": "HK06060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "众安在线 均线空头排列",
-      "display": "HK06060 众安在线 均线空头排列: MA5=13.89 MA10=14.69 MA20=15.39 MA60=16.04 斜率-2.95% | 现价13.70 日跌-3.7% 量比2.3 净流出423万",
-      "detail": {
-        "ma5": 13.89,
-        "ma10": 14.69,
-        "ma20": 15.39,
-        "ma60": 16.04,
-        "ma20_slope_pct": -2.95
-      }
-    },
-    {
-      "ts": 1773021728549,
-      "time": "10:02:08",
-      "strategy": "rsi_oversold",
-      "code": "HK07226",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "南方两倍做多纳指 RSI超卖",
-      "display": "HK07226 南方两倍做多纳指 RSI超卖: RSI=29.8 (前日33.4) 跌破30 | 现价3.75 日跌-5.6% 量比3.0 净流出2611万",
-      "detail": {
-        "rsi": 29.8,
-        "prev_rsi": 33.4,
-        "threshold": 30
-      }
-    },
-    {
-      "ts": 1773021728550,
-      "time": "10:02:08",
-      "strategy": "ma_bearish_align",
-      "code": "HK07226",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "南方两倍做多纳指 均线空头排列",
-      "display": "HK07226 南方两倍做多纳指 均线空头排列: MA5=3.83 MA10=4.09 MA20=4.43 MA60=5.05 斜率-5.29% | 现价3.75 日跌-5.6% 量比3.0 净流出2611万",
-      "detail": {
-        "ma5": 3.83,
-        "ma10": 4.09,
-        "ma20": 4.43,
-        "ma60": 5.05,
-        "ma20_slope_pct": -5.29
-      }
-    },
-    {
-      "ts": 1773021728550,
-      "time": "10:02:08",
-      "strategy": "relative_strength",
-      "code": "HK07226",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "南方两倍做多纳指 相对强弱",
-      "display": "HK07226 南方两倍做多纳指 相对强弱: 60日弱于恒指 个股-30.9% 恒指-3.2% 超额-27.8% | 现价3.75 日跌-5.6% 量比3.0 净流出2611万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -30.9,
-        "index_return_60d": -3.2,
-        "excess_return": -27.8
-      }
-    },
-    {
-      "ts": 1773021728687,
-      "time": "10:02:08",
-      "strategy": "relative_strength",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方海力士 相对强弱",
-      "display": "HK07709 XL二南方海力士 相对强弱: 60日强于恒指 个股+69.1% 恒指-3.2% 超额+72.3% | 现价21.92 日跌-23.0% 量比3.8 净流出1666万",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 69.1,
-        "index_return_60d": -3.2,
-        "excess_return": 72.3
-      }
-    },
-    {
-      "ts": 1773021728765,
-      "time": "10:02:08",
-      "strategy": "macd_golden_cross",
-      "code": "HK09618",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "京东-SW MACD金叉",
-      "display": "HK09618 京东-SW MACD金叉: DIF=-2.5349 DEA=-2.5935 | 现价104.50 日跌-2.0% 量比4.0 净流入5136万",
-      "detail": {
-        "hist": 0.1171,
-        "prev_hist": -0.4447,
-        "dif": -2.5349,
-        "dea": -2.5935
-      }
-    },
-    {
-      "ts": 1773021728765,
-      "time": "10:02:08",
-      "strategy": "ma_bearish_align",
-      "code": "HK09618",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "京东-SW 均线空头排列",
-      "display": "HK09618 京东-SW 均线空头排列: MA5=101.29 MA10=102.92 MA20=105.23 MA60=110.77 斜率-1.61% | 现价104.50 日跌-2.0% 量比4.0 净流入5136万",
-      "detail": {
-        "ma5": 101.29,
-        "ma10": 102.92,
-        "ma20": 105.23,
-        "ma60": 110.77,
-        "ma20_slope_pct": -1.61
-      }
-    },
-    {
-      "ts": 1773021728843,
-      "time": "10:02:08",
-      "strategy": "rsi_oversold",
-      "code": "HK09927",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "赛力斯 RSI超卖",
-      "display": "HK09927 赛力斯 RSI超卖: RSI=28.3 (前日31.6) 跌破30 | 现价85.50 日跌-2.8% 量比3.0 净流出455万",
-      "detail": {
-        "rsi": 28.3,
-        "prev_rsi": 31.6,
-        "threshold": 30
-      }
-    },
-    {
-      "ts": 1773021728843,
-      "time": "10:02:08",
-      "strategy": "ma_bearish_align",
-      "code": "HK09927",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "赛力斯 均线空头排列",
-      "display": "HK09927 赛力斯 均线空头排列: MA5=87.60 MA10=91.26 MA20=94.42 MA60=102.05 斜率-2.00% | 现价85.50 日跌-2.8% 量比3.0 净流出455万",
-      "detail": {
-        "ma5": 87.6,
-        "ma10": 91.26,
-        "ma20": 94.42,
-        "ma60": 102.05,
-        "ma20_slope_pct": -2.0
-      }
-    },
-    {
-      "ts": 1773021728843,
-      "time": "10:02:08",
-      "strategy": "relative_strength",
-      "code": "HK09927",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "赛力斯 相对强弱",
-      "display": "HK09927 赛力斯 相对强弱: 60日弱于恒指 个股-25.7% 恒指-3.2% 超额-22.5% | 现价85.50 日跌-2.8% 量比3.0 净流出455万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -25.7,
-        "index_return_60d": -3.2,
-        "excess_return": -22.5
-      }
-    },
-    {
-      "ts": 1773021728950,
-      "time": "10:02:08",
-      "strategy": "rsi_extreme_oversold",
-      "code": "HK09973",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "HK09973 RSI严重超卖",
-      "display": "HK09973 HK09973 RSI严重超卖: 连续2日RSI=14.5 <20 | 现价23.68 日跌-5.3% 量比2.4 净流出535万",
-      "detail": {
-        "rsi": 14.5,
-        "prev_rsi": 18.9,
-        "threshold": 20,
-        "consecutive_days": 2
-      }
-    },
-    {
-      "ts": 1773021728950,
-      "time": "10:02:08",
-      "strategy": "ma_bearish_align",
-      "code": "HK09973",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "HK09973 均线空头排列",
-      "display": "HK09973 HK09973 均线空头排列: MA5=25.05 MA10=26.36 MA20=27.36 MA60=29.14 斜率-2.50% | 现价23.68 日跌-5.3% 量比2.4 净流出535万",
-      "detail": {
-        "ma5": 25.05,
-        "ma10": 26.36,
-        "ma20": 27.36,
-        "ma60": 29.14,
-        "ma20_slope_pct": -2.5
-      }
-    },
-    {
-      "ts": 1773021728950,
-      "time": "10:02:08",
-      "strategy": "relative_strength",
-      "code": "HK09973",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "HK09973 相对强弱",
-      "display": "HK09973 HK09973 相对强弱: 60日弱于恒指 个股-25.8% 恒指-3.2% 超额-22.7% | 现价23.68 日跌-5.3% 量比2.4 净流出535万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -25.8,
-        "index_return_60d": -3.2,
-        "excess_return": -22.7
-      }
-    },
-    {
-      "ts": 1773021729019,
-      "time": "10:02:09",
-      "strategy": "rsi_oversold",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ RSI超卖",
-      "display": "HK09988 阿里巴巴－Ｗ RSI超卖: RSI=27.7 (前日30.8) 跌破30 | 现价125.90 日跌-3.7% 量比2.8 净流入11845万",
-      "detail": {
-        "rsi": 27.7,
-        "prev_rsi": 30.8,
-        "threshold": 30
-      }
-    },
-    {
-      "ts": 1773021729019,
-      "time": "10:02:09",
-      "strategy": "ma_bearish_align",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ 均线空头排列",
-      "display": "HK09988 阿里巴巴－Ｗ 均线空头排列: MA5=129.52 MA10=136.62 MA20=146.37 MA60=152.35 斜率-4.57% | 现价125.90 日跌-3.7% 量比2.8 净流入11845万",
-      "detail": {
-        "ma5": 129.52,
-        "ma10": 136.62,
-        "ma20": 146.37,
-        "ma60": 152.35,
-        "ma20_slope_pct": -4.57
-      }
-    },
-    {
-      "ts": 1773021849813,
-      "time": "10:04:09",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 散户机构分歧",
-      "display": "HK01810 小米集团－Ｗ 散户机构分歧: 主力出散户进 | 机构净-1085万 散户净+14398万 | 现价32.88 日跌-1.6% 量比1.8 净流出1085万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -10846484.0,
-        "retail_net": 143982660.0,
-        "super_net": -47589748.0,
-        "big_net": 36743264.0
-      }
-    },
-    {
-      "ts": 1773021849813,
-      "time": "10:04:09",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 散户机构分歧",
-      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力进散户出 | 机构净+12347万 散户净-708万 | 现价125.70 日跌-3.8% 量比2.7 净流入12347万",
-      "detail": {
-        "direction": "bullish",
-        "institutional_net": 123471440.0,
-        "retail_net": -7082470.0,
-        "super_net": 60884750.0,
-        "big_net": 62586690.0
-      }
-    },
-    {
-      "ts": 1773023491894,
-      "time": "10:31:31",
-      "strategy": "momentum_sell_alert",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 动量卖出",
-      "display": "HK09988 阿里巴巴－Ｗ 动量卖出: 日跌-4.2% | 大单净卖出10275万(5笔) | 资金流出 | 现价125.20 日跌-4.2% 量比1.8 净流出2289万",
-      "detail": {
-        "daily_change_pct": -4.21,
-        "large_order_sell_count": 5,
-        "large_order_net_amount": -102750040.0,
-        "main_net_inflow": -22893960.0,
-        "session_direction": "bearish",
-        "session_score": -5
-      }
-    },
-    {
-      "ts": 1773023530491,
-      "time": "10:32:10",
-      "strategy": "support_breakdown",
-      "code": "HK07262",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "XL二南方看多日经 破位下跌",
-      "display": "HK07262 XL二南方看多日经 破位下跌: 跌破130.18 现价117.85 放量1.2x | 现价117.85 日跌-14.6% 量比4.7",
-      "detail": {
-        "close": 117.85,
-        "support_level": 130.18,
-        "prev_low_20": 126.65,
-        "ma60": 130.18,
-        "vol_ratio": 1.22
-      }
-    },
-    {
-      "ts": 1773023530547,
-      "time": "10:32:10",
-      "strategy": "support_breakdown",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "XL二南方海力士 破位下跌",
-      "display": "HK07709 XL二南方海力士 破位下跌: 跌破22.76 现价22.10 放量1.0x | 现价22.10 日跌-22.3% 量比2.8",
-      "detail": {
-        "close": 22.1,
-        "support_level": 22.76,
-        "prev_low_20": 20.14,
-        "ma60": 22.76,
-        "vol_ratio": 1.03
-      }
-    },
-    {
-      "ts": 1773023530855,
-      "time": "10:32:10",
-      "strategy": "relative_strength",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 相对强弱",
-      "display": "HK09988 阿里巴巴－Ｗ 相对强弱: 60日弱于恒指 个股-18.3% 恒指-3.2% 超额-15.1% | 现价125.40 日跌-4.1% 量比1.9",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -18.3,
-        "index_return_60d": -3.2,
-        "excess_return": -15.1
-      }
-    },
-    {
-      "ts": 1773025331622,
-      "time": "11:02:11",
-      "strategy": "relative_strength",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 相对强弱",
-      "display": "HK01060 大麦娱乐 相对强弱: 60日弱于恒指 个股-18.0% 恒指-2.5% 超额-15.5% | 现价0.73 日跌-5.2%",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -18.0,
-        "index_return_60d": -2.5,
-        "excess_return": -15.5
-      }
-    },
-    {
-      "ts": 1773025332091,
-      "time": "11:02:12",
-      "strategy": "macd_golden_cross",
-      "code": "HK03288",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "海天味业 MACD金叉",
-      "display": "HK03288 海天味业 MACD金叉: DIF=0.4016 DEA=0.3859 | 现价34.32 日涨+0.0%",
-      "detail": {
-        "hist": 0.0315,
-        "prev_hist": -0.0101,
-        "dif": 0.4016,
-        "dea": 0.3859
-      }
-    },
-    {
-      "ts": 1773032445990,
-      "time": "13:00:45",
-      "strategy": "momentum_sell_alert",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 动量卖出",
-      "display": "HK09988 阿里巴巴－Ｗ 动量卖出: 日跌-4.1% | 大单净卖出11481万(7笔) | 资金流出 | 现价125.30 日跌-4.1% 净流出4443万",
-      "detail": {
-        "daily_change_pct": -4.13,
-        "large_order_sell_count": 7,
-        "large_order_net_amount": -114810240.0,
-        "main_net_inflow": -44433120.0,
-        "session_direction": "bearish",
-        "session_score": -5
-      }
-    },
-    {
-      "ts": 1773032445990,
-      "time": "13:00:45",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 散户机构分歧",
-      "display": "HK00700 腾讯控股 散户机构分歧: 主力出散户进 | 机构净-28903万 散户净+69724万 | 现价508.50 日跌-2.0% 净流出28903万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -289031950.0,
-        "retail_net": 697242150.0,
-        "super_net": 5209950.0,
-        "big_net": -294241900.0
-      }
-    },
-    {
-      "ts": 1773032445990,
-      "time": "13:00:45",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK03033",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "南方恒生科技 散户机构分歧",
-      "display": "HK03033 南方恒生科技 散户机构分歧: 主力进散户出 | 机构净+17432万 散户净-9003万 | 现价4.71 日跌-2.6% 净流入17432万",
-      "detail": {
-        "direction": "bullish",
-        "institutional_net": 174317362.0,
-        "retail_net": -90031418.0,
-        "super_net": 285494068.0,
-        "big_net": -111176706.0
-      }
-    },
-    {
-      "ts": 1773032445990,
-      "time": "13:00:45",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方海力士 散户机构分歧",
-      "display": "HK07709 XL二南方海力士 散户机构分歧: 主力出散户进 | 机构净-14836万 散户净+17109万 | 现价21.52 日跌-24.4% 量比2.0 净流出14836万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -148356896.0,
-        "retail_net": 171086812.0,
-        "super_net": -120783426.0,
-        "big_net": -27573470.0
-      }
-    },
-    {
-      "ts": 1773033973205,
-      "time": "13:26:13",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 散户机构分歧",
-      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力进散户出 | 机构净+4018万 散户净-14526万 | 现价126.80 日跌-3.0% 净流入4018万",
-      "detail": {
-        "direction": "bullish",
-        "institutional_net": 40179370.0,
-        "retail_net": -145263400.0,
-        "super_net": -46229610.0,
-        "big_net": 86408980.0
-      }
-    },
-    {
-      "ts": 1773034248787,
-      "time": "13:30:48",
-      "strategy": "relative_strength",
-      "code": "HK03896",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "金山云 相对强弱",
-      "display": "HK03896 金山云 相对强弱: 60日强于恒指 个股+13.9% 恒指-2.0% 超额+15.9% | 现价7.03 日涨+9.2% 量比2.4",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 13.9,
-        "index_return_60d": -2.0,
-        "excess_return": 15.9
-      }
-    },
-    {
-      "ts": 1773035995615,
-      "time": "13:59:55",
-      "strategy": "momentum_alert",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "比亚迪股份 动量确认",
-      "display": "HK01211 比亚迪股份 动量确认: 日涨3.0% | 大单净买入5299万(3笔) | 资金流入 | 无背离 | 现价97.55 日涨+3.0% 净流入18473万",
-      "detail": {
-        "daily_change_pct": 3.01,
-        "large_order_buy_count": 3,
-        "large_order_net_amount": 52993200.0,
-        "main_net_inflow": 184726580.0,
-        "session_direction": "bullish",
-        "session_score": 5
-      }
-    },
-    {
-      "ts": 1773038185696,
-      "time": "14:36:25",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 散户机构分歧",
-      "display": "HK00700 腾讯控股 散户机构分歧: 主力出散户进 | 机构净-30670万 散户净+99857万 | 现价514.50 日跌-0.9% 净流出30670万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -306704950.0,
-        "retail_net": 998566000.0,
-        "super_net": 63066550.0,
-        "big_net": -369771500.0
-      }
-    },
-    {
-      "ts": 1773038185696,
-      "time": "14:36:25",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方海力士 散户机构分歧",
-      "display": "HK07709 XL二南方海力士 散户机构分歧: 主力出散户进 | 机构净-17797万 散户净+39231万 | 现价23.04 日跌-19.0% 量比1.9 净流出17797万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -177972950.0,
-        "retail_net": 392314484.0,
-        "super_net": -150468398.0,
-        "big_net": -27504552.0
-      }
-    },
-    {
-      "ts": 1773038185696,
-      "time": "14:36:25",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ 散户机构分歧",
-      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力进散户出 | 机构净+6919万 散户净-16559万 | 现价127.90 日跌-2.1% 净流入6919万",
-      "detail": {
-        "direction": "bullish",
-        "institutional_net": 69191490.0,
-        "retail_net": -165593090.0,
-        "super_net": -5273330.0,
-        "big_net": 74464820.0
-      }
-    },
-    {
-      "ts": 1773038185808,
-      "time": "14:36:25",
-      "strategy": "ma_bearish_align",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "腾讯控股 均线空头排列",
-      "display": "HK00700 腾讯控股 均线空头排列: MA5=510.30 MA10=513.80 MA20=528.17 MA60=581.39 斜率-2.78% | 现价514.50 日跌-0.9% 净流出30670万",
-      "detail": {
-        "ma5": 510.3,
-        "ma10": 513.8,
-        "ma20": 528.17,
-        "ma60": 581.39,
-        "ma20_slope_pct": -2.78
-      }
-    },
-    {
-      "ts": 1773038185866,
-      "time": "14:36:25",
-      "strategy": "ma_bearish_align",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "大麦娱乐 均线空头排列",
-      "display": "HK01060 大麦娱乐 均线空头排列: MA5=0.73 MA10=0.77 MA20=0.86 MA60=0.89 斜率-5.21% | 现价0.74 日跌-3.9%",
-      "detail": {
-        "ma5": 0.73,
-        "ma10": 0.77,
-        "ma20": 0.86,
-        "ma60": 0.89,
-        "ma20_slope_pct": -5.21
-      }
-    },
-    {
-      "ts": 1773038185866,
-      "time": "14:36:25",
-      "strategy": "relative_strength",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 相对强弱",
-      "display": "HK01060 大麦娱乐 相对强弱: 60日弱于恒指 个股-16.9% 恒指-1.7% 超额-15.1% | 现价0.74 日跌-3.9%",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -16.9,
-        "index_return_60d": -1.7,
-        "excess_return": -15.1
-      }
-    },
-    {
-      "ts": 1773038185985,
-      "time": "14:36:25",
-      "strategy": "macd_bottom_divergence",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "小米集团－Ｗ MACD底背离",
-      "display": "HK01810 小米集团－Ｗ MACD底背离: 价格33.74<33.96 但DIF-1.0129>-1.2496 | 现价33.72 日涨+0.9% 净流入6889万",
-      "detail": {
-        "price": 33.74,
-        "prior_low": 33.96,
-        "dif": -1.0129,
-        "prior_dif": -1.2496,
-        "lookback": 20
-      }
-    },
-    {
-      "ts": 1773038185985,
-      "time": "14:36:25",
-      "strategy": "ma_bearish_align",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "小米集团－Ｗ 均线空头排列",
-      "display": "HK01810 小米集团－Ｗ 均线空头排列: MA5=32.59 MA10=33.75 MA20=34.87 MA60=37.20 斜率-1.10% | 现价33.72 日涨+0.9% 净流入6889万",
-      "detail": {
-        "ma5": 32.59,
-        "ma10": 33.75,
-        "ma20": 34.87,
-        "ma60": 37.2,
-        "ma20_slope_pct": -1.1
-      }
-    },
-    {
-      "ts": 1773038185985,
-      "time": "14:36:25",
-      "strategy": "relative_strength",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 相对强弱",
-      "display": "HK01810 小米集团－Ｗ 相对强弱: 60日弱于恒指 个股-20.8% 恒指-1.7% 超额-19.0% | 现价33.72 日涨+0.9% 净流入6889万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -20.8,
-        "index_return_60d": -1.7,
-        "excess_return": -19.0
-      }
-    },
-    {
-      "ts": 1773038186100,
-      "time": "14:36:26",
-      "strategy": "relative_strength",
-      "code": "HK02577",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "英诺赛科 相对强弱",
-      "display": "HK02577 英诺赛科 相对强弱: 60日弱于恒指 个股-25.8% 恒指-1.7% 超额-24.1% | 现价62.25 日跌-4.0% 净流出4252万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -25.8,
-        "index_return_60d": -1.7,
-        "excess_return": -24.1
-      }
-    },
-    {
-      "ts": 1773038186153,
-      "time": "14:36:26",
-      "strategy": "rsi_oversold",
-      "code": "HK02590",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "极智嘉-W RSI超卖",
-      "display": "HK02590 极智嘉-W RSI超卖: RSI=27.1 (前日30.4) 跌破30 | 现价19.39 日跌-6.3% 量比2.0 净流出354万",
-      "detail": {
-        "rsi": 27.1,
-        "prev_rsi": 30.4,
-        "threshold": 30
-      }
-    },
-    {
-      "ts": 1773038186153,
-      "time": "14:36:26",
-      "strategy": "ma_bearish_align",
-      "code": "HK02590",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "极智嘉-W 均线空头排列",
-      "display": "HK02590 极智嘉-W 均线空头排列: MA5=20.61 MA10=22.36 MA20=24.52 MA60=25.51 斜率-6.29% | 现价19.39 日跌-6.3% 量比2.0 净流出354万",
-      "detail": {
-        "ma5": 20.61,
-        "ma10": 22.36,
-        "ma20": 24.52,
-        "ma60": 25.51,
-        "ma20_slope_pct": -6.29
-      }
-    },
-    {
-      "ts": 1773038186153,
-      "time": "14:36:26",
-      "strategy": "relative_strength",
-      "code": "HK02590",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "极智嘉-W 相对强弱",
-      "display": "HK02590 极智嘉-W 相对强弱: 60日弱于恒指 个股-21.2% 恒指-1.7% 超额-19.5% | 现价19.39 日跌-6.3% 量比2.0 净流出354万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -21.2,
-        "index_return_60d": -1.7,
-        "excess_return": -19.5
-      }
-    },
-    {
-      "ts": 1773038186204,
-      "time": "14:36:26",
-      "strategy": "relative_strength",
-      "code": "HK02722",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "重庆机电 相对强弱",
-      "display": "HK02722 重庆机电 相对强弱: 60日强于恒指 个股+52.5% 恒指-1.7% 超额+54.2% | 现价3.05 日跌-4.7% 净流出1019万",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 52.5,
-        "index_return_60d": -1.7,
-        "excess_return": 54.2
-      }
-    },
-    {
-      "ts": 1773038186256,
-      "time": "14:36:26",
-      "strategy": "ma_bearish_align",
-      "code": "HK03033",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "南方恒生科技 均线空头排列",
-      "display": "HK03033 南方恒生科技 均线空头排列: MA5=4.76 MA10=4.90 MA20=5.09 MA60=5.38 斜率-2.43% | 现价4.82 日跌-0.4% 净流入27379万",
-      "detail": {
-        "ma5": 4.76,
-        "ma10": 4.9,
-        "ma20": 5.09,
-        "ma60": 5.38,
-        "ma20_slope_pct": -2.43
-      }
-    },
-    {
-      "ts": 1773038186311,
-      "time": "14:36:26",
-      "strategy": "macd_golden_cross",
-      "code": "HK03288",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "海天味业 MACD金叉",
-      "display": "HK03288 海天味业 MACD金叉: DIF=0.4112 DEA=0.3878 | 现价34.44 日涨+0.3%",
-      "detail": {
-        "hist": 0.0468,
-        "prev_hist": -0.0101,
-        "dif": 0.4112,
-        "dea": 0.3878
-      }
-    },
-    {
-      "ts": 1773038186311,
-      "time": "14:36:26",
-      "strategy": "breakout_pullback",
-      "code": "HK03288",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "海天味业 突破回踩",
-      "display": "HK03288 海天味业 突破回踩: 回踩支撑34.00 现价34.44 缩量0.47x | 现价34.44 日涨+0.3%",
-      "detail": {
-        "close": 34.44,
-        "support_level": 34.0,
-        "breakout_close": 34.98,
-        "vol_shrink": 0.47
-      }
-    },
-    {
-      "ts": 1773038186362,
-      "time": "14:36:26",
-      "strategy": "relative_strength",
-      "code": "HK03896",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "金山云 相对强弱",
-      "display": "HK03896 金山云 相对强弱: 60日强于恒指 个股+16.0% 恒指-1.7% 超额+17.7% | 现价7.17 日涨+11.3% 量比2.5 净流入14976万",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 16.0,
-        "index_return_60d": -1.7,
-        "excess_return": 17.7
-      }
-    },
-    {
-      "ts": 1773038186495,
-      "time": "14:36:26",
-      "strategy": "ma_bearish_align",
-      "code": "HK06060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "众安在线 均线空头排列",
-      "display": "HK06060 众安在线 均线空头排列: MA5=13.96 MA10=14.73 MA20=15.41 MA60=16.05 斜率-2.84% | 现价14.04 日跌-1.3% 净流出651万",
-      "detail": {
-        "ma5": 13.96,
-        "ma10": 14.73,
-        "ma20": 15.41,
-        "ma60": 16.05,
-        "ma20_slope_pct": -2.84
-      }
-    },
-    {
-      "ts": 1773038186640,
-      "time": "14:36:26",
-      "strategy": "ma_bearish_align",
-      "code": "HK07226",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "南方两倍做多纳指 均线空头排列",
-      "display": "HK07226 南方两倍做多纳指 均线空头排列: MA5=3.87 MA10=4.11 MA20=4.44 MA60=5.05 斜率-5.09% | 现价3.94 日跌-1.0% 净流入3777万",
-      "detail": {
-        "ma5": 3.87,
-        "ma10": 4.11,
-        "ma20": 4.44,
-        "ma60": 5.05,
-        "ma20_slope_pct": -5.09
-      }
-    },
-    {
-      "ts": 1773038186640,
-      "time": "14:36:26",
-      "strategy": "relative_strength",
-      "code": "HK07226",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "南方两倍做多纳指 相对强弱",
-      "display": "HK07226 南方两倍做多纳指 相对强弱: 60日弱于恒指 个股-27.5% 恒指-1.7% 超额-25.8% | 现价3.94 日跌-1.0% 净流入3777万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -27.5,
-        "index_return_60d": -1.7,
-        "excess_return": -25.8
-      }
-    },
-    {
-      "ts": 1773038186699,
-      "time": "14:36:26",
-      "strategy": "support_breakdown",
-      "code": "HK07262",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "XL二南方看多日经 破位下跌",
-      "display": "HK07262 XL二南方看多日经 破位下跌: 跌破130.26 现价122.65 放量2.5x | 现价122.60 日跌-11.2% 量比2.5",
-      "detail": {
-        "close": 122.65,
-        "support_level": 130.26,
-        "prev_low_20": 126.65,
-        "ma60": 130.26,
-        "vol_ratio": 2.48
-      }
-    },
-    {
-      "ts": 1773038186752,
-      "time": "14:36:26",
-      "strategy": "relative_strength",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方海力士 相对强弱",
-      "display": "HK07709 XL二南方海力士 相对强弱: 60日强于恒指 个股+78.1% 恒指-1.7% 超额+79.8% | 现价23.04 日跌-19.0% 量比1.9 净流出17797万",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 78.1,
-        "index_return_60d": -1.7,
-        "excess_return": 79.8
-      }
-    },
-    {
-      "ts": 1773038186812,
-      "time": "14:36:26",
-      "strategy": "macd_golden_cross",
-      "code": "HK09618",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "京东-SW MACD金叉",
-      "display": "HK09618 京东-SW MACD金叉: DIF=-2.4791 DEA=-2.5823 | 现价105.30 日跌-1.2% 净流入9536万",
-      "detail": {
-        "hist": 0.2065,
-        "prev_hist": -0.4447,
-        "dif": -2.4791,
-        "dea": -2.5823
-      }
-    },
-    {
-      "ts": 1773038186812,
-      "time": "14:36:26",
-      "strategy": "ma_bearish_align",
-      "code": "HK09618",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "京东-SW 均线空头排列",
-      "display": "HK09618 京东-SW 均线空头排列: MA5=101.43 MA10=103.00 MA20=105.27 MA60=110.78 斜率-1.58% | 现价105.30 日跌-1.2% 净流入9536万",
-      "detail": {
-        "ma5": 101.43,
-        "ma10": 103.0,
-        "ma20": 105.27,
-        "ma60": 110.78,
-        "ma20_slope_pct": -1.58
-      }
-    },
-    {
-      "ts": 1773038186866,
-      "time": "14:36:26",
-      "strategy": "rsi_oversold",
-      "code": "HK09927",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "赛力斯 RSI超卖",
-      "display": "HK09927 赛力斯 RSI超卖: RSI=29.5 (前日31.6) 跌破30 | 现价86.45 日跌-1.8% 净流出281万",
-      "detail": {
-        "rsi": 29.5,
-        "prev_rsi": 31.6,
-        "threshold": 30
-      }
-    },
-    {
-      "ts": 1773038186866,
-      "time": "14:36:26",
-      "strategy": "ma_bearish_align",
-      "code": "HK09927",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "赛力斯 均线空头排列",
-      "display": "HK09927 赛力斯 均线空头排列: MA5=87.79 MA10=91.35 MA20=94.47 MA60=102.06 斜率-1.95% | 现价86.45 日跌-1.8% 净流出281万",
-      "detail": {
-        "ma5": 87.79,
-        "ma10": 91.35,
-        "ma20": 94.47,
-        "ma60": 102.06,
-        "ma20_slope_pct": -1.95
-      }
-    },
-    {
-      "ts": 1773038186866,
-      "time": "14:36:26",
-      "strategy": "relative_strength",
-      "code": "HK09927",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "赛力斯 相对强弱",
-      "display": "HK09927 赛力斯 相对强弱: 60日弱于恒指 个股-24.8% 恒指-1.7% 超额-23.1% | 现价86.45 日跌-1.8% 净流出281万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -24.8,
-        "index_return_60d": -1.7,
-        "excess_return": -23.1
-      }
-    },
-    {
-      "ts": 1773038186919,
-      "time": "14:36:26",
-      "strategy": "rsi_extreme_oversold",
-      "code": "HK09973",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "HK09973 RSI严重超卖",
-      "display": "HK09973 HK09973 RSI严重超卖: 连续2日RSI=15.8 <20 | 现价24.14 日跌-3.4% 净流出425万",
-      "detail": {
-        "rsi": 15.8,
-        "prev_rsi": 18.9,
-        "threshold": 20,
-        "consecutive_days": 2
-      }
-    },
-    {
-      "ts": 1773038186919,
-      "time": "14:36:26",
-      "strategy": "ma_bearish_align",
-      "code": "HK09973",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "HK09973 均线空头排列",
-      "display": "HK09973 HK09973 均线空头排列: MA5=25.14 MA10=26.41 MA20=27.38 MA60=29.15 斜率-2.42% | 现价24.14 日跌-3.4% 净流出425万",
-      "detail": {
-        "ma5": 25.14,
-        "ma10": 26.41,
-        "ma20": 27.38,
-        "ma60": 29.15,
-        "ma20_slope_pct": -2.42
-      }
-    },
-    {
-      "ts": 1773038186919,
-      "time": "14:36:26",
-      "strategy": "relative_strength",
-      "code": "HK09973",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "HK09973 相对强弱",
-      "display": "HK09973 HK09973 相对强弱: 60日弱于恒指 个股-24.4% 恒指-1.7% 超额-22.7% | 现价24.14 日跌-3.4% 净流出425万",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -24.4,
-        "index_return_60d": -1.7,
-        "excess_return": -22.7
-      }
-    },
-    {
-      "ts": 1773038186973,
-      "time": "14:36:26",
-      "strategy": "rsi_oversold",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "阿里巴巴－Ｗ RSI超卖",
-      "display": "HK09988 阿里巴巴－Ｗ RSI超卖: RSI=28.9 (前日30.8) 跌破30 | 现价127.90 日跌-2.1% 净流入6919万",
-      "detail": {
-        "rsi": 28.9,
-        "prev_rsi": 30.8,
-        "threshold": 30
-      }
-    },
-    {
-      "ts": 1773038186973,
-      "time": "14:36:26",
-      "strategy": "ma_bearish_align",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ 均线空头排列",
-      "display": "HK09988 阿里巴巴－Ｗ 均线空头排列: MA5=129.92 MA10=136.82 MA20=146.47 MA60=152.38 斜率-4.51% | 现价127.90 日跌-2.1% 净流入6919万",
-      "detail": {
-        "ma5": 129.92,
-        "ma10": 136.82,
-        "ma20": 146.47,
-        "ma60": 152.38,
-        "ma20_slope_pct": -4.51
-      }
-    },
-    {
-      "ts": 1773040110408,
-      "time": "15:08:30",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK09618",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "京东-SW 散户机构分歧",
-      "display": "HK09618 京东-SW 散户机构分歧: 主力进散户出 | 机构净+10764万 散户净-695万 | 现价104.60 日跌-1.9% 净流入10764万",
-      "detail": {
-        "direction": "bullish",
-        "institutional_net": 107639960.0,
-        "retail_net": -6949800.0,
-        "super_net": 70595700.0,
-        "big_net": 37044260.0
-      }
-    },
-    {
-      "ts": 1773040263527,
-      "time": "15:11:03",
-      "strategy": "institutional_retail_divergence",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 散户机构分歧",
-      "display": "HK01810 小米集团－Ｗ 散户机构分歧: 主力出散户进 | 机构净-1017万 散户净+57587万 | 现价33.60 日涨+0.5% 净流出1017万",
-      "detail": {
-        "direction": "bearish",
-        "institutional_net": -10165916.0,
-        "retail_net": 575871228.0,
-        "super_net": -7927736.0,
-        "big_net": -2238180.0
-      }
-    },
-    {
-      "ts": 1773105357876,
-      "time": "09:15:57",
-      "strategy": "ma_bearish_align",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "腾讯控股 均线空头排列",
-      "display": "HK00700 腾讯控股 均线空头排列: MA5=510.39 MA10=512.90 MA20=525.80 MA60=579.82 斜率-2.32% | 现价513.00 日跌-0.6%",
-      "detail": {
-        "ma5": 510.39,
-        "ma10": 512.9,
-        "ma20": 525.8,
-        "ma60": 579.82,
-        "ma20_slope_pct": -2.32
-      }
-    },
-    {
-      "ts": 1773105357876,
-      "time": "09:15:57",
-      "strategy": "relative_strength",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "腾讯控股 相对强弱",
-      "display": "HK00700 腾讯控股 相对强弱: 60日弱于恒指 个股-15.5% 恒指-0.1% 超额-15.4% | 现价513.00 日跌-0.6%",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -15.5,
-        "index_return_60d": -0.1,
-        "excess_return": -15.4
-      }
-    },
-    {
-      "ts": 1773105357930,
-      "time": "09:15:57",
-      "strategy": "ma_bearish_align",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "大麦娱乐 均线空头排列",
-      "display": "HK01060 大麦娱乐 均线空头排列: MA5=0.73 MA10=0.77 MA20=0.86 MA60=0.89 斜率-5.27% | 现价0.74 日涨+1.4%",
-      "detail": {
-        "ma5": 0.73,
-        "ma10": 0.77,
-        "ma20": 0.86,
-        "ma60": 0.89,
-        "ma20_slope_pct": -5.27
-      }
-    },
-    {
-      "ts": 1773105357930,
-      "time": "09:15:57",
-      "strategy": "relative_strength",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 相对强弱",
-      "display": "HK01060 大麦娱乐 相对强弱: 60日弱于恒指 个股-18.0% 恒指-0.1% 超额-17.9% | 现价0.74 日涨+1.4%",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -18.0,
-        "index_return_60d": -0.1,
-        "excess_return": -17.9
-      }
-    },
-    {
-      "ts": 1773105358050,
-      "time": "09:15:58",
-      "strategy": "macd_bottom_divergence",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "小米集团－Ｗ MACD底背离",
-      "display": "HK01810 小米集团－Ｗ MACD底背离: 价格33.36<33.96 但DIF-0.9823>-1.2498 | 现价34.60 日涨+2.7%",
-      "detail": {
-        "price": 33.36,
-        "prior_low": 33.96,
-        "dif": -0.9823,
-        "prior_dif": -1.2498,
-        "lookback": 20
-      }
-    },
-    {
-      "ts": 1773105358050,
-      "time": "09:15:58",
-      "strategy": "ma_bearish_align",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "小米集团－Ｗ 均线空头排列",
-      "display": "HK01810 小米集团－Ｗ 均线空头排列: MA5=32.93 MA10=33.51 MA20=34.79 MA60=37.04 斜率-0.84% | 现价34.60 日涨+2.7%",
-      "detail": {
-        "ma5": 32.93,
-        "ma10": 33.51,
-        "ma20": 34.79,
-        "ma60": 37.04,
-        "ma20_slope_pct": -0.84
-      }
-    },
-    {
-      "ts": 1773105358050,
-      "time": "09:15:58",
-      "strategy": "relative_strength",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "小米集团－Ｗ 相对强弱",
-      "display": "HK01810 小米集团－Ｗ 相对强弱: 60日弱于恒指 个股-19.1% 恒指-0.1% 超额-19.0% | 现价34.60 日涨+2.7%",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -19.1,
-        "index_return_60d": -0.1,
-        "excess_return": -19.0
-      }
-    },
-    {
-      "ts": 1773105358161,
-      "time": "09:15:58",
-      "strategy": "relative_strength",
-      "code": "HK02577",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "英诺赛科 相对强弱",
-      "display": "HK02577 英诺赛科 相对强弱: 60日弱于恒指 个股-25.2% 恒指-0.1% 超额-25.1% | 现价65.10 日涨+3.7%",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -25.2,
-        "index_return_60d": -0.1,
-        "excess_return": -25.1
-      }
-    },
-    {
-      "ts": 1773105358220,
-      "time": "09:15:58",
-      "strategy": "rsi_oversold",
-      "code": "HK02590",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "极智嘉-W RSI超卖",
-      "display": "HK02590 极智嘉-W RSI超卖: RSI=27.3 (前日30.4) 跌破30 | 现价19.45 日涨+0.0%",
-      "detail": {
-        "rsi": 27.3,
-        "prev_rsi": 30.4,
-        "threshold": 30
-      }
-    },
-    {
-      "ts": 1773105358220,
-      "time": "09:15:58",
-      "strategy": "ma_bearish_align",
-      "code": "HK02590",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "极智嘉-W 均线空头排列",
-      "display": "HK02590 极智嘉-W 均线空头排列: MA5=20.62 MA10=22.36 MA20=24.52 MA60=25.51 斜率-6.28% | 现价19.45 日涨+0.0%",
-      "detail": {
-        "ma5": 20.62,
-        "ma10": 22.36,
-        "ma20": 24.52,
-        "ma60": 25.51,
-        "ma20_slope_pct": -6.28
-      }
-    },
-    {
-      "ts": 1773105358220,
-      "time": "09:15:58",
-      "strategy": "relative_strength",
-      "code": "HK02590",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "极智嘉-W 相对强弱",
-      "display": "HK02590 极智嘉-W 相对强弱: 60日弱于恒指 个股-20.9% 恒指-0.1% 超额-20.8% | 现价19.45 日涨+0.0%",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -20.9,
-        "index_return_60d": -0.1,
-        "excess_return": -20.8
-      }
-    },
-    {
-      "ts": 1773105358277,
-      "time": "09:15:58",
-      "strategy": "relative_strength",
-      "code": "HK02722",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "重庆机电 相对强弱",
-      "display": "HK02722 重庆机电 相对强弱: 60日强于恒指 个股+53.5% 恒指-0.1% 超额+53.6% | 现价3.19 日涨+3.9%",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 53.5,
-        "index_return_60d": -0.1,
-        "excess_return": 53.6
-      }
-    },
-    {
-      "ts": 1773105358336,
-      "time": "09:15:58",
-      "strategy": "ma_bearish_align",
-      "code": "HK03033",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "南方恒生科技 均线空头排列",
-      "display": "HK03033 南方恒生科技 均线空头排列: MA5=4.77 MA10=4.90 MA20=5.09 MA60=5.38 斜率-2.43% | 现价4.87 日涨+1.0%",
-      "detail": {
-        "ma5": 4.77,
-        "ma10": 4.9,
-        "ma20": 5.09,
-        "ma60": 5.38,
-        "ma20_slope_pct": -2.43
-      }
-    },
-    {
-      "ts": 1773105358391,
-      "time": "09:15:58",
-      "strategy": "macd_golden_cross",
-      "code": "HK03288",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "海天味业 MACD金叉",
-      "display": "HK03288 海天味业 MACD金叉: DIF=0.3953 DEA=0.3846 | 现价34.24 日涨+0.0%",
-      "detail": {
-        "hist": 0.0213,
-        "prev_hist": -0.0101,
-        "dif": 0.3953,
-        "dea": 0.3846
-      }
-    },
-    {
-      "ts": 1773105358391,
-      "time": "09:15:58",
-      "strategy": "breakout_pullback",
-      "code": "HK03288",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "海天味业 突破回踩",
-      "display": "HK03288 海天味业 突破回踩: 回踩支撑34.00 现价34.24 缩量0.52x | 现价34.24 日涨+0.0%",
-      "detail": {
-        "close": 34.24,
-        "support_level": 34.0,
-        "breakout_close": 34.98,
-        "vol_shrink": 0.52
-      }
-    },
-    {
-      "ts": 1773105358447,
-      "time": "09:15:58",
-      "strategy": "relative_strength",
-      "code": "HK03896",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "金山云 相对强弱",
-      "display": "HK03896 金山云 相对强弱: 60日强于恒指 个股+18.3% 恒指-0.1% 超额+18.4% | 现价7.70 日涨+5.2%",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 18.3,
-        "index_return_60d": -0.1,
-        "excess_return": 18.4
-      }
-    },
-    {
-      "ts": 1773105358555,
-      "time": "09:15:58",
-      "strategy": "ma_bearish_align",
-      "code": "HK06060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "众安在线 均线空头排列",
-      "display": "HK06060 众安在线 均线空头排列: MA5=13.96 MA10=14.73 MA20=15.41 MA60=16.05 斜率-2.84% | 现价14.29 日涨+1.8%",
-      "detail": {
-        "ma5": 13.96,
-        "ma10": 14.73,
-        "ma20": 15.41,
-        "ma60": 16.05,
-        "ma20_slope_pct": -2.84
-      }
-    },
-    {
-      "ts": 1773105358712,
-      "time": "09:15:58",
-      "strategy": "ma_bearish_align",
-      "code": "HK07226",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "南方两倍做多纳指 均线空头排列",
-      "display": "HK07226 南方两倍做多纳指 均线空头排列: MA5=3.87 MA10=4.11 MA20=4.44 MA60=5.05 斜率-5.08% | 现价4.10 日涨+3.7%",
-      "detail": {
-        "ma5": 3.87,
-        "ma10": 4.11,
-        "ma20": 4.44,
-        "ma60": 5.05,
-        "ma20_slope_pct": -5.08
-      }
-    },
-    {
-      "ts": 1773105358712,
-      "time": "09:15:58",
-      "strategy": "relative_strength",
-      "code": "HK07226",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "南方两倍做多纳指 相对强弱",
-      "display": "HK07226 南方两倍做多纳指 相对强弱: 60日弱于恒指 个股-27.2% 恒指-0.1% 超额-27.1% | 现价4.10 日涨+3.7%",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -27.2,
-        "index_return_60d": -0.1,
-        "excess_return": -27.1
-      }
-    },
-    {
-      "ts": 1773105358770,
-      "time": "09:15:58",
-      "strategy": "support_breakdown",
-      "code": "HK07262",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "XL二南方看多日经 破位下跌",
-      "display": "HK07262 XL二南方看多日经 破位下跌: 跌破130.26 现价122.35 放量3.0x | 现价130.00 日涨+6.3%",
-      "detail": {
-        "close": 122.35,
-        "support_level": 130.26,
-        "prev_low_20": 126.65,
-        "ma60": 130.26,
-        "vol_ratio": 3.02
-      }
-    },
-    {
-      "ts": 1773105358828,
-      "time": "09:15:58",
-      "strategy": "relative_strength",
-      "code": "HK07709",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "XL二南方海力士 相对强弱",
-      "display": "HK07709 XL二南方海力士 相对强弱: 60日强于恒指 个股+82.9% 恒指-0.1% 超额+83.0% | 现价27.22 日涨+14.9%",
-      "detail": {
-        "direction": "bullish",
-        "stock_return_60d": 82.9,
-        "index_return_60d": -0.1,
-        "excess_return": 83.0
-      }
-    },
-    {
-      "ts": 1773105358892,
-      "time": "09:15:58",
-      "strategy": "macd_golden_cross",
-      "code": "HK09618",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "京东-SW MACD金叉",
-      "display": "HK09618 京东-SW MACD金叉: DIF=-2.4551 DEA=-2.5775 | 现价109.00 日涨+3.3%",
-      "detail": {
-        "hist": 0.2448,
-        "prev_hist": -0.4447,
-        "dif": -2.4551,
-        "dea": -2.5775
-      }
-    },
-    {
-      "ts": 1773105358892,
-      "time": "09:15:58",
-      "strategy": "ma_bearish_align",
-      "code": "HK09618",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "京东-SW 均线空头排列",
-      "display": "HK09618 京东-SW 均线空头排列: MA5=101.49 MA10=103.03 MA20=105.28 MA60=110.79 斜率-1.56% | 现价109.00 日涨+3.3%",
-      "detail": {
-        "ma5": 101.49,
-        "ma10": 103.03,
-        "ma20": 105.28,
-        "ma60": 110.79,
-        "ma20_slope_pct": -1.56
-      }
-    },
-    {
-      "ts": 1773105358949,
-      "time": "09:15:58",
-      "strategy": "rsi_oversold",
-      "code": "HK09927",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "赛力斯 RSI超卖",
-      "display": "HK09927 赛力斯 RSI超卖: RSI=29.8 (前日31.6) 跌破30 | 现价87.50 日涨+0.9%",
-      "detail": {
-        "rsi": 29.8,
-        "prev_rsi": 31.6,
-        "threshold": 30
-      }
-    },
-    {
-      "ts": 1773105358949,
-      "time": "09:15:58",
-      "strategy": "ma_bearish_align",
-      "code": "HK09927",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "赛力斯 均线空头排列",
-      "display": "HK09927 赛力斯 均线空头排列: MA5=87.84 MA10=91.38 MA20=94.48 MA60=102.07 斜率-1.94% | 现价87.50 日涨+0.9%",
-      "detail": {
-        "ma5": 87.84,
-        "ma10": 91.38,
-        "ma20": 94.48,
-        "ma60": 102.07,
-        "ma20_slope_pct": -1.94
-      }
-    },
-    {
-      "ts": 1773105358949,
-      "time": "09:15:58",
-      "strategy": "relative_strength",
-      "code": "HK09927",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "赛力斯 相对强弱",
-      "display": "HK09927 赛力斯 相对强弱: 60日弱于恒指 个股-24.6% 恒指-0.1% 超额-24.5% | 现价87.50 日涨+0.9%",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -24.6,
-        "index_return_60d": -0.1,
-        "excess_return": -24.5
-      }
-    },
-    {
-      "ts": 1773105359007,
-      "time": "09:15:59",
-      "strategy": "rsi_extreme_oversold",
-      "code": "HK09973",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "HK09973 RSI严重超卖",
-      "display": "HK09973 HK09973 RSI严重超卖: 连续2日RSI=16.0 <20 | 现价24.12 日跌-0.3%",
-      "detail": {
-        "rsi": 16.0,
-        "prev_rsi": 18.9,
-        "threshold": 20,
-        "consecutive_days": 2
-      }
-    },
-    {
-      "ts": 1773105359007,
-      "time": "09:15:59",
-      "strategy": "ma_bearish_align",
-      "code": "HK09973",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "HK09973 均线空头排列",
-      "display": "HK09973 HK09973 均线空头排列: MA5=25.16 MA10=26.42 MA20=27.38 MA60=29.15 斜率-2.41% | 现价24.12 日跌-0.3%",
-      "detail": {
-        "ma5": 25.16,
-        "ma10": 26.42,
-        "ma20": 27.38,
-        "ma60": 29.15,
-        "ma20_slope_pct": -2.41
-      }
-    },
-    {
-      "ts": 1773105359007,
-      "time": "09:15:59",
-      "strategy": "relative_strength",
-      "code": "HK09973",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "HK09973 相对强弱",
-      "display": "HK09973 HK09973 相对强弱: 60日弱于恒指 个股-24.1% 恒指-0.1% 超额-24.0% | 现价24.12 日跌-0.3%",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -24.1,
-        "index_return_60d": -0.1,
-        "excess_return": -24.0
-      }
-    },
-    {
-      "ts": 1773105359066,
-      "time": "09:15:59",
-      "strategy": "ma_bearish_align",
-      "code": "HK09988",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "阿里巴巴－Ｗ 均线空头排列",
-      "display": "HK09988 阿里巴巴－Ｗ 均线空头排列: MA5=128.86 MA10=134.97 MA20=144.96 MA60=151.99 斜率-4.26% | 现价131.00 日涨+1.8%",
-      "detail": {
-        "ma5": 128.86,
-        "ma10": 134.97,
-        "ma20": 144.96,
-        "ma60": 151.99,
-        "ma20_slope_pct": -4.26
-      }
-    },
-    {
-      "ts": 1773106214833,
-      "time": "09:30:14",
-      "strategy": "ma_bearish_align",
-      "code": "HK00700",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "腾讯控股 均线空头排列",
-      "display": "HK00700 腾讯控股 均线空头排列: MA5=514.80 MA10=515.10 MA20=526.90 MA60=580.19 斜率-2.12% | 现价530.50 日涨+2.8%",
-      "detail": {
-        "ma5": 514.8,
-        "ma10": 515.1,
-        "ma20": 526.9,
-        "ma60": 580.19,
-        "ma20_slope_pct": -2.12
-      }
-    },
-    {
-      "ts": 1773106214897,
-      "time": "09:30:14",
-      "strategy": "ma_bearish_align",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "大麦娱乐 均线空头排列",
-      "display": "HK01060 大麦娱乐 均线空头排列: MA5=0.73 MA10=0.76 MA20=0.85 MA60=0.89 斜率-4.96% | 现价0.74 日涨+1.4%",
-      "detail": {
-        "ma5": 0.73,
-        "ma10": 0.76,
-        "ma20": 0.85,
-        "ma60": 0.89,
-        "ma20_slope_pct": -4.96
-      }
-    },
-    {
-      "ts": 1773106214897,
-      "time": "09:30:14",
-      "strategy": "relative_strength",
-      "code": "HK01060",
-      "kind": "l2_strategy",
-      "notify": false,
-      "message": "大麦娱乐 相对强弱",
-      "display": "HK01060 大麦娱乐 相对强弱: 60日弱于恒指 个股-14.0% 恒指+1.3% 超额-15.2% | 现价0.74 日涨+1.4%",
-      "detail": {
-        "direction": "bearish",
-        "stock_return_60d": -14.0,
-        "index_return_60d": 1.3,
-        "excess_return": -15.2
-      }
-    },
-    {
-      "ts": 1773106214952,
-      "time": "09:30:14",
-      "strategy": "macd_golden_cross",
-      "code": "HK01211",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "比亚迪股份 MACD金叉",
-      "display": "HK01211 比亚迪股份 MACD金叉: DIF=-0.0590 DEA=-0.1232 | 现价98.10 日涨+0.1%",
-      "detail": {
-        "hist": 0.1284,
-        "prev_hist": -0.18,
-        "dif": -0.059,
-        "dea": -0.1232
-      }
-    },
-    {
-      "ts": 1773106215007,
-      "time": "09:30:15",
-      "strategy": "ma_bearish_align",
-      "code": "HK01810",
-      "kind": "l2_strategy",
-      "notify": true,
-      "message": "小米集团－Ｗ 均线空头排列",
-      "display": "HK01810 小米集团－Ｗ 均线空头排列: MA5=33.13 MA10=33.61 MA20=34.84 MA60=37.06 斜率-0.70% | 现价34.32 日涨+1.9%",
-      "detail": {
-        "ma5": 33.13,
-        "ma10": 33.61,
-        "ma20": 34.84,
-        "ma60": 37.06,
-        "ma20_slope_pct": -0.7
-      }
-    },
-    {
       "ts": 1773106215007,
       "time": "09:30:15",
       "strategy": "relative_strength",
@@ -3317,16 +944,2503 @@
         "super_net": 35512410.0,
         "big_net": 20498960.0
       }
+    },
+    {
+      "ts": 1773191707145,
+      "time": "09:15:07",
+      "strategy": "engulfing_pattern",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 吞没形态",
+      "display": "HK00700 腾讯控股 看跌吞没形态 | 现价590.00 日涨+6.6%",
+      "detail": {
+        "direction": "bearish",
+        "prev_open": 525.0,
+        "prev_close": 553.5,
+        "curr_open": 553.5,
+        "curr_close": 515.25
+      }
+    },
+    {
+      "ts": 1773191707145,
+      "time": "09:15:07",
+      "strategy": "relative_strength",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 相对强弱",
+      "display": "HK00700 腾讯控股 相对强弱: 60日弱于恒指 个股-14.6% 恒指+1.6% 超额-16.2% | 现价590.00 日涨+6.6%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -14.6,
+        "index_return_60d": 1.6,
+        "excess_return": -16.2
+      }
+    },
+    {
+      "ts": 1773191707207,
+      "time": "09:15:07",
+      "strategy": "ma_bearish_align",
+      "code": "HK01060",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "大麦娱乐 均线空头排列",
+      "display": "HK01060 大麦娱乐 均线空头排列: MA5=0.73 MA10=0.76 MA20=0.85 MA60=0.89 斜率-5.07% | 现价0.72 日涨+0.0%",
+      "detail": {
+        "ma5": 0.73,
+        "ma10": 0.76,
+        "ma20": 0.85,
+        "ma60": 0.89,
+        "ma20_slope_pct": -5.07
+      }
+    },
+    {
+      "ts": 1773191707207,
+      "time": "09:15:07",
+      "strategy": "relative_strength",
+      "code": "HK01060",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "大麦娱乐 相对强弱",
+      "display": "HK01060 大麦娱乐 相对强弱: 60日弱于恒指 个股-16.3% 恒指+1.6% 超额-17.9% | 现价0.72 日涨+0.0%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -16.3,
+        "index_return_60d": 1.6,
+        "excess_return": -17.9
+      }
+    },
+    {
+      "ts": 1773191707269,
+      "time": "09:15:07",
+      "strategy": "macd_golden_cross",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "比亚迪股份 MACD金叉",
+      "display": "HK01211 比亚迪股份 MACD金叉: DIF=-0.0177 DEA=-0.1168 | 现价96.95 日涨+0.0%",
+      "detail": {
+        "hist": 0.1982,
+        "prev_hist": -0.0183,
+        "dif": -0.0177,
+        "dea": -0.1168
+      }
+    },
+    {
+      "ts": 1773191707333,
+      "time": "09:15:07",
+      "strategy": "macd_bottom_divergence",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "小米集团－Ｗ MACD底背离",
+      "display": "HK01810 小米集团－Ｗ MACD底背离: 价格33.63<33.96 但DIF-0.9059>-1.2499 | 现价33.62 日涨+0.0%",
+      "detail": {
+        "price": 33.63,
+        "prior_low": 33.96,
+        "dif": -0.9059,
+        "prior_dif": -1.2499,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1773191707333,
+      "time": "09:15:07",
+      "strategy": "ma_bearish_align",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "小米集团－Ｗ 均线空头排列",
+      "display": "HK01810 小米集团－Ｗ 均线空头排列: MA5=33.31 MA10=33.33 MA20=34.73 MA60=36.92 斜率-0.62% | 现价33.62 日涨+0.0%",
+      "detail": {
+        "ma5": 33.31,
+        "ma10": 33.33,
+        "ma20": 34.73,
+        "ma60": 36.92,
+        "ma20_slope_pct": -0.62
+      }
+    },
+    {
+      "ts": 1773191707333,
+      "time": "09:15:07",
+      "strategy": "relative_strength",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 相对强弱",
+      "display": "HK01810 小米集团－Ｗ 相对强弱: 60日弱于恒指 个股-19.5% 恒指+1.6% 超额-21.1% | 现价33.62 日涨+0.0%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -19.5,
+        "index_return_60d": 1.6,
+        "excess_return": -21.1
+      }
+    },
+    {
+      "ts": 1773191707451,
+      "time": "09:15:07",
+      "strategy": "relative_strength",
+      "code": "HK02577",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "英诺赛科 相对强弱",
+      "display": "HK02577 英诺赛科 相对强弱: 60日弱于恒指 个股-18.9% 恒指+1.6% 超额-20.5% | 现价67.00 日涨+1.5%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -18.9,
+        "index_return_60d": 1.6,
+        "excess_return": -20.5
+      }
+    },
+    {
+      "ts": 1773191707510,
+      "time": "09:15:07",
+      "strategy": "ma_bearish_align",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "极智嘉-W 均线空头排列",
+      "display": "HK02590 极智嘉-W 均线空头排列: MA5=20.42 MA10=21.82 MA20=24.15 MA60=25.45 斜率-6.08% | 现价20.60 日涨+0.0%",
+      "detail": {
+        "ma5": 20.42,
+        "ma10": 21.82,
+        "ma20": 24.15,
+        "ma60": 25.45,
+        "ma20_slope_pct": -6.08
+      }
+    },
+    {
+      "ts": 1773191707510,
+      "time": "09:15:07",
+      "strategy": "relative_strength",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "极智嘉-W 相对强弱",
+      "display": "HK02590 极智嘉-W 相对强弱: 60日弱于恒指 个股-14.7% 恒指+1.6% 超额-16.3% | 现价20.60 日涨+0.0%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -14.7,
+        "index_return_60d": 1.6,
+        "excess_return": -16.3
+      }
+    },
+    {
+      "ts": 1773191707623,
+      "time": "09:15:07",
+      "strategy": "breakout_pullback",
+      "code": "HK02722",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "重庆机电 突破回踩",
+      "display": "HK02722 重庆机电 突破回踩: 回踩支撑3.13 现价3.23 缩量0.55x | 现价3.16 日跌-2.2%",
+      "detail": {
+        "close": 3.23,
+        "support_level": 3.13,
+        "breakout_close": 3.39,
+        "vol_shrink": 0.55
+      }
+    },
+    {
+      "ts": 1773191707623,
+      "time": "09:15:07",
+      "strategy": "relative_strength",
+      "code": "HK02722",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "重庆机电 相对强弱",
+      "display": "HK02722 重庆机电 相对强弱: 60日强于恒指 个股+68.2% 恒指+1.6% 超额+66.6% | 现价3.16 日跌-2.2%",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 68.2,
+        "index_return_60d": 1.6,
+        "excess_return": 66.6
+      }
+    },
+    {
+      "ts": 1773191707685,
+      "time": "09:15:07",
+      "strategy": "ma_bearish_align",
+      "code": "HK03033",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方恒生科技 均线空头排列",
+      "display": "HK03033 南方恒生科技 均线空头排列: MA5=4.80 MA10=4.88 MA20=5.07 MA60=5.37 斜率-1.91% | 现价5.00 日涨+1.1%",
+      "detail": {
+        "ma5": 4.8,
+        "ma10": 4.88,
+        "ma20": 5.07,
+        "ma60": 5.37,
+        "ma20_slope_pct": -1.91
+      }
+    },
+    {
+      "ts": 1773191707920,
+      "time": "09:15:07",
+      "strategy": "ma_bearish_align",
+      "code": "HK06060",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "众安在线 均线空头排列",
+      "display": "HK06060 众安在线 均线空头排列: MA5=14.00 MA10=14.54 MA20=15.34 MA60=16.03 斜率-2.34% | 现价14.43 日涨+0.0%",
+      "detail": {
+        "ma5": 14.0,
+        "ma10": 14.54,
+        "ma20": 15.34,
+        "ma60": 16.03,
+        "ma20_slope_pct": -2.34
+      }
+    },
+    {
+      "ts": 1773191708030,
+      "time": "09:15:08",
+      "strategy": "ma_bearish_align",
+      "code": "HK07226",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方两倍做多纳指 均线空头排列",
+      "display": "HK07226 南方两倍做多纳指 均线空头排列: MA5=3.93 MA10=4.07 MA20=4.41 MA60=5.03 斜率-4.12% | 现价4.20 日涨+1.0%",
+      "detail": {
+        "ma5": 3.93,
+        "ma10": 4.07,
+        "ma20": 4.41,
+        "ma60": 5.03,
+        "ma20_slope_pct": -4.12
+      }
+    },
+    {
+      "ts": 1773191708030,
+      "time": "09:15:08",
+      "strategy": "relative_strength",
+      "code": "HK07226",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "南方两倍做多纳指 相对强弱",
+      "display": "HK07226 南方两倍做多纳指 相对强弱: 60日弱于恒指 个股-20.4% 恒指+1.6% 超额-22.1% | 现价4.20 日涨+1.0%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -20.4,
+        "index_return_60d": 1.6,
+        "excess_return": -22.1
+      }
+    },
+    {
+      "ts": 1773191708145,
+      "time": "09:15:08",
+      "strategy": "relative_strength",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 相对强弱",
+      "display": "HK07709 XL二南方海力士 相对强弱: 60日强于恒指 个股+130.6% 恒指+1.6% 超额+129.0% | 现价29.40 日涨+1.7%",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 130.6,
+        "index_return_60d": 1.6,
+        "excess_return": 129.0
+      }
+    },
+    {
+      "ts": 1773191708265,
+      "time": "09:15:08",
+      "strategy": "ma_bearish_align",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "赛力斯 均线空头排列",
+      "display": "HK09927 赛力斯 均线空头排列: MA5=87.63 MA10=90.59 MA20=94.08 MA60=101.63 斜率-1.91% | 现价89.05 日涨+0.0%",
+      "detail": {
+        "ma5": 87.63,
+        "ma10": 90.59,
+        "ma20": 94.08,
+        "ma60": 101.63,
+        "ma20_slope_pct": -1.91
+      }
+    },
+    {
+      "ts": 1773191708265,
+      "time": "09:15:08",
+      "strategy": "relative_strength",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "赛力斯 相对强弱",
+      "display": "HK09927 赛力斯 相对强弱: 60日弱于恒指 个股-19.8% 恒指+1.6% 超额-21.4% | 现价89.05 日涨+0.0%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -19.8,
+        "index_return_60d": 1.6,
+        "excess_return": -21.4
+      }
+    },
+    {
+      "ts": 1773191708326,
+      "time": "09:15:08",
+      "strategy": "ma_bearish_align",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "阿里巴巴－Ｗ 均线空头排列",
+      "display": "HK09988 阿里巴巴－Ｗ 均线空头排列: MA5=130.54 MA10=133.97 MA20=144.12 MA60=151.78 斜率-3.63% | 现价135.30 日涨+1.3%",
+      "detail": {
+        "ma5": 130.54,
+        "ma10": 133.97,
+        "ma20": 144.12,
+        "ma60": 151.78,
+        "ma20_slope_pct": -3.63
+      }
+    },
+    {
+      "ts": 1773192651077,
+      "time": "09:30:51",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 散户机构分歧",
+      "display": "HK00700 腾讯控股 散户机构分歧: 主力出散户进 | 机构净-4697万 散户净+2672万 | 现价567.00 日涨+2.4% 净流出4697万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -46966500.0,
+        "retail_net": 26717750.0,
+        "super_net": 17348150.0,
+        "big_net": -64314650.0
+      }
+    },
+    {
+      "ts": 1773192651077,
+      "time": "09:30:51",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 散户机构分歧",
+      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力出散户进 | 机构净-3055万 散户净+1164万 | 现价135.10 日涨+1.2% 净流出3055万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -30546100.0,
+        "retail_net": 11642530.0,
+        "super_net": -15474100.0,
+        "big_net": -15072000.0
+      }
+    },
+    {
+      "ts": 1773192965400,
+      "time": "09:36:05",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 散户机构分歧",
+      "display": "HK01810 小米集团－Ｗ 散户机构分歧: 主力出散户进 | 机构净-1158万 散户净+3333万 | 现价33.32 日跌-0.9% 量比4.9 净流出1158万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -11578484.0,
+        "retail_net": 33331884.0,
+        "super_net": -16298288.0,
+        "big_net": 4719804.0
+      }
+    },
+    {
+      "ts": 1773193509611,
+      "time": "09:45:09",
+      "strategy": "macd_golden_cross",
+      "code": "HK03033",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方恒生科技 MACD金叉",
+      "display": "HK03033 南方恒生科技 MACD金叉: DIF=-0.1538 DEA=-0.1580 | 现价4.97 日涨+0.6%",
+      "detail": {
+        "hist": 0.0084,
+        "prev_hist": -0.0206,
+        "dif": -0.1538,
+        "dea": -0.158
+      }
+    },
+    {
+      "ts": 1773193509734,
+      "time": "09:45:09",
+      "strategy": "ma_bullish_align",
+      "code": "HK03288",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "海天味业 均线多头排列",
+      "display": "HK03288 海天味业 均线多头排列: MA5=34.16 MA10=33.87 MA20=33.75 MA60=32.73 斜率+1.18% | 现价34.22 日跌-0.1%",
+      "detail": {
+        "ma5": 34.16,
+        "ma10": 33.87,
+        "ma20": 33.75,
+        "ma60": 32.73,
+        "ma20_slope_pct": 1.18
+      }
+    },
+    {
+      "ts": 1773193509814,
+      "time": "09:45:09",
+      "strategy": "macd_golden_cross",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "金山云 MACD金叉",
+      "display": "HK03896 金山云 MACD金叉: DIF=0.0425 DEA=0.0212 | 现价7.44 日涨+6.4% 量比6.7",
+      "detail": {
+        "hist": 0.0425,
+        "prev_hist": -0.0518,
+        "dif": 0.0425,
+        "dea": 0.0212
+      }
+    },
+    {
+      "ts": 1773193509815,
+      "time": "09:45:09",
+      "strategy": "relative_strength",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "金山云 相对强弱",
+      "display": "HK03896 金山云 相对强弱: 60日强于恒指 个股+20.6% 恒指+1.9% 超额+18.6% | 现价7.44 日涨+6.4% 量比6.7",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 20.6,
+        "index_return_60d": 1.9,
+        "excess_return": 18.6
+      }
+    },
+    {
+      "ts": 1773193510064,
+      "time": "09:45:10",
+      "strategy": "macd_golden_cross",
+      "code": "HK07226",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方两倍做多纳指 MACD金叉",
+      "display": "HK07226 南方两倍做多纳指 MACD金叉: DIF=-0.2994 DEA=-0.3087 | 现价4.20 日涨+1.1% 量比1.8",
+      "detail": {
+        "hist": 0.0187,
+        "prev_hist": -0.0308,
+        "dif": -0.2994,
+        "dea": -0.3087
+      }
+    },
+    {
+      "ts": 1773193510196,
+      "time": "09:45:10",
+      "strategy": "macd_top_divergence",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "XL二南方海力士 MACD顶背离",
+      "display": "HK07709 XL二南方海力士 MACD顶背离: 价格30.98>29.60 但DIF0.9680<2.9367 | 现价30.98 日涨+7.2%",
+      "detail": {
+        "price": 30.98,
+        "prior_high": 29.6,
+        "dif": 0.968,
+        "prior_dif": 2.9367,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1773193510347,
+      "time": "09:45:10",
+      "strategy": "macd_bottom_divergence",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "赛力斯 MACD底背离",
+      "display": "HK09927 赛力斯 MACD底背离: 价格92.25<95.70 但DIF-3.2768>-3.5602 | 现价92.25 日涨+3.6% 量比4.3",
+      "detail": {
+        "price": 92.25,
+        "prior_low": 95.7,
+        "dif": -3.2768,
+        "prior_dif": -3.5602,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1773193623574,
+      "time": "09:47:03",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "金山云 散户机构分歧",
+      "display": "HK03896 金山云 散户机构分歧: 主力进散户出 | 机构净+7114万 散户净-567万 | 现价7.32 日涨+4.7% 量比6.3 净流入7114万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 71138120.0,
+        "retail_net": -5670940.0,
+        "super_net": 23189900.0,
+        "big_net": 47948220.0
+      }
+    },
+    {
+      "ts": 1773194715571,
+      "time": "10:05:15",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK07226",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "南方两倍做多纳指 散户机构分歧",
+      "display": "HK07226 南方两倍做多纳指 散户机构分歧: 主力出散户进 | 机构净-1153万 散户净+511万 | 现价4.21 日涨+1.2% 净流出1153万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -11534502.0,
+        "retail_net": 5106950.0,
+        "super_net": -5020627.0,
+        "big_net": -6513875.0
+      }
+    },
+    {
+      "ts": 1773195459036,
+      "time": "10:17:39",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "金山云 散户机构分歧",
+      "display": "HK03896 金山云 散户机构分歧: 主力进散户出 | 机构净+10351万 散户净-1609万 | 现价7.39 日涨+5.7% 量比3.4 净流入10351万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 103509140.0,
+        "retail_net": -16088400.0,
+        "super_net": 41203540.0,
+        "big_net": 62305600.0
+      }
+    },
+    {
+      "ts": 1773195459036,
+      "time": "10:17:39",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 散户机构分歧",
+      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力出散户进 | 机构净-17127万 散户净+21213万 | 现价134.40 日涨+0.7% 净流出17127万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -171272530.0,
+        "retail_net": 212133260.0,
+        "super_net": 22677670.0,
+        "big_net": -193950200.0
+      }
+    },
+    {
+      "ts": 1773195459461,
+      "time": "10:17:39",
+      "strategy": "ma_bearish_align",
+      "code": "HK01060",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "大麦娱乐 均线空头排列",
+      "display": "HK01060 大麦娱乐 均线空头排列: MA5=0.73 MA10=0.75 MA20=0.84 MA60=0.89 斜率-4.92% | 现价0.73 日涨+1.4% 净流出238万",
+      "detail": {
+        "ma5": 0.73,
+        "ma10": 0.75,
+        "ma20": 0.84,
+        "ma60": 0.89,
+        "ma20_slope_pct": -4.92
+      }
+    },
+    {
+      "ts": 1773195459461,
+      "time": "10:17:39",
+      "strategy": "relative_strength",
+      "code": "HK01060",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "大麦娱乐 相对强弱",
+      "display": "HK01060 大麦娱乐 相对强弱: 60日弱于恒指 个股-13.1% 恒指+2.0% 超额-15.1% | 现价0.73 日涨+1.4% 净流出238万",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -13.1,
+        "index_return_60d": 2.0,
+        "excess_return": -15.1
+      }
+    },
+    {
+      "ts": 1773195459555,
+      "time": "10:17:39",
+      "strategy": "macd_golden_cross",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "比亚迪股份 MACD金叉",
+      "display": "HK01211 比亚迪股份 MACD金叉: DIF=0.0441 DEA=-0.1045 | 现价98.60 日涨+1.7% 净流入2248万",
+      "detail": {
+        "hist": 0.2971,
+        "prev_hist": -0.0183,
+        "dif": 0.0441,
+        "dea": -0.1045
+      }
+    },
+    {
+      "ts": 1773195459809,
+      "time": "10:17:39",
+      "strategy": "macd_bottom_divergence",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "小米集团－Ｗ MACD底背离",
+      "display": "HK01810 小米集团－Ｗ MACD底背离: 价格33.76<33.96 但DIF-0.8955>-1.2499 | 现价33.78 日涨+0.5% 净流入4494万",
+      "detail": {
+        "price": 33.76,
+        "prior_low": 33.96,
+        "dif": -0.8955,
+        "prior_dif": -1.2499,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1773195459809,
+      "time": "10:17:39",
+      "strategy": "ma_bearish_align",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "小米集团－Ｗ 均线空头排列",
+      "display": "HK01810 小米集团－Ｗ 均线空头排列: MA5=33.34 MA10=33.35 MA20=34.73 MA60=36.92 斜率-0.60% | 现价33.78 日涨+0.5% 净流入4494万",
+      "detail": {
+        "ma5": 33.34,
+        "ma10": 33.35,
+        "ma20": 34.73,
+        "ma60": 36.92,
+        "ma20_slope_pct": -0.6
+      }
+    },
+    {
+      "ts": 1773195459809,
+      "time": "10:17:39",
+      "strategy": "relative_strength",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 相对强弱",
+      "display": "HK01810 小米集团－Ｗ 相对强弱: 60日弱于恒指 个股-19.2% 恒指+2.0% 超额-21.2% | 现价33.78 日涨+0.5% 净流入4494万",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -19.2,
+        "index_return_60d": 2.0,
+        "excess_return": -21.2
+      }
+    },
+    {
+      "ts": 1773195460065,
+      "time": "10:17:40",
+      "strategy": "relative_strength",
+      "code": "HK02577",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "英诺赛科 相对强弱",
+      "display": "HK02577 英诺赛科 相对强弱: 60日弱于恒指 个股-18.5% 恒指+2.0% 超额-20.5% | 现价66.00 日涨+0.0% 量比1.8 净流入107万",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -18.5,
+        "index_return_60d": 2.0,
+        "excess_return": -20.5
+      }
+    },
+    {
+      "ts": 1773195460266,
+      "time": "10:17:40",
+      "strategy": "ma_bearish_align",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "极智嘉-W 均线空头排列",
+      "display": "HK02590 极智嘉-W 均线空头排列: MA5=20.50 MA10=21.47 MA20=23.92 MA60=25.40 斜率-5.64% | 现价21.04 日涨+2.1% 量比2.8",
+      "detail": {
+        "ma5": 20.5,
+        "ma10": 21.47,
+        "ma20": 23.92,
+        "ma60": 25.4,
+        "ma20_slope_pct": -5.64
+      }
+    },
+    {
+      "ts": 1773195460266,
+      "time": "10:17:40",
+      "strategy": "relative_strength",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "极智嘉-W 相对强弱",
+      "display": "HK02590 极智嘉-W 相对强弱: 60日弱于恒指 个股-13.5% 恒指+2.0% 超额-15.5% | 现价21.04 日涨+2.1% 量比2.8",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -13.5,
+        "index_return_60d": 2.0,
+        "excess_return": -15.5
+      }
+    },
+    {
+      "ts": 1773195460399,
+      "time": "10:17:40",
+      "strategy": "breakout_pullback",
+      "code": "HK02722",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "重庆机电 突破回踩",
+      "display": "HK02722 重庆机电 突破回踩: 回踩支撑3.21 现价3.15 缩量0.41x | 现价3.15 日跌-2.5% 量比2.4 净流出150万",
+      "detail": {
+        "close": 3.15,
+        "support_level": 3.21,
+        "breakout_close": 3.39,
+        "vol_shrink": 0.41
+      }
+    },
+    {
+      "ts": 1773195460399,
+      "time": "10:17:40",
+      "strategy": "relative_strength",
+      "code": "HK02722",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "重庆机电 相对强弱",
+      "display": "HK02722 重庆机电 相对强弱: 60日强于恒指 个股+63.2% 恒指+2.0% 超额+61.2% | 现价3.15 日跌-2.5% 量比2.4 净流出150万",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 63.2,
+        "index_return_60d": 2.0,
+        "excess_return": 61.2
+      }
+    },
+    {
+      "ts": 1773195460482,
+      "time": "10:17:40",
+      "strategy": "macd_golden_cross",
+      "code": "HK03033",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方恒生科技 MACD金叉",
+      "display": "HK03033 南方恒生科技 MACD金叉: DIF=-0.1526 DEA=-0.1578 | 现价4.99 日涨+0.9% 净流出3551万",
+      "detail": {
+        "hist": 0.0104,
+        "prev_hist": -0.0206,
+        "dif": -0.1526,
+        "dea": -0.1578
+      }
+    },
+    {
+      "ts": 1773195460482,
+      "time": "10:17:40",
+      "strategy": "ma_bearish_align",
+      "code": "HK03033",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方恒生科技 均线空头排列",
+      "display": "HK03033 南方恒生科技 均线空头排列: MA5=4.86 MA10=4.87 MA20=5.06 MA60=5.37 斜率-1.47% | 现价4.99 日涨+0.9% 净流出3551万",
+      "detail": {
+        "ma5": 4.86,
+        "ma10": 4.87,
+        "ma20": 5.06,
+        "ma60": 5.37,
+        "ma20_slope_pct": -1.47
+      }
+    },
+    {
+      "ts": 1773195460594,
+      "time": "10:17:40",
+      "strategy": "ma_bullish_align",
+      "code": "HK03288",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "海天味业 均线多头排列",
+      "display": "HK03288 海天味业 均线多头排列: MA5=34.14 MA10=33.86 MA20=33.75 MA60=32.73 斜率+1.17% | 现价34.12 日跌-0.4%",
+      "detail": {
+        "ma5": 34.14,
+        "ma10": 33.86,
+        "ma20": 33.75,
+        "ma60": 32.73,
+        "ma20_slope_pct": 1.17
+      }
+    },
+    {
+      "ts": 1773195460712,
+      "time": "10:17:40",
+      "strategy": "macd_golden_cross",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "金山云 MACD金叉",
+      "display": "HK03896 金山云 MACD金叉: DIF=0.0401 DEA=0.0208 | 现价7.39 日涨+5.7% 量比3.4 净流入10351万",
+      "detail": {
+        "hist": 0.0387,
+        "prev_hist": -0.0518,
+        "dif": 0.0401,
+        "dea": 0.0208
+      }
+    },
+    {
+      "ts": 1773195460712,
+      "time": "10:17:40",
+      "strategy": "relative_strength",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "金山云 相对强弱",
+      "display": "HK03896 金山云 相对强弱: 60日强于恒指 个股+20.1% 恒指+2.0% 超额+18.1% | 现价7.39 日涨+5.7% 量比3.4 净流入10351万",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 20.1,
+        "index_return_60d": 2.0,
+        "excess_return": 18.1
+      }
+    },
+    {
+      "ts": 1773195460896,
+      "time": "10:17:40",
+      "strategy": "ma_bearish_align",
+      "code": "HK06060",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "众安在线 均线空头排列",
+      "display": "HK06060 众安在线 均线空头排列: MA5=14.16 MA10=14.41 MA20=15.29 MA60=16.03 斜率-1.89% | 现价14.45 日涨+0.1% 净流入218万",
+      "detail": {
+        "ma5": 14.16,
+        "ma10": 14.41,
+        "ma20": 15.29,
+        "ma60": 16.03,
+        "ma20_slope_pct": -1.89
+      }
+    },
+    {
+      "ts": 1773195461106,
+      "time": "10:17:41",
+      "strategy": "macd_golden_cross",
+      "code": "HK07226",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方两倍做多纳指 MACD金叉",
+      "display": "HK07226 南方两倍做多纳指 MACD金叉: DIF=-0.2973 DEA=-0.3083 | 现价4.23 日涨+1.8%",
+      "detail": {
+        "hist": 0.022,
+        "prev_hist": -0.0308,
+        "dif": -0.2973,
+        "dea": -0.3083
+      }
+    },
+    {
+      "ts": 1773195461106,
+      "time": "10:17:41",
+      "strategy": "ma_bearish_align",
+      "code": "HK07226",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方两倍做多纳指 均线空头排列",
+      "display": "HK07226 南方两倍做多纳指 均线空头排列: MA5=4.01 MA10=4.04 MA20=4.39 MA60=5.01 斜率-3.25% | 现价4.23 日涨+1.8%",
+      "detail": {
+        "ma5": 4.01,
+        "ma10": 4.04,
+        "ma20": 4.39,
+        "ma60": 5.01,
+        "ma20_slope_pct": -3.25
+      }
+    },
+    {
+      "ts": 1773195461106,
+      "time": "10:17:41",
+      "strategy": "relative_strength",
+      "code": "HK07226",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "南方两倍做多纳指 相对强弱",
+      "display": "HK07226 南方两倍做多纳指 相对强弱: 60日弱于恒指 个股-19.8% 恒指+2.0% 超额-21.8% | 现价4.23 日涨+1.8%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -19.8,
+        "index_return_60d": 2.0,
+        "excess_return": -21.8
+      }
+    },
+    {
+      "ts": 1773195461313,
+      "time": "10:17:41",
+      "strategy": "macd_top_divergence",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "XL二南方海力士 MACD顶背离",
+      "display": "HK07709 XL二南方海力士 MACD顶背离: 价格30.82>29.60 但DIF0.9552<2.9367 | 现价30.86 日涨+6.8% 净流出392万",
+      "detail": {
+        "price": 30.82,
+        "prior_high": 29.6,
+        "dif": 0.9552,
+        "prior_dif": 2.9367,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1773195461313,
+      "time": "10:17:41",
+      "strategy": "relative_strength",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 相对强弱",
+      "display": "HK07709 XL二南方海力士 相对强弱: 60日强于恒指 个股+130.9% 恒指+2.0% 超额+128.9% | 现价30.86 日涨+6.8% 净流出392万",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 130.9,
+        "index_return_60d": 2.0,
+        "excess_return": 128.9
+      }
+    },
+    {
+      "ts": 1773195461568,
+      "time": "10:17:41",
+      "strategy": "macd_bottom_divergence",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "赛力斯 MACD底背离",
+      "display": "HK09927 赛力斯 MACD底背离: 价格92.05<95.70 但DIF-3.2928>-3.5602 | 现价92.05 日涨+3.4% 量比2.2 净流入182万",
+      "detail": {
+        "price": 92.05,
+        "prior_low": 95.7,
+        "dif": -3.2928,
+        "prior_dif": -3.5602,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1773195461568,
+      "time": "10:17:41",
+      "strategy": "ma_bearish_align",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "赛力斯 均线空头排列",
+      "display": "HK09927 赛力斯 均线空头排列: MA5=88.62 MA10=90.12 MA20=93.84 MA60=101.32 斜率-1.73% | 现价92.05 日涨+3.4% 量比2.2 净流入182万",
+      "detail": {
+        "ma5": 88.62,
+        "ma10": 90.12,
+        "ma20": 93.84,
+        "ma60": 101.32,
+        "ma20_slope_pct": -1.73
+      }
+    },
+    {
+      "ts": 1773195461568,
+      "time": "10:17:41",
+      "strategy": "relative_strength",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "赛力斯 相对强弱",
+      "display": "HK09927 赛力斯 相对强弱: 60日弱于恒指 个股-17.1% 恒指+2.0% 超额-19.1% | 现价92.05 日涨+3.4% 量比2.2 净流入182万",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -17.1,
+        "index_return_60d": 2.0,
+        "excess_return": -19.1
+      }
+    },
+    {
+      "ts": 1773195461694,
+      "time": "10:17:41",
+      "strategy": "ma_bearish_align",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "阿里巴巴－Ｗ 均线空头排列",
+      "display": "HK09988 阿里巴巴－Ｗ 均线空头排列: MA5=130.72 MA10=134.06 MA20=144.17 MA60=151.79 斜率-3.60% | 现价134.40 日涨+0.7% 净流出17127万",
+      "detail": {
+        "ma5": 130.72,
+        "ma10": 134.06,
+        "ma20": 144.17,
+        "ma60": 151.79,
+        "ma20_slope_pct": -3.6
+      }
+    },
+    {
+      "ts": 1773195748200,
+      "time": "10:22:28",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 散户机构分歧",
+      "display": "HK07709 XL二南方海力士 散户机构分歧: 主力出散户进 | 机构净-1036万 散户净+1015万 | 现价30.74 日涨+6.4% 净流出1036万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -10356480.0,
+        "retail_net": 10154740.0,
+        "super_net": -18698582.0,
+        "big_net": 8342102.0
+      }
+    },
+    {
+      "ts": 1773196008233,
+      "time": "10:26:48",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "比亚迪股份 散户机构分歧",
+      "display": "HK01211 比亚迪股份 散户机构分歧: 主力出散户进 | 机构净-1994万 散户净+5573万 | 现价98.70 日涨+1.8% 净流出1994万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -19941250.0,
+        "retail_net": 55727800.0,
+        "super_net": -6969600.0,
+        "big_net": -12971650.0
+      }
+    },
+    {
+      "ts": 1773196898619,
+      "time": "10:41:38",
+      "strategy": "ma_bearish_align",
+      "code": "HK01060",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "大麦娱乐 均线空头排列",
+      "display": "HK01060 大麦娱乐 均线空头排列: MA5=0.73 MA10=0.75 MA20=0.84 MA60=0.89 斜率-4.92% | 现价0.73 日涨+1.4% 净流出238万",
+      "detail": {
+        "ma5": 0.73,
+        "ma10": 0.75,
+        "ma20": 0.84,
+        "ma60": 0.89,
+        "ma20_slope_pct": -4.92
+      }
+    },
+    {
+      "ts": 1773196898620,
+      "time": "10:41:38",
+      "strategy": "relative_strength",
+      "code": "HK01060",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "大麦娱乐 相对强弱",
+      "display": "HK01060 大麦娱乐 相对强弱: 60日弱于恒指 个股-13.1% 恒指+1.9% 超额-15.0% | 现价0.73 日涨+1.4% 净流出238万",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -13.1,
+        "index_return_60d": 1.9,
+        "excess_return": -15.0
+      }
+    },
+    {
+      "ts": 1773196898679,
+      "time": "10:41:38",
+      "strategy": "macd_golden_cross",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "比亚迪股份 MACD金叉",
+      "display": "HK01211 比亚迪股份 MACD金叉: DIF=0.0840 DEA=-0.0965 | 现价99.10 日涨+2.2% 净流入3904万",
+      "detail": {
+        "hist": 0.3609,
+        "prev_hist": -0.0183,
+        "dif": 0.084,
+        "dea": -0.0965
+      }
+    },
+    {
+      "ts": 1773196898740,
+      "time": "10:41:38",
+      "strategy": "macd_bottom_divergence",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "小米集团－Ｗ MACD底背离",
+      "display": "HK01810 小米集团－Ｗ MACD底背离: 价格33.76<33.96 但DIF-0.8955>-1.2499 | 现价33.76 日涨+0.4% 净流入3811万",
+      "detail": {
+        "price": 33.76,
+        "prior_low": 33.96,
+        "dif": -0.8955,
+        "prior_dif": -1.2499,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1773196898740,
+      "time": "10:41:38",
+      "strategy": "ma_bearish_align",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "小米集团－Ｗ 均线空头排列",
+      "display": "HK01810 小米集团－Ｗ 均线空头排列: MA5=33.34 MA10=33.35 MA20=34.73 MA60=36.92 斜率-0.60% | 现价33.76 日涨+0.4% 净流入3811万",
+      "detail": {
+        "ma5": 33.34,
+        "ma10": 33.35,
+        "ma20": 34.73,
+        "ma60": 36.92,
+        "ma20_slope_pct": -0.6
+      }
+    },
+    {
+      "ts": 1773196898740,
+      "time": "10:41:38",
+      "strategy": "relative_strength",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 相对强弱",
+      "display": "HK01810 小米集团－Ｗ 相对强弱: 60日弱于恒指 个股-19.2% 恒指+1.9% 超额-21.1% | 现价33.76 日涨+0.4% 净流入3811万",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -19.2,
+        "index_return_60d": 1.9,
+        "excess_return": -21.1
+      }
+    },
+    {
+      "ts": 1773196898880,
+      "time": "10:41:38",
+      "strategy": "relative_strength",
+      "code": "HK02577",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "英诺赛科 相对强弱",
+      "display": "HK02577 英诺赛科 相对强弱: 60日弱于恒指 个股-18.9% 恒指+1.9% 超额-20.8% | 现价65.75 日跌-0.4% 净流出150万",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -18.9,
+        "index_return_60d": 1.9,
+        "excess_return": -20.8
+      }
+    },
+    {
+      "ts": 1773196898939,
+      "time": "10:41:38",
+      "strategy": "ma_bearish_align",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "极智嘉-W 均线空头排列",
+      "display": "HK02590 极智嘉-W 均线空头排列: MA5=20.55 MA10=21.50 MA20=23.93 MA60=25.40 斜率-5.59% | 现价21.30 日涨+3.4% 量比2.3",
+      "detail": {
+        "ma5": 20.55,
+        "ma10": 21.5,
+        "ma20": 23.93,
+        "ma60": 25.4,
+        "ma20_slope_pct": -5.59
+      }
+    },
+    {
+      "ts": 1773196899060,
+      "time": "10:41:39",
+      "strategy": "breakout_pullback",
+      "code": "HK02722",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "重庆机电 突破回踩",
+      "display": "HK02722 重庆机电 突破回踩: 回踩支撑3.21 现价3.15 缩量0.46x | 现价3.15 日跌-2.5% 量比1.8 净流出150万",
+      "detail": {
+        "close": 3.15,
+        "support_level": 3.21,
+        "breakout_close": 3.39,
+        "vol_shrink": 0.46
+      }
+    },
+    {
+      "ts": 1773196899060,
+      "time": "10:41:39",
+      "strategy": "relative_strength",
+      "code": "HK02722",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "重庆机电 相对强弱",
+      "display": "HK02722 重庆机电 相对强弱: 60日强于恒指 个股+63.2% 恒指+1.9% 超额+61.3% | 现价3.15 日跌-2.5% 量比1.8 净流出150万",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 63.2,
+        "index_return_60d": 1.9,
+        "excess_return": 61.3
+      }
+    },
+    {
+      "ts": 1773196899139,
+      "time": "10:41:39",
+      "strategy": "macd_golden_cross",
+      "code": "HK03033",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方恒生科技 MACD金叉",
+      "display": "HK03033 南方恒生科技 MACD金叉: DIF=-0.1529 DEA=-0.1578 | 现价4.99 日涨+0.8%",
+      "detail": {
+        "hist": 0.0099,
+        "prev_hist": -0.0206,
+        "dif": -0.1529,
+        "dea": -0.1578
+      }
+    },
+    {
+      "ts": 1773196899139,
+      "time": "10:41:39",
+      "strategy": "ma_bearish_align",
+      "code": "HK03033",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方恒生科技 均线空头排列",
+      "display": "HK03033 南方恒生科技 均线空头排列: MA5=4.86 MA10=4.87 MA20=5.06 MA60=5.37 斜率-1.48% | 现价4.99 日涨+0.8%",
+      "detail": {
+        "ma5": 4.86,
+        "ma10": 4.87,
+        "ma20": 5.06,
+        "ma60": 5.37,
+        "ma20_slope_pct": -1.48
+      }
+    },
+    {
+      "ts": 1773196899214,
+      "time": "10:41:39",
+      "strategy": "ma_bullish_align",
+      "code": "HK03288",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "海天味业 均线多头排列",
+      "display": "HK03288 海天味业 均线多头排列: MA5=34.14 MA10=33.86 MA20=33.75 MA60=32.73 斜率+1.17% | 现价34.12 日跌-0.4%",
+      "detail": {
+        "ma5": 34.14,
+        "ma10": 33.86,
+        "ma20": 33.75,
+        "ma60": 32.73,
+        "ma20_slope_pct": 1.17
+      }
+    },
+    {
+      "ts": 1773196899284,
+      "time": "10:41:39",
+      "strategy": "macd_golden_cross",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "金山云 MACD金叉",
+      "display": "HK03896 金山云 MACD金叉: DIF=0.0321 DEA=0.0192 | 现价7.31 日涨+4.6% 量比2.6",
+      "detail": {
+        "hist": 0.0259,
+        "prev_hist": -0.0518,
+        "dif": 0.0321,
+        "dea": 0.0192
+      }
+    },
+    {
+      "ts": 1773196899284,
+      "time": "10:41:39",
+      "strategy": "relative_strength",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "金山云 相对强弱",
+      "display": "HK03896 金山云 相对强弱: 60日强于恒指 个股+18.5% 恒指+1.9% 超额+16.5% | 现价7.31 日涨+4.6% 量比2.6",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 18.5,
+        "index_return_60d": 1.9,
+        "excess_return": 16.5
+      }
+    },
+    {
+      "ts": 1773196899440,
+      "time": "10:41:39",
+      "strategy": "ma_bearish_align",
+      "code": "HK06060",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "众安在线 均线空头排列",
+      "display": "HK06060 众安在线 均线空头排列: MA5=14.15 MA10=14.41 MA20=15.29 MA60=16.03 斜率-1.90% | 现价14.43 日涨+0.0%",
+      "detail": {
+        "ma5": 14.15,
+        "ma10": 14.41,
+        "ma20": 15.29,
+        "ma60": 16.03,
+        "ma20_slope_pct": -1.9
+      }
+    },
+    {
+      "ts": 1773196899595,
+      "time": "10:41:39",
+      "strategy": "macd_golden_cross",
+      "code": "HK07226",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方两倍做多纳指 MACD金叉",
+      "display": "HK07226 南方两倍做多纳指 MACD金叉: DIF=-0.2978 DEA=-0.3084 | 现价4.23 日涨+1.6%",
+      "detail": {
+        "hist": 0.0212,
+        "prev_hist": -0.0308,
+        "dif": -0.2978,
+        "dea": -0.3084
+      }
+    },
+    {
+      "ts": 1773196899595,
+      "time": "10:41:39",
+      "strategy": "ma_bearish_align",
+      "code": "HK07226",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方两倍做多纳指 均线空头排列",
+      "display": "HK07226 南方两倍做多纳指 均线空头排列: MA5=4.01 MA10=4.04 MA20=4.39 MA60=5.01 斜率-3.25% | 现价4.23 日涨+1.6%",
+      "detail": {
+        "ma5": 4.01,
+        "ma10": 4.04,
+        "ma20": 4.39,
+        "ma60": 5.01,
+        "ma20_slope_pct": -3.25
+      }
+    },
+    {
+      "ts": 1773196899595,
+      "time": "10:41:39",
+      "strategy": "relative_strength",
+      "code": "HK07226",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "南方两倍做多纳指 相对强弱",
+      "display": "HK07226 南方两倍做多纳指 相对强弱: 60日弱于恒指 个股-19.9% 恒指+1.9% 超额-21.9% | 现价4.23 日涨+1.6%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -19.9,
+        "index_return_60d": 1.9,
+        "excess_return": -21.9
+      }
+    },
+    {
+      "ts": 1773196899733,
+      "time": "10:41:39",
+      "strategy": "macd_top_divergence",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "XL二南方海力士 MACD顶背离",
+      "display": "HK07709 XL二南方海力士 MACD顶背离: 价格30.96>29.60 但DIF0.9664<2.9367 | 现价30.96 日涨+7.1%",
+      "detail": {
+        "price": 30.96,
+        "prior_high": 29.6,
+        "dif": 0.9664,
+        "prior_dif": 2.9367,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1773196899733,
+      "time": "10:41:39",
+      "strategy": "relative_strength",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 相对强弱",
+      "display": "HK07709 XL二南方海力士 相对强弱: 60日强于恒指 个股+131.9% 恒指+1.9% 超额+130.0% | 现价30.96 日涨+7.1%",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 131.9,
+        "index_return_60d": 1.9,
+        "excess_return": 130.0
+      }
+    },
+    {
+      "ts": 1773196899868,
+      "time": "10:41:39",
+      "strategy": "macd_golden_cross",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "赛力斯 MACD金叉",
+      "display": "HK09927 赛力斯 MACD金叉: DIF=-3.1691 DEA=-3.2276 | 现价93.60 日涨+5.1% 量比3.2",
+      "detail": {
+        "hist": 0.117,
+        "prev_hist": -0.8307,
+        "dif": -3.1691,
+        "dea": -3.2276
+      }
+    },
+    {
+      "ts": 1773196899868,
+      "time": "10:41:39",
+      "strategy": "macd_bottom_divergence",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "赛力斯 MACD底背离",
+      "display": "HK09927 赛力斯 MACD底背离: 价格93.60<95.70 但DIF-3.1691>-3.5602 | 现价93.60 日涨+5.1% 量比3.2",
+      "detail": {
+        "price": 93.6,
+        "prior_low": 95.7,
+        "dif": -3.1691,
+        "prior_dif": -3.5602,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1773196899868,
+      "time": "10:41:39",
+      "strategy": "ma_bearish_align",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "赛力斯 均线空头排列",
+      "display": "HK09927 赛力斯 均线空头排列: MA5=88.93 MA10=90.28 MA20=93.92 MA60=101.34 斜率-1.64% | 现价93.60 日涨+5.1% 量比3.2",
+      "detail": {
+        "ma5": 88.93,
+        "ma10": 90.28,
+        "ma20": 93.92,
+        "ma60": 101.34,
+        "ma20_slope_pct": -1.64
+      }
+    },
+    {
+      "ts": 1773196899868,
+      "time": "10:41:39",
+      "strategy": "relative_strength",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "赛力斯 相对强弱",
+      "display": "HK09927 赛力斯 相对强弱: 60日弱于恒指 个股-15.7% 恒指+1.9% 超额-17.6% | 现价93.60 日涨+5.1% 量比3.2",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -15.7,
+        "index_return_60d": 1.9,
+        "excess_return": -17.6
+      }
+    },
+    {
+      "ts": 1773196899953,
+      "time": "10:41:39",
+      "strategy": "ma_bearish_align",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "阿里巴巴－Ｗ 均线空头排列",
+      "display": "HK09988 阿里巴巴－Ｗ 均线空头排列: MA5=130.72 MA10=134.06 MA20=144.17 MA60=151.79 斜率-3.60% | 现价134.50 日涨+0.7%",
+      "detail": {
+        "ma5": 130.72,
+        "ma10": 134.06,
+        "ma20": 144.17,
+        "ma60": 151.79,
+        "ma20_slope_pct": -3.6
+      }
+    },
+    {
+      "ts": 1773196923149,
+      "time": "10:42:03",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "金山云 散户机构分歧",
+      "display": "HK03896 金山云 散户机构分歧: 主力进散户出 | 机构净+9742万 散户净-2391万 | 现价7.31 日涨+4.6% 量比2.6 净流入9742万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 97423260.0,
+        "retail_net": -23911660.0,
+        "super_net": 41203540.0,
+        "big_net": 56219720.0
+      }
+    },
+    {
+      "ts": 1773196923149,
+      "time": "10:42:03",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 散户机构分歧",
+      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力出散户进 | 机构净-18330万 散户净+23862万 | 现价134.60 日涨+0.8% 净流出18330万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -183304590.0,
+        "retail_net": 238619120.0,
+        "super_net": 48538940.0,
+        "big_net": -231843530.0
+      }
+    },
+    {
+      "ts": 1773197446824,
+      "time": "10:50:46",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 散户机构分歧",
+      "display": "HK00700 腾讯控股 散户机构分歧: 主力出散户进 | 机构净-97534万 散户净+1007万 | 现价565.00 日涨+2.1% 量比3.1 净流出97534万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -975340900.0,
+        "retail_net": 10073400.0,
+        "super_net": -451114250.0,
+        "big_net": -524226650.0
+      }
+    },
+    {
+      "ts": 1773198700857,
+      "time": "11:11:40",
+      "strategy": "macd_top_divergence",
+      "code": "HK07262",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "XL二南方看多日经 MACD顶背离",
+      "display": "HK07262 XL二南方看多日经 MACD顶背离: 价格136.35>136.25 但DIF-0.5053<3.3391 | 现价136.35 日涨+2.1%",
+      "detail": {
+        "price": 136.35,
+        "prior_high": 136.25,
+        "dif": -0.5053,
+        "prior_dif": 3.3391,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1773198700857,
+      "time": "11:11:40",
+      "strategy": "relative_strength",
+      "code": "HK07262",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方看多日经 相对强弱",
+      "display": "HK07262 XL二南方看多日经 相对强弱: 60日强于恒指 个股+16.9% 恒指+1.9% 超额+15.0% | 现价136.35 日涨+2.1%",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 16.9,
+        "index_return_60d": 1.9,
+        "excess_return": 15.0
+      }
+    },
+    {
+      "ts": 1773199386256,
+      "time": "11:23:06",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK03033",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "南方恒生科技 散户机构分歧",
+      "display": "HK03033 南方恒生科技 散户机构分歧: 主力进散户出 | 机构净+1137万 散户净-5340万 | 现价4.97 日涨+0.4% 净流入1137万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 11370197.0,
+        "retail_net": -53396657.0,
+        "super_net": 21024362.0,
+        "big_net": -9654164.0
+      }
+    },
+    {
+      "ts": 1773200503329,
+      "time": "11:41:43",
+      "strategy": "relative_strength",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "极智嘉-W 相对强弱",
+      "display": "HK02590 极智嘉-W 相对强弱: 60日弱于恒指 个股-13.5% 恒指+2.0% 超额-15.4% | 现价21.06 日涨+2.2% 量比1.7 净流入269万",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -13.5,
+        "index_return_60d": 2.0,
+        "excess_return": -15.4
+      }
+    },
+    {
+      "ts": 1773205252435,
+      "time": "13:00:52",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 散户机构分歧",
+      "display": "HK00700 腾讯控股 散户机构分歧: 主力出散户进 | 机构净-155921万 散户净+14815万 | 现价558.00 日涨+0.8% 量比2.1 净流出155921万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -1559214050.0,
+        "retail_net": 148147900.0,
+        "super_net": -632811300.0,
+        "big_net": -926402750.0
+      }
+    },
+    {
+      "ts": 1773205252435,
+      "time": "13:00:52",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "金山云 散户机构分歧",
+      "display": "HK03896 金山云 散户机构分歧: 主力进散户出 | 机构净+10651万 散户净-4050万 | 现价7.26 日涨+3.9% 量比1.6 净流入10651万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 106505880.0,
+        "retail_net": -40499240.0,
+        "super_net": 45530860.0,
+        "big_net": 60975020.0
+      }
+    },
+    {
+      "ts": 1773205252435,
+      "time": "13:00:52",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 散户机构分歧",
+      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力出散户进 | 机构净-28346万 散户净+28879万 | 现价134.10 日涨+0.4% 净流出28346万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -283455940.0,
+        "retail_net": 288793490.0,
+        "super_net": 72917710.0,
+        "big_net": -356373650.0
+      }
+    },
+    {
+      "ts": 1773206295770,
+      "time": "13:18:15",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 散户机构分歧",
+      "display": "HK07709 XL二南方海力士 散户机构分歧: 主力进散户出 | 机构净+1150万 散户净-2680万 | 现价30.48 日涨+5.5% 净流入1150万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 11497968.0,
+        "retail_net": -26799118.0,
+        "super_net": -9494682.0,
+        "big_net": 20992650.0
+      }
+    },
+    {
+      "ts": 1773206295770,
+      "time": "13:18:15",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK09618",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "京东-SW 散户机构分歧",
+      "display": "HK09618 京东-SW 散户机构分歧: 主力进散户出 | 机构净+1078万 散户净-1289万 | 现价108.10 日跌-0.4% 净流入1078万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 10779510.0,
+        "retail_net": -12892510.0,
+        "super_net": -596545.0,
+        "big_net": 11376055.0
+      }
+    },
+    {
+      "ts": 1773206588241,
+      "time": "13:23:08",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK03033",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "南方恒生科技 散户机构分歧",
+      "display": "HK03033 南方恒生科技 散户机构分歧: 主力进散户出 | 机构净+2193万 散户净-7836万 | 现价4.94 日跌-0.2% 净流入2193万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 21934103.0,
+        "retail_net": -78359640.0,
+        "super_net": 47974886.0,
+        "big_net": -26040783.0
+      }
+    },
+    {
+      "ts": 1773207056771,
+      "time": "13:30:56",
+      "strategy": "engulfing_pattern",
+      "code": "HK02359",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "药明康德 吞没形态",
+      "display": "HK02359 药明康德 看跌吞没形态 | 现价109.40 日跌-1.1%",
+      "detail": {
+        "direction": "bearish",
+        "prev_open": 109.4,
+        "prev_close": 110.6,
+        "curr_open": 111.5,
+        "curr_close": 109.4
+      }
+    },
+    {
+      "ts": 1773207056842,
+      "time": "13:30:56",
+      "strategy": "engulfing_pattern",
+      "code": "HK02577",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "英诺赛科 吞没形态",
+      "display": "HK02577 英诺赛科 看跌吞没形态 | 现价63.75 日跌-3.4% 净流出1701万",
+      "detail": {
+        "direction": "bearish",
+        "prev_open": 65.0,
+        "prev_close": 66.0,
+        "curr_open": 66.6,
+        "curr_close": 63.75
+      }
+    },
+    {
+      "ts": 1773207640281,
+      "time": "13:40:40",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 散户机构分歧",
+      "display": "HK01810 小米集团－Ｗ 散户机构分歧: 主力进散户出 | 机构净+20895万 散户净-535万 | 现价33.22 日跌-1.2% 净流入20895万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 208953508.0,
+        "retail_net": -5346168.0,
+        "super_net": 111363584.0,
+        "big_net": 97589924.0
+      }
+    },
+    {
+      "ts": 1773208859927,
+      "time": "14:00:59",
+      "strategy": "macd_death_cross",
+      "code": "HK03288",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "海天味业 MACD死叉",
+      "display": "HK03288 海天味业 MACD死叉: DIF=0.3747 DEA=0.3859 | 现价33.82 日跌-1.2%",
+      "detail": {
+        "hist": -0.0223,
+        "prev_hist": 0.0328,
+        "dif": 0.3747,
+        "dea": 0.3859
+      }
+    },
+    {
+      "ts": 1773208860103,
+      "time": "14:01:00",
+      "strategy": "engulfing_pattern",
+      "code": "HK06060",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "众安在线 吞没形态",
+      "display": "HK06060 众安在线 看跌吞没形态 | 现价14.24 日跌-1.3%",
+      "detail": {
+        "direction": "bearish",
+        "prev_open": 14.29,
+        "prev_close": 14.43,
+        "curr_open": 14.5,
+        "curr_close": 14.24
+      }
+    },
+    {
+      "ts": 1773212453053,
+      "time": "15:00:53",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 散户机构分歧",
+      "display": "HK00700 腾讯控股 散户机构分歧: 主力出散户进 | 机构净-180547万 散户净+11643万 | 现价552.00 日跌-0.3% 净流出180547万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -1805472050.0,
+        "retail_net": 116430100.0,
+        "super_net": -547341300.0,
+        "big_net": -1258130750.0
+      }
+    },
+    {
+      "ts": 1773212466588,
+      "time": "15:01:06",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "金山云 散户机构分歧",
+      "display": "HK03896 金山云 散户机构分歧: 主力进散户出 | 机构净+10035万 散户净-6812万 | 现价7.16 日涨+2.4% 净流入10035万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 100348040.0,
+        "retail_net": -68115740.0,
+        "super_net": 45190060.0,
+        "big_net": 55157980.0
+      }
+    },
+    {
+      "ts": 1773212527510,
+      "time": "15:02:07",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 散户机构分歧",
+      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力出散户进 | 机构净-36296万 散户净+18648万 | 现价133.40 日跌-0.1% 净流出36296万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -362956670.0,
+        "retail_net": 186482600.0,
+        "super_net": -1002720.0,
+        "big_net": -361953950.0
+      }
+    },
+    {
+      "ts": 1773213518657,
+      "time": "15:18:38",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 散户机构分歧",
+      "display": "HK07709 XL二南方海力士 散户机构分歧: 主力进散户出 | 机构净+1955万 散户净-10574万 | 现价29.20 日涨+1.0% 净流入1955万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 19550112.0,
+        "retail_net": -105742588.0,
+        "super_net": -6551402.0,
+        "big_net": 26101514.0
+      }
+    },
+    {
+      "ts": 1773213613220,
+      "time": "15:20:13",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK09618",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "京东-SW 散户机构分歧",
+      "display": "HK09618 京东-SW 散户机构分歧: 主力出散户进 | 机构净-1436万 散户净+580万 | 现价108.70 日涨+0.2% 净流出1436万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -14359120.0,
+        "retail_net": 5802100.0,
+        "super_net": -29236765.0,
+        "big_net": 14877645.0
+      }
+    },
+    {
+      "ts": 1773213805298,
+      "time": "15:23:25",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK03033",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "南方恒生科技 散户机构分歧",
+      "display": "HK03033 南方恒生科技 散户机构分歧: 主力进散户出 | 机构净+2332万 散户净-940万 | 现价4.95 日涨+0.0% 净流入2332万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 23320941.0,
+        "retail_net": -9398600.0,
+        "super_net": 47762675.0,
+        "big_net": -24441735.0
+      }
+    },
+    {
+      "ts": 1773214506365,
+      "time": "15:35:06",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK00700",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "腾讯控股 散户机构分歧",
+      "display": "HK00700 腾讯控股 散户机构分歧: 主力出散户进 | 机构净-193585万 散户净+8574万 | 现价550.50 日跌-0.5% 净流出193585万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -1935848550.0,
+        "retail_net": 85736700.0,
+        "super_net": -527378250.0,
+        "big_net": -1408470300.0
+      }
+    },
+    {
+      "ts": 1773214506365,
+      "time": "15:35:06",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 散户机构分歧",
+      "display": "HK01810 小米集团－Ｗ 散户机构分歧: 主力进散户出 | 机构净+26410万 散户净-12838万 | 现价33.26 日跌-1.1% 净流入26410万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 264099256.0,
+        "retail_net": -128379308.0,
+        "super_net": 139999452.0,
+        "big_net": 124099804.0
+      }
+    },
+    {
+      "ts": 1773214506555,
+      "time": "15:35:06",
+      "strategy": "ma_bearish_align",
+      "code": "HK01060",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "大麦娱乐 均线空头排列",
+      "display": "HK01060 大麦娱乐 均线空头排列: MA5=0.72 MA10=0.75 MA20=0.84 MA60=0.89 斜率-5.09% | 现价0.70 日跌-2.8% 净流出788万",
+      "detail": {
+        "ma5": 0.72,
+        "ma10": 0.75,
+        "ma20": 0.84,
+        "ma60": 0.89,
+        "ma20_slope_pct": -5.09
+      }
+    },
+    {
+      "ts": 1773214506555,
+      "time": "15:35:06",
+      "strategy": "relative_strength",
+      "code": "HK01060",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "大麦娱乐 相对强弱",
+      "display": "HK01060 大麦娱乐 相对强弱: 60日弱于恒指 个股-16.7% 恒指+1.3% 超额-18.0% | 现价0.70 日跌-2.8% 净流出788万",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -16.7,
+        "index_return_60d": 1.3,
+        "excess_return": -18.0
+      }
+    },
+    {
+      "ts": 1773214506617,
+      "time": "15:35:06",
+      "strategy": "macd_golden_cross",
+      "code": "HK01211",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "比亚迪股份 MACD金叉",
+      "display": "HK01211 比亚迪股份 MACD金叉: DIF=-0.0038 DEA=-0.1140 | 现价98.00 日涨+1.1% 净流入6654万",
+      "detail": {
+        "hist": 0.2206,
+        "prev_hist": -0.0183,
+        "dif": -0.0038,
+        "dea": -0.114
+      }
+    },
+    {
+      "ts": 1773214506679,
+      "time": "15:35:06",
+      "strategy": "macd_bottom_divergence",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "小米集团－Ｗ MACD底背离",
+      "display": "HK01810 小米集团－Ｗ MACD底背离: 价格33.26<33.96 但DIF-0.9354>-1.2499 | 现价33.26 日跌-1.1% 净流入26410万",
+      "detail": {
+        "price": 33.26,
+        "prior_low": 33.96,
+        "dif": -0.9354,
+        "prior_dif": -1.2499,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1773214506679,
+      "time": "15:35:06",
+      "strategy": "ma_bearish_align",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "小米集团－Ｗ 均线空头排列",
+      "display": "HK01810 小米集团－Ｗ 均线空头排列: MA5=33.24 MA10=33.30 MA20=34.71 MA60=36.91 斜率-0.67% | 现价33.26 日跌-1.1% 净流入26410万",
+      "detail": {
+        "ma5": 33.24,
+        "ma10": 33.3,
+        "ma20": 34.71,
+        "ma60": 36.91,
+        "ma20_slope_pct": -0.67
+      }
+    },
+    {
+      "ts": 1773214506679,
+      "time": "15:35:06",
+      "strategy": "relative_strength",
+      "code": "HK01810",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "小米集团－Ｗ 相对强弱",
+      "display": "HK01810 小米集团－Ｗ 相对强弱: 60日弱于恒指 个股-20.4% 恒指+1.3% 超额-21.7% | 现价33.26 日跌-1.1% 净流入26410万",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -20.4,
+        "index_return_60d": 1.3,
+        "excess_return": -21.7
+      }
+    },
+    {
+      "ts": 1773214506799,
+      "time": "15:35:06",
+      "strategy": "engulfing_pattern",
+      "code": "HK02577",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "英诺赛科 吞没形态",
+      "display": "HK02577 英诺赛科 看跌吞没形态 | 现价63.05 日跌-4.5% 净流出4354万",
+      "detail": {
+        "direction": "bearish",
+        "prev_open": 65.0,
+        "prev_close": 66.0,
+        "curr_open": 66.6,
+        "curr_close": 63.05
+      }
+    },
+    {
+      "ts": 1773214506799,
+      "time": "15:35:06",
+      "strategy": "relative_strength",
+      "code": "HK02577",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "英诺赛科 相对强弱",
+      "display": "HK02577 英诺赛科 相对强弱: 60日弱于恒指 个股-22.2% 恒指+1.3% 超额-23.5% | 现价63.05 日跌-4.5% 净流出4354万",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -22.2,
+        "index_return_60d": 1.3,
+        "excess_return": -23.5
+      }
+    },
+    {
+      "ts": 1773214506861,
+      "time": "15:35:06",
+      "strategy": "ma_bearish_align",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "极智嘉-W 均线空头排列",
+      "display": "HK02590 极智嘉-W 均线空头排列: MA5=20.43 MA10=21.44 MA20=23.90 MA60=25.39 斜率-5.70% | 现价20.72 日涨+0.6%",
+      "detail": {
+        "ma5": 20.43,
+        "ma10": 21.44,
+        "ma20": 23.9,
+        "ma60": 25.39,
+        "ma20_slope_pct": -5.7
+      }
+    },
+    {
+      "ts": 1773214506861,
+      "time": "15:35:06",
+      "strategy": "relative_strength",
+      "code": "HK02590",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "极智嘉-W 相对强弱",
+      "display": "HK02590 极智嘉-W 相对强弱: 60日弱于恒指 个股-14.9% 恒指+1.3% 超额-16.2% | 现价20.72 日涨+0.6%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -14.9,
+        "index_return_60d": 1.3,
+        "excess_return": -16.2
+      }
+    },
+    {
+      "ts": 1773214506971,
+      "time": "15:35:06",
+      "strategy": "relative_strength",
+      "code": "HK02722",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "重庆机电 相对强弱",
+      "display": "HK02722 重庆机电 相对强弱: 60日强于恒指 个股+60.6% 恒指+1.3% 超额+59.3% | 现价3.10 日跌-4.0% 净流出374万",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 60.6,
+        "index_return_60d": 1.3,
+        "excess_return": 59.3
+      }
+    },
+    {
+      "ts": 1773214507043,
+      "time": "15:35:07",
+      "strategy": "macd_golden_cross",
+      "code": "HK03033",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方恒生科技 MACD金叉",
+      "display": "HK03033 南方恒生科技 MACD金叉: DIF=-0.1567 DEA=-0.1586 | 现价4.94 日跌-0.2%",
+      "detail": {
+        "hist": 0.0038,
+        "prev_hist": -0.0206,
+        "dif": -0.1567,
+        "dea": -0.1586
+      }
+    },
+    {
+      "ts": 1773214507043,
+      "time": "15:35:07",
+      "strategy": "ma_bearish_align",
+      "code": "HK03033",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方恒生科技 均线空头排列",
+      "display": "HK03033 南方恒生科技 均线空头排列: MA5=4.85 MA10=4.86 MA20=5.06 MA60=5.36 斜率-1.52% | 现价4.94 日跌-0.2%",
+      "detail": {
+        "ma5": 4.85,
+        "ma10": 4.86,
+        "ma20": 5.06,
+        "ma60": 5.36,
+        "ma20_slope_pct": -1.52
+      }
+    },
+    {
+      "ts": 1773214507108,
+      "time": "15:35:07",
+      "strategy": "ma_bullish_align",
+      "code": "HK03288",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "海天味业 均线多头排列",
+      "display": "HK03288 海天味业 均线多头排列: MA5=34.17 MA10=33.88 MA20=33.76 MA60=32.73 斜率+1.19% | 现价34.26 日涨+0.1%",
+      "detail": {
+        "ma5": 34.17,
+        "ma10": 33.88,
+        "ma20": 33.76,
+        "ma60": 32.73,
+        "ma20_slope_pct": 1.19
+      }
+    },
+    {
+      "ts": 1773214507287,
+      "time": "15:35:07",
+      "strategy": "ma_bearish_align",
+      "code": "HK06060",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "众安在线 均线空头排列",
+      "display": "HK06060 众安在线 均线空头排列: MA5=14.11 MA10=14.39 MA20=15.28 MA60=16.02 斜率-1.98% | 现价14.20 日跌-1.6%",
+      "detail": {
+        "ma5": 14.11,
+        "ma10": 14.39,
+        "ma20": 15.28,
+        "ma60": 16.02,
+        "ma20_slope_pct": -1.98
+      }
+    },
+    {
+      "ts": 1773214507287,
+      "time": "15:35:07",
+      "strategy": "engulfing_pattern",
+      "code": "HK06060",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "众安在线 吞没形态",
+      "display": "HK06060 众安在线 看跌吞没形态 | 现价14.20 日跌-1.6%",
+      "detail": {
+        "direction": "bearish",
+        "prev_open": 14.29,
+        "prev_close": 14.43,
+        "curr_open": 14.5,
+        "curr_close": 14.2
+      }
+    },
+    {
+      "ts": 1773214507460,
+      "time": "15:35:07",
+      "strategy": "macd_golden_cross",
+      "code": "HK07226",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方两倍做多纳指 MACD金叉",
+      "display": "HK07226 南方两倍做多纳指 MACD金叉: DIF=-0.3040 DEA=-0.3096 | 现价4.15 日跌-0.3%",
+      "detail": {
+        "hist": 0.0113,
+        "prev_hist": -0.0308,
+        "dif": -0.304,
+        "dea": -0.3096
+      }
+    },
+    {
+      "ts": 1773214507460,
+      "time": "15:35:07",
+      "strategy": "ma_bearish_align",
+      "code": "HK07226",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "南方两倍做多纳指 均线空头排列",
+      "display": "HK07226 南方两倍做多纳指 均线空头排列: MA5=4.00 MA10=4.03 MA20=4.38 MA60=5.01 斜率-3.34% | 现价4.15 日跌-0.3%",
+      "detail": {
+        "ma5": 4.0,
+        "ma10": 4.03,
+        "ma20": 4.38,
+        "ma60": 5.01,
+        "ma20_slope_pct": -3.34
+      }
+    },
+    {
+      "ts": 1773214507460,
+      "time": "15:35:07",
+      "strategy": "relative_strength",
+      "code": "HK07226",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "南方两倍做多纳指 相对强弱",
+      "display": "HK07226 南方两倍做多纳指 相对强弱: 60日弱于恒指 个股-21.4% 恒指+1.3% 超额-22.7% | 现价4.15 日跌-0.3%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -21.4,
+        "index_return_60d": 1.3,
+        "excess_return": -22.7
+      }
+    },
+    {
+      "ts": 1773214507589,
+      "time": "15:35:07",
+      "strategy": "relative_strength",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 相对强弱",
+      "display": "HK07709 XL二南方海力士 相对强弱: 60日强于恒指 个股+116.6% 恒指+1.3% 超额+115.3% | 现价28.92 日涨+0.1%",
+      "detail": {
+        "direction": "bullish",
+        "stock_return_60d": 116.6,
+        "index_return_60d": 1.3,
+        "excess_return": 115.3
+      }
+    },
+    {
+      "ts": 1773214507717,
+      "time": "15:35:07",
+      "strategy": "macd_bottom_divergence",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "赛力斯 MACD底背离",
+      "display": "HK09927 赛力斯 MACD底背离: 价格92.60<95.70 但DIF-3.2489>-3.5602 | 现价92.60 日涨+4.0%",
+      "detail": {
+        "price": 92.6,
+        "prior_low": 95.7,
+        "dif": -3.2489,
+        "prior_dif": -3.5602,
+        "lookback": 20
+      }
+    },
+    {
+      "ts": 1773214507717,
+      "time": "15:35:07",
+      "strategy": "ma_bearish_align",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "赛力斯 均线空头排列",
+      "display": "HK09927 赛力斯 均线空头排列: MA5=88.73 MA10=90.17 MA20=93.87 MA60=101.33 斜率-1.70% | 现价92.60 日涨+4.0%",
+      "detail": {
+        "ma5": 88.73,
+        "ma10": 90.17,
+        "ma20": 93.87,
+        "ma60": 101.33,
+        "ma20_slope_pct": -1.7
+      }
+    },
+    {
+      "ts": 1773214507717,
+      "time": "15:35:07",
+      "strategy": "relative_strength",
+      "code": "HK09927",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "赛力斯 相对强弱",
+      "display": "HK09927 赛力斯 相对强弱: 60日弱于恒指 个股-16.6% 恒指+1.3% 超额-17.9% | 现价92.60 日涨+4.0%",
+      "detail": {
+        "direction": "bearish",
+        "stock_return_60d": -16.6,
+        "index_return_60d": 1.3,
+        "excess_return": -17.9
+      }
+    },
+    {
+      "ts": 1773214507775,
+      "time": "15:35:07",
+      "strategy": "ma_bearish_align",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": true,
+      "message": "阿里巴巴－Ｗ 均线空头排列",
+      "display": "HK09988 阿里巴巴－Ｗ 均线空头排列: MA5=130.46 MA10=133.93 MA20=144.10 MA60=151.77 斜率-3.65% | 现价133.00 日跌-0.4%",
+      "detail": {
+        "ma5": 130.46,
+        "ma10": 133.93,
+        "ma20": 144.1,
+        "ma60": 151.77,
+        "ma20_slope_pct": -3.65
+      }
+    },
+    {
+      "ts": 1773214976545,
+      "time": "15:42:56",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK03033",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "南方恒生科技 散户机构分歧",
+      "display": "HK03033 南方恒生科技 散户机构分歧: 主力进散户出 | 机构净+3244万 散户净-2109万 | 现价4.93 日跌-0.3% 净流入3244万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 32440411.0,
+        "retail_net": -21085959.0,
+        "super_net": 44799875.0,
+        "big_net": -12359464.0
+      }
+    },
+    {
+      "ts": 1773214976545,
+      "time": "15:42:56",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK03896",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "金山云 散户机构分歧",
+      "display": "HK03896 金山云 散户机构分歧: 主力进散户出 | 机构净+8457万 散户净-7804万 | 现价7.08 日涨+1.3% 净流入8457万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 84567540.0,
+        "retail_net": -78043460.0,
+        "super_net": 34951860.0,
+        "big_net": 49615680.0
+      }
+    },
+    {
+      "ts": 1773214976545,
+      "time": "15:42:56",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK07709",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "XL二南方海力士 散户机构分歧",
+      "display": "HK07709 XL二南方海力士 散户机构分歧: 主力进散户出 | 机构净+1399万 散户净-11281万 | 现价28.92 日涨+0.1% 净流入1399万",
+      "detail": {
+        "direction": "bullish",
+        "institutional_net": 13987062.0,
+        "retail_net": -112808842.0,
+        "super_net": -2539322.0,
+        "big_net": 16526384.0
+      }
+    },
+    {
+      "ts": 1773214976545,
+      "time": "15:42:56",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK09988",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "阿里巴巴－Ｗ 散户机构分歧",
+      "display": "HK09988 阿里巴巴－Ｗ 散户机构分歧: 主力出散户进 | 机构净-39901万 散户净+14992万 | 现价132.70 日跌-0.6% 净流出39901万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -399014220.0,
+        "retail_net": 149916310.0,
+        "super_net": -1002720.0,
+        "big_net": -398011500.0
+      }
+    },
+    {
+      "ts": 1773215969281,
+      "time": "15:59:29",
+      "strategy": "institutional_retail_divergence",
+      "code": "HK09618",
+      "kind": "l2_strategy",
+      "notify": false,
+      "message": "京东-SW 散户机构分歧",
+      "display": "HK09618 京东-SW 散户机构分歧: 主力出散户进 | 机构净-1188万 散户净+501万 | 现价108.90 日涨+0.4% 净流出1188万",
+      "detail": {
+        "direction": "bearish",
+        "institutional_net": -11879075.0,
+        "retail_net": 5008270.0,
+        "super_net": -15846220.0,
+        "big_net": 3967145.0
+      }
     }
   ],
   "session": {
+    "HK06809": {
+      "direction": "bullish",
+      "score": 1,
+      "tick": {
+        "buy_vol": 45500,
+        "sell_vol": 34000,
+        "imbalance": 0.145,
+        "direction_score": 1
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": -20118370.0,
+        "main_net_inflow_pct": 53.93,
+        "direction_score": -1
+      }
+    },
+    "HK01810": {
+      "direction": "bearish",
+      "score": -1,
+      "tick": {
+        "buy_vol": 3461000,
+        "sell_vol": 5550800,
+        "imbalance": -0.232,
+        "direction_score": -1
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": 274658612.0,
+        "main_net_inflow_pct": 312.87,
+        "direction_score": 1
+      }
+    },
+    "HK01060": {
+      "direction": "bearish",
+      "score": -3,
+      "tick": {
+        "buy_vol": 3000000,
+        "sell_vol": 14730000,
+        "imbalance": -0.662,
+        "direction_score": -1
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": -13875800.0,
+        "main_net_inflow_pct": 36.46,
+        "direction_score": -1
+      }
+    },
+    "HK02692": {
+      "direction": "bearish",
+      "score": -3,
+      "tick": {
+        "buy_vol": 43900,
+        "sell_vol": 92700,
+        "imbalance": -0.357,
+        "direction_score": -1
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": -25662240.0,
+        "main_net_inflow_pct": 47.24,
+        "direction_score": -1
+      }
+    },
     "HK03288": {
       "direction": "bullish",
       "score": 2,
       "tick": {
-        "buy_vol": 455300,
-        "sell_vol": 254000,
-        "imbalance": 0.284,
+        "buy_vol": 35200,
+        "sell_vol": 16000,
+        "imbalance": 0.375,
         "direction_score": 1
       },
       "large_order": {
@@ -3339,66 +3453,18 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -355340.0,
-        "main_net_inflow_pct": -5.08,
+        "main_net_inflow": 2180446.0,
+        "main_net_inflow_pct": 15.6,
         "direction_score": 0
       }
     },
-    "HK07709": {
-      "direction": "bullish",
-      "score": 1,
+    "HK02590": {
+      "direction": "neutral",
+      "score": 0,
       "tick": {
-        "buy_vol": 63401800,
-        "sell_vol": 60089500,
-        "imbalance": 0.027,
-        "direction_score": 0
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 0,
-        "buy_amount": 0.0,
-        "sell_amount": 0.0,
-        "net_amount": 0.0,
-        "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": 119936826.0,
-        "main_net_inflow_pct": 253.26,
-        "direction_score": 1
-      }
-    },
-    "HK09927": {
-      "direction": "bullish",
-      "score": 3,
-      "tick": {
-        "buy_vol": 400200,
-        "sell_vol": 231000,
-        "imbalance": 0.268,
-        "direction_score": 1
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 0,
-        "buy_amount": 0.0,
-        "sell_amount": 0.0,
-        "net_amount": 0.0,
-        "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": 6371440.0,
-        "main_net_inflow_pct": 42.31,
-        "direction_score": 1
-      }
-    },
-    "HK06060": {
-      "direction": "bullish",
-      "score": 1,
-      "tick": {
-        "buy_vol": 3360700,
-        "sell_vol": 3575400,
-        "imbalance": -0.031,
+        "buy_vol": 228200,
+        "sell_vol": 189400,
+        "imbalance": 0.093,
         "direction_score": 0
       },
       "large_order": {
@@ -3411,48 +3477,18 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 6549463.0,
-        "main_net_inflow_pct": 0,
-        "direction_score": 1
+        "main_net_inflow": 1807548.0,
+        "main_net_inflow_pct": 16.08,
+        "direction_score": 0
       }
     },
     "HK01211": {
       "direction": "bullish",
       "score": 3,
       "tick": {
-        "buy_vol": 14035400,
-        "sell_vol": 11115700,
-        "imbalance": 0.116,
-        "direction_score": 1
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 1,
-        "buy_amount": 0.0,
-        "sell_amount": 18894400.0,
-        "net_amount": -18894400.0,
-        "direction_score": 0,
-        "orders": [
-          [
-            1773106986.888459,
-            "SELL",
-            18894400.0
-          ]
-        ]
-      },
-      "capital_flow": {
-        "main_net_inflow": 38165210.0,
-        "main_net_inflow_pct": 14.14,
-        "direction_score": 1
-      }
-    },
-    "HK03033": {
-      "direction": "bullish",
-      "score": 3,
-      "tick": {
-        "buy_vol": 1190029400,
-        "sell_vol": 882550400,
-        "imbalance": 0.148,
+        "buy_vol": 1343400,
+        "sell_vol": 824100,
+        "imbalance": 0.24,
         "direction_score": 1
       },
       "large_order": {
@@ -3465,334 +3501,18 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 1142896410.8,
-        "main_net_inflow_pct": 76.17,
+        "main_net_inflow": 115608535.0,
+        "main_net_inflow_pct": 38.52,
         "direction_score": 1
-      }
-    },
-    "HK07262": {
-      "direction": "neutral",
-      "score": 0,
-      "tick": {
-        "buy_vol": 7130,
-        "sell_vol": 14570,
-        "imbalance": -0.343,
-        "direction_score": 0
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 0,
-        "buy_amount": 0.0,
-        "sell_amount": 0.0,
-        "net_amount": 0.0,
-        "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": -751556.0,
-        "main_net_inflow_pct": 0,
-        "direction_score": 0
-      }
-    },
-    "HK09988": {
-      "direction": "bullish",
-      "score": 3,
-      "tick": {
-        "buy_vol": 46162400,
-        "sell_vol": 34786800,
-        "imbalance": 0.141,
-        "direction_score": 1
-      },
-      "large_order": {
-        "buy_count": 14,
-        "sell_count": 14,
-        "buy_amount": 320448740.0,
-        "sell_amount": 281810760.0,
-        "net_amount": 38637980.0,
-        "direction_score": 1,
-        "orders": [
-          [
-            1773106322.2994711,
-            "SELL",
-            19650000.0
-          ],
-          [
-            1773107029.285551,
-            "BUY",
-            21213920.0
-          ],
-          [
-            1773107135.286915,
-            "SELL",
-            17040580.0
-          ],
-          [
-            1773107373.58565,
-            "SELL",
-            18452000.0
-          ],
-          [
-            1773109409.617912,
-            "SELL",
-            22819940.0
-          ],
-          [
-            1773111270.413098,
-            "NEUTRAL",
-            27193610.0
-          ],
-          [
-            1773112626.302899,
-            "BUY",
-            15620280.0
-          ],
-          [
-            1773112681.892597,
-            "BUY",
-            34061300.0
-          ],
-          [
-            1773112965.494239,
-            "SELL",
-            15481200.0
-          ],
-          [
-            1773113801.265003,
-            "BUY",
-            15098850.0
-          ],
-          [
-            1773113833.822432,
-            "SELL",
-            26133840.0
-          ],
-          [
-            1773122577.667105,
-            "BUY",
-            39900000.0
-          ],
-          [
-            1773122577.667105,
-            "BUY",
-            27358100.0
-          ],
-          [
-            1773123136.387458,
-            "SELL",
-            17502800.0
-          ],
-          [
-            1773124607.805501,
-            "SELL",
-            21810900.0
-          ],
-          [
-            1773124620.9458392,
-            "NEUTRAL",
-            41690730.0
-          ],
-          [
-            1773124620.9458392,
-            "NEUTRAL",
-            28347570.0
-          ],
-          [
-            1773124725.423838,
-            "BUY",
-            29503500.0
-          ],
-          [
-            1773124792.474026,
-            "SELL",
-            40050000.0
-          ],
-          [
-            1773124792.474027,
-            "BUY",
-            16020000.0
-          ],
-          [
-            1773124859.9537191,
-            "BUY",
-            21605920.0
-          ],
-          [
-            1773124913.168863,
-            "BUY",
-            19079880.0
-          ],
-          [
-            1773125063.949285,
-            "SELL",
-            16334600.0
-          ],
-          [
-            1773126303.464208,
-            "BUY",
-            20198550.0
-          ],
-          [
-            1773127114.3964002,
-            "SELL",
-            17702100.0
-          ],
-          [
-            1773127420.68716,
-            "SELL",
-            16220250.0
-          ],
-          [
-            1773127441.554545,
-            "BUY",
-            20694640.0
-          ],
-          [
-            1773128809.348067,
-            "SELL",
-            15766350.0
-          ],
-          [
-            1773129237.7666738,
-            "SELL",
-            16846200.0
-          ],
-          [
-            1773129302.985358,
-            "BUY",
-            21643200.0
-          ],
-          [
-            1773129302.98536,
-            "BUY",
-            18450600.0
-          ]
-        ]
-      },
-      "capital_flow": {
-        "main_net_inflow": -53264240.0,
-        "main_net_inflow_pct": -3.35,
-        "direction_score": -1
       }
     },
     "HK03896": {
-      "direction": "bearish",
-      "score": -1,
-      "tick": {
-        "buy_vol": 80404000,
-        "sell_vol": 87052000,
-        "imbalance": -0.04,
-        "direction_score": 0
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 0,
-        "buy_amount": 0.0,
-        "sell_amount": 0.0,
-        "net_amount": 0.0,
-        "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": -106334220.0,
-        "main_net_inflow_pct": 200.73,
-        "direction_score": -1
-      }
-    },
-    "HK03986": {
-      "direction": "bearish",
-      "score": -1,
-      "tick": {
-        "buy_vol": 574800,
-        "sell_vol": 516200,
-        "imbalance": 0.054,
-        "direction_score": 0
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 0,
-        "buy_amount": 0.0,
-        "sell_amount": 0.0,
-        "net_amount": 0.0,
-        "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": -11142460.0,
-        "main_net_inflow_pct": -56.95,
-        "direction_score": -1
-      }
-    },
-    "HK01810": {
       "direction": "bullish",
       "score": 1,
       "tick": {
-        "buy_vol": 60502600,
-        "sell_vol": 61605800,
-        "imbalance": -0.009,
-        "direction_score": 0
-      },
-      "large_order": {
-        "buy_count": 3,
-        "sell_count": 0,
-        "buy_amount": 51544344.0,
-        "sell_amount": 0.0,
-        "net_amount": 51544344.0,
-        "direction_score": 1,
-        "orders": [
-          [
-            1773110461.071806,
-            "BUY",
-            19552056.0
-          ],
-          [
-            1773110637.374797,
-            "BUY",
-            16221408.0
-          ],
-          [
-            1773111428.519739,
-            "BUY",
-            15770880.0
-          ]
-        ]
-      },
-      "capital_flow": {
-        "main_net_inflow": -150863368.0,
-        "main_net_inflow_pct": 762.16,
-        "direction_score": -1
-      }
-    },
-    "HK09618": {
-      "direction": "bearish",
-      "score": -3,
-      "tick": {
-        "buy_vol": 4431500,
-        "sell_vol": 6152900,
-        "imbalance": -0.163,
-        "direction_score": -1
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 0,
-        "buy_amount": 0.0,
-        "sell_amount": 0.0,
-        "net_amount": 0.0,
-        "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": -159127165.0,
-        "main_net_inflow_pct": 87.31,
-        "direction_score": -1
-      }
-    },
-    "HK02722": {
-      "direction": "bullish",
-      "score": 1,
-      "tick": {
-        "buy_vol": 7754000,
-        "sell_vol": 7070000,
-        "imbalance": 0.046,
+        "buy_vol": 3282000,
+        "sell_vol": 3368000,
+        "imbalance": -0.013,
         "direction_score": 0
       },
       "large_order": {
@@ -3805,56 +3525,8 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": 5688340.0,
-        "main_net_inflow_pct": 0,
-        "direction_score": 1
-      }
-    },
-    "HK02590": {
-      "direction": "bullish",
-      "score": 2,
-      "tick": {
-        "buy_vol": 2822400,
-        "sell_vol": 1772400,
-        "imbalance": 0.229,
-        "direction_score": 1
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 0,
-        "buy_amount": 0.0,
-        "sell_amount": 0.0,
-        "net_amount": 0.0,
-        "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": 815318.0,
-        "main_net_inflow_pct": 3.8,
-        "direction_score": 0
-      }
-    },
-    "HK02577": {
-      "direction": "bullish",
-      "score": 3,
-      "tick": {
-        "buy_vol": 2828500,
-        "sell_vol": 2300200,
-        "imbalance": 0.103,
-        "direction_score": 1
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 0,
-        "buy_amount": 0.0,
-        "sell_amount": 0.0,
-        "net_amount": 0.0,
-        "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": 54625550.0,
-        "main_net_inflow_pct": 141.92,
+        "main_net_inflow": 90071280.0,
+        "main_net_inflow_pct": 455.18,
         "direction_score": 1
       }
     },
@@ -3862,9 +3534,9 @@
       "direction": "bearish",
       "score": -1,
       "tick": {
-        "buy_vol": 153428700,
-        "sell_vol": 162361500,
-        "imbalance": -0.028,
+        "buy_vol": 7354100,
+        "sell_vol": 8638700,
+        "imbalance": -0.08,
         "direction_score": 0
       },
       "large_order": {
@@ -3877,960 +3549,48 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -60439486.4,
-        "main_net_inflow_pct": 162.17,
+        "main_net_inflow": -22755941.6,
+        "main_net_inflow_pct": 45.31,
         "direction_score": -1
       }
     },
-    "HK06651": {
-      "direction": "neutral",
-      "score": 0,
+    "HK09988": {
+      "direction": "bearish",
+      "score": -1,
       "tick": {
-        "buy_vol": 425200,
-        "sell_vol": 478800,
-        "imbalance": -0.059,
+        "buy_vol": 1940800,
+        "sell_vol": 1899800,
+        "imbalance": 0.011,
         "direction_score": 0
       },
       "large_order": {
-        "buy_count": 0,
+        "buy_count": 1,
         "sell_count": 0,
-        "buy_amount": 0.0,
+        "buy_amount": 21955250.0,
         "sell_amount": 0.0,
-        "net_amount": 0.0,
+        "net_amount": 21955250.0,
         "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": -2594052.0,
-        "main_net_inflow_pct": 0,
-        "direction_score": 0
-      }
-    },
-    "HK00700": {
-      "direction": "bullish",
-      "score": 3,
-      "tick": {
-        "buy_vol": 28218900,
-        "sell_vol": 20407800,
-        "imbalance": 0.161,
-        "direction_score": 1
-      },
-      "large_order": {
-        "buy_count": 96,
-        "sell_count": 69,
-        "buy_amount": 2232614450.0,
-        "sell_amount": 1429433250.0,
-        "net_amount": 803181200.0,
-        "direction_score": 1,
         "orders": [
           [
-            1773106219.3323221,
-            "NEUTRAL",
-            17220600.0
-          ],
-          [
-            1773106344.035083,
-            "SELL",
-            19943300.0
-          ],
-          [
-            1773106491.7128909,
-            "SELL",
-            22397200.0
-          ],
-          [
-            1773106495.327084,
-            "SELL",
-            21685200.0
-          ],
-          [
-            1773106629.538354,
+            1773215290.7471318,
             "BUY",
-            21340000.0
-          ],
-          [
-            1773106629.5383549,
-            "BUY",
-            19651200.0
-          ],
-          [
-            1773106629.538356,
-            "BUY",
-            20792050.0
-          ],
-          [
-            1773106629.538356,
-            "BUY",
-            17708500.0
-          ],
-          [
-            1773106633.7024,
-            "BUY",
-            35898500.0
-          ],
-          [
-            1773106633.702401,
-            "BUY",
-            15943000.0
-          ],
-          [
-            1773106644.724386,
-            "SELL",
-            15844950.0
-          ],
-          [
-            1773107535.6796968,
-            "SELL",
-            21856600.0
-          ],
-          [
-            1773108192.32804,
-            "NEUTRAL",
-            19962150.0
-          ],
-          [
-            1773108295.3352242,
-            "BUY",
-            15885000.0
-          ],
-          [
-            1773108339.510844,
-            "BUY",
-            16149750.0
-          ],
-          [
-            1773108471.827539,
-            "BUY",
-            15930000.0
-          ],
-          [
-            1773108798.592287,
-            "BUY",
-            15990000.0
-          ],
-          [
-            1773110654.0673332,
-            "BUY",
-            21253000.0
-          ],
-          [
-            1773110911.57473,
-            "SELL",
-            15702800.0
-          ],
-          [
-            1773111080.195379,
-            "BUY",
-            15384500.0
-          ],
-          [
-            1773111511.8594701,
-            "BUY",
-            41815200.0
-          ],
-          [
-            1773111511.859471,
-            "BUY",
-            24601500.0
-          ],
-          [
-            1773111698.3432791,
-            "BUY",
-            16005000.0
-          ],
-          [
-            1773111762.809618,
-            "BUY",
-            24770500.0
-          ],
-          [
-            1773111766.691446,
-            "BUY",
-            17066500.0
-          ],
-          [
-            1773111766.691447,
-            "BUY",
-            16050000.0
-          ],
-          [
-            1773111766.691448,
-            "SELL",
-            15179800.0
-          ],
-          [
-            1773111783.5485241,
-            "SELL",
-            16050000.0
-          ],
-          [
-            1773111815.668227,
-            "BUY",
-            21634200.0
-          ],
-          [
-            1773111912.919264,
-            "BUY",
-            21050400.0
-          ],
-          [
-            1773111964.4396942,
-            "SELL",
-            16125000.0
-          ],
-          [
-            1773111981.34378,
-            "SELL",
-            23037300.0
-          ],
-          [
-            1773112017.4896262,
-            "BUY",
-            52078400.0
-          ],
-          [
-            1773112017.4896262,
-            "BUY",
-            20390200.0
-          ],
-          [
-            1773112017.489627,
-            "BUY",
-            16155000.0
-          ],
-          [
-            1773112142.89792,
-            "SELL",
-            30425250.0
-          ],
-          [
-            1773112146.7504792,
-            "SELL",
-            15171600.0
-          ],
-          [
-            1773112385.306825,
-            "SELL",
-            16170000.0
-          ],
-          [
-            1773112434.626296,
-            "BUY",
-            95256000.0
-          ],
-          [
-            1773112453.97373,
-            "BUY",
-            17366100.0
-          ],
-          [
-            1773112543.592096,
-            "BUY",
-            25179750.0
-          ],
-          [
-            1773112561.313209,
-            "BUY",
-            15230200.0
-          ],
-          [
-            1773112576.7598898,
-            "BUY",
-            16290000.0
-          ],
-          [
-            1773112601.5071611,
-            "SELL",
-            16018500.0
-          ],
-          [
-            1773112621.37269,
-            "BUY",
-            16305000.0
-          ],
-          [
-            1773112727.6955452,
-            "SELL",
-            24674900.0
-          ],
-          [
-            1773112961.664321,
-            "SELL",
-            15041100.0
-          ],
-          [
-            1773113085.211499,
-            "BUY",
-            16350000.0
-          ],
-          [
-            1773113085.211499,
-            "BUY",
-            16459000.0
-          ],
-          [
-            1773113104.617235,
-            "SELL",
-            21453300.0
-          ],
-          [
-            1773113126.437688,
-            "BUY",
-            27141000.0
-          ],
-          [
-            1773113155.142795,
-            "SELL",
-            15587000.0
-          ],
-          [
-            1773113191.7629519,
-            "BUY",
-            15314500.0
-          ],
-          [
-            1773113195.660788,
-            "SELL",
-            16077500.0
-          ],
-          [
-            1773113199.5106628,
-            "SELL",
-            27225000.0
-          ],
-          [
-            1773113216.623886,
-            "SELL",
-            15627150.0
-          ],
-          [
-            1773113342.1823308,
-            "BUY",
-            15899400.0
-          ],
-          [
-            1773113358.75771,
-            "BUY",
-            15409350.0
-          ],
-          [
-            1773113362.696088,
-            "BUY",
-            32918000.0
-          ],
-          [
-            1773113442.5316422,
-            "SELL",
-            17011700.0
-          ],
-          [
-            1773113730.8354812,
-            "BUY",
-            15261300.0
-          ],
-          [
-            1773113735.766006,
-            "SELL",
-            16285700.0
-          ],
-          [
-            1773113801.26427,
-            "SELL",
-            16350000.0
-          ],
-          [
-            1773113935.67974,
-            "BUY",
-            19312000.0
-          ],
-          [
-            1773114016.186242,
-            "BUY",
-            21894600.0
-          ],
-          [
-            1773114073.643921,
-            "BUY",
-            20710000.0
-          ],
-          [
-            1773114127.9604769,
-            "BUY",
-            22187900.0
-          ],
-          [
-            1773114151.729068,
-            "BUY",
-            20821650.0
-          ],
-          [
-            1773114184.8179252,
-            "BUY",
-            16410000.0
-          ],
-          [
-            1773114227.3330612,
-            "BUY",
-            24537850.0
-          ],
-          [
-            1773114394.519907,
-            "BUY",
-            16410000.0
-          ],
-          [
-            1773114557.971293,
-            "SELL",
-            21820000.0
-          ],
-          [
-            1773114573.6144059,
-            "SELL",
-            24852000.0
-          ],
-          [
-            1773114852.1095328,
-            "SELL",
-            15177600.0
-          ],
-          [
-            1773118830.4765031,
-            "BUY",
-            15480100.0
-          ],
-          [
-            1773118830.476504,
-            "SELL",
-            27101250.0
-          ],
-          [
-            1773118954.928999,
-            "SELL",
-            16869650.0
-          ],
-          [
-            1773118959.9189792,
-            "SELL",
-            15467700.0
-          ],
-          [
-            1773119046.297777,
-            "BUY",
-            16485000.0
-          ],
-          [
-            1773119124.726936,
-            "BUY",
-            18573100.0
-          ],
-          [
-            1773119305.0488052,
-            "SELL",
-            26705700.0
-          ],
-          [
-            1773119477.128435,
-            "BUY",
-            16589250.0
-          ],
-          [
-            1773119691.406786,
-            "BUY",
-            34485000.0
-          ],
-          [
-            1773119854.718199,
-            "SELL",
-            15950000.0
-          ],
-          [
-            1773119858.637582,
-            "BUY",
-            15785000.0
-          ],
-          [
-            1773119891.40623,
-            "BUY",
-            15880550.0
-          ],
-          [
-            1773119960.797413,
-            "BUY",
-            16500000.0
-          ],
-          [
-            1773119997.497057,
-            "SELL",
-            16445000.0
-          ],
-          [
-            1773120030.3583639,
-            "BUY",
-            16225000.0
-          ],
-          [
-            1773120207.4348958,
-            "BUY",
-            16515000.0
-          ],
-          [
-            1773120282.202048,
-            "SELL",
-            21725000.0
-          ],
-          [
-            1773120495.355266,
-            "SELL",
-            56477500.0
-          ],
-          [
-            1773120495.355266,
-            "SELL",
-            16530000.0
-          ],
-          [
-            1773120517.048599,
-            "SELL",
-            15979000.0
-          ],
-          [
-            1773120517.0486,
-            "NEUTRAL",
-            26754300.0
-          ],
-          [
-            1773120517.0486,
-            "SELL",
-            27084600.0
-          ],
-          [
-            1773120517.0486012,
-            "SELL",
-            25245000.0
-          ],
-          [
-            1773120546.0788732,
-            "BUY",
-            27255200.0
-          ],
-          [
-            1773120557.785096,
-            "SELL",
-            30249900.0
-          ],
-          [
-            1773120565.7189171,
-            "SELL",
-            19800850.0
-          ],
-          [
-            1773120565.7189178,
-            "SELL",
-            20550000.0
-          ],
-          [
-            1773120598.7859452,
-            "SELL",
-            24166800.0
-          ],
-          [
-            1773120830.706242,
-            "SELL",
-            16470000.0
-          ],
-          [
-            1773121101.98843,
-            "BUY",
-            26950000.0
-          ],
-          [
-            1773121222.989962,
-            "BUY",
-            16500000.0
-          ],
-          [
-            1773121222.989963,
-            "BUY",
-            15180000.0
-          ],
-          [
-            1773121397.762785,
-            "SELL",
-            16485000.0
-          ],
-          [
-            1773121744.57892,
-            "SELL",
-            17301000.0
-          ],
-          [
-            1773121860.917067,
-            "BUY",
-            16440000.0
-          ],
-          [
-            1773122080.1227,
-            "SELL",
-            16485000.0
-          ],
-          [
-            1773122155.651246,
-            "SELL",
-            15056300.0
-          ],
-          [
-            1773122326.235046,
-            "BUY",
-            16404900.0
-          ],
-          [
-            1773122409.166997,
-            "BUY",
-            26282700.0
-          ],
-          [
-            1773122461.281704,
-            "SELL",
-            16530000.0
-          ],
-          [
-            1773122656.017591,
-            "BUY",
-            16560000.0
-          ],
-          [
-            1773122714.313795,
-            "SELL",
-            16946400.0
-          ],
-          [
-            1773122883.161258,
-            "BUY",
-            16590000.0
-          ],
-          [
-            1773123035.008427,
-            "SELL",
-            28674750.0
-          ],
-          [
-            1773123090.497236,
-            "BUY",
-            18470200.0
-          ],
-          [
-            1773123189.4433548,
-            "SELL",
-            16545000.0
-          ],
-          [
-            1773123387.845217,
-            "BUY",
-            30055050.0
-          ],
-          [
-            1773123387.845217,
-            "BUY",
-            18226600.0
-          ],
-          [
-            1773123404.571593,
-            "BUY",
-            26425800.0
-          ],
-          [
-            1773123457.1571488,
-            "SELL",
-            19503250.0
-          ],
-          [
-            1773124210.051934,
-            "SELL",
-            27600000.0
-          ],
-          [
-            1773124312.4154189,
-            "BUY",
-            44571800.0
-          ],
-          [
-            1773124312.4154198,
-            "BUY",
-            31992300.0
-          ],
-          [
-            1773124332.382656,
-            "BUY",
-            24520050.0
-          ],
-          [
-            1773124353.7558668,
-            "BUY",
-            30276450.0
-          ],
-          [
-            1773124432.840172,
-            "BUY",
-            19095750.0
-          ],
-          [
-            1773124499.8829608,
-            "BUY",
-            23046400.0
-          ],
-          [
-            1773124546.403672,
-            "NEUTRAL",
-            34354500.0
-          ],
-          [
-            1773124546.403672,
-            "BUY",
-            108447000.0
-          ],
-          [
-            1773124546.4036732,
-            "BUY",
-            16650000.0
-          ],
-          [
-            1773124570.144935,
-            "BUY",
-            18814500.0
-          ],
-          [
-            1773124636.850128,
-            "SELL",
-            16650000.0
-          ],
-          [
-            1773124662.2623,
-            "BUY",
-            27775000.0
-          ],
-          [
-            1773124721.432833,
-            "SELL",
-            18387050.0
-          ],
-          [
-            1773124821.634261,
-            "SELL",
-            22381600.0
-          ],
-          [
-            1773124890.609339,
-            "BUY",
-            16605000.0
-          ],
-          [
-            1773125063.948433,
-            "SELL",
-            16635000.0
-          ],
-          [
-            1773125188.818657,
-            "SELL",
-            16494300.0
-          ],
-          [
-            1773125572.9035552,
-            "SELL",
-            16560000.0
-          ],
-          [
-            1773126158.704391,
-            "BUY",
-            20865600.0
-          ],
-          [
-            1773126405.515174,
-            "SELL",
-            18806150.0
-          ],
-          [
-            1773126587.194921,
-            "BUY",
-            15069600.0
-          ],
-          [
-            1773126621.0480058,
-            "SELL",
-            15276550.0
-          ],
-          [
-            1773126948.061523,
-            "BUY",
-            20717600.0
-          ],
-          [
-            1773127224.728972,
-            "SELL",
-            27600000.0
-          ],
-          [
-            1773127449.898734,
-            "BUY",
-            16530000.0
-          ],
-          [
-            1773127672.896263,
-            "BUY",
-            57736250.0
-          ],
-          [
-            1773128082.6315598,
-            "BUY",
-            15497150.0
-          ],
-          [
-            1773128082.631562,
-            "BUY",
-            16560000.0
-          ],
-          [
-            1773128082.631563,
-            "BUY",
-            20700000.0
-          ],
-          [
-            1773128082.631563,
-            "BUY",
-            27625000.0
-          ],
-          [
-            1773128082.631563,
-            "BUY",
-            27625000.0
-          ],
-          [
-            1773128230.396126,
-            "SELL",
-            15456000.0
-          ],
-          [
-            1773128483.4840782,
-            "SELL",
-            55150000.0
-          ],
-          [
-            1773128483.484087,
-            "SELL",
-            16545000.0
-          ],
-          [
-            1773128548.5086222,
-            "BUY",
-            16545000.0
-          ],
-          [
-            1773128583.6086662,
-            "BUY",
-            16545000.0
-          ],
-          [
-            1773128583.608674,
-            "BUY",
-            36729900.0
-          ],
-          [
-            1773128661.27023,
-            "BUY",
-            27569750.0
-          ],
-          [
-            1773128670.113153,
-            "SELL",
-            16560000.0
-          ],
-          [
-            1773128895.766491,
-            "SELL",
-            29450100.0
-          ],
-          [
-            1773128961.068929,
-            "BUY",
-            27158400.0
-          ],
-          [
-            1773129154.627696,
-            "BUY",
-            16590000.0
-          ],
-          [
-            1773129188.575252,
-            "SELL",
-            30746400.0
-          ],
-          [
-            1773129462.720556,
-            "BUY",
-            30691500.0
+            21955250.0
           ]
         ]
       },
       "capital_flow": {
-        "main_net_inflow": -36299900.0,
-        "main_net_inflow_pct": -0.83,
+        "main_net_inflow": -376759450.0,
+        "main_net_inflow_pct": 110.04,
         "direction_score": -1
       }
     },
-    "HK09973": {
-      "direction": "neutral",
-      "score": 0,
-      "tick": {
-        "buy_vol": 704100,
-        "sell_vol": 669800,
-        "imbalance": 0.025,
-        "direction_score": 0
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 0,
-        "buy_amount": 0.0,
-        "sell_amount": 0.0,
-        "net_amount": 0.0,
-        "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": -787862.0,
-        "main_net_inflow_pct": 0,
-        "direction_score": 0
-      }
-    },
-    "HK06809": {
-      "direction": "bullish",
-      "score": 3,
-      "tick": {
-        "buy_vol": 1173300,
-        "sell_vol": 739400,
-        "imbalance": 0.227,
-        "direction_score": 1
-      },
-      "large_order": {
-        "buy_count": 0,
-        "sell_count": 0,
-        "buy_amount": 0.0,
-        "sell_amount": 0.0,
-        "net_amount": 0.0,
-        "direction_score": 0,
-        "orders": []
-      },
-      "capital_flow": {
-        "main_net_inflow": 25839240.0,
-        "main_net_inflow_pct": 32.65,
-        "direction_score": 1
-      }
-    },
-    "HK01060": {
+    "HK02577": {
       "direction": "bearish",
       "score": -3,
       "tick": {
-        "buy_vol": 47810000,
-        "sell_vol": 101270000,
-        "imbalance": -0.359,
+        "buy_vol": 149600,
+        "sell_vol": 523700,
+        "imbalance": -0.556,
         "direction_score": -1
       },
       "large_order": {
@@ -4843,18 +3603,90 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -13393600.0,
-        "main_net_inflow_pct": 35.62,
+        "main_net_inflow": -62315365.0,
+        "main_net_inflow_pct": 48.65,
+        "direction_score": -1
+      }
+    },
+    "HK02722": {
+      "direction": "bearish",
+      "score": -3,
+      "tick": {
+        "buy_vol": 1216000,
+        "sell_vol": 2872000,
+        "imbalance": -0.405,
+        "direction_score": -1
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": -9598620.0,
+        "main_net_inflow_pct": 59.67,
+        "direction_score": -1
+      }
+    },
+    "HK06060": {
+      "direction": "bearish",
+      "score": -3,
+      "tick": {
+        "buy_vol": 565300,
+        "sell_vol": 1015700,
+        "imbalance": -0.285,
+        "direction_score": -1
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": -7468708.0,
+        "main_net_inflow_pct": 43.8,
         "direction_score": -1
       }
     },
     "HK02359": {
-      "direction": "neutral",
-      "score": 0,
+      "direction": "bullish",
+      "score": 3,
       "tick": {
-        "buy_vol": 2185600,
-        "sell_vol": 1804300,
-        "imbalance": 0.096,
+        "buy_vol": 144300,
+        "sell_vol": 109700,
+        "imbalance": 0.136,
+        "direction_score": 1
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": 26653460.0,
+        "main_net_inflow_pct": 48.23,
+        "direction_score": 1
+      }
+    },
+    "HK03986": {
+      "direction": "bullish",
+      "score": 1,
+      "tick": {
+        "buy_vol": 35400,
+        "sell_vol": 42800,
+        "imbalance": -0.095,
         "direction_score": 0
       },
       "large_order": {
@@ -4867,144 +3699,332 @@
         "orders": []
       },
       "capital_flow": {
-        "main_net_inflow": -2430970.0,
-        "main_net_inflow_pct": -5.68,
+        "main_net_inflow": 17690920.0,
+        "main_net_inflow_pct": 242.1,
+        "direction_score": 1
+      }
+    },
+    "HK09618": {
+      "direction": "bullish",
+      "score": 1,
+      "tick": {
+        "buy_vol": 596500,
+        "sell_vol": 463050,
+        "imbalance": 0.126,
+        "direction_score": 1
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": -11879075.0,
+        "main_net_inflow_pct": 77.32,
+        "direction_score": -1
+      }
+    },
+    "HK07709": {
+      "direction": "bearish",
+      "score": -2,
+      "tick": {
+        "buy_vol": 2647800,
+        "sell_vol": 3801800,
+        "imbalance": -0.179,
+        "direction_score": -1
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": -4419310.0,
+        "main_net_inflow_pct": 3.49,
         "direction_score": 0
+      }
+    },
+    "HK00700": {
+      "direction": "bearish",
+      "score": -5,
+      "tick": {
+        "buy_vol": 735900,
+        "sell_vol": 1208000,
+        "imbalance": -0.243,
+        "direction_score": -1
+      },
+      "large_order": {
+        "buy_count": 1,
+        "sell_count": 3,
+        "buy_amount": 20203200.0,
+        "sell_amount": 54938650.0,
+        "net_amount": -34735450.0,
+        "direction_score": -1,
+        "orders": [
+          [
+            1773214976.542509,
+            "SELL",
+            16005000.0
+          ],
+          [
+            1773214976.54251,
+            "SELL",
+            16500000.0
+          ],
+          [
+            1773215099.251986,
+            "BUY",
+            20203200.0
+          ],
+          [
+            1773215397.047153,
+            "SELL",
+            22433650.0
+          ]
+        ]
+      },
+      "capital_flow": {
+        "main_net_inflow": -1944976150.0,
+        "main_net_inflow_pct": 85.0,
+        "direction_score": -1
+      }
+    },
+    "HK03033": {
+      "direction": "bullish",
+      "score": 1,
+      "tick": {
+        "buy_vol": 14751600,
+        "sell_vol": 16954000,
+        "imbalance": -0.069,
+        "direction_score": 0
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": 27101292.2,
+        "main_net_inflow_pct": -33.04,
+        "direction_score": 1
+      }
+    },
+    "HK09927": {
+      "direction": "neutral",
+      "score": 0,
+      "tick": {
+        "buy_vol": 6900,
+        "sell_vol": 23500,
+        "imbalance": -0.546,
+        "direction_score": 0
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": 1375020.0,
+        "main_net_inflow_pct": 4.45,
+        "direction_score": 0
+      }
+    },
+    "HK07262": {
+      "direction": "neutral",
+      "score": 0,
+      "tick": {
+        "buy_vol": 440,
+        "sell_vol": 0,
+        "imbalance": 1.0,
+        "direction_score": 0
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": -946996.0,
+        "main_net_inflow_pct": 0,
+        "direction_score": 0
+      }
+    },
+    "HK06651": {
+      "direction": "bearish",
+      "score": -1,
+      "tick": {
+        "buy_vol": 652200,
+        "sell_vol": 937400,
+        "imbalance": -0.179,
+        "direction_score": -1
+      },
+      "large_order": {
+        "buy_count": 0,
+        "sell_count": 0,
+        "buy_amount": 0.0,
+        "sell_amount": 0.0,
+        "net_amount": 0.0,
+        "direction_score": 0,
+        "orders": []
+      },
+      "capital_flow": {
+        "main_net_inflow": 12812340.0,
+        "main_net_inflow_pct": 27.09,
+        "direction_score": 1
       }
     }
   },
   "indicators": {
     "HK00700": {
-      "rsi": 54.15,
-      "macd_hist": 8.530196,
+      "rsi": 53.23,
+      "macd_hist": 12.031291,
       "macd_hist_list": [
-        -6.084492,
-        -6.015449,
-        -4.532892,
-        -3.508112,
-        -2.752165,
-        -2.325708,
-        -2.059005,
-        0.77862,
-        2.524415,
-        8.530196
+        -6.014543,
+        -4.532054,
+        -3.507336,
+        -2.751446,
+        -2.325042,
+        -2.058389,
+        0.779191,
+        2.524943,
+        8.658321,
+        12.031291
       ],
-      "vol_ratio": 1.76,
-      "updated_at": 1773129659580
+      "vol_ratio": 1.49,
+      "updated_at": 1773216060563
     },
     "HK01060": {
-      "rsi": 34.03,
-      "macd_hist": -0.02803,
+      "rsi": 31.37,
+      "macd_hist": -0.026787,
       "macd_hist_list": [
-        -0.037,
-        -0.036721,
-        -0.037143,
-        -0.041727,
-        -0.047307,
-        -0.05056,
+        -0.03672,
+        -0.037142,
+        -0.041726,
+        -0.047306,
+        -0.050559,
         -0.05079,
-        -0.038789,
-        -0.033701,
-        -0.02803
+        -0.038788,
+        -0.0337,
+        -0.029306,
+        -0.026787
       ],
-      "vol_ratio": 0.7,
-      "updated_at": 1773129659580
+      "vol_ratio": 0.4,
+      "updated_at": 1773216060563
     },
     "HK01211": {
-      "rsi": 50.5,
-      "macd_hist": -0.050295,
+      "rsi": 52.87,
+      "macd_hist": 0.22055,
       "macd_hist_list": [
-        1.001816,
-        0.428826,
-        0.047207,
-        0.335121,
-        0.126999,
-        -0.158046,
-        -0.641928,
-        -0.642867,
-        -0.180049,
-        -0.050295
-      ],
-      "vol_ratio": 0.89,
-      "updated_at": 1773129659580
-    },
-    "HK01810": {
-      "rsi": 42.33,
-      "macd_hist": -0.15094,
-      "macd_hist_list": [
-        0.356931,
-        0.232505,
-        0.116217,
-        -0.178039,
-        -0.542483,
-        -0.677862,
-        -0.689104,
-        -0.490192,
-        -0.2914,
-        -0.15094
-      ],
-      "vol_ratio": 0.77,
-      "updated_at": 1773129659580
-    },
-    "HK02359": {
-      "rsi": 43.22,
-      "macd_hist": -3.207493,
-      "macd_hist_list": [
-        0.376964,
-        -0.909836,
-        -1.254783,
-        -1.945719,
-        -2.685223,
-        -3.499627,
-        -3.91464,
-        -3.550865,
-        -3.565095,
-        -3.207493
+        0.428919,
+        0.047294,
+        0.335202,
+        0.127074,
+        -0.157977,
+        -0.641864,
+        -0.642808,
+        -0.179995,
+        -0.018335,
+        0.22055
       ],
       "vol_ratio": 0.85,
-      "updated_at": 1773129659580
+      "updated_at": 1773216060563
+    },
+    "HK01810": {
+      "rsi": 40.84,
+      "macd_hist": -0.072625,
+      "macd_hist_list": [
+        0.232564,
+        0.116272,
+        -0.177988,
+        -0.542436,
+        -0.677818,
+        -0.689064,
+        -0.490155,
+        -0.291365,
+        -0.14325,
+        -0.072625
+      ],
+      "vol_ratio": 0.72,
+      "updated_at": 1773216060563
+    },
+    "HK02359": {
+      "rsi": 42.31,
+      "macd_hist": -2.89982,
+      "macd_hist_list": [
+        -0.909623,
+        -1.254587,
+        -1.945537,
+        -2.685054,
+        -3.499471,
+        -3.914495,
+        -3.550731,
+        -3.564971,
+        -3.169088,
+        -2.89982
+      ],
+      "vol_ratio": 0.65,
+      "updated_at": 1773216060563
     },
     "HK02577": {
-      "rsi": 53.8,
-      "macd_hist": 0.476494,
+      "rsi": 48.88,
+      "macd_hist": 0.231129,
       "macd_hist_list": [
-        3.416004,
-        3.480015,
-        3.203247,
-        2.254223,
-        1.113525,
-        0.337528,
-        0.474585,
-        0.51834,
-        0.257632,
-        0.476494
+        3.479765,
+        3.203015,
+        2.254008,
+        1.113327,
+        0.337344,
+        0.474415,
+        0.518183,
+        0.257486,
+        0.489123,
+        0.231129
       ],
-      "vol_ratio": 0.75,
-      "updated_at": 1773129659580
+      "vol_ratio": 0.73,
+      "updated_at": 1773216060564
     },
     "HK02590": {
-      "rsi": 34.7,
-      "macd_hist": -1.043381,
+      "rsi": 34.74,
+      "macd_hist": -0.818521,
       "macd_hist_list": [
-        -0.855438,
-        -1.029619,
-        -1.02857,
-        -1.142591,
-        -1.271653,
-        -1.39282,
-        -1.376982,
-        -1.278071,
-        -1.288905,
-        -1.043381
+        -1.029608,
+        -1.02856,
+        -1.142581,
+        -1.271644,
+        -1.392812,
+        -1.376975,
+        -1.278063,
+        -1.288899,
+        -1.058691,
+        -0.818521
       ],
-      "vol_ratio": 0.97,
-      "updated_at": 1773129659580
+      "vol_ratio": 0.96,
+      "updated_at": 1773216060564
     },
     "HK02722": {
-      "rsi": 56.99,
-      "macd_hist": -0.049075,
+      "rsi": 54.23,
+      "macd_hist": -0.065974,
       "macd_hist_list": [
-        0.082682,
         0.112232,
         0.15845,
         0.142132,
@@ -5013,124 +4033,124 @@
         0.02603,
         -0.00069,
         -0.03842,
-        -0.049075
+        -0.04397,
+        -0.065974
       ],
-      "vol_ratio": 0.51,
-      "updated_at": 1773129659580
+      "vol_ratio": 0.78,
+      "updated_at": 1773216060564
     },
     "HK03033": {
-      "rsi": 41.16,
-      "macd_hist": -0.022598,
+      "rsi": 41.66,
+      "macd_hist": 0.003757,
       "macd_hist_list": [
-        -0.037511,
-        -0.051052,
-        -0.051376,
-        -0.064979,
-        -0.084513,
-        -0.095571,
-        -0.098733,
-        -0.0746,
-        -0.054622,
-        -0.022598
+        -0.051041,
+        -0.051366,
+        -0.06497,
+        -0.084505,
+        -0.095564,
+        -0.098725,
+        -0.074593,
+        -0.054615,
+        -0.02055,
+        0.003757
       ],
-      "vol_ratio": 1.17,
-      "updated_at": 1773129659580
+      "vol_ratio": 0.4,
+      "updated_at": 1773216060564
     },
     "HK03288": {
-      "rsi": 57.92,
-      "macd_hist": 0.058344,
+      "rsi": 56.81,
+      "macd_hist": 0.033824,
       "macd_hist_list": [
-        0.488512,
-        0.430728,
-        0.296693,
-        0.146741,
-        0.045394,
-        -0.107071,
-        -0.086782,
-        -0.010133,
-        0.021265,
-        0.058344
+        0.430772,
+        0.296733,
+        0.146779,
+        0.045429,
+        -0.107039,
+        -0.086752,
+        -0.010105,
+        0.021291,
+        0.03284,
+        0.033824
       ],
-      "vol_ratio": 0.31,
-      "updated_at": 1773129659580
+      "vol_ratio": 0.42,
+      "updated_at": 1773216060564
     },
     "HK03896": {
-      "rsi": 53.32,
-      "macd_hist": -0.042858,
+      "rsi": 53.61,
+      "macd_hist": -0.002132,
       "macd_hist_list": [
-        -0.13926,
-        -0.189616,
-        -0.149976,
-        -0.173088,
-        -0.237755,
-        -0.292628,
-        -0.28804,
-        -0.253426,
-        -0.106778,
-        -0.042858
+        -0.189597,
+        -0.149958,
+        -0.173072,
+        -0.23774,
+        -0.292614,
+        -0.288027,
+        -0.253413,
+        -0.106767,
+        -0.051783,
+        -0.002132
       ],
-      "vol_ratio": 1.98,
-      "updated_at": 1773129659580
+      "vol_ratio": 1.34,
+      "updated_at": 1773216060564
     },
     "HK06060": {
-      "rsi": 39.01,
-      "macd_hist": -0.28164,
+      "rsi": 37.55,
+      "macd_hist": -0.21049,
       "macd_hist_list": [
-        -0.024611,
-        -0.085022,
-        -0.144378,
-        -0.268556,
-        -0.371359,
-        -0.487712,
-        -0.532597,
-        -0.449985,
-        -0.391598,
-        -0.28164
+        -0.085037,
+        -0.144392,
+        -0.268569,
+        -0.37137,
+        -0.487723,
+        -0.532607,
+        -0.449995,
+        -0.391607,
+        -0.276543,
+        -0.21049
       ],
-      "vol_ratio": 0.65,
-      "updated_at": 1773129659580
+      "vol_ratio": 0.6,
+      "updated_at": 1773216060564
     },
     "HK07226": {
-      "rsi": 39.41,
-      "macd_hist": -0.033646,
+      "rsi": 39.82,
+      "macd_hist": 0.011273,
       "macd_hist_list": [
-        -0.069903,
-        -0.093201,
-        -0.092981,
-        -0.117387,
-        -0.147512,
-        -0.162714,
-        -0.164587,
-        -0.123426,
-        -0.088821,
-        -0.033646
+        -0.093178,
+        -0.09296,
+        -0.117367,
+        -0.147494,
+        -0.162697,
+        -0.164571,
+        -0.123411,
+        -0.088808,
+        -0.030825,
+        0.011273
       ],
-      "vol_ratio": 1.1,
-      "updated_at": 1773129659580
+      "vol_ratio": 0.81,
+      "updated_at": 1773216060564
     },
     "HK07262": {
-      "rsi": 45.55,
-      "macd_hist": -6.599476,
+      "rsi": 46.33,
+      "macd_hist": -5.861479,
       "macd_hist_list": [
-        1.432472,
-        1.502987,
-        1.578441,
-        0.277358,
-        -2.106118,
-        -4.176732,
-        -5.026976,
-        -5.203066,
-        -7.130849,
-        -6.599476
+        1.503051,
+        1.5785,
+        0.277413,
+        -2.106067,
+        -4.176685,
+        -5.026932,
+        -5.203026,
+        -7.130812,
+        -6.612205,
+        -5.861479
       ],
-      "vol_ratio": 1.17,
-      "updated_at": 1773129659580
+      "vol_ratio": 1.16,
+      "updated_at": 1773216060564
     },
     "HK07709": {
-      "rsi": 49.62,
-      "macd_hist": -2.625886,
+      "rsi": 49.98,
+      "macd_hist": -2.328427,
       "macd_hist_list": [
-        1.265971,
         2.149572,
         2.144606,
         1.567864,
@@ -5139,34 +4159,34 @@
         -1.644678,
         -2.045202,
         -2.85272,
-        -2.625886
+        -2.590148,
+        -2.328427
       ],
-      "vol_ratio": 1.8,
-      "updated_at": 1773129659580
+      "vol_ratio": 1.03,
+      "updated_at": 1773216060564
     },
     "HK09618": {
-      "rsi": 53.57,
-      "macd_hist": 1.093993,
+      "rsi": 54.05,
+      "macd_hist": 1.651865,
       "macd_hist_list": [
-        -0.311505,
-        -0.476886,
-        -0.470216,
-        -0.801708,
-        -1.045153,
-        -1.409719,
-        -1.655571,
-        -0.444655,
-        0.24479,
-        1.093993
+        -0.476561,
+        -0.469915,
+        -0.80143,
+        -1.044895,
+        -1.40948,
+        -1.65535,
+        -0.44445,
+        0.24498,
+        1.094168,
+        1.651865
       ],
-      "vol_ratio": 0.63,
-      "updated_at": 1773129659580
+      "vol_ratio": 0.48,
+      "updated_at": 1773216060564
     },
     "HK09927": {
-      "rsi": 34.35,
-      "macd_hist": -0.939165,
+      "rsi": 45.4,
+      "macd_hist": -0.010673,
       "macd_hist_list": [
-        0.458064,
         0.157498,
         0.216464,
         -0.121836,
@@ -5175,47 +4195,30 @@
         -1.320526,
         -1.250269,
         -1.252247,
-        -0.939165
+        -0.830675,
+        -0.010673
       ],
-      "vol_ratio": 0.78,
-      "updated_at": 1773129659581
-    },
-    "HK09973": {
-      "rsi": 20.65,
-      "macd_hist": -0.624706,
-      "macd_hist_list": [
-        0.084994,
-        -0.001254,
-        -0.049824,
-        -0.133385,
-        -0.308221,
-        -0.453817,
-        -0.523918,
-        -0.567359,
-        -0.654337,
-        -0.624706
-      ],
-      "vol_ratio": 0.64,
-      "updated_at": 1773129659581
+      "vol_ratio": 1.33,
+      "updated_at": 1773216060564
     },
     "HK09988": {
-      "rsi": 36.72,
-      "macd_hist": -3.344944,
+      "rsi": 36.25,
+      "macd_hist": -2.312007,
       "macd_hist_list": [
-        -3.631866,
-        -4.02864,
-        -4.056884,
-        -4.66028,
-        -4.956504,
-        -5.45457,
-        -5.874678,
-        -5.18943,
-        -4.652326,
-        -3.344944
+        -4.028234,
+        -4.056508,
+        -4.659932,
+        -4.956182,
+        -5.454271,
+        -5.874402,
+        -5.189174,
+        -4.652089,
+        -3.357488,
+        -2.312007
       ],
-      "vol_ratio": 1.0,
-      "updated_at": 1773129659581
+      "vol_ratio": 0.66,
+      "updated_at": 1773216060565
     }
   },
-  "lastUpdated": 1773129659582
+  "lastUpdated": 1773216060570
 }
