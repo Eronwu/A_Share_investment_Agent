@@ -128,16 +128,38 @@ def run_hedge_fund(
         store_final_state(final_state)
         enhanced_state = get_enhanced_final_state()
         summary_text = build_summary_report(enhanced_state)
+        summary_payload = build_summary_payload(enhanced_state)
+        summary_payload["run_id"] = run_id
+        summary_payload["log_path"] = OUTPUT_LOGGER.filename
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_ticker = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in ticker)
+        summary_dir = Path("reports") / "summaries"
+        summary_dir.mkdir(parents=True, exist_ok=True)
+        auto_summary_text_path = summary_dir / f"{safe_ticker}_summary_{timestamp}.txt"
+        auto_summary_json_path = summary_dir / f"{safe_ticker}_summary_{timestamp}.json"
+
+        auto_summary_text_path.write_text(summary_text + "\n", encoding="utf-8")
+        auto_summary_json_path.write_text(
+            json.dumps(summary_payload, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
 
         if show_summary:
             with open("logs/last_summary_report.txt", "w", encoding="utf-8") as f:
                 f.write(summary_text + "\n")
-            print("\n" + "#" * 96)
-            print("# FINAL SUMMARY REPORT".ljust(95) + "#")
-            print("#" * 96)
-            print(summary_text)
-            print(f"\n[summary log file] {OUTPUT_LOGGER.filename}")
-            print("[summary text file] logs/last_summary_report.txt")
+
+            summary_block = (
+                "\n" + "#" * 96 + "\n"
+                + "# FINAL SUMMARY REPORT".ljust(95) + "#\n"
+                + "#" * 96 + "\n"
+                + summary_text
+                + f"\n\n[summary log file] {OUTPUT_LOGGER.filename}\n"
+                + "[summary text file] logs/last_summary_report.txt\n"
+                + f"[summary archive text file] {auto_summary_text_path}\n"
+                + f"[summary archive json file] {auto_summary_json_path}\n"
+            )
+            OUTPUT_LOGGER.write(summary_block)
 
         if summary_text_out:
             summary_text_path = Path(summary_text_out)
@@ -147,9 +169,6 @@ def run_hedge_fund(
         if summary_json_out:
             summary_json_path = Path(summary_json_out)
             summary_json_path.parent.mkdir(parents=True, exist_ok=True)
-            summary_payload = build_summary_payload(enhanced_state)
-            summary_payload["run_id"] = run_id
-            summary_payload["log_path"] = OUTPUT_LOGGER.filename
             summary_json_path.write_text(
                 json.dumps(summary_payload, ensure_ascii=False, indent=2) + "\n",
                 encoding="utf-8",
@@ -162,7 +181,7 @@ def run_hedge_fund(
             _append_debug_checkpoint(f"before_app_invoke:{run_id}")
             final_state = app.invoke(initial_state)
             _append_debug_checkpoint(f"after_app_invoke:{run_id}")
-            print(f"--- Finished Workflow Run ID: {run_id} ---")
+            OUTPUT_LOGGER.emit(f"--- Finished Workflow Run ID: {run_id} ---")
 
             if HAS_SUMMARY_REPORT and (show_summary or summary_json_out or summary_text_out):
                 _append_debug_checkpoint(f"before_summary:{run_id}")
@@ -175,7 +194,7 @@ def run_hedge_fund(
         _append_debug_checkpoint(f"before_app_invoke_importerror:{run_id}")
         final_state = app.invoke(initial_state)
         _append_debug_checkpoint(f"after_app_invoke_importerror:{run_id}")
-        print(f"--- Finished Workflow Run ID: {run_id} ---")
+        OUTPUT_LOGGER.emit(f"--- Finished Workflow Run ID: {run_id} ---")
 
         if HAS_SUMMARY_REPORT and (show_summary or summary_json_out or summary_text_out):
             _append_debug_checkpoint(f"before_summary_importerror:{run_id}")
@@ -358,5 +377,5 @@ if __name__ == "__main__":
         summary_json_out=args.summary_json_out,
         summary_text_out=args.summary_text_out,
     )
-    print("\nFinal Result:")
-    print(result)
+    OUTPUT_LOGGER.emit("\nFinal Result:")
+    OUTPUT_LOGGER.emit(str(result))
