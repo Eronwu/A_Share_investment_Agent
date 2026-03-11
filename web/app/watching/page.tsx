@@ -4,9 +4,11 @@ import { Suspense, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAlerts } from "../hooks/useAlerts";
 import { useLogEntries } from "../hooks/useCommand";
+import { useTradePlans } from "../hooks/useTradePlans";
 import type { Service } from "../types";
 import { tagColor } from "../lib/tag-utils";
 import { D } from "../theme";
+import { StockDrawer } from "../components/StockDrawer";
 import { AppTabs } from "../components/AppTabs";
 import { AppTitleBar } from "../components/AppTitleBar";
 import { MarketSwitch, type MarketTab } from "../components/MarketSwitch";
@@ -56,6 +58,13 @@ function WatchingContent() {
   type SortState = { key: SortKey | null; asc: boolean };
   const [watchSort, setWatchSort] = useState<SortState>({ key: null, asc: false });
   const { logs, addLogs, clearLogs } = useLogEntries();
+  const { planMap, refresh: refreshPlans } = useTradePlans();
+  const [drawerSymbol, setDrawerSymbol] = useState<string | null>(null);
+
+  const allTags = useMemo(
+    () => [...new Set(services.flatMap((s) => s.tags ?? []))],
+    [services]
+  );
 
   const pollMs = (settings.poll_interval ?? DEFAULT_POLL_SEC) * 1000;
 
@@ -118,8 +127,27 @@ function WatchingContent() {
     const sign = s.change > 0 ? "+" : "";
     const csign = s.chgAmt > 0 ? "+" : "";
     return (
-      <div style={{ display: "flex", whiteSpace: "pre", padding: "1px 0", borderBottom: `1px solid #191a21` }}>
-        <span style={{ color: s.star ? D.yellow : D.comment, width: "6ch" }}>{s.star ? "★" : " "} DEV</span>
+      <div
+        style={{ display: "flex", whiteSpace: "pre", padding: "1px 0", borderBottom: `1px solid #191a21`, cursor: "pointer" }}
+        onClick={() => setDrawerSymbol(s.id)}
+        title="点击查看详情"
+      >
+        <span style={{ width: "6ch", display: "inline-flex", gap: 2, alignItems: "center" }}>
+          {s.star && (
+            <span style={{
+              border: `1px solid ${D.yellow}`, color: D.yellow,
+              fontSize: 10, padding: "0 2px", lineHeight: "1.4",
+              fontFamily: "JetBrains Mono, monospace",
+            }}>★</span>
+          )}
+          {(planMap[s.id]?.length ?? 0) > 0 && (
+            <span style={{
+              border: `1px solid ${D.cyan}`, color: D.cyan,
+              fontSize: 10, padding: "0 2px", lineHeight: "1.4",
+              fontFamily: "JetBrains Mono, monospace",
+            }}>条</span>
+          )}
+        </span>
         <span style={{ color: D.cyan, width: "10ch" }}>{pad(s.id, 9)}</span>
         <span style={{ color: D.fg, width: "10ch" }}>{pad(s.name.slice(0, 6), 8)}</span>
         <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>{pad(s.price.toFixed(2), 9, true)}</span>
@@ -145,7 +173,7 @@ function WatchingContent() {
         <span style={{ color: D.comment, width: "13ch", textAlign: "right" }}>{pad(`${s.low.toFixed(2)}-${s.high.toFixed(2)}`, 12, true)}</span>
         <span style={{ width: "12ch", overflow: "hidden", whiteSpace: "nowrap", marginLeft: 8 }}>
           {(s.tags ?? []).map((t) => (
-            <span key={t} style={tagChipStyle(t)} onClick={() => setFilterTag(t)}>{t}</span>
+            <span key={t} style={tagChipStyle(t)} onClick={(e) => { e.stopPropagation(); setFilterTag(t); }}>{t}</span>
           ))}
         </span>
       </div>
@@ -273,6 +301,14 @@ function WatchingContent() {
           </>
         )}
       </div>
+      <StockDrawer
+        symbol={drawerSymbol}
+        services={services}
+        planMap={planMap}
+        allTags={allTags}
+        onClose={() => setDrawerSymbol(null)}
+        onRefreshPlans={refreshPlans}
+      />
     </div>
   );
 }
