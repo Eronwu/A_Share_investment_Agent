@@ -832,7 +832,7 @@ export function StockDrawer({
       const res = await fetch("/api/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "update", code: symbol, [field]: value }),
+        body: JSON.stringify({ action: "update", code: symbol, data: { [field]: value } }),
       });
       setToast(res.ok ? { msg: "已保存", type: "ok" } : { msg: "保存失败", type: "err" });
     } catch {
@@ -968,6 +968,14 @@ export function StockDrawer({
                   onSave={(v) => saveConfig("shares", parseInt(v))}
                   width="80px"
                   isNumber
+                  placeholder="-"
+                />
+              </span>
+              <span style={{ color: D.comment }}>别名&nbsp;
+                <EditableCell
+                  value={service?.alias ?? null}
+                  onSave={(v) => saveConfig("alias", v.trim() || null)}
+                  width="90px"
                   placeholder="-"
                 />
               </span>

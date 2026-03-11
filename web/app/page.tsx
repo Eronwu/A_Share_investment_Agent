@@ -237,11 +237,11 @@ function Home() {
               border: `1px solid ${D.green}`, color: D.green,
               fontSize: 10, padding: "0 2px", lineHeight: "1.4",
               fontFamily: "JetBrains Mono, monospace",
-            }}>dip</span>
+            }}>d</span>
           )}
         </span>
         <span style={{ color: D.cyan, width: "10ch" }}>{pad(s.id, 9)}</span>
-        <span style={{ color: D.fg, width: "10ch" }}>{pad(s.name.slice(0, 6), 8)}</span>
+        <span style={{ color: D.fg, width: "10ch" }}>{pad((s.alias || s.name).slice(0, 6), 8)}</span>
         <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
           {pad(s.price.toFixed(2), 9, true)}
         </span>

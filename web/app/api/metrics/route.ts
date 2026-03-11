@@ -17,6 +17,7 @@ function getConfigSource(): "db" | "json" {
 type DbWatchRow = {
   symbol: string;
   name: string;
+  alias: string | null;
   list_type: "holding" | "watching";
   cost: number | null;
   shares: number | null;
@@ -68,7 +69,7 @@ function readMonitorConfigFromDb(): {
   try {
     const watchRows = db
       .prepare(
-        `SELECT symbol, name, list_type, cost, shares, hidden, star, dip_buy, tags, watch_price, watch_price_date
+        `SELECT symbol, name, alias, list_type, cost, shares, hidden, star, dip_buy, tags, watch_price, watch_price_date
          FROM monitor_watchlist`,
       )
       .all() as DbWatchRow[];
@@ -84,6 +85,7 @@ function readMonitorConfigFromDb(): {
       }
       watchlist[r.symbol] = {
         name: r.name,
+        alias: r.alias ?? undefined,
         type: r.list_type,
         cost: r.cost,
         shares: r.shares,
@@ -198,6 +200,7 @@ export async function GET() {
           hidden: Boolean(entry.hidden),
           star: Boolean(entry.star),
           ...(entry.dip_buy ? { dip_buy: true } : {}),
+          ...(entry.alias ? { alias: entry.alias } : {}),
           ...(entry.tags ? { tags: entry.tags } : {}),
           ...(entry.watch_price != null ? { watch_price: Number(entry.watch_price) } : {}),
           ...(entry.watch_price_date ? { watch_price_date: entry.watch_price_date } : {}),

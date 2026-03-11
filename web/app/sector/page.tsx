@@ -32,6 +32,8 @@ interface IndexEntry {
   d3: number;
   d5: number;
   d10: number;
+  d15: number;
+  d30: number;
   cumGain: number;
   status: "mainline" | "approaching" | "watching" | "inactive";
   components: ComponentEntry[];
@@ -1042,6 +1044,22 @@ export default function SectorPage() {
               )}
 
               {/* component stocks table */}
+              {(() => {
+                // For parent indices, build code → child tag mapping
+                const codeToChild: Record<string, string[]> = {};
+                if (idx.isParent && idx.children.length > 0) {
+                  for (const childId of idx.children) {
+                    const childIdx = indices.find((i) => i.id === childId);
+                    if (childIdx) {
+                      for (const code of childIdx.stocks || []) {
+                        if (!codeToChild[code]) codeToChild[code] = [];
+                        if (!codeToChild[code].includes(childId)) codeToChild[code].push(childId);
+                      }
+                    }
+                  }
+                }
+                const hasChildTags = Object.keys(codeToChild).length > 0;
+                return (
               <div style={{ marginTop: 12, borderTop: `1px solid ${D.currentLine}`, paddingTop: 8 }}>
                 <div style={{ color: D.comment, fontSize: 11, marginBottom: 6 }}>
                   成分股 ({idx.stockCount ?? idx.stocks?.length ?? 0}):
@@ -1065,6 +1083,9 @@ export default function SectorPage() {
                       >
                         <th style={{ textAlign: "left", padding: "4px 8px 4px 0", fontWeight: 500 }}>代码</th>
                         <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 500 }}>名称</th>
+                        {hasChildTags && (
+                          <th style={{ textAlign: "left", padding: "4px 8px", fontWeight: 500 }}>分类</th>
+                        )}
                         <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 500 }}>最新价</th>
                         <th style={{ textAlign: "right", padding: "4px 8px", fontWeight: 500 }}>涨跌幅</th>
                         <th style={{ textAlign: "right", padding: "4px 0 4px 8px", fontWeight: 500 }}>涨跌额</th>
@@ -1076,6 +1097,7 @@ export default function SectorPage() {
                           c.close != null && c.change_pct !== 0
                             ? c.close * c.change_pct / (100 + c.change_pct)
                             : null;
+                        const childTags = codeToChild[c.code] || [];
                         return (
                           <tr
                             key={c.code}
@@ -1096,6 +1118,26 @@ export default function SectorPage() {
                             >
                               {c.name || "-"}
                             </td>
+                            {hasChildTags && (
+                              <td style={{ padding: "5px 8px" }}>
+                                {childTags.map((t) => (
+                                  <span
+                                    key={t}
+                                    style={{
+                                      display: "inline-block",
+                                      fontSize: 10,
+                                      padding: "1px 5px",
+                                      marginRight: 3,
+                                      borderRadius: 3,
+                                      background: D.currentLine,
+                                      color: D.purple,
+                                    }}
+                                  >
+                                    {t}
+                                  </span>
+                                ))}
+                              </td>
+                            )}
                             <td style={{ padding: "5px 8px", textAlign: "right", color: D.fg }}>
                               {c.close != null ? c.close.toFixed(2) : "-"}
                             </td>
@@ -1131,6 +1173,8 @@ export default function SectorPage() {
                   </div>
                 )}
               </div>
+                );
+              })()}
             </div>
           </div>
         );

@@ -2,6 +2,7 @@
 
 export interface WatchEntry {
   name: string;
+  alias?: string;
   type?: string;
   cost?: number | null;
   shares?: number | null;
@@ -24,6 +25,7 @@ export interface MonitorConfig {
 export interface Service {
   id: string;
   name: string;
+  alias?: string;
   type: string;
   price: number;
   change: number;

@@ -424,6 +424,9 @@ def compute_custom_indices(today=None):
     finally:
         conn.close()
 
+    # Auto-backfill indices with insufficient history (< 5 days)
+    _auto_backfill_new_indices(indices)
+
 
 def _compute_single_index(conn, index_id: str, index_def: dict,
                           date_str: str, date_compact: str):
@@ -465,6 +468,12 @@ def _compute_single_index(conn, index_id: str, index_def: dict,
             comp_details.append({
                 "code": code, "change_pct": chg, "close": close,
             })
+            # Cache per-stock daily price for real-time index aggregation
+            conn.execute(
+                "INSERT OR REPLACE INTO stock_daily (date, code, close, change_pct)"
+                " VALUES (?, ?, ?, ?)",
+                (date_str, code, close, round(chg, 4)),
+            )
             logger.debug("  %s: change=%.2f%%", code, chg)
         else:
             # Suspended/no-data stocks count as 0% change
@@ -510,6 +519,33 @@ def _compute_single_index(conn, index_id: str, index_def: dict,
         "index %s @ %s: avg=%.2f%% value=%.4f (up=%d down=%d)",
         index_id, date_str, avg_change, index_value, up_count, down_count,
     )
+
+
+def _auto_backfill_new_indices(indices: dict, min_days: int = 5, backfill_days: int = 30):
+    """Auto-backfill indices that have fewer than *min_days* of history."""
+    conn = get_connection()
+    try:
+        need = []
+        for index_id in indices:
+            row = conn.execute(
+                "SELECT COUNT(*) AS cnt FROM sector_daily WHERE index_id = ?",
+                (index_id,),
+            ).fetchone()
+            if (row["cnt"] if row else 0) < min_days:
+                need.append(index_id)
+    finally:
+        conn.close()
+
+    if not need:
+        return
+
+    logger.info("auto_backfill: %d indices with < %d days history", len(need), min_days)
+    for i, index_id in enumerate(need):
+        logger.info("auto_backfill [%d/%d] %s", i + 1, len(need), index_id)
+        try:
+            backfill_index(index_id, days=backfill_days)
+        except Exception as e:
+            logger.error("auto_backfill %s failed: %s", index_id, e)
 
 
 # ---------------------------------------------------------------------------
@@ -627,6 +663,12 @@ def backfill_index(index_id: str, days: int = 30):
                         "change_pct": day_data["change_pct"],
                         "close": day_data["close"],
                     })
+                    # Cache per-stock daily price
+                    conn.execute(
+                        "INSERT OR REPLACE INTO stock_daily (date, code, close, change_pct)"
+                        " VALUES (?, ?, ?, ?)",
+                        (date_str, code, day_data["close"], round(day_data["change_pct"], 4)),
+                    )
                 else:
                     # Suspended/no-data stocks count as 0% change
                     changes.append(0.0)
@@ -826,6 +868,150 @@ def detect_mainline(today=None):
 
 
 # ---------------------------------------------------------------------------
+# 4b. detect_period_alerts — N日涨跌幅告警
+# ---------------------------------------------------------------------------
+
+# Default thresholds: {period_days: (gain_pct, drop_pct)}
+_DEFAULT_PERIOD_THRESHOLDS = {
+    3: (8, -6),
+    5: (12, -8),
+    10: (18, -12),
+    15: (25, -15),
+    30: (35, -20),
+}
+
+
+def detect_period_alerts(today=None):
+    """Detect indices with significant N-day gains or drops.
+
+    Computes from stock_daily (real-time aggregation), not sector_daily.
+    Writes to sector_alerts with alert_type = 'period_gain' or 'period_drop'.
+    """
+    date_str = _today_str(today)
+
+    if not _is_trading_day(date_str):
+        logger.info("detect_period_alerts: %s is not a trading day, skipping", date_str)
+        return
+
+    indices = _load_tag_indices()
+    if not indices:
+        return
+
+    # Load thresholds from config, merge with defaults
+    cfg = _load_config().get("alert_rules", {})
+    period_thresholds = {}
+    cfg_periods = cfg.get("period_thresholds", {})
+    for period, (default_gain, default_drop) in _DEFAULT_PERIOD_THRESHOLDS.items():
+        key = str(period)
+        if key in cfg_periods:
+            pt = cfg_periods[key]
+            period_thresholds[period] = (
+                pt.get("gain", default_gain),
+                pt.get("drop", default_drop),
+            )
+        else:
+            period_thresholds[period] = (default_gain, default_drop)
+
+    logger.info(
+        "detect_period_alerts for %s (%d indices, periods=%s)",
+        date_str, len(indices), list(period_thresholds.keys()),
+    )
+
+    conn = get_connection()
+    try:
+        ts_now = int(time.time() * 1000)
+
+        # Load stock_daily into memory: {code: {date: change_pct}}
+        sd_rows = conn.execute(
+            "SELECT date, code, change_pct FROM stock_daily"
+            " WHERE date >= date(?, '-60 days') AND date <= ?"
+            " ORDER BY date DESC",
+            (date_str, date_str),
+        ).fetchall()
+
+        stock_data: dict[str, dict[str, float]] = {}
+        all_dates: set[str] = set()
+        for r in sd_rows:
+            code = r["code"]
+            if code not in stock_data:
+                stock_data[code] = {}
+            stock_data[code][r["date"]] = r["change_pct"]
+            all_dates.add(r["date"])
+
+        sorted_dates = sorted(all_dates, reverse=True)  # newest first
+
+        alert_count = 0
+        for index_id, index_def in indices.items():
+            if not index_def.get("watch", True):
+                continue
+
+            index_name = index_def.get("name", index_id)
+            components = index_def.get("stocks") or index_def.get("components", [])
+            if not components:
+                continue
+
+            # Compute per-date average change for this index
+            date_avgs: list[tuple[str, float]] = []  # newest first
+            for d in sorted_dates:
+                changes = []
+                for code in components:
+                    chg = stock_data.get(code, {}).get(d)
+                    if chg is not None:
+                        changes.append(chg)
+                if changes:
+                    date_avgs.append((d, sum(changes) / len(changes)))
+
+            if len(date_avgs) < 3:
+                continue
+
+            # Check each period
+            for period, (gain_thresh, drop_thresh) in period_thresholds.items():
+                if len(date_avgs) < period:
+                    continue
+
+                cum = sum(avg for _, avg in date_avgs[:period])
+
+                if cum >= gain_thresh:
+                    alert_type = f"period_gain_{period}d"
+                    message = (
+                        f"{index_name}: +{cum:.1f}% in {period}d"
+                        f" (threshold {gain_thresh}%)"
+                    )
+                    display = (
+                        f"[{period}日涨] {index_name} 累计涨 {cum:.1f}%"
+                        f"（阈值 {gain_thresh}%）"
+                    )
+                elif cum <= drop_thresh:
+                    alert_type = f"period_drop_{period}d"
+                    message = (
+                        f"{index_name}: {cum:.1f}% in {period}d"
+                        f" (threshold {drop_thresh}%)"
+                    )
+                    display = (
+                        f"[{period}日跌] {index_name} 累计跌 {cum:.1f}%"
+                        f"（阈值 {drop_thresh}%）"
+                    )
+                else:
+                    continue
+
+                conn.execute(
+                    "INSERT OR REPLACE INTO sector_alerts"
+                    " (ts, date, index_id, index_name, alert_type,"
+                    "  cumulative_pct, slope, r_squared, message, display)"
+                    " VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?)",
+                    (ts_now, date_str, index_id, index_name, alert_type,
+                     round(cum, 4), message, display),
+                )
+                alert_count += 1
+                logger.info("  %s [%dd]: %s %.1f%%", index_id, period, alert_type, cum)
+
+        conn.commit()
+        logger.info("detect_period_alerts done (%d alerts)", alert_count)
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
 # 5. cleanup_old_data
 # ---------------------------------------------------------------------------
 
@@ -847,10 +1033,13 @@ def cleanup_old_data():
         c3 = conn.execute(
             "DELETE FROM sector_alerts WHERE date < ?", (cutoff_alerts,)
         ).rowcount
+        c4 = conn.execute(
+            "DELETE FROM stock_daily WHERE date < ?", (cutoff_daily,)
+        ).rowcount
         conn.commit()
         logger.info(
-            "cleanup: rotation=%d daily=%d alerts=%d rows deleted",
-            c1, c2, c3,
+            "cleanup: rotation=%d daily=%d alerts=%d stock_daily=%d rows deleted",
+            c1, c2, c3, c4,
         )
     finally:
         conn.close()
@@ -867,6 +1056,7 @@ def run_daily():
     collect_rotation()
     compute_custom_indices()
     detect_mainline()
+    detect_period_alerts()
     cleanup_old_data()
     logger.info("=== run_daily complete ===")
 

@@ -495,6 +495,8 @@ export async function GET(request: NextRequest) {
       d3: number;
       d5: number;
       d10: number;
+      d15: number;
+      d30: number;
       cumGain: number;
       status: string;
       components: ComponentEntry[];
@@ -505,6 +507,28 @@ export async function GET(request: NextRequest) {
     };
 
     const indices: IndexItem[] = [];
+
+    // ── Load stock_daily once for real-time index aggregation ──
+    // { code → { date → change_pct } }
+    const sdRows = db
+      .prepare(
+        `SELECT date, code, change_pct FROM stock_daily
+         WHERE date >= date('now', '-60 days')
+         ORDER BY date DESC`,
+      )
+      .all() as { date: string; code: string; change_pct: number }[];
+
+    const stockDailyMap: Record<string, Record<string, number>> = {};
+    const allStockDates = new Set<string>();
+    for (const r of sdRows) {
+      if (!stockDailyMap[r.code]) stockDailyMap[r.code] = {};
+      stockDailyMap[r.code][r.date] = r.change_pct;
+      allStockDates.add(r.date);
+    }
+    // Sorted dates newest-first
+    const sortedStockDates = [...allStockDates].sort().reverse();
+
+    const todayStr = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD
 
     for (const tag of tagRows) {
       const tagName = tag.tag;
@@ -517,67 +541,76 @@ export async function GET(request: NextRequest) {
       // Skip tags that have no stocks (and are not parent tags with children)
       if (stockList.length === 0 && !isParentTag) continue;
 
-      const dailyRows = db
-        .prepare(
-          `SELECT date, avg_change_pct, index_value, components_json
-           FROM sector_daily
-           WHERE index_id = ?
-           ORDER BY date DESC LIMIT 30`,
-        )
-        .all(tagName) as SectorDailyRow[];
-
-      // Live intraday value from market_data.json (fallback to sector_daily)
-      const liveChange = computeLiveChange(stockCodes, liveChangeMap);
-      const todayVal = liveChange != null
-        ? round(liveChange, 2)
-        : dailyRows.length > 0 ? round(dailyRows[0].avg_change_pct, 2) : 0;
-
       const baseline = tag.baseline_value || 100;
 
-      // Build augmented series: if live data available and sector_daily
-      // doesn't have today yet, prepend a virtual "today" row so that
-      // d3/d5/d10/cumGain/history are real-time during trading hours.
-      const todayStr = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD
-      const dbHasToday = dailyRows.length > 0 && dailyRows[0].date === todayStr;
-      const yesterdayValue = dbHasToday
-        ? (dailyRows[1]?.index_value ?? baseline)
-        : (dailyRows[0]?.index_value ?? baseline);
-      const liveValue = liveChange != null
-        ? yesterdayValue * (1 + liveChange / 100)
-        : dbHasToday ? dailyRows[0].index_value : yesterdayValue;
+      // Live intraday value from market_data.json
+      const liveChange = computeLiveChange(stockCodes, liveChangeMap);
+      const todayVal = liveChange != null ? round(liveChange, 2) : 0;
 
-      // Augmented rows: newest-first, with virtual today prepended when needed
+      // ── Compute index history from stock_daily (real-time aggregation) ──
+      // For each date, average change_pct of component stocks → chain into index value
       type AugRow = { date: string; avg_change_pct: number; index_value: number };
-      let augRows: AugRow[];
-      if (liveChange != null && !dbHasToday) {
-        augRows = [
-          { date: todayStr, avg_change_pct: liveChange, index_value: liveValue },
-          ...dailyRows.map((r) => ({ date: r.date, avg_change_pct: r.avg_change_pct, index_value: r.index_value })),
-        ];
-      } else if (liveChange != null && dbHasToday) {
-        // Override today's DB row with live data
-        augRows = [
-          { date: todayStr, avg_change_pct: liveChange, index_value: liveValue },
-          ...dailyRows.slice(1).map((r) => ({ date: r.date, avg_change_pct: r.avg_change_pct, index_value: r.index_value })),
-        ];
-      } else {
-        augRows = dailyRows.map((r) => ({ date: r.date, avg_change_pct: r.avg_change_pct, index_value: r.index_value }));
+      const augRows: AugRow[] = []; // newest-first
+      let chainValue = baseline;
+
+      // Collect per-date averages (oldest-first for chaining)
+      const dateChanges: { date: string; avg: number }[] = [];
+      for (const date of [...sortedStockDates].reverse()) { // oldest-first
+        const changes: number[] = [];
+        for (const code of stockCodes) {
+          const chg = stockDailyMap[code]?.[date];
+          if (chg != null) changes.push(chg);
+        }
+        if (changes.length === 0) continue;
+        const avg = changes.reduce((a, b) => a + b, 0) / changes.length;
+        dateChanges.push({ date, avg });
       }
 
+      // Chain index values oldest→newest
+      for (const dc of dateChanges) {
+        chainValue = chainValue * (1 + dc.avg / 100);
+        augRows.unshift({ date: dc.date, avg_change_pct: dc.avg, index_value: chainValue });
+      }
+
+      // Prepend/override today with live data
+      if (liveChange != null) {
+        const prevValue = augRows.length > 0 && augRows[0].date !== todayStr
+          ? augRows[0].index_value
+          : augRows.length > 1 ? augRows[1].index_value : baseline;
+        const liveValue = prevValue * (1 + liveChange / 100);
+        if (augRows.length > 0 && augRows[0].date === todayStr) {
+          augRows[0] = { date: todayStr, avg_change_pct: liveChange, index_value: liveValue };
+        } else {
+          augRows.unshift({ date: todayStr, avg_change_pct: liveChange, index_value: liveValue });
+        }
+      }
+
+      // Keep last 30 entries
+      const trimmed = augRows.slice(0, 30);
+
       const d3 = round(
-        augRows.slice(0, 3).reduce((s, r) => s + r.avg_change_pct, 0),
+        trimmed.slice(0, 3).reduce((s, r) => s + r.avg_change_pct, 0),
         2,
       );
       const d5 = round(
-        augRows.slice(0, 5).reduce((s, r) => s + r.avg_change_pct, 0),
+        trimmed.slice(0, 5).reduce((s, r) => s + r.avg_change_pct, 0),
         2,
       );
       const d10 = round(
-        augRows.slice(0, 10).reduce((s, r) => s + r.avg_change_pct, 0),
+        trimmed.slice(0, 10).reduce((s, r) => s + r.avg_change_pct, 0),
+        2,
+      );
+      const d15 = round(
+        trimmed.slice(0, 15).reduce((s, r) => s + r.avg_change_pct, 0),
+        2,
+      );
+      const d30 = round(
+        trimmed.slice(0, 30).reduce((s, r) => s + r.avg_change_pct, 0),
         2,
       );
 
-      const cumGain = round(((liveValue / baseline) - 1) * 100, 2);
+      const latestValue = trimmed.length > 0 ? trimmed[0].index_value : baseline;
+      const cumGain = round(((latestValue / baseline) - 1) * 100, 2);
 
       // Status from latest alert
       let status: string = "watching";
@@ -594,36 +627,34 @@ export async function GET(request: NextRequest) {
         }
       } catch { /* table may not exist */ }
 
-      // Components: prefer live market data, fallback to sector_daily snapshot
+      // Components: prefer live market data
       let components: ComponentEntry[] = [];
       if (liveChange != null) {
-        // Build components from live market data
         components = stockCodes.map((code) => ({
           code,
           change_pct: liveChangeMap[code] ?? 0,
-          close: null, // close not available from change map
+          close: null,
           name: stockNameMap[code] || stockList.find((s) => s.code === code)?.name || "",
         }));
-      } else if (dailyRows.length > 0 && dailyRows[0].components_json) {
-        try {
-          const raw: RawComponentEntry[] = JSON.parse(dailyRows[0].components_json);
-          components = raw.map((c) => ({
-            code: c.code,
-            change_pct: c.change_pct,
-            close: c.close ?? null,
-            name: c.name || stockNameMap[c.code] || "",
-          }));
-        } catch { /* invalid json */ }
+      } else if (trimmed.length > 0) {
+        // Use latest stock_daily data for components
+        const latestDate = trimmed[0].date;
+        components = stockCodes.map((code) => ({
+          code,
+          change_pct: stockDailyMap[code]?.[latestDate] ?? 0,
+          close: null,
+          name: stockNameMap[code] || stockList.find((s) => s.code === code)?.name || "",
+        }));
       }
 
-      // Daily history (chronological, newest last) for matrix view
-      const history = augRows
+      // Daily history (chronological, newest last) for K-line chart
+      const history = [...trimmed]
+        .reverse()
         .map((r) => ({
           date: r.date,
           change: round(r.avg_change_pct, 2),
           value: round(r.index_value, 2),
-        }))
-        .reverse();
+        }));
 
       indices.push({
         id: tagName,
@@ -637,6 +668,8 @@ export async function GET(request: NextRequest) {
         d3,
         d5,
         d10,
+        d15,
+        d30,
         cumGain,
         status,
         components,

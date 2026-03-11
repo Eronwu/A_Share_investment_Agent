@@ -124,6 +124,7 @@ type MonitorDb = Database.Database;
 type WatchRow = {
   symbol: string;
   name: string;
+  alias: string | null;
   list_type: "holding" | "watching";
   cost: number | null;
   shares: number | null;
@@ -210,7 +211,7 @@ function readConfigFromDb(db: MonitorDb, ensureSchema = true): MonitorConfig {
   if (ensureSchema) ensureMonitorTables(db);
   const rows = db
     .prepare(
-      `SELECT symbol, name, list_type, cost, shares, lot, hidden, star, dip_buy,
+      `SELECT symbol, name, alias, list_type, cost, shares, lot, hidden, star, dip_buy,
               tags, watch_price, watch_price_date
        FROM monitor_watchlist
        ORDER BY symbol`,
@@ -226,6 +227,7 @@ function readConfigFromDb(db: MonitorDb, ensureSchema = true): MonitorConfig {
   const watching: Record<string, WatchEntry> = {};
   for (const r of rows) {
     const entry: WatchEntry = { name: r.name };
+    if (r.alias) entry.alias = r.alias;
     if (r.list_type === "holding") entry.type = "holding";
     if (r.cost != null) entry.cost = Number(r.cost);
     if (r.shares != null) entry.shares = Number(r.shares);
@@ -276,7 +278,7 @@ function exportMonitorSnapshotFromDb(db: MonitorDb): string | null {
 function readWatchRow(db: MonitorDb, symbol: string): WatchRow | undefined {
   return db
     .prepare(
-      `SELECT symbol, name, list_type, cost, shares, lot, hidden, star, dip_buy,
+      `SELECT symbol, name, alias, list_type, cost, shares, lot, hidden, star, dip_buy,
               tags, watch_price, watch_price_date
        FROM monitor_watchlist
        WHERE symbol = ?`,
@@ -687,6 +689,7 @@ export async function POST(request: Request) {
         let tagsJson = existing.tags ?? "[]";
         let watchPrice = existing.watch_price;
         let watchPriceDate = existing.watch_price_date;
+        let alias = existing.alias;
 
         if (data?.type !== undefined) {
           listType = data.type === "holding" ? "holding" : "watching";
@@ -703,6 +706,7 @@ export async function POST(request: Request) {
         if (data?.hidden !== undefined) hidden = Boolean(data.hidden);
         if (data?.star !== undefined) star = Boolean(data.star);
         if (data?.dip_buy !== undefined) dipBuy = Boolean(data.dip_buy);
+        if (data?.alias !== undefined) alias = data.alias || null;
         if (Array.isArray(data?.tags)) {
           tagsJson = JSON.stringify(data.tags);
         }
@@ -722,9 +726,9 @@ export async function POST(request: Request) {
         db.prepare(
           `UPDATE monitor_watchlist
            SET list_type = ?, cost = ?, shares = ?, lot = ?, hidden = ?, star = ?, dip_buy = ?,
-               tags = ?, watch_price = ?, watch_price_date = ?, updated_at = ?
+               alias = ?, tags = ?, watch_price = ?, watch_price_date = ?, updated_at = ?
            WHERE symbol = ?`
-        ).run(listType, cost, shares, lot, hidden ? 1 : 0, star ? 1 : 0, dipBuy ? 1 : 0, tagsJson, watchPrice, watchPriceDate, nowTs, code);
+        ).run(listType, cost, shares, lot, hidden ? 1 : 0, star ? 1 : 0, dipBuy ? 1 : 0, alias, tagsJson, watchPrice, watchPriceDate, nowTs, code);
 
         // 告警写到 alert_config
         if (data?.above !== undefined || data?.below !== undefined) {

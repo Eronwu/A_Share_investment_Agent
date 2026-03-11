@@ -195,6 +195,16 @@ CREATE TABLE IF NOT EXISTS sector_daily (
 );
 CREATE INDEX IF NOT EXISTS idx_sector_daily_idx ON sector_daily(index_id);
 
+-- 个股日线缓存（供自定义指数实时聚合）
+CREATE TABLE IF NOT EXISTS stock_daily (
+    date TEXT NOT NULL,
+    code TEXT NOT NULL,
+    close REAL,
+    change_pct REAL,
+    PRIMARY KEY(date, code)
+);
+CREATE INDEX IF NOT EXISTS idx_stock_daily_code ON stock_daily(code);
+
 -- 主线告警
 CREATE TABLE IF NOT EXISTS sector_alerts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
