@@ -374,6 +374,13 @@ async function main() {
     });
     record('Manage: unified holdings/watching tabs', manageHasUnifiedTabs);
 
+    // Trade plan section should NOT be on manage page (moved to StockDrawer)
+    const manageHasPlans = await page.locator('button:has-text("新建计划")').count();
+    record('Manage: no trade plan section (新建计划 removed)', manageHasPlans === 0, `count=${manageHasPlans}`);
+
+    const manageHasPlanControls = await page.locator('button:has-text("添加条件")').count();
+    record('Manage: no plan order controls (添加条件 removed)', manageHasPlanControls === 0, `count=${manageHasPlanControls}`);
+
     // ════════════════════════════════════════════════
     // 6.5 Watching page
     // ════════════════════════════════════════════════
