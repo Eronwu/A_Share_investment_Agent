@@ -831,6 +831,20 @@ export function StockDrawer({
     setTimeout(() => setToast(null), 2000);
   }, [symbol]);
 
+  const saveData = useCallback(async (data: Record<string, unknown>) => {
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update", code: symbol, data }),
+      });
+      setToast(res.ok ? { msg: "已保存", type: "ok" } : { msg: "保存失败", type: "err" });
+    } catch {
+      setToast({ msg: "保存失败", type: "err" });
+    }
+    setTimeout(() => setToast(null), 2000);
+  }, [symbol]);
+
   const saveTags = useCallback(async (code: string, tags: string[]) => {
     try {
       const res = await fetch("/api/config", {
@@ -942,6 +956,64 @@ export function StockDrawer({
                   isNumber
                   placeholder="-"
                 />
+              </span>
+            </div>
+            {/* star + dip toggles */}
+            <div style={{ display: "flex", gap: 16, marginTop: 10, alignItems: "center" }}>
+              {/* star */}
+              <button
+                onClick={() => saveData({ star: !service?.star })}
+                title={service?.star ? "取消 L1 优先级" : "标记为 L1 优先级"}
+                style={{
+                  background: service?.star ? D.yellow : "transparent",
+                  border: `1px solid ${service?.star ? D.yellow : D.currentLine}`,
+                  color: service?.star ? D.bg : D.comment,
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  padding: "2px 10px",
+                  borderRadius: 3,
+                  fontFamily: "JetBrains Mono, monospace",
+                  userSelect: "none",
+                }}
+              >
+                ★ {service?.star ? "已星标" : "星标"}
+              </button>
+              {/* dip_buy */}
+              <span
+                onClick={() => saveData({ dip_buy: !service?.dip_buy })}
+                title={service?.dip_buy ? "关闭回调监控" : "开启回调买入监控"}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  cursor: "pointer",
+                  userSelect: "none",
+                  fontFamily: "JetBrains Mono, monospace",
+                  fontSize: 12,
+                  color: service?.dip_buy ? D.cyan : D.comment,
+                }}
+              >
+                <span style={{
+                  display: "inline-block",
+                  width: 28, height: 14,
+                  borderRadius: 7,
+                  background: service?.dip_buy ? D.cyan : D.currentLine,
+                  position: "relative",
+                  transition: "background 0.2s",
+                }}>
+                  <span style={{
+                    display: "inline-block",
+                    width: 10, height: 10,
+                    borderRadius: "50%",
+                    background: service?.dip_buy ? D.bg : D.comment,
+                    position: "absolute",
+                    top: 2,
+                    left: service?.dip_buy ? 16 : 2,
+                    transition: "left 0.2s",
+                  }} />
+                </span>
+                dip 回调监控
               </span>
             </div>
           </section>

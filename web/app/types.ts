@@ -44,6 +44,7 @@ export interface Service {
   below: number | null;
   hidden?: boolean;
   star?: boolean;
+  dip_buy?: boolean;
   tags?: string[];
   watch_price?: number;
   watch_price_date?: string;
