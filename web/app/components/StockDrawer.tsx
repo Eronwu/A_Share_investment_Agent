@@ -817,6 +817,16 @@ export function StockDrawer({
   const [tagEditorOpen, setTagEditorOpen] = useState(false);
   const [showNewPlanForm, setShowNewPlanForm] = useState(false);
 
+  // Optimistic overrides: take precedence over stale service data from 30s poll
+  const [starOverride, setStarOverride] = useState<boolean | null>(null);
+  const [dipOverride, setDipOverride] = useState<boolean | null>(null);
+
+  // Reset overrides when drawer opens a different symbol
+  useEffect(() => {
+    setStarOverride(null);
+    setDipOverride(null);
+  }, [symbol]);
+
   const saveConfig = useCallback(async (field: string, value: unknown) => {
     try {
       const res = await fetch("/api/config", {
@@ -864,6 +874,10 @@ export function StockDrawer({
 
   const service = services.find((s) => s.id === symbol);
   const symbolPlans = planMap[symbol] ?? [];
+
+  // Optimistic values: override takes precedence over stale poll data
+  const isStar = starOverride !== null ? starOverride : (service?.star ?? false);
+  const isDip = dipOverride !== null ? dipOverride : (service?.dip_buy ?? false);
 
   return (
     <>
@@ -962,12 +976,12 @@ export function StockDrawer({
             <div style={{ display: "flex", gap: 16, marginTop: 10, alignItems: "center" }}>
               {/* star */}
               <button
-                onClick={() => saveData({ star: !service?.star })}
-                title={service?.star ? "取消 L1 优先级" : "标记为 L1 优先级"}
+                onClick={() => { setStarOverride(!isStar); saveData({ star: !isStar }); }}
+                title={isStar ? "取消 L1 优先级" : "标记为 L1 优先级"}
                 style={{
-                  background: service?.star ? D.yellow : "transparent",
-                  border: `1px solid ${service?.star ? D.yellow : D.currentLine}`,
-                  color: service?.star ? D.bg : D.comment,
+                  background: isStar ? D.yellow : "transparent",
+                  border: `1px solid ${isStar ? D.yellow : D.currentLine}`,
+                  color: isStar ? D.bg : D.comment,
                   cursor: "pointer",
                   fontSize: 13,
                   fontWeight: 700,
@@ -977,12 +991,12 @@ export function StockDrawer({
                   userSelect: "none",
                 }}
               >
-                ★ {service?.star ? "已星标" : "星标"}
+                ★ {isStar ? "已星标" : "星标"}
               </button>
               {/* dip_buy */}
               <span
-                onClick={() => saveData({ dip_buy: !service?.dip_buy })}
-                title={service?.dip_buy ? "关闭回调监控" : "开启回调买入监控"}
+                onClick={() => { setDipOverride(!isDip); saveData({ dip_buy: !isDip }); }}
+                title={isDip ? "关闭回调监控" : "开启回调买入监控"}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -991,14 +1005,14 @@ export function StockDrawer({
                   userSelect: "none",
                   fontFamily: "JetBrains Mono, monospace",
                   fontSize: 12,
-                  color: service?.dip_buy ? D.cyan : D.comment,
+                  color: isDip ? D.cyan : D.comment,
                 }}
               >
                 <span style={{
                   display: "inline-block",
                   width: 28, height: 14,
                   borderRadius: 7,
-                  background: service?.dip_buy ? D.cyan : D.currentLine,
+                  background: isDip ? D.cyan : D.currentLine,
                   position: "relative",
                   transition: "background 0.2s",
                 }}>
@@ -1006,10 +1020,10 @@ export function StockDrawer({
                     display: "inline-block",
                     width: 10, height: 10,
                     borderRadius: "50%",
-                    background: service?.dip_buy ? D.bg : D.comment,
+                    background: isDip ? D.bg : D.comment,
                     position: "absolute",
                     top: 2,
-                    left: service?.dip_buy ? 16 : 2,
+                    left: isDip ? 16 : 2,
                     transition: "left 0.2s",
                   }} />
                 </span>
