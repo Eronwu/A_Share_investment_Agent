@@ -8,6 +8,8 @@ import { AppTabs } from "./components/AppTabs";
 import { AppTitleBar } from "./components/AppTitleBar";
 import { MarketSwitch, type MarketTab } from "./components/MarketSwitch";
 import { useMetrics } from "./providers/MetricsProvider";
+import { useTradePlans } from "./hooks/useTradePlans";
+import { StockDrawer } from "./components/StockDrawer";
 
 import type { Service } from "./types";
 import { tagColor } from "./lib/tag-utils";
@@ -72,6 +74,8 @@ function Home() {
   const [hiddenOpen, setHiddenOpen] = useState(false);
 
   const { logs, addLogs, clearLogs } = useLogEntries();
+  const { planMap, refresh: refreshPlans } = useTradePlans();
+  const [drawerSymbol, setDrawerSymbol] = useState<string | null>(null);
   // Filter alerts by active market tab (HK symbols start with "HK", rest are A-share)
   // Portfolio-level alerts (empty symbol) show in both tabs
   const tabAlertEvents = alertEvents.filter(
@@ -132,6 +136,10 @@ function Home() {
   const prodETF = useMemo(() => applySortList(tagFiltered.filter((s) => s.type === "holding" && !s.hidden && isETF(s)), holdSort), [tagFiltered, holdSort]);
   const hiddenList = useMemo(() => applySortList(tagFiltered.filter((s) => s.hidden && s.type === "holding"), holdSort), [tagFiltered, holdSort]);
   const hasHold = prodStock.length > 0 || prodETF.length > 0;
+  const allTags = useMemo(
+    () => [...new Set(services.flatMap((s) => s.tags ?? []))],
+    [services]
+  );
 
   const now = ts
     ? new Date(ts).toLocaleTimeString("zh-CN", { hour12: false })
@@ -203,9 +211,28 @@ function Home() {
           padding: "1px 0",
           borderBottom: `1px solid #191a21`,
           background: nearAlert ? "#44475a33" : "transparent",
+          cursor: "pointer",
         }}
+        onClick={() => setDrawerSymbol(s.id)}
+        title="点击查看详情"
       >
-        <span style={{ color: D.orange, width: "6ch" }}>{s.star ? "★" : " "}PROD</span>
+        {/* Plan/Star indicators — replaces type column */}
+        <span style={{ width: "6ch", display: "inline-flex", gap: 2, alignItems: "center" }}>
+          {s.star && (
+            <span style={{
+              border: `1px solid ${D.yellow}`, color: D.yellow,
+              fontSize: 10, padding: "0 2px", lineHeight: "1.4",
+              fontFamily: "JetBrains Mono, monospace",
+            }}>★</span>
+          )}
+          {(planMap[s.id]?.length ?? 0) > 0 && (
+            <span style={{
+              border: `1px solid ${D.cyan}`, color: D.cyan,
+              fontSize: 10, padding: "0 2px", lineHeight: "1.4",
+              fontFamily: "JetBrains Mono, monospace",
+            }}>条</span>
+          )}
+        </span>
         <span style={{ color: D.cyan, width: "10ch" }}>{pad(s.id, 9)}</span>
         <span style={{ color: D.fg, width: "10ch" }}>{pad(s.name.slice(0, 6), 8)}</span>
         <span style={{ color: D.fg, width: "10ch", textAlign: "right" }}>
@@ -249,7 +276,7 @@ function Home() {
         </span>
         <span style={{ width: "12ch", overflow: "hidden", whiteSpace: "nowrap", marginLeft: 8 }}>
           {(s.tags ?? []).map((t) => (
-            <span key={t} style={tagChipStyle(t)} onClick={() => setFilterTag(t)}>{t}</span>
+            <span key={t} style={tagChipStyle(t)} onClick={(e) => { e.stopPropagation(); setFilterTag(t); }}>{t}</span>
           ))}
         </span>
       </div>
@@ -548,6 +575,15 @@ function Home() {
           50% { opacity: 0; }
         }
       `}</style>
+
+      <StockDrawer
+        symbol={drawerSymbol}
+        services={services}
+        planMap={planMap}
+        allTags={allTags}
+        onClose={() => setDrawerSymbol(null)}
+        onRefreshPlans={refreshPlans}
+      />
     </div>
   );
 }
