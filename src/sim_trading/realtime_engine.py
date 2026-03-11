@@ -1038,6 +1038,15 @@ class RealtimeSimEngine:
         min_profit_pct = cfg.get("min_profit_after_cost_pct", 0.003)
         now_ts = int(time.time() * 1000)
 
+        # entry_time=0 means position entry wasn't confirmed — treat as
+        # just opened to prevent T3 from firing on stale/unknown hold time
+        if pos.entry_time == 0:
+            logger.debug(
+                f"T3 {strategy} blocked for {code}: "
+                "entry_time=0 (unconfirmed fill or Futu sync)"
+            )
+            return
+
         # min_hold check
         hold_ms = now_ts - pos.entry_time
         hold_minutes = hold_ms / 60000

@@ -333,22 +333,47 @@ class PositionManager:
         Args:
             positions: {code: FutuPosition} from FutuTradeAdapter.get_positions()
             cash: 可用现金
+
+        已存在的持仓保留 entry_time / stop_loss / take_profit 等策略字段，
+        只更新 entry_price / quantity（防止每 tick 把 entry_time 重置为 0
+        导致 T3 min_hold 检查失效）。新持仓用 now_ts 作为 entry_time。
         """
-        self._positions.clear()
+        import time as _time
+        from datetime import datetime as _dt
+        now_ts = int(_time.time() * 1000)
+        now_date = _dt.now().strftime("%Y-%m-%d")
+
         self._cash = cash
+
+        # Remove positions no longer in Futu
+        gone = set(self._positions) - set(positions)
+        for code in gone:
+            del self._positions[code]
+
         for code, fp in positions.items():
-            self._positions[code] = Position(
-                code=code,
-                entry_price=fp.avg_price,
-                quantity=fp.quantity,
-                entry_time=0,
-                entry_date="",
-                stop_loss=fp.avg_price * 0.90,  # 默认 10% 止损，后续由策略覆盖
-                take_profit=None,
-                max_hold_days=10,
-                confidence=0.5,
-                highest_price=max(fp.avg_price, fp.market_val / fp.quantity if fp.quantity > 0 else 0),
-            )
+            if code in self._positions:
+                # Preserve strategy fields; only refresh price/qty from Futu
+                existing = self._positions[code]
+                existing.entry_price = fp.avg_price
+                existing.quantity = fp.quantity
+            else:
+                # Brand-new position discovered from Futu (e.g. manual trade
+                # or daemon restart). Use now_ts so min_hold check works.
+                self._positions[code] = Position(
+                    code=code,
+                    entry_price=fp.avg_price,
+                    quantity=fp.quantity,
+                    entry_time=now_ts,
+                    entry_date=now_date,
+                    stop_loss=fp.avg_price * 0.90,
+                    take_profit=None,
+                    max_hold_days=10,
+                    confidence=0.5,
+                    highest_price=max(
+                        fp.avg_price,
+                        fp.market_val / fp.quantity if fp.quantity > 0 else 0,
+                    ),
+                )
 
     def snapshot(self, prices: dict[str, float]) -> dict:
         """Current portfolio snapshot."""

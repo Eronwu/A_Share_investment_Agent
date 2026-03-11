@@ -1412,3 +1412,217 @@ class TestEvaluateEntriesFallback:
         assert "HK01211" in pm.positions
         assert "HK02577" not in pm.positions
         assert engine._new_positions_today == 1
+
+
+# ---------------------------------------------------------------------------
+# Regression: sync_from_futu preserves entry_time (T3 min_hold bug)
+# ---------------------------------------------------------------------------
+
+class TestSyncFromFutuPreservesEntryTime:
+    """Regression tests for the T3/min_hold bug.
+
+    Root cause: pm.sync_from_futu() was clearing all positions and
+    re-creating them with entry_time=0. This caused hold_ms = now_ts - 0
+    to be huge, bypassing the 30-min min_hold guard and allowing T3
+    large_order_reversal to fire immediately after a buy.
+
+    Fix 1 (root): sync_from_futu preserves existing positions' entry_time.
+    Fix 2 (guard): _handle_t3_with_filters blocks when entry_time==0.
+    """
+
+    def _make_futu_position(self, code, avg_price=100.0, qty=100, market_val=None):
+        fp = MagicMock()
+        fp.avg_price = avg_price
+        fp.quantity = qty
+        fp.market_val = market_val or avg_price * qty
+        return fp
+
+    def test_existing_position_entry_time_preserved(self, rules):
+        """sync_from_futu must NOT overwrite entry_time of existing position."""
+        pm = PositionManager(500_000, rules.get("lot_sizes", {}))
+        decision = _make_decision("HK00700")
+        entry_ts = 1_600_000_000_000
+        pm.open_position(decision, price=100.0, atr=2.0, trade_cost=50.0,
+                         current_date="2026-03-11", current_ts=entry_ts,
+                         day_index=0)
+        assert pm.positions["HK00700"].entry_time == entry_ts
+
+        # Simulate tick-level Futu sync (called every 3s in daemon)
+        fp = self._make_futu_position("HK00700", avg_price=101.0, qty=100)
+        pm.sync_from_futu({"HK00700": fp}, cash=450_000)
+
+        # entry_time must be preserved, not reset to 0
+        assert pm.positions["HK00700"].entry_time == entry_ts, (
+            "sync_from_futu must preserve entry_time for existing positions"
+        )
+
+    def test_existing_position_price_qty_updated(self, rules):
+        """sync_from_futu should still refresh entry_price and quantity."""
+        pm = PositionManager(500_000, rules.get("lot_sizes", {}))
+        decision = _make_decision("HK00700")
+        pm.open_position(decision, price=100.0, atr=2.0, trade_cost=50.0,
+                         current_date="2026-03-11", current_ts=1_600_000_000_000,
+                         day_index=0)
+
+        fp = self._make_futu_position("HK00700", avg_price=102.5, qty=200)
+        pm.sync_from_futu({"HK00700": fp}, cash=400_000)
+
+        pos = pm.positions["HK00700"]
+        assert pos.entry_price == 102.5
+        assert pos.quantity == 200
+        assert pm.cash == 400_000
+
+    def test_new_position_gets_now_ts_not_zero(self, rules):
+        """New position discovered via Futu sync gets now_ts, not 0."""
+        pm = PositionManager(500_000, rules.get("lot_sizes", {}))
+        before = int(time.time() * 1000)
+
+        fp = self._make_futu_position("HK00700", avg_price=100.0, qty=100)
+        pm.sync_from_futu({"HK00700": fp}, cash=490_000)
+
+        after = int(time.time() * 1000)
+        entry_ts = pm.positions["HK00700"].entry_time
+        assert entry_ts != 0, "New Futu-synced position must not have entry_time=0"
+        assert before <= entry_ts <= after
+
+    def test_position_removed_when_gone_from_futu(self, rules):
+        """Position closed in Futu must be removed from shadow PM on next sync."""
+        pm = PositionManager(500_000, rules.get("lot_sizes", {}))
+        decision = _make_decision("HK00700")
+        pm.open_position(decision, price=100.0, atr=2.0, trade_cost=50.0,
+                         current_date="2026-03-11", current_ts=1_600_000_000_000,
+                         day_index=0)
+        assert "HK00700" in pm.positions
+
+        # Futu reports empty positions → position was closed externally
+        pm.sync_from_futu({}, cash=500_000)
+        assert "HK00700" not in pm.positions
+
+    def test_repeated_syncs_do_not_reset_entry_time(self, rules):
+        """Multiple consecutive syncs (as happens every 3s) must not reset entry_time."""
+        pm = PositionManager(500_000, rules.get("lot_sizes", {}))
+        decision = _make_decision("HK00700")
+        entry_ts = 1_600_000_000_000
+        pm.open_position(decision, price=100.0, atr=2.0, trade_cost=50.0,
+                         current_date="2026-03-11", current_ts=entry_ts,
+                         day_index=0)
+
+        fp = self._make_futu_position("HK00700")
+        for _ in range(10):
+            pm.sync_from_futu({"HK00700": fp}, cash=450_000)
+
+        assert pm.positions["HK00700"].entry_time == entry_ts, (
+            "10 consecutive syncs must not drift entry_time"
+        )
+
+
+class TestT3EntryTimeZeroGuard:
+    """T3 _handle_t3_with_filters: entry_time=0 must block the sell.
+
+    This is the defense-in-depth fix. Even if sync_from_futu somehow
+    produces entry_time=0, T3 must not fire on an unknown hold time.
+    """
+
+    def _make_engine_with_position(self, rules, entry_time, price=564.0):
+        """Create a minimal RealtimeSimEngine with one open position."""
+        from .realtime_engine import RealtimeSimEngine
+        from .broker import VirtualBroker
+
+        engine = RealtimeSimEngine.__new__(RealtimeSimEngine)
+        engine._rules = rules
+        engine._score_cfg = rules.get("daily_score", {})
+        engine._current_date = "2026-03-11"
+        engine._day_index = 0
+        engine._last_exit_ts = {}
+
+        pm = PositionManager(500_000, rules.get("lot_sizes", {}))
+        pm._positions["HK00700"] = Position(
+            code="HK00700", entry_price=price, quantity=100,
+            entry_time=entry_time, entry_date="2026-03-11",
+            stop_loss=price * 0.90, take_profit=price * 1.10,
+            max_hold_days=10, confidence=0.7,
+        )
+        engine._broker = VirtualBroker(pm)
+        engine._pos_mgr = pm
+        engine._mapper = MagicMock()
+        engine._engine = MagicMock()
+        engine._daily_tracker = None
+        engine._futu = None
+        engine._futu_enabled = False
+        return engine, pm
+
+    def test_t3_blocked_when_entry_time_zero(self, rules):
+        """entry_time=0 → T3 must be blocked regardless of strategy."""
+        engine, pm = self._make_engine_with_position(rules, entry_time=0)
+
+        sig = _make_signal(
+            "large_order_reversal", "HK00700",
+            direction="bearish",
+            detail={"direction": "bearish"},
+            ts=int(time.time() * 1000),
+        )
+        prices = {"HK00700": 560.0}  # price below entry → loss → would normally trigger
+        market = {"HK00700": {"amount": 1_000_000_000}}
+        now_ts = int(time.time() * 1000)
+
+        engine._handle_t3_with_filters(sig, prices, market, "2026-03-11")
+
+        # Position must NOT be closed
+        assert "HK00700" in pm.positions, (
+            "T3 must not close position when entry_time=0"
+        )
+        engine._broker.close_position  # just access; broker.close_position not called
+        # Verify: no sell was dispatched (mapper was not called for a SELL)
+        engine._mapper.process_signal.assert_not_called()
+
+    def test_t3_fires_normally_after_min_hold(self, rules):
+        """T3 fires normally once position is past min_hold with valid entry_time."""
+        min_hold_ms = rules.get("daily_score", {}).get("min_hold_minutes", 30) * 60 * 1000
+        entry_ts = int(time.time() * 1000) - min_hold_ms - 5_000  # 5s past hold
+        engine, pm = self._make_engine_with_position(
+            rules, entry_time=entry_ts, price=564.0
+        )
+
+        # Mock mapper to return a SELL decision
+        sell_decision = MagicMock()
+        sell_decision.action = "SELL"
+        sell_decision.position_pct = 1.0
+        engine._mapper.process_signal.return_value = sell_decision
+        engine._engine.execute_trade.return_value = {"exec_price": 558.0}
+        engine._engine.calc_cost.return_value = {"total": 50.0}
+
+        sig = _make_signal(
+            "large_order_reversal", "HK00700",
+            direction="bearish",
+            detail={"direction": "bearish"},
+            ts=int(time.time() * 1000),
+        )
+        prices = {"HK00700": 558.0}  # below entry (564) → loss
+        market = {"HK00700": {"amount": 1_000_000_000}}
+
+        engine._handle_t3_with_filters(sig, prices, market, "2026-03-11")
+
+        engine._mapper.process_signal.assert_called_once()
+
+    def test_t3_blocked_within_min_hold_valid_entry_time(self, rules):
+        """T3 blocked when within min_hold period even with valid entry_time."""
+        # entry just 10 minutes ago
+        entry_ts = int(time.time() * 1000) - 10 * 60 * 1000
+        engine, pm = self._make_engine_with_position(
+            rules, entry_time=entry_ts, price=564.0
+        )
+
+        sig = _make_signal(
+            "large_order_reversal", "HK00700",
+            direction="bearish",
+            detail={"direction": "bearish"},
+            ts=int(time.time() * 1000),
+        )
+        prices = {"HK00700": 558.0}
+        market = {"HK00700": {"amount": 1_000_000_000}}
+
+        engine._handle_t3_with_filters(sig, prices, market, "2026-03-11")
+
+        # Still in min_hold window → no sell
+        assert "HK00700" in pm.positions
+        engine._mapper.process_signal.assert_not_called()

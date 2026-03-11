@@ -15,7 +15,7 @@ poetry run python src/backtester.py --ticker 301157 --start-date 2024-12-11 --en
 poetry run python run_with_backend.py                   # FastAPI on :8000 (Swagger at /docs)
 poetry run python run_with_backend.py --ticker 002848   # API server + immediate analysis
 poetry run python -m src.sim_trading.replay_runner       # sim trading replay (writes to sim_trading.db)
-poetry run pytest src/sim_trading/test_sim_trading.py -v # sim trading tests (101 tests)
+poetry run pytest src/sim_trading/test_sim_trading.py -v # sim trading tests (109 tests)
 ```
 
 ### Web Dashboard (Next.js)
