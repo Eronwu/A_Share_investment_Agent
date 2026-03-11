@@ -34,9 +34,9 @@ async function main() {
     );
     record('A tab: no [ERROR] banner', !hasError_A);
 
-    // Check data loaded (has PROD rows)
+    // Check data loaded (has holding rows — identified by 6-digit A-share codes)
     const prodCount_A = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('span')).filter(s => s.textContent.trim() === 'PROD' || s.textContent.trim() === '★PROD').length
+      Array.from(document.querySelectorAll('span')).filter(s => /^\d{6}$/.test(s.textContent.trim())).length
     );
     record('A tab: PROD rows rendered', prodCount_A > 0, `${prodCount_A} rows`);
 
@@ -110,7 +110,7 @@ async function main() {
     record('HK tab: no [ERROR] banner', !hasError_HK);
 
     const prodCount_HK = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('span')).filter(s => s.textContent.trim() === 'PROD' || s.textContent.trim() === '★PROD').length
+      Array.from(document.querySelectorAll('span')).filter(s => /^HK\d{5}$/.test(s.textContent.trim())).length
     );
     record('HK tab: PROD rows rendered', prodCount_HK > 0, `${prodCount_HK} rows`);
 
@@ -394,10 +394,9 @@ async function main() {
     );
     record('Watching: no [ERROR] banner', !hasError_watching);
 
+    // Watching rows identified by 6-digit A-share codes (A tab)
     const watchingRows = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('span')).filter(s =>
-        s.textContent.trim() === 'DEV' || s.textContent.trim() === '★ DEV' || s.textContent.trim() === '★DEV'
-      ).length
+      Array.from(document.querySelectorAll('span')).filter(s => /^\d{6}$/.test(s.textContent.trim())).length
     );
     record('Watching: DEV rows rendered', watchingRows > 0, `${watchingRows} rows`);
 
@@ -426,11 +425,9 @@ async function main() {
         const n = Number(raw.replace(/\s/g, ''));
         return Number.isFinite(n) ? n : NaN;
       };
+      // Find row containers via 6-digit A-share stock codes (watching A tab)
       const rows = Array.from(document.querySelectorAll('span'))
-        .filter((s) => {
-          const t = (s.textContent || '').trim();
-          return t === 'DEV' || t === '★ DEV' || t === '★DEV';
-        })
+        .filter((s) => /^\d{6}$/.test((s.textContent || '').trim()))
         .map((s) => s.parentElement)
         .filter(Boolean);
       return rows

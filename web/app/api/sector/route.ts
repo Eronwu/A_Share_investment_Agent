@@ -532,25 +532,51 @@ export async function GET(request: NextRequest) {
         ? round(liveChange, 2)
         : dailyRows.length > 0 ? round(dailyRows[0].avg_change_pct, 2) : 0;
 
+      const baseline = tag.baseline_value || 100;
+
+      // Build augmented series: if live data available and sector_daily
+      // doesn't have today yet, prepend a virtual "today" row so that
+      // d3/d5/d10/cumGain/history are real-time during trading hours.
+      const todayStr = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD
+      const dbHasToday = dailyRows.length > 0 && dailyRows[0].date === todayStr;
+      const yesterdayValue = dbHasToday
+        ? (dailyRows[1]?.index_value ?? baseline)
+        : (dailyRows[0]?.index_value ?? baseline);
+      const liveValue = liveChange != null
+        ? yesterdayValue * (1 + liveChange / 100)
+        : dbHasToday ? dailyRows[0].index_value : yesterdayValue;
+
+      // Augmented rows: newest-first, with virtual today prepended when needed
+      type AugRow = { date: string; avg_change_pct: number; index_value: number };
+      let augRows: AugRow[];
+      if (liveChange != null && !dbHasToday) {
+        augRows = [
+          { date: todayStr, avg_change_pct: liveChange, index_value: liveValue },
+          ...dailyRows.map((r) => ({ date: r.date, avg_change_pct: r.avg_change_pct, index_value: r.index_value })),
+        ];
+      } else if (liveChange != null && dbHasToday) {
+        // Override today's DB row with live data
+        augRows = [
+          { date: todayStr, avg_change_pct: liveChange, index_value: liveValue },
+          ...dailyRows.slice(1).map((r) => ({ date: r.date, avg_change_pct: r.avg_change_pct, index_value: r.index_value })),
+        ];
+      } else {
+        augRows = dailyRows.map((r) => ({ date: r.date, avg_change_pct: r.avg_change_pct, index_value: r.index_value }));
+      }
+
       const d3 = round(
-        dailyRows.slice(0, 3).reduce((s, r) => s + r.avg_change_pct, 0),
+        augRows.slice(0, 3).reduce((s, r) => s + r.avg_change_pct, 0),
         2,
       );
       const d5 = round(
-        dailyRows.slice(0, 5).reduce((s, r) => s + r.avg_change_pct, 0),
+        augRows.slice(0, 5).reduce((s, r) => s + r.avg_change_pct, 0),
         2,
       );
       const d10 = round(
-        dailyRows.slice(0, 10).reduce((s, r) => s + r.avg_change_pct, 0),
+        augRows.slice(0, 10).reduce((s, r) => s + r.avg_change_pct, 0),
         2,
       );
 
-      const baseline = tag.baseline_value || 100;
-      // Chain live today change from yesterday's index_value
-      const yesterdayValue = dailyRows.length > 0 ? dailyRows[0].index_value : baseline;
-      const liveValue = liveChange != null
-        ? yesterdayValue * (1 + liveChange / 100)
-        : yesterdayValue;
       const cumGain = round(((liveValue / baseline) - 1) * 100, 2);
 
       // Status from latest alert
@@ -591,7 +617,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Daily history (chronological, newest last) for matrix view
-      const history = dailyRows
+      const history = augRows
         .map((r) => ({
           date: r.date,
           change: round(r.avg_change_pct, 2),

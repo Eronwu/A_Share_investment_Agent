@@ -864,7 +864,7 @@ class GapFadeEngine(PatternEngine):
       1. 开盘价 < 昨收 >= gap_pct（默认 1.5%）
       2. 现价从开盘价反弹 >= fade_pct（默认 2.0%）
 
-    告警级别：★持仓 L1 / 持仓 L2 / 自选 L3
+    告警级别：仅 ★持仓 (star + holding) 触发，L1
     Settings 覆盖：gap_fade_gap_pct / gap_fade_fade_pct
     """
 
@@ -903,9 +903,10 @@ class GapFadeEngine(PatternEngine):
                 continue
 
             entry = watchlist.get(symbol, {})
-            level = resolve_level(entry)
-            if level == 4:
+            # 只检测 star + holding
+            if not (entry.get("star") and entry.get("type") == "holding"):
                 continue
+            level = resolve_level(entry)
 
             gap_from_prev = (open_px - prev_close) / prev_close * 100  # 正=高开, 负=低开
 
