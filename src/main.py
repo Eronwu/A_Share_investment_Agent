@@ -134,10 +134,10 @@ def run_hedge_fund(
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_ticker = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in ticker)
-        summary_dir = Path("reports") / "summaries"
+        summary_dir = Path("reports") / "summaries" / safe_ticker
         summary_dir.mkdir(parents=True, exist_ok=True)
-        auto_summary_text_path = summary_dir / f"{safe_ticker}_summary_{timestamp}.txt"
-        auto_summary_json_path = summary_dir / f"{safe_ticker}_summary_{timestamp}.json"
+        auto_summary_text_path = summary_dir / f"summary_{timestamp}.txt"
+        auto_summary_json_path = summary_dir / f"summary_{timestamp}.json"
 
         auto_summary_text_path.write_text(summary_text + "\n", encoding="utf-8")
         auto_summary_json_path.write_text(
