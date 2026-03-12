@@ -63,6 +63,9 @@ structure.drawio
 # logs
 logs/
 
+# generated reports
+reports/
+
 # data
 src/data/stock_news
 src/data/sentiment_cache.json
@@ -107,4 +110,3 @@ web/screenshots/sort-all/
 web/screenshots/sort/
 web/screenshots/verify/
 web/tsconfig.tsbuildinfo
-

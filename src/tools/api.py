@@ -4,10 +4,18 @@ import akshare as ak
 from datetime import datetime, timedelta
 import json
 import numpy as np
+import os
+import subprocess
 from src.utils.logging_config import setup_logger
 
 # 设置日志记录
 logger = setup_logger('api')
+
+EASTMONEY_REFERER = "https://quote.eastmoney.com/"
+EASTMONEY_USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+)
 
 
 def get_stock_prefix(symbol: str) -> str:
@@ -19,6 +27,172 @@ def get_stock_prefix(symbol: str) -> str:
     elif symbol.startswith(('43', '83', '87', '88')):
         return 'bj'
     return 'sh'  # 默认返回sh
+
+
+def _build_proxy_free_env() -> Dict[str, str]:
+    clean_env = {k: v for k, v in os.environ.items() if "proxy" not in k.lower()}
+    clean_env["NO_PROXY"] = "*"
+    clean_env["no_proxy"] = "*"
+    return clean_env
+
+
+def _run_eastmoney_curl(url: str, timeout: int = 15) -> Dict[str, Any]:
+    cmd = [
+        "curl",
+        "--silent",
+        "--show-error",
+        "--http1.1",
+        "-H",
+        f"Referer: {EASTMONEY_REFERER}",
+        "-H",
+        f"User-Agent: {EASTMONEY_USER_AGENT}",
+        "-H",
+        "Accept: */*",
+        url,
+    ]
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        env=_build_proxy_free_env(),
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            result.stderr.strip() or f"curl exited with {result.returncode} for {url}"
+        )
+    return json.loads(result.stdout)
+
+
+def _eastmoney_secids(symbol: str) -> List[str]:
+    prefixes = ["0", "1"] if symbol.startswith(("0", "3")) else ["1", "0"]
+    return [f"{prefix}.{symbol}" for prefix in prefixes]
+
+
+def _get_market_symbol(symbol: str) -> str:
+    if symbol.startswith(("6", "9")):
+        return f"sh{symbol}"
+    if symbol.startswith(("8", "4")):
+        return f"bj{symbol}"
+    return f"sz{symbol}"
+
+
+def _get_sina_financial_symbol(symbol: str) -> str:
+    return _get_market_symbol(symbol)
+
+
+def _is_etf_symbol(symbol: str) -> bool:
+    return symbol.startswith(("15", "16", "50", "51", "56", "58"))
+
+
+def _fetch_etf_history(symbol: str, start_date: datetime, end_date: datetime, adjust: str = "qfq") -> pd.DataFrame:
+    df = ak.fund_etf_hist_em(
+        symbol=symbol,
+        period="daily",
+        start_date=start_date.strftime("%Y%m%d"),
+        end_date=end_date.strftime("%Y%m%d"),
+        adjust=adjust,
+    )
+    if df is None or df.empty:
+        return pd.DataFrame()
+    df = df.rename(columns={
+        "日期": "date",
+        "开盘": "open",
+        "收盘": "close",
+        "最高": "high",
+        "最低": "low",
+        "成交量": "volume",
+        "成交额": "amount",
+        "振幅": "amplitude",
+        "涨跌幅": "pct_change",
+        "涨跌额": "change_amount",
+        "换手率": "turnover",
+    }).copy()
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"])
+    for col in ["open", "close", "high", "low", "volume", "amount", "amplitude", "pct_change", "change_amount", "turnover"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df
+
+
+def _fetch_history_from_sina_or_tx(
+    symbol: str, start_date: datetime, end_date: datetime, adjust: str = "qfq"
+) -> pd.DataFrame:
+    market_symbol = _get_market_symbol(symbol)
+    normalized_adjust = adjust if adjust in {"", "qfq", "hfq"} else ""
+    start_str = start_date.strftime("%Y%m%d")
+    end_str = end_date.strftime("%Y%m%d")
+
+    try:
+        df = ak.stock_zh_a_daily(
+            symbol=market_symbol,
+            start_date=start_str,
+            end_date=end_str,
+            adjust=normalized_adjust,
+        )
+        if df is not None and not df.empty:
+            df = df.copy()
+            if "date" in df.columns:
+                df["date"] = pd.to_datetime(df["date"])
+            return df
+    except Exception as e:
+        logger.warning(f"Sina history fetch failed for {symbol}: {e}")
+
+    try:
+        df = ak.stock_zh_a_hist_tx(
+            symbol=market_symbol,
+            start_date=start_str,
+            end_date=end_str,
+            adjust=normalized_adjust,
+        )
+        if df is not None and not df.empty:
+            df = df.copy()
+            if "date" in df.columns:
+                df["date"] = pd.to_datetime(df["date"])
+            if "amount" in df.columns and "volume" not in df.columns:
+                df["volume"] = pd.to_numeric(df["amount"], errors="coerce")
+            return df
+    except Exception as e:
+        logger.warning(f"Tencent history fetch failed for {symbol}: {e}")
+
+    return pd.DataFrame()
+
+
+def _get_latest_trade_snapshot(symbol: str) -> Dict[str, float]:
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=400)
+    if _is_etf_symbol(symbol):
+        history_df = _fetch_etf_history(symbol, start_date, end_date, adjust="qfq")
+    else:
+        history_df = _fetch_history_from_sina_or_tx(symbol, start_date, end_date, adjust="qfq")
+    if history_df is None or history_df.empty:
+        raise ValueError(f"no history snapshot available for {symbol}")
+
+    history_df = history_df.sort_values("date").reset_index(drop=True)
+    latest_row = history_df.iloc[-1]
+    latest_close = float(latest_row.get("close", 0) or 0)
+    latest_high = float(latest_row.get("high", 0) or 0)
+    latest_low = float(latest_row.get("low", 0) or 0)
+    latest_open = float(latest_row.get("open", 0) or 0)
+    latest_volume = float(latest_row.get("volume", 0) or 0)
+    outstanding_share = float(latest_row.get("outstanding_share", 0) or 0)
+    market_cap = latest_close * outstanding_share if outstanding_share > 0 else 0.0
+    fifty_two_week_high = float(history_df["high"].tail(252).max()) if "high" in history_df.columns else latest_high
+    fifty_two_week_low = float(history_df["low"].tail(252).min()) if "low" in history_df.columns else latest_low
+
+    return {
+        "open": latest_open,
+        "close": latest_close,
+        "high": latest_high,
+        "low": latest_low,
+        "volume": latest_volume,
+        "market_cap": market_cap,
+        "float_market_cap": market_cap,
+        "fifty_two_week_high": fifty_two_week_high,
+        "fifty_two_week_low": fifty_two_week_low,
+        "outstanding_share": outstanding_share,
+    }
 
 
 # 全局缓存实时行情数据，避免频繁调用耗时的全市场接口
@@ -88,30 +262,13 @@ def get_financial_metrics(symbol: str) -> Dict[str, Any]:
     """获取财务指标数据"""
     logger.info(f"Getting financial indicators for {symbol}...")
     try:
-        # 获取当前日期
-        current_date = datetime.now()
-        
-        # 获取实时行情数据（用于市值和估值比率）
-        realtime_data = get_realtime_quotes(symbol)
-        if realtime_data is not None and not realtime_data.empty:
-            if '代码' in realtime_data.columns:
-                stock_data_match = realtime_data[realtime_data['代码'] == symbol]
-                if not stock_data_match.empty:
-                    stock_data = stock_data_match.iloc[0]
-                    logger.info(f"✓ Real-time quotes found for {symbol}")
-                else:
-                    logger.warning(f"No real-time quotes found for {symbol}")
-                    stock_data = pd.Series()
-            else:
-                # 如果返回的就是单行数据
-                stock_data = realtime_data.iloc[0]
-                logger.info(f"✓ Real-time quotes found for {symbol}")
-        else:
-            logger.warning("No real-time quotes data available")
-            stock_data = pd.Series()
+        logger.info("Fetching latest trade snapshot from Sina/Tencent...")
+        stock_data = _get_latest_trade_snapshot(symbol)
+        logger.info("✓ Latest trade snapshot fetched")
 
         # 获取新浪财务指标
         logger.info(f"Fetching Sina financial indicators for {symbol}...")
+        current_date = datetime.now()
         financial_data = ak.stock_financial_analysis_indicator(
             symbol=symbol, start_year=str(current_date.year-1))
         if financial_data is None or financial_data.empty:
@@ -129,9 +286,8 @@ def get_financial_metrics(symbol: str) -> Dict[str, Any]:
         # 获取利润表数据（用于计算 price_to_sales）
         logger.info("Fetching income statement...")
         try:
-            prefix = get_stock_prefix(symbol)
             income_statement = ak.stock_financial_report_sina(
-                stock=f"{prefix}{symbol}", symbol="利润表")
+                stock=_get_sina_financial_symbol(symbol), symbol="利润表")
             if not income_statement.empty:
                 latest_income = income_statement.iloc[0]
                 logger.info("✓ Income statement fetched")
@@ -154,10 +310,27 @@ def get_financial_metrics(symbol: str) -> Dict[str, Any]:
                 except:
                     return 0.0
 
+            def safe_float(value: Any) -> float:
+                try:
+                    if pd.isna(value):
+                        return 0.0
+                    return float(value)
+                except Exception:
+                    return 0.0
+
+            latest_price = safe_float(stock_data.get("close", 0))
+            book_value_per_share = safe_float(
+                latest_financial.get("每股净资产_调整后(元)", latest_financial.get("每股净资产_调整前(元)", 0))
+            )
+            earnings_per_share = safe_float(
+                latest_financial.get("加权每股收益(元)", latest_financial.get("摊薄每股收益(元)", 0))
+            )
+            market_cap = safe_float(stock_data.get("market_cap", 0))
+
             all_metrics = {
                 # 市场数据
-                "market_cap": float(stock_data.get("总市值", 0)),
-                "float_market_cap": float(stock_data.get("流通市值", 0)),
+                "market_cap": market_cap,
+                "float_market_cap": safe_float(stock_data.get("float_market_cap", market_cap)),
 
                 # 盈利数据
                 "revenue": float(latest_income.get("营业总收入", 0)),
@@ -175,12 +348,12 @@ def get_financial_metrics(symbol: str) -> Dict[str, Any]:
                 "current_ratio": float(latest_financial.get("流动比率", 0)),
                 "debt_to_equity": convert_percentage(latest_financial.get("资产负债率(%)", 0)),
                 "free_cash_flow_per_share": float(latest_financial.get("每股经营性现金流(元)", 0)),
-                "earnings_per_share": float(latest_financial.get("加权每股收益(元)", 0)),
+                "earnings_per_share": earnings_per_share,
 
                 # 估值比率
-                "pe_ratio": float(stock_data.get("市盈率-动态", 0)),
-                "price_to_book": float(stock_data.get("市净率", 0)),
-                "price_to_sales": float(stock_data.get("总市值", 0)) / float(latest_income.get("营业总收入", 1)) if float(latest_income.get("营业总收入", 0)) > 0 else 0,
+                "pe_ratio": latest_price / earnings_per_share if earnings_per_share > 0 else 0,
+                "price_to_book": latest_price / book_value_per_share if book_value_per_share > 0 else 0,
+                "price_to_sales": market_cap / float(latest_income.get("营业总收入", 1)) if float(latest_income.get("营业总收入", 0)) > 0 else 0,
             }
 
             # 只返回 agent 需要的指标
@@ -233,12 +406,11 @@ def get_financial_statements(symbol: str) -> Dict[str, Any]:
     """获取财务报表数据"""
     logger.info(f"Getting financial statements for {symbol}...")
     try:
-        prefix = get_stock_prefix(symbol)
         # 获取资产负债表数据
         logger.info("Fetching balance sheet...")
         try:
             balance_sheet = ak.stock_financial_report_sina(
-                stock=f"{prefix}{symbol}", symbol="资产负债表")
+                stock=_get_sina_financial_symbol(symbol), symbol="资产负债表")
             if not balance_sheet.empty:
                 latest_balance = balance_sheet.iloc[0]
                 previous_balance = balance_sheet.iloc[1] if len(
@@ -259,7 +431,7 @@ def get_financial_statements(symbol: str) -> Dict[str, Any]:
         logger.info("Fetching income statement...")
         try:
             income_statement = ak.stock_financial_report_sina(
-                stock=f"{prefix}{symbol}", symbol="利润表")
+                stock=_get_sina_financial_symbol(symbol), symbol="利润表")
             if not income_statement.empty:
                 latest_income = income_statement.iloc[0]
                 previous_income = income_statement.iloc[1] if len(
@@ -280,7 +452,7 @@ def get_financial_statements(symbol: str) -> Dict[str, Any]:
         logger.info("Fetching cash flow statement...")
         try:
             cash_flow = ak.stock_financial_report_sina(
-                stock=f"{prefix}{symbol}", symbol="现金流量表")
+                stock=_get_sina_financial_symbol(symbol), symbol="现金流量表")
             if not cash_flow.empty:
                 latest_cash_flow = cash_flow.iloc[0]
                 previous_cash_flow = cash_flow.iloc[1] if len(
@@ -363,46 +535,33 @@ def get_financial_statements(symbol: str) -> Dict[str, Any]:
 def get_market_data(symbol: str) -> Dict[str, Any]:
     """获取市场数据"""
     try:
-        # 获取实时行情
-        realtime_data = get_realtime_quotes(symbol)
-        if realtime_data is not None and not realtime_data.empty:
-            if '代码' in realtime_data.columns:
-                stock_data_df = realtime_data[realtime_data['代码'] == symbol]
-            else:
-                stock_data_df = realtime_data
-                
-            if not stock_data_df.empty:
-                stock_data = stock_data_df.iloc[0]
-                return {
-                    "market_cap": float(stock_data.get("总市值", 0)),
-                    "volume": float(stock_data.get("成交量", 0)),
-                    # A股没有平均成交量，暂用当日成交量
-                    "average_volume": float(stock_data.get("成交量", 0)),
-                    "fifty_two_week_high": float(stock_data.get("52周最高", 0)),
-                    "fifty_two_week_low": float(stock_data.get("52周最低", 0))
-                }
-        
-        # 如果获取失败，尝试使用单股接口获取基本信息
-        try:
-            logger.info(f"Retrying get_market_data for {symbol} using individual info...")
-            ind_info = ak.stock_individual_info_em(symbol=symbol)
-            if ind_info is not None and not ind_info.empty:
-                info_dict = dict(zip(ind_info['item'], ind_info['value']))
-                return {
-                    "market_cap": float(info_dict.get("总市值", 0)),
-                    "volume": 0, # 单股基本信息接口不含实时成交量
-                    "average_volume": 0,
-                    "fifty_two_week_high": 0,
-                    "fifty_two_week_low": 0
-                }
-        except Exception as retry_e:
-            logger.error(f"Retry market data failed: {retry_e}")
-
-        return {}
+        stock_data = _get_latest_trade_snapshot(symbol)
+        return {
+            "market_cap": float(stock_data.get("market_cap", 0)),
+            "volume": float(stock_data.get("volume", 0)),
+            "average_volume": float(stock_data.get("volume", 0)),
+            "fifty_two_week_high": float(stock_data.get("fifty_two_week_high", 0)),
+            "fifty_two_week_low": float(stock_data.get("fifty_two_week_low", 0))
+        }
 
     except Exception as e:
-        logger.error(f"Error getting market data: {e}")
-        return {}
+        logger.warning(f"Sina/Tencent market data failed, trying Eastmoney/Akshare: {e}")
+        try:
+            if _is_etf_symbol(symbol):
+                realtime_data = ak.fund_etf_spot_em()
+            else:
+                realtime_data = ak.stock_zh_a_spot_em()
+            stock_data = realtime_data[realtime_data['代码'] == symbol].iloc[0]
+            return {
+                "market_cap": float(stock_data.get("总市值", 0)),
+                "volume": float(stock_data.get("成交量", 0)),
+                "average_volume": float(stock_data.get("成交量", 0)),
+                "fifty_two_week_high": float(stock_data.get("52周最高", 0)),
+                "fifty_two_week_low": float(stock_data.get("52周最低", 0)),
+            }
+        except Exception as inner_e:
+            logger.error(f"Error getting market data: {inner_e}")
+            return {}
 
 
 def get_price_history(symbol: str, start_date: str = None, end_date: str = None, adjust: str = "qfq") -> pd.DataFrame:
@@ -467,18 +626,88 @@ def get_price_history(symbol: str, start_date: str = None, end_date: str = None,
         logger.info(f"Start date: {start_date.strftime('%Y-%m-%d')}")
         logger.info(f"End date: {end_date.strftime('%Y-%m-%d')}")
 
+        def fetch_with_curl(symbol, start_date, end_date):
+            for secid in _eastmoney_secids(symbol):
+                urls = [
+                    (
+                        "https://push2his.eastmoney.com/api/qt/stock/kline/get"
+                        f"?secid={secid}"
+                        "&fields1=f1,f2,f3"
+                        "&fields2=f51,f52,f53,f54,f55"
+                        "&klt=101&fqt=1"
+                        f"&beg={start_date.strftime('%Y%m%d')}"
+                        f"&end={end_date.strftime('%Y%m%d')}"
+                    ),
+                    (
+                        "https://push2his.eastmoney.com/api/qt/stock/kline/get"
+                        f"?secid={secid}"
+                        "&fields1=f1,f2,f3"
+                        "&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61"
+                        "&klt=101&fqt=1"
+                        f"&beg={start_date.strftime('%Y%m%d')}"
+                        f"&end={end_date.strftime('%Y%m%d')}"
+                    ),
+                ]
+                for url in urls:
+                    try:
+                        data = _run_eastmoney_curl(url, timeout=15)
+                        if data and data.get("data") and "klines" in data["data"]:
+                            klines = data["data"]["klines"]
+                            rows = [k.split(',') for k in klines]
+                            columns = ["date", "open", "close", "high", "low"]
+                            if rows and len(rows[0]) >= 11:
+                                columns.extend([
+                                    "volume",
+                                    "amount",
+                                    "amplitude",
+                                    "pct_change",
+                                    "change_amount",
+                                    "turnover",
+                                ])
+                            df_new = pd.DataFrame(rows, columns=columns)
+                            numeric_cols = [
+                                col for col in [
+                                    "open", "close", "high", "low", "volume",
+                                    "amount", "amplitude", "pct_change", "change_amount", "turnover",
+                                ] if col in df_new.columns
+                            ]
+                            for col in numeric_cols:
+                                df_new[col] = pd.to_numeric(df_new[col], errors="coerce")
+                            df_new["date"] = pd.to_datetime(df_new["date"])
+                            logger.info(
+                                f"✓ Successfully fetched data for {secid} via direct Eastmoney curl"
+                            )
+                            return df_new
+                    except Exception as e:
+                        logger.error(f"Curl fallback attempt ({secid}) failed: {e}")
+            return pd.DataFrame()
+
         def get_and_process_data(start_date, end_date):
             """获取并处理数据，包括重命名列等操作"""
-            df = ak.stock_zh_a_hist(
-                symbol=symbol,
-                period="daily",
-                start_date=start_date.strftime("%Y%m%d"),
-                end_date=end_date.strftime("%Y%m%d"),
-                adjust=adjust
-            )
+            try:
+                if _is_etf_symbol(symbol):
+                    df = _fetch_etf_history(symbol, start_date, end_date, adjust=adjust)
+                else:
+                    df = _fetch_history_from_sina_or_tx(symbol, start_date, end_date, adjust=adjust)
+                if df is None or df.empty:
+                    raise ValueError("empty price history from primary source")
+            except Exception as e:
+                logger.warning(f"Primary price history failed, trying Eastmoney: {e}")
+                try:
+                    df = fetch_with_curl(symbol, start_date, end_date)
+                except Exception:
+                    df = ak.stock_zh_a_hist(
+                        symbol=symbol,
+                        period="daily",
+                        start_date=start_date.strftime("%Y%m%d"),
+                        end_date=end_date.strftime("%Y%m%d"),
+                        adjust=adjust
+                    )
 
             if df is None or df.empty:
-                return pd.DataFrame()
+                df = fetch_with_curl(symbol, start_date, end_date)
+                if df is None or df.empty:
+                    return pd.DataFrame()
 
             # 重命名列以匹配技术分析代理的需求
             df = df.rename(columns={

@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import re
 from datetime import datetime, timedelta
 import time
 import pandas as pd
@@ -25,6 +26,16 @@ except ImportError:
     ak = None
 
 
+def is_etf_symbol(symbol: str) -> bool:
+    """
+    判断是否为 ETF 代码
+    A股 ETF 代码通常以 15、16、50、51、58 开头
+    """
+    if len(symbol) != 6:
+        return False
+    return symbol.startswith(("15", "16", "50", "51", "58"))
+
+
 def build_search_query(symbol: str, date: str = None) -> str:
     """
     构建针对股票新闻的 Google 搜索查询
@@ -36,8 +47,10 @@ def build_search_query(symbol: str, date: str = None) -> str:
     Returns:
         构建好的搜索查询字符串
     """
-    # 基础查询：股票代码 + 新闻关键词
-    base_query = f"{symbol} 股票 新闻 财经"
+    if is_etf_symbol(symbol):
+        base_query = f"{symbol} ETF 基金 行情"
+    else:
+        base_query = f"{symbol} 股票 新闻 财经"
 
     # 添加时间限制（搜索指定日期之前的新闻）
     if date:
@@ -89,15 +102,19 @@ def convert_search_results_to_news_format(search_results, symbol: str) -> list:
     news_list = []
 
     for result in search_results:
-        # 过滤掉明显不相关的结果
-        if any(keyword in result.title.lower() for keyword in ['招聘', '求职', '广告', '登录', '注册']):
+        title_lower = result.title.lower()
+        if any(
+            keyword in title_lower
+            for keyword in ["招聘", "求职", "广告", "登录", "注册", "搜索失败", "page not found", "404"]
+        ):
+            continue
+        if not result.link or "google" in result.link or "search" in result.link:
             continue
 
         # 尝试从snippet中提取时间信息
         publish_time = None
         if result.snippet:
             # 查找常见的时间模式
-            import re
             time_patterns = [
                 r'(\d{1,2}天前)',
                 r'(\d{1,2}小时前)',
@@ -207,7 +224,6 @@ def get_stock_news_via_akshare(symbol: str, max_news: int = 10) -> list:
         return []
 
     try:
-        # 尝试接口 1: 东方财富 (可能会 JSON 解析失败)
         news_df = ak.stock_news_em(symbol=symbol)
         if news_df is None or len(news_df) == 0:
             return get_stock_news_via_sina(symbol, max_news)
@@ -329,8 +345,8 @@ def get_stock_news(symbol: str, max_news: int = 10, date: str = None) -> list:
 
             # 执行搜索
             search_options = SearchOptions(
-                limit=min(fetch_count * 2, 10),  # 限制搜索结果数量，避免过慢
-                timeout=5000, # 缩短超时时间到5秒
+                limit=fetch_count * 2,
+                timeout=30000,
                 locale="zh-CN"
             )
 
@@ -343,7 +359,7 @@ def get_stock_news(symbol: str, max_news: int = 10, date: str = None) -> list:
 
                 print(f"通过 Google 搜索成功获取到{len(new_news_list)}条新闻")
             else:
-                print("Google search未返回有效结果，尝试回退到 akshare")
+                print("Google 搜索未返回有效结果，尝试回退到 akshare")
 
         except Exception as e:
             print(f"Google 搜索获取新闻时出错: {e}，回退到 akshare")
@@ -499,11 +515,37 @@ def get_news_sentiment(news_list: list, num_of_news: int = 5) -> float:
 
         # 提取数字结果
         try:
-            sentiment_score = float(result.strip())
-        except ValueError as e:
-            print(f"Error parsing sentiment score: {e}")
-            print(f"Raw result: {result}")
-            return 0.0
+            sentiment_score = float(str(result).strip())
+        except ValueError:
+            raw_text = str(result).strip()
+            parsed_score = None
+            try:
+                json_match = re.search(r"\{.*\}", raw_text, re.DOTALL)
+                if json_match:
+                    payload = json.loads(json_match.group(0))
+                    for key in ("score", "sentiment_score", "value"):
+                        if key in payload:
+                            parsed_score = float(payload[key])
+                            break
+            except Exception:
+                parsed_score = None
+
+            if parsed_score is None:
+                number_matches = re.findall(r"-?\d+(?:\.\d+)?", raw_text)
+                for token in number_matches:
+                    try:
+                        value = float(token)
+                    except ValueError:
+                        continue
+                    if -1.0 <= value <= 1.0:
+                        parsed_score = value
+                        break
+
+            if parsed_score is None:
+                print(f"Error parsing sentiment score from result: {raw_text}")
+                return 0.0
+
+            sentiment_score = parsed_score
 
         # 确保分数在-1到1之间
         sentiment_score = max(-1.0, min(1.0, sentiment_score))

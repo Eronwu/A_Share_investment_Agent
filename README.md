@@ -208,26 +208,34 @@ $env:OPENAI_COMPATIBLE_MODEL='your-model-name'
 
 **基本运行 (只显示关键决策信息):**
 
+推荐直接使用仓库根目录下的短命令：
+
 ```bash
-poetry run python src/main.py --ticker 000000 #修改成你想要测试的股票代码
+./stock 000000
 ```
 
 例如，分析股票代码为 `301155` 的情况：
 
 ```bash
-poetry run python src/main.py --ticker 301155
+./stock 301155
+```
+
+如果你更习惯原始命令，也仍然支持：
+
+```bash
+poetry run python src/main.py --ticker 000000 #修改成你想要测试的股票代码
 ```
 
 **显示详细推理过程 (查看每个智能体的分析过程):**
 
 ```bash
-poetry run python src/main.py --ticker 000000 --show-reasoning #修改成你想要测试的股票代码
+./stock 000000 --show-reasoning #修改成你想要测试的股票代码
 ```
 
 例如:
 
 ```bash
-poetry run python src/main.py --ticker 301155 --show-reasoning
+./stock 301155 --show-reasoning
 ```
 
 **回测功能**
@@ -281,6 +289,38 @@ poetry run python run_with_backend.py
 - 可作为开发自定义前端的基础。
 
 详细的后端 API 文档请参阅：[查看详细的后端 API 文档](./backend/README.md)
+
+### 更简单的使用方式
+
+如果你想把它长期当成本地工具用，推荐：
+
+```bash
+./stock 159316
+./stock 000661 --summary
+./stock 600519 --show-reasoning --num-of-news 10
+```
+
+默认情况下支持走本地 Ollama 模型。
+如果你想临时切到高质量云端模型，可以用：
+
+```bash
+./stock 601985 --hq
+./stock 601985 --model deepseek-v3.1:671b-cloud
+```
+
+Ollama 本地模型的流式观测可通过 `.env` 控制：
+
+```env
+LLM_STREAM=true
+LLM_STREAM_HEARTBEAT_SECONDS=5
+LLM_STREAM_STALL_SECONDS=90
+```
+
+运行时可查看：
+
+```bash
+tail -f logs/ollama_stream.log
+```
 
 ### 参数说明 (命令行模式)
 
