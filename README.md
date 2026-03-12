@@ -62,40 +62,6 @@
 
 另外，优化了终端输出，减少了不必要的详细数据显示，使输出更加清晰易读。
 
-## 最新功能：
-
-### 2025.06.22 新闻搜索功能升级
-
-我们对新闻获取系统进行了重大升级，显著提升了新闻数据的质量和获取效率：
-
-1.  **智能搜索引擎**：集成了先进的搜索功能，能够更精准地获取相关财经新闻
-2.  **多源新闻整合**：支持从多个主流财经网站获取新闻，包括新浪财经、网易财经、东方财富等
-3.  **智能缓存系统**：
-    - **增量缓存**：当请求更多新闻时，系统会智能地利用已有缓存，只获取差额部分
-    - **去重机制**：基于新闻标题自动去重，避免重复内容
-    - **时效性管理**：自动检查缓存有效性，确保数据时效性
-    - **缓存统计**：详细记录缓存使用情况，包括原缓存数量、新获取数量等
-4.  **优化的查询策略**：
-    - 针对 A 股市场特点优化搜索关键词
-    - 支持时间范围限制，可获取特定日期前的新闻
-    - 智能过滤无关内容，提高新闻质量
-
-### 2025.04.27 宏观分析师
-
-### 2025.03.27 辩论室智能增强
-
-我们最新升级了辩论室(Debate Room)模块的决策机制：
-
-1.  **LLM 第三方分析**：引入大型语言模型作为独立的第三方分析师，对多空观点进行客观评估
-2.  **混合置信度计算**：将传统的多空置信度差异与 LLM 评分进行加权融合，形成更全面的决策依据
-3.  **增强的辩论机制**：系统现在能够自动汇总所有研究员的观点，生成结构化分析，并整合进最终决策
-
-这一改进使决策过程更加平衡客观，特别适合在市场信息复杂、多方观点存在分歧的情况下提供更可靠的投资建议。未来我们将持续优化这一机制，进一步提升决策质量。
-
-<div align="center">
-<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%">
-</div>
-
 ## 🛠️ 安装与设置 (Setup)
 
 首先，克隆本仓库到您的本地：
@@ -503,24 +469,17 @@ A_Share_investment_Agent/
 
 ## 🤝 贡献指南 (Contributing)
 
-我们欢迎各种形式的贡献！
+欢迎 issue、思路讨论和小范围改进建议。
 
-1.  Fork 本仓库
-2.  创建您的特性分支 (`git checkout -b feature/AmazingFeature`)
-3.  提交您的更改 (`git commit -m 'Add some AmazingFeature'`)
-4.  推送到分支 (`git push origin feature/AmazingFeature`)
-5.  创建 Pull Request
+但需要说明：
+
+1. 本仓库当前主要作为独立维护的个人版本线使用
+2. 并非所有 PR 都会合并
+3. 如果改动较大，建议先开 issue 或先说明目标
+4. 如果你的改动更适合上游仓库，建议基于对应上游分支单独提交
 
 <div align="center">
 <img src="[https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)" width="100%">
-</div>
-
-## ☕️ 支持
-
-如果这个项目对你有帮助，欢迎请我喝杯咖啡 ❤️
-
-<div align="center">
-  <img src="src/data/img/ali.png" alt="支付宝收款码" width="250"/>
 </div>
 
 
@@ -854,7 +813,11 @@ _(架构图已在前面展示)_
 
 ## 🙏 致谢 (Acknowledgements)
 
-本项目修改自 [ai-hedge-fund](https://github.com/virattt/ai-hedge-fund.git)。我们衷心感谢原作者的出色工作和启发。原项目为我们针对 A 股市场的适配和改进提供了坚实的基础。
+本项目最早修改自 [ai-hedge-fund](https://github.com/virattt/ai-hedge-fund.git)。原项目为针对 A 股市场的适配和改进提供了早期基础。
+
+当前仓库也会持续参考并同步 [kuqi007/A_Share_investment_Agent](https://github.com/kuqi007/A_Share_investment_Agent) 的部分设计与功能更新，在此感谢上游工作带来的启发。
+
+需要说明的是：本仓库是独立维护的版本，包含若干面向个人使用场景的定制功能，因此不等同于上游仓库，也不代表与上游存在联合发布关系。
 
 <div align="center">
 <img src="[https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png)" width="100%">
