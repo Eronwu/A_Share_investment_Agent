@@ -8,7 +8,7 @@ from src.utils.logging_config import setup_logger, SUCCESS_ICON, ERROR_ICON, WAI
 from src.utils.llm_clients import LLMClientFactory
 
 # 设置日志记录
-logger = setup_logger('api_calls')
+logger = setup_logger("api_calls")
 
 
 @dataclass
@@ -27,9 +27,10 @@ class ChatCompletion:
 
 
 # 获取项目根目录
-project_root = os.path.dirname(os.path.dirname(
-    os.path.dirname(os.path.abspath(__file__))))
-env_path = os.path.join(project_root, '.env')
+project_root = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+env_path = os.path.join(project_root, ".env")
 
 # 加载环境变量
 if os.path.exists(env_path):
@@ -38,20 +39,36 @@ if os.path.exists(env_path):
 else:
     logger.warning(f"{ERROR_ICON} 未找到环境变量文件: {env_path}")
 
-# 验证环境变量
+# 验证环境变量 - 支持 ollama 模式
+use_ollama = (
+    os.getenv("USE_OLLAMA", "").lower() == "true"
+    or os.getenv("OLLAMA", "").lower() == "true"
+)
+ollama_model = os.getenv("OLLAMA_MODEL")
+
 api_key = os.getenv("GEMINI_API_KEY")
 model = os.getenv("GEMINI_MODEL")
 
-if not api_key:
-    logger.error(f"{ERROR_ICON} 未找到 GEMINI_API_KEY 环境变量")
-    raise ValueError("GEMINI_API_KEY not found in environment variables")
-if not model:
-    model = "gemini-1.5-flash"
-    logger.info(f"{WAIT_ICON} 使用默认模型: {model}")
+if use_ollama or ollama_model:
+    logger.info(f"{WAIT_ICON} 检测到 Ollama 配置，将使用本地模型")
+elif not api_key:
+    logger.warning(f"{ERROR_ICON} 未找到 GEMINI_API_KEY 环境变量，将尝试使用 Ollama")
+    use_ollama = True
 
-# 初始化 Gemini 客户端
-client = genai.Client(api_key=api_key)
-logger.info(f"{SUCCESS_ICON} Gemini 客户端初始化成功")
+if use_ollama or ollama_model:
+    model = ollama_model or "llama3"
+    logger.info(f"{WAIT_ICON} 默认 Ollama 模型: {model}")
+else:
+    if not api_key:
+        logger.error(f"{ERROR_ICON} 未找到 GEMINI_API_KEY 环境变量")
+        raise ValueError("GEMINI_API_KEY not found in environment variables")
+    if not model:
+        model = "gemini-1.5-flash"
+        logger.info(f"{WAIT_ICON} 使用默认模型: {model}")
+
+    # 初始化 Gemini 客户端
+    client = genai.Client(api_key=api_key)
+    logger.info(f"{SUCCESS_ICON} Gemini 客户端初始化成功")
 
 
 @backoff.on_exception(
@@ -59,7 +76,7 @@ logger.info(f"{SUCCESS_ICON} Gemini 客户端初始化成功")
     (Exception),
     max_tries=5,
     max_time=300,
-    giveup=lambda e: "AFC is enabled" not in str(e)
+    giveup=lambda e: "AFC is enabled" not in str(e),
 )
 def generate_content_with_retry(model, contents, config=None):
     """带重试机制的内容生成函数"""
@@ -69,9 +86,7 @@ def generate_content_with_retry(model, contents, config=None):
         logger.debug(f"请求配置: {config}")
 
         response = client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=config
+            model=model, contents=contents, config=config
         )
 
         logger.info(f"{SUCCESS_ICON} API 调用成功")
@@ -81,7 +96,9 @@ def generate_content_with_retry(model, contents, config=None):
         error_msg = str(e)
         if "location" in error_msg.lower():
             # 使用红色感叹号和红色文字提示
-            logger.info(f"\033[91m❗ Gemini API 地理位置限制错误: 请使用美国节点VPN后重试\033[0m")
+            logger.info(
+                f"\033[91m❗ Gemini API 地理位置限制错误: 请使用美国节点VPN后重试\033[0m"
+            )
             logger.error(f"详细错误: {error_msg}")
         elif "AFC is enabled" in error_msg:
             logger.warning(f"{ERROR_ICON} 触发 API 限制，等待重试... 错误: {error_msg}")
@@ -91,8 +108,18 @@ def generate_content_with_retry(model, contents, config=None):
         raise e
 
 
-def get_chat_completion(messages, model=None, max_retries=3, initial_retry_delay=1,
-                        client_type="auto", api_key=None, base_url=None):
+def get_chat_completion(
+    messages,
+    model=None,
+    max_retries=3,
+    initial_retry_delay=1,
+    client_type="auto",
+    api_key=None,
+    base_url=None,
+    stream=None,
+    heartbeat_seconds=None,
+    stall_threshold_seconds=None,
+):
     """
     获取聊天完成结果，包含重试逻辑
 
@@ -109,19 +136,31 @@ def get_chat_completion(messages, model=None, max_retries=3, initial_retry_delay
         str: 模型回答内容或 None（如果出错）
     """
     try:
+        effective_model = model
+        if not effective_model:
+            use_ollama_now = (
+                os.getenv("USE_OLLAMA", "").lower() == "true"
+                or os.getenv("OLLAMA", "").lower() == "true"
+                or bool(os.getenv("OLLAMA_MODEL"))
+            )
+            if use_ollama_now:
+                effective_model = os.getenv("OLLAMA_MODEL") or "llama3"
+            else:
+                effective_model = os.getenv("GEMINI_MODEL") or model
+
         # 创建客户端
         client = LLMClientFactory.create_client(
-            client_type=client_type,
-            api_key=api_key,
-            base_url=base_url,
-            model=model
+            client_type=client_type, api_key=api_key, base_url=base_url, model=effective_model
         )
 
         # 获取回答
         return client.get_completion(
             messages=messages,
             max_retries=max_retries,
-            initial_retry_delay=initial_retry_delay
+            initial_retry_delay=initial_retry_delay,
+            stream=stream,
+            heartbeat_seconds=heartbeat_seconds,
+            stall_threshold_seconds=stall_threshold_seconds,
         )
     except Exception as e:
         logger.error(f"{ERROR_ICON} get_chat_completion 发生错误: {str(e)}")

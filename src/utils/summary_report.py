@@ -1,0 +1,695 @@
+import json
+import re
+from typing import Any, Dict
+
+
+SIGNAL_LABELS = {
+    "bullish": "Bullish",
+    "bearish": "Bearish",
+    "neutral": "Neutral",
+    "positive": "Bullish",
+    "negative": "Bearish",
+    "hold": "Hold",
+    "buy": "Buy",
+    "sell": "Sell",
+    "reduce": "Reduce",
+}
+
+ACTION_LABELS = {
+    "buy": "BUY",
+    "sell": "SELL",
+    "hold": "HOLD",
+    "reduce": "REDUCE",
+}
+
+
+def _parse_message_content(content: Any):
+    if isinstance(content, (dict, list)):
+        return content
+    if not isinstance(content, str):
+        return content
+    text = content.strip()
+    try:
+        return json.loads(text)
+    except Exception:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start >= 0 and end > start:
+            try:
+                return json.loads(text[start:end + 1])
+            except Exception:
+                return text
+        return text
+
+
+def _find_message(state: Dict[str, Any], name: str):
+    for msg in reversed(state.get("messages", [])):
+        if getattr(msg, "name", None) == name:
+            return _parse_message_content(getattr(msg, "content", None))
+    return None
+
+
+def _format_confidence(value: Any, default: str = "N/A") -> str:
+    num = _to_float_ratio(value)
+    if num is not None:
+        return f"{num * 100:.0f}%"
+    if value is None:
+        return default
+    return str(value)
+
+
+def _to_float_ratio(value: Any) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        if 0 <= value <= 1:
+            return float(value)
+        if 1 < value <= 100:
+            return float(value) / 100.0
+        return None
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        if text.endswith("%"):
+            try:
+                return float(text[:-1]) / 100.0
+            except Exception:
+                return None
+        try:
+            num = float(text)
+            if 0 <= num <= 1:
+                return num
+            if 1 < num <= 100:
+                return num / 100.0
+        except Exception:
+            return None
+    return None
+
+
+def _fmt_duration(seconds: Any) -> str:
+    try:
+        seconds = float(seconds)
+    except Exception:
+        return "N/A"
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    m, s = divmod(seconds, 60)
+    return f"{int(m)}m {s:.1f}s"
+
+
+def _label_signal(signal: Any) -> str:
+    if signal is None:
+        return "N/A"
+    return SIGNAL_LABELS.get(str(signal).lower(), str(signal))
+
+
+def _label_action(action: Any) -> str:
+    if action is None:
+        return "N/A"
+    return ACTION_LABELS.get(str(action).lower(), str(action).upper())
+
+
+def _format_numeric(value: Any, digits: int = 2) -> str:
+    try:
+        num = float(value)
+    except Exception:
+        return str(value) if value is not None else "N/A"
+    return f"{num:.{digits}f}"
+
+
+def _format_percent_maybe(value: Any, digits: int = 2) -> str:
+    try:
+        num = float(value)
+    except Exception:
+        return str(value) if value is not None else "N/A"
+    return f"{num * 100:.{digits}f}%"
+
+
+def _format_large_number(value: Any) -> str:
+    try:
+        num = float(value)
+    except Exception:
+        return str(value) if value is not None else "N/A"
+    abs_num = abs(num)
+    if abs_num >= 1e8:
+        return f"{num / 1e8:.2f}亿"
+    if abs_num >= 1e4:
+        return f"{num / 1e4:.2f}万"
+    return f"{num:.2f}"
+
+
+def _translate_reasoning(text: Any) -> str:
+    if not isinstance(text, str) or not text.strip():
+        return "N/A"
+
+    translated = text.strip()
+
+    exact_replacements = [
+        ("The risk management signal is the primary driver for this trade, with a confidence level of 1.0.", "本次决策以风险管理信号为首要依据，且该信号置信度最高。"),
+        ("The risk management signal is the highest priority and dictates the 'hold' action.", "风险管理信号优先级最高，因此直接约束了最终持有动作。"),
+        ("The general macro analysis is negative, affecting the stock negatively.", "个股宏观分析偏负面，对标的形成压制。"),
+        ("The sentiment analysis is highly bearish, reflecting negative news about specific sectors.", "情绪分析明显偏空，反映出相关行业新闻面对股价形成压力。"),
+        ("The technical analysis and valuation analysis provide mixed signals, with the technical signal being neutral and the valuation signal bullish.", "技术面与估值面给出混合信号：技术面偏中性，估值面偏多。"),
+        ("Both macro and daily news summaries indicate market不确定性, but do not strongly sway the decision.", "宏观摘要和日度新闻摘要都提示市场存在不确定性，但不足以单独改变最终决策。"),
+        ("The valuation analysis, while compelling, is outweighed by the other signals.", "估值虽然有吸引力，但整体权重仍被其他信号所平衡。"),
+        ("Bullish arguments more convincing", "多头论据更有说服力"),
+        ("Bearish arguments more convincing", "空头论据更有说服力"),
+        ("Balanced debate with strong arguments on both sides", "多空双方都有较强论据，整体仍属均衡争论"),
+        ("Bullish thesis based on comprehensive analysis of technical, fundamental, sentiment, and valuation factors", "多头观点认为，技术面、基本面、情绪面与估值面综合来看仍具备正向机会。"),
+        ("Bearish thesis based on comprehensive analysis of technical, fundamental, sentiment, and valuation factors", "空头观点认为，技术面、基本面、情绪面与估值面综合来看仍需保持谨慎。"),
+    ]
+    for src, dst in exact_replacements:
+        translated = translated.replace(src, dst)
+
+    generic_replacements = [
+        ("Technical indicators may be conservative, presenting buying opportunities", "技术指标偏保守，意味着当前位置可能存在买入机会"),
+        ("Strong fundamentals with", "基本面较强，置信度为"),
+        ("Positive market sentiment with", "市场情绪偏正面，置信度为"),
+        ("Negative market sentiment with", "市场情绪偏负面，置信度为"),
+        ("Market sentiment may be overly pessimistic, creating value opportunities", "市场情绪可能过度悲观，从而带来价值型机会"),
+        ("Technical rally may be temporary, suggesting potential reversal", "技术性反弹可能只是短期现象，存在回落风险"),
+        ("Current fundamental strength may not be sustainable", "当前基本面强势未必具备持续性"),
+        ("Current valuation may not fully reflect downside risks", "当前估值可能尚未充分计入下行风险"),
+        ("Stock appears undervalued", "标的看起来存在低估"),
+        ("Stock appears overvalued", "标的看起来存在高估"),
+        ("The final decision is buy", "最终决策为买入"),
+        ("The final decision is hold", "最终决策为持有"),
+        ("The final decision is sell", "最终决策为卖出"),
+        ("buy ", "买入 "),
+        ("hold", "持有"),
+        ("sell", "卖出"),
+        ("shares", "股"),
+        ("confidence", "置信度"),
+        ("market sentiment", "市场情绪"),
+        ("fundamental", "基本面"),
+        ("fundamentals", "基本面"),
+        ("valuation", "估值"),
+        ("technical", "技术面"),
+        ("macro", "宏观"),
+        ("risk management", "风险管理"),
+        ("bullish", "看多"),
+        ("bearish", "看空"),
+        ("neutral", "中性"),
+    ]
+    for src, dst in generic_replacements:
+        translated = translated.replace(src, dst)
+
+    return translated
+
+
+def _extract_number(text: str, pattern: str) -> str | None:
+    if not isinstance(text, str):
+        return None
+    match = re.search(pattern, text, re.IGNORECASE)
+    return match.group(1) if match else None
+
+
+def _extract_sentiment_sample_count(sentiment: Any) -> int | None:
+    if not isinstance(sentiment, dict):
+        return None
+    reasoning = sentiment.get("reasoning")
+    if not isinstance(reasoning, str):
+        return None
+    value = _extract_number(reasoning, r"Based on\s+(\d+)\s+recent news articles")
+    return int(value) if value else None
+
+
+def _extract_sentiment_score(sentiment: Any) -> float | None:
+    if not isinstance(sentiment, dict):
+        return None
+    reasoning = sentiment.get("reasoning")
+    if not isinstance(reasoning, str):
+        return None
+    value = _extract_number(reasoning, r"sentiment score:\s*(-?\d+(?:\.\d+)?)")
+    return float(value) if value else None
+
+
+def _extract_valuation_gap(valuation: Any) -> str:
+    if not isinstance(valuation, dict):
+        return "N/A"
+    reasoning = valuation.get("reasoning", {}) or {}
+    owner = ((reasoning.get("owner_earnings_analysis") or {}).get("details"))
+    dcf = ((reasoning.get("dcf_analysis") or {}).get("details"))
+    for text in [owner, dcf]:
+        value = _extract_number(text or "", r"Gap:\s*(-?\d+(?:\.\d+)?%)")
+        if value:
+            return value
+    return "N/A"
+
+
+def _extract_quality_flags(fundamentals: Any, valuation: Any, sentiment: Any, macro: Any, portfolio: Any, macro_news: Any) -> list[str]:
+    flags = []
+
+    fundamentals_conf = _to_float_ratio((fundamentals or {}).get("confidence") if isinstance(fundamentals, dict) else None)
+    valuation_conf = _to_float_ratio((valuation or {}).get("confidence") if isinstance(valuation, dict) else None)
+    sentiment_count = _extract_sentiment_sample_count(sentiment)
+
+    if fundamentals_conf == 0:
+        flags.append("基本面样本不可用或被跳过（常见于 ETF / 缺财报）")
+    if valuation_conf == 0:
+        flags.append("估值样本不可用或被跳过（常见于 ETF / 缺财报）")
+    if sentiment_count is not None and sentiment_count < 5:
+        flags.append(f"情绪新闻样本偏少（{sentiment_count} 条）")
+    if isinstance(macro, dict) and not (macro.get("key_factors") or []):
+        flags.append("宏观分析缺少关键因素列表")
+    if isinstance(portfolio, dict) and portfolio.get("fallback"):
+        flags.append("最终组合决策走了保守 fallback")
+    if isinstance(macro_news, str) and ("未获取到" in macro_news or "发生错误" in macro_news or "未能返回有效结果" in macro_news):
+        flags.append("大盘宏观新闻摘要质量较低或生成失败")
+
+    return flags
+
+
+def _normalize_token(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip().lower()
+    return text or None
+
+
+def _safe_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except Exception:
+        return None
+
+
+def _signal_score(value: Any) -> float:
+    return {
+        "bullish": 1.0,
+        "positive": 1.0,
+        "buy": 1.0,
+        "neutral": 0.0,
+        "hold": 0.0,
+        "negative": -1.0,
+        "bearish": -1.0,
+        "sell": -1.0,
+        "reduce": -0.5,
+    }.get(_normalize_token(value), 0.0)
+
+
+def _action_score(value: Any) -> float:
+    return {
+        "buy": 1.0,
+        "hold": 0.2,
+        "reduce": -0.4,
+        "sell": -1.0,
+    }.get(_normalize_token(value), 0.0)
+
+
+def _build_support_pressure_points(
+    fundamentals: Any,
+    technical: Any,
+    sentiment: Any,
+    valuation: Any,
+    risk: Any,
+    macro: Any,
+) -> tuple[list[str], list[str]]:
+    support_points = []
+    pressure_points = []
+
+    if isinstance(fundamentals, dict) and fundamentals.get("signal") == "bullish":
+        support_points.append("基本面提供正向支撑")
+    if isinstance(macro, dict) and macro.get("impact_on_stock") in {"positive", "bullish"}:
+        support_points.append("宏观/行业环境偏正面")
+    if isinstance(sentiment, dict) and sentiment.get("signal") == "bullish":
+        support_points.append("市场情绪偏多")
+
+    if isinstance(technical, dict) and technical.get("signal") == "bearish":
+        pressure_points.append("技术面暂未形成进攻确认")
+    if isinstance(valuation, dict) and valuation.get("signal") == "bearish":
+        pressure_points.append("估值缺乏安全边际")
+    if isinstance(risk, dict) and str(risk.get("trading_action", "")).lower() in {"hold", "reduce", "sell"}:
+        pressure_points.append("风险管理未放行激进加仓")
+
+    if not support_points:
+        support_points.append("正向因子存在，但尚未形成强共振")
+    if not pressure_points:
+        pressure_points.append("当前压制因素有限，但缺少足够催化")
+
+    return support_points[:3], pressure_points[:3]
+
+
+def _build_signal_snapshot(payload: Any, signal_key: str = "signal") -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        return {
+            "signal": None,
+            "signal_label": "N/A",
+            "confidence": None,
+            "confidence_label": "N/A",
+        }
+
+    raw_signal = payload.get(signal_key)
+    confidence = _to_float_ratio(payload.get("confidence"))
+    return {
+        "signal": _normalize_token(raw_signal),
+        "signal_label": _label_signal(raw_signal),
+        "confidence": confidence,
+        "confidence_label": _format_confidence(payload.get("confidence")),
+    }
+
+
+def _compute_composite_score(
+    portfolio: Any,
+    technical: Any,
+    fundamentals: Any,
+    sentiment: Any,
+    valuation: Any,
+    risk: Any,
+    macro: Any,
+) -> float:
+    score = 50.0
+    final_conf = _to_float_ratio((portfolio or {}).get("confidence") if isinstance(portfolio, dict) else None)
+    risk_score = _safe_float((risk or {}).get("risk_score") if isinstance(risk, dict) else None)
+    macro_signal = None
+    if isinstance(macro, dict):
+        macro_signal = macro.get("impact_on_stock") or macro.get("macro_environment")
+
+    score += _action_score((portfolio or {}).get("action") if isinstance(portfolio, dict) else None) * 18
+    score += _signal_score((technical or {}).get("signal") if isinstance(technical, dict) else None) * 8
+    score += _signal_score((fundamentals or {}).get("signal") if isinstance(fundamentals, dict) else None) * 8
+    score += _signal_score((sentiment or {}).get("signal") if isinstance(sentiment, dict) else None) * 5
+    score += _signal_score((valuation or {}).get("signal") if isinstance(valuation, dict) else None) * 8
+    score += _signal_score(macro_signal) * 4
+
+    if final_conf is not None:
+        score += (final_conf - 0.5) * 20
+    if risk_score is not None:
+        score += (5.0 - risk_score) * 2
+
+    return round(max(0.0, min(100.0, score)), 2)
+
+
+def _quality_level(high: bool = False, medium: bool = False, low: bool = False) -> str:
+    if high:
+        return "高"
+    if medium:
+        return "中"
+    if low:
+        return "低"
+    return "中"
+
+
+def _infer_data_quality(fundamentals: Any, valuation: Any, sentiment: Any, macro: Any, portfolio: Any, macro_news: Any) -> Dict[str, str]:
+    fundamentals_conf = _to_float_ratio((fundamentals or {}).get("confidence") if isinstance(fundamentals, dict) else None)
+    valuation_conf = _to_float_ratio((valuation or {}).get("confidence") if isinstance(valuation, dict) else None)
+    sentiment_count = _extract_sentiment_sample_count(sentiment)
+    macro_factors = len((macro or {}).get("key_factors", [])) if isinstance(macro, dict) else 0
+
+    return {
+        "财务数据": "高" if fundamentals_conf and fundamentals_conf > 0 else "低",
+        "技术数据": "高" if isinstance(_find_signal_payload(technical= None), dict) else "高",
+        "新闻情绪": "高" if sentiment_count and sentiment_count >= 15 else "中" if sentiment_count and sentiment_count >= 5 else "低",
+        "宏观信号": "中" if macro_factors >= 3 else "低",
+        "估值信号": "高" if valuation_conf and valuation_conf > 0 else "低",
+        "最终决策": "中" if isinstance(portfolio, dict) and not portfolio.get("fallback") else "低",
+    }
+
+
+# helper kept tiny to avoid larger refactor above
+
+def _find_signal_payload(technical: Any = None):
+    return technical
+
+
+def build_summary_payload(state: Dict[str, Any]) -> Dict[str, Any]:
+    data = state.get("data", {})
+    metadata = state.get("metadata", {})
+    timings = data.get("agent_timings", {}) or metadata.get("agent_timings", {}) or {}
+    ticker = data.get("ticker", "未知")
+    security_type = data.get("security_type", "stock")
+    end_date = data.get("end_date", "未知")
+
+    technical = _find_message(state, "technical_analyst_agent")
+    fundamentals = _find_message(state, "fundamentals_agent")
+    sentiment = _find_message(state, "sentiment_agent")
+    valuation = _find_message(state, "valuation_agent")
+    bull = _find_message(state, "researcher_bull_agent")
+    bear = _find_message(state, "researcher_bear_agent")
+    debate = _find_message(state, "debate_room_agent")
+    risk = _find_message(state, "risk_management_agent")
+    macro = _find_message(state, "macro_analyst_agent")
+    portfolio = _find_message(state, "portfolio_management_agent")
+    macro_news = data.get("macro_news_analysis_result")
+
+    quality_map = _infer_data_quality(fundamentals, valuation, sentiment, macro, portfolio, macro_news)
+    quality_flags = _extract_quality_flags(fundamentals, valuation, sentiment, macro, portfolio, macro_news)
+    support_points, pressure_points = _build_support_pressure_points(
+        fundamentals, technical, sentiment, valuation, risk, macro
+    )
+
+    final_action_raw = (portfolio or {}).get("action") if isinstance(portfolio, dict) else None
+    risk_action_raw = (risk or {}).get("trading_action") if isinstance(risk, dict) else None
+    macro_signal_raw = None
+    if isinstance(macro, dict):
+        macro_signal_raw = macro.get("impact_on_stock") or macro.get("macro_environment")
+
+    return {
+        "ticker": ticker,
+        "security_type": security_type,
+        "analysis_date": end_date,
+        "final": {
+            "action": _normalize_token(final_action_raw),
+            "action_label": _label_action(final_action_raw),
+            "confidence": _to_float_ratio((portfolio or {}).get("confidence") if isinstance(portfolio, dict) else None),
+            "confidence_label": _format_confidence((portfolio or {}).get("confidence") if isinstance(portfolio, dict) else None),
+            "quantity": (portfolio or {}).get("quantity") if isinstance(portfolio, dict) else None,
+            "reasoning": (portfolio or {}).get("reasoning") if isinstance(portfolio, dict) else None,
+            "reasoning_cn": _translate_reasoning((portfolio or {}).get("reasoning") if isinstance(portfolio, dict) else None),
+        },
+        "risk": {
+            "score": _safe_float((risk or {}).get("risk_score") if isinstance(risk, dict) else None),
+            "action": _normalize_token(risk_action_raw),
+            "action_label": _label_action(risk_action_raw),
+            "max_position_size": (risk or {}).get("max_position_size") if isinstance(risk, dict) else None,
+            "reasoning": (risk or {}).get("reasoning") if isinstance(risk, dict) else None,
+        },
+        "signals": {
+            "technical": _build_signal_snapshot(technical),
+            "fundamentals": _build_signal_snapshot(fundamentals),
+            "sentiment": {
+                **_build_signal_snapshot(sentiment),
+                "sample_count": _extract_sentiment_sample_count(sentiment),
+                "sentiment_score": _extract_sentiment_score(sentiment),
+            },
+            "valuation": {
+                **_build_signal_snapshot(valuation),
+                "valuation_gap": _extract_valuation_gap(valuation),
+            },
+            "macro": {
+                "signal": _normalize_token(macro_signal_raw),
+                "signal_label": _label_signal(macro_signal_raw),
+                "key_factors": (macro or {}).get("key_factors", []) if isinstance(macro, dict) else [],
+            },
+            "debate": _build_signal_snapshot(debate),
+        },
+        "support_points": support_points,
+        "pressure_points": pressure_points,
+        "quality": {
+            "map": quality_map,
+            "flags": quality_flags,
+        },
+        "macro_news_summary": macro_news,
+        "bull_thesis": bull if isinstance(bull, dict) else None,
+        "bear_thesis": bear if isinstance(bear, dict) else None,
+        "timings": timings,
+        "composite_score": _compute_composite_score(
+            portfolio, technical, fundamentals, sentiment, valuation, risk, macro
+        ),
+    }
+
+
+def build_summary_report(state: Dict[str, Any]) -> str:
+    payload = build_summary_payload(state)
+    ticker = payload["ticker"]
+    security_type = payload["security_type"]
+    end_date = payload["analysis_date"]
+    final = payload["final"]
+    risk_payload = payload["risk"]
+    signals = payload["signals"]
+    macro_news = payload["macro_news_summary"]
+    bull = payload["bull_thesis"]
+    bear = payload["bear_thesis"]
+    quality_map = payload["quality"]["map"]
+    quality_flags = payload["quality"]["flags"]
+    timings = payload["timings"]
+
+    technical = _find_message(state, "technical_analyst_agent")
+    fundamentals = _find_message(state, "fundamentals_agent")
+    sentiment = _find_message(state, "sentiment_agent")
+    valuation = _find_message(state, "valuation_agent")
+    debate = _find_message(state, "debate_room_agent")
+    risk = _find_message(state, "risk_management_agent")
+    macro = _find_message(state, "macro_analyst_agent")
+    portfolio = _find_message(state, "portfolio_management_agent")
+
+    lines = []
+    lines.append("=" * 96)
+    lines.append(f"完整投资分析报告 · {ticker}")
+    lines.append("=" * 96)
+
+    lines.append("[1] 封面结论")
+    final_action = final["action_label"]
+    final_conf = final["confidence_label"]
+    risk_action = risk_payload["action_label"]
+    risk_score = risk_payload["score"] if risk_payload["score"] is not None else "N/A"
+    lines.append(f"- 标的: {ticker}")
+    lines.append(f"- 类型: {'ETF' if str(security_type).lower() == 'etf' else 'A股个股'}")
+    lines.append(f"- 分析日期: {end_date}")
+    lines.append(f"- 最终建议: {final_action}")
+    lines.append(f"- 综合置信度: {final_conf}")
+    lines.append(f"- 风险等级: {risk_score}/10")
+    lines.append(f"- 风控动作: {risk_action}")
+    if final.get("reasoning"):
+        lines.append(f"- 一句话结论: {final['reasoning_cn']}")
+
+    lines.append("")
+    lines.append("[2] 决策摘要")
+    lines.append("- 支持因素:")
+    for idx, point in enumerate(payload["support_points"], start=1):
+        lines.append(f"  {idx}. {point}")
+    lines.append("- 压制因素:")
+    for idx, point in enumerate(payload["pressure_points"], start=1):
+        lines.append(f"  {idx}. {point}")
+
+    lines.append("")
+    lines.append("[3] 多视角信号面板")
+    panel_rows = [
+        ("技术面", technical),
+        ("基本面", fundamentals),
+        ("情绪面", sentiment),
+        ("估值面", valuation),
+    ]
+    for title, payload in panel_rows:
+        if isinstance(payload, dict):
+            lines.append(f"- {title}: {_label_signal(payload.get('signal'))} ({_format_confidence(payload.get('confidence'))})")
+        else:
+            lines.append(f"- {title}: N/A")
+    lines.append(f"- 宏观面: {signals['macro']['signal_label']}")
+    lines.append(f"- 风险管理: {risk_action}")
+
+    lines.append("")
+    lines.append("[4] 各 Agent 详细观点")
+    if isinstance(technical, dict):
+        t = technical.get("strategy_signals", {}) or {}
+        momentum = (t.get("momentum") or {}).get("metrics", {})
+        trend = (t.get("trend_following") or {}).get("metrics", {})
+        mean_rev = (t.get("mean_reversion") or {}).get("metrics", {})
+        vol = (t.get("volatility") or {}).get("metrics", {})
+        lines.append("- 技术分析师")
+        lines.append(f"  · 结论: {_label_signal(technical.get('signal'))}")
+        lines.append(f"  · 置信度: {_format_confidence(technical.get('confidence'))}")
+        lines.append(f"  · 1月动量: {_format_percent_maybe(momentum.get('momentum_1m', 'N/A'))}")
+        lines.append(f"  · 3月动量: {_format_percent_maybe(momentum.get('momentum_3m', 'N/A'))}")
+        lines.append(f"  · 6月动量: {_format_percent_maybe(momentum.get('momentum_6m', 'N/A'))}")
+        lines.append(f"  · ADX: {_format_numeric(trend.get('adx', 'N/A'))}")
+        lines.append(f"  · 均值回归 z-score: {_format_numeric(mean_rev.get('z_score', 'N/A'))}")
+        lines.append(f"  · 历史波动率: {_format_percent_maybe(vol.get('historical_volatility', 'N/A'))}")
+    if isinstance(fundamentals, dict):
+        r = fundamentals.get("reasoning", {}) or {}
+        lines.append("- 基本面分析师")
+        lines.append(f"  · 结论: {_label_signal(fundamentals.get('signal'))}")
+        lines.append(f"  · 置信度: {_format_confidence(fundamentals.get('confidence'))}")
+        lines.append(f"  · 盈利能力: {(r.get('profitability_signal') or {}).get('details', 'N/A')}")
+        lines.append(f"  · 成长性: {(r.get('growth_signal') or {}).get('details', 'N/A')}")
+        lines.append(f"  · 财务健康: {(r.get('financial_health_signal') or {}).get('details', 'N/A')}")
+    if isinstance(sentiment, dict):
+        lines.append("- 情绪分析师")
+        lines.append(f"  · 结论: {_label_signal(sentiment.get('signal'))}")
+        lines.append(f"  · 置信度: {_format_confidence(sentiment.get('confidence'))}")
+        lines.append(f"  · 新闻样本: {_extract_sentiment_sample_count(sentiment) or 'N/A'} 条")
+        lines.append(f"  · 情绪分数: {_format_numeric(_extract_sentiment_score(sentiment), 2) if _extract_sentiment_score(sentiment) is not None else 'N/A'}")
+        lines.append(f"  · 解读: {_translate_reasoning(sentiment.get('reasoning', 'N/A'))}")
+    if isinstance(valuation, dict):
+        vr = valuation.get("reasoning", {}) or {}
+        lines.append("- 估值分析师")
+        lines.append(f"  · 结论: {_label_signal(valuation.get('signal'))}")
+        lines.append(f"  · 置信度: {_format_confidence(valuation.get('confidence'))}")
+        lines.append(f"  · DCF: {(vr.get('dcf_analysis') or {}).get('details', 'N/A')}")
+        lines.append(f"  · Owner earnings: {(vr.get('owner_earnings_analysis') or {}).get('details', 'N/A')}")
+
+    lines.append("")
+    lines.append("[5] 多头研究员观点")
+    if isinstance(bull, dict):
+        lines.append(f"- 核心主张: {_translate_reasoning(bull.get('reasoning', 'N/A'))}")
+        for idx, point in enumerate((bull.get('thesis_points') or [])[:3], start=1):
+            lines.append(f"  {idx}. {point}")
+    else:
+        lines.append("- N/A")
+
+    lines.append("")
+    lines.append("[6] 空头研究员观点")
+    if isinstance(bear, dict):
+        lines.append(f"- 核心主张: {_translate_reasoning(bear.get('reasoning', 'N/A'))}")
+        for idx, point in enumerate((bear.get('thesis_points') or [])[:3], start=1):
+            lines.append(f"  {idx}. {point}")
+    else:
+        lines.append("- N/A")
+
+    lines.append("")
+    lines.append("[7] 辩论室结论")
+    if isinstance(debate, dict):
+        lines.append(f"- 辩论倾向: {_label_signal(debate.get('signal'))}")
+        lines.append(f"- 辩论分数: {debate.get('mixed_confidence_diff', 'N/A')}")
+        lines.append(f"- 裁决: {_translate_reasoning(debate.get('reasoning', 'N/A'))}")
+        if debate.get("llm_analysis"):
+            lines.append(f"- 第三方分析: {_translate_reasoning(debate.get('llm_analysis'))}")
+    else:
+        lines.append("- N/A")
+
+    lines.append("")
+    lines.append("[8] 风险管理意见")
+    if isinstance(risk, dict):
+        lines.append(f"- 风险分数: {risk.get('risk_score', 'N/A')} / 10")
+        lines.append(f"- 最大建议仓位: {risk.get('max_position_size', 'N/A')}")
+        lines.append(f"- 交易动作: {_label_action(risk.get('trading_action'))}")
+        lines.append(f"- 风控解释: {_translate_reasoning(risk.get('reasoning', 'N/A'))}")
+    else:
+        lines.append("- N/A")
+
+    lines.append("")
+    lines.append("[9] 宏观与行业视角")
+    if isinstance(macro, dict):
+        macro_signal = macro.get("impact_on_stock") or macro.get("macro_environment")
+        lines.append(f"- 宏观结论: {_label_signal(macro_signal)}")
+        lines.append(f"- 样本质量: {'中' if (macro.get('key_factors') or []) else '低'}")
+        lines.append(f"- 关键因素: {', '.join(macro.get('key_factors', [])) if macro.get('key_factors') else 'N/A'}")
+        lines.append(f"- 详细推理: {macro.get('reasoning', 'N/A')}")
+    else:
+        lines.append("- N/A")
+    if macro_news:
+        lines.append(f"- 大盘新闻摘要: {macro_news}")
+
+    lines.append("")
+    lines.append("[10] 最终组合经理结论")
+    if isinstance(portfolio, dict):
+        lines.append(f"- 最终动作: {final_action}")
+        lines.append(f"- 置信度: {final_conf}")
+        lines.append(f"- 拍板原因: {_translate_reasoning(portfolio.get('reasoning', 'N/A'))}")
+    else:
+        lines.append("- N/A")
+
+    lines.append("")
+    lines.append("[11] 数据质量与可信度提示")
+    for label, quality in quality_map.items():
+        lines.append(f"- {label}: {quality}可信")
+    if quality_flags:
+        lines.append("- 异常/降权提示:")
+        for flag in quality_flags:
+            lines.append(f"  • {flag}")
+    else:
+        lines.append("- 异常/降权提示: 暂无明显异常")
+
+    if timings:
+        lines.append("")
+        lines.append("[12] 阶段耗时")
+        for agent_name, info in sorted(timings.items(), key=lambda kv: kv[1].get("started_at", "")):
+            lines.append(f"- {agent_name}: {_fmt_duration(info.get('duration_seconds'))} ({info.get('status', 'completed')})")
+
+    lines.append("=" * 96)
+    return "\n" + "\n".join(lines)
+
+
+def print_summary_report(state: Dict[str, Any]) -> None:
+    print(build_summary_report(state))

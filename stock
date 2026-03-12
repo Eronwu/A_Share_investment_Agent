@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+if [[ $# -lt 1 ]]; then
+  cat <<'EOF'
+用法:
+  ./stock <ticker> [附加参数]
+
+示例:
+  ./stock 159316
+  ./stock 000661 --summary
+  ./stock 600519 --show-reasoning --num-of-news 10
+  ./stock 601985 --hq
+  ./stock 601985 --model deepseek-v3.1:671b-cloud
+EOF
+  exit 1
+fi
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+  exec poetry run python src/main.py --help
+fi
+
+TICKER="$1"
+shift || true
+
+exec poetry run python src/main.py --ticker "$TICKER" "$@"

@@ -1,3 +1,4 @@
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -31,12 +32,20 @@ class OutputLogger:
         """Write to both terminal and file."""
         self.terminal.write(message)
         self.log_file.write(message)
-        self.log_file.flush()  # Ensure immediate writing to file
+        self.flush()
+
+    def emit(self, *parts: str, end: str = "\n") -> None:
+        """Robust helper for important messages that must reach both sinks."""
+        self.write("".join(parts) + end)
 
     def flush(self) -> None:
-        """Flush both outputs."""
+        """Flush both outputs and fsync the file for crash-resistant tailing."""
         self.terminal.flush()
         self.log_file.flush()
+        try:
+            os.fsync(self.log_file.fileno())
+        except OSError:
+            pass
 
     def __del__(self) -> None:
         """Clean up by closing the log file."""
