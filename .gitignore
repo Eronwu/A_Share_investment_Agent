@@ -66,6 +66,9 @@ logs/
 # generated reports
 reports/
 
+# local private notes
+local-notes/
+
 # data
 src/data/stock_news
 src/data/sentiment_cache.json
