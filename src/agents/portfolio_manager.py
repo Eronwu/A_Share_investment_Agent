@@ -15,15 +15,95 @@ logger = setup_logger('portfolio_management_agent')
 # Helper function to get the latest message by agent name
 
 
-def get_latest_message_by_name(messages: list, name: str):
+def _safe_json_loads(content):
+    if isinstance(content, dict):
+        return content
+    if not isinstance(content, str):
+        return None
+    text = content.strip()
+    try:
+        return json.loads(text)
+    except Exception:
+        pass
+    try:
+        start = text.find('{')
+        end = text.rfind('}')
+        if start >= 0 and end > start:
+            return json.loads(text[start:end + 1])
+    except Exception:
+        return None
+    return None
+
+
+def build_conservative_portfolio_decision(risk_payload=None, technical_payload=None, sentiment_payload=None, valuation_payload=None):
+    risk_payload = risk_payload or {}
+    technical_payload = technical_payload or {}
+    sentiment_payload = sentiment_payload or {}
+    valuation_payload = valuation_payload or {}
+
+    trading_action = str(risk_payload.get("trading_action", "hold")).lower()
+    risk_signal = trading_action if trading_action in {"buy", "sell", "hold", "reduce"} else "hold"
+    debate_signal = ((risk_payload.get("debate_analysis") or {}).get("debate_signal") or "neutral")
+    technical_signal = technical_payload.get("signal", "neutral")
+    sentiment_signal = sentiment_payload.get("signal", "neutral")
+    valuation_signal = valuation_payload.get("signal", "neutral")
+
+    reasons = []
+    if risk_payload:
+        reasons.append(risk_payload.get("reasoning", "Risk manager suggests caution."))
+    if technical_signal == "bearish":
+        reasons.append("Technical trend remains weak.")
+    if valuation_signal == "bearish":
+        reasons.append("Valuation does not support an aggressive entry.")
+    if sentiment_signal == "bullish":
+        reasons.append("News sentiment is constructive but insufficient to override risk controls.")
+    if debate_signal in {"bearish", "neutral"}:
+        reasons.append(f"Debate signal is {debate_signal}, so a conservative stance is preferred.")
+
+    action = "hold"
+    if risk_signal == "sell":
+        action = "sell"
+    elif risk_signal in {"hold", "reduce"}:
+        action = "hold"
+    elif risk_signal == "buy" and technical_signal == "bullish" and valuation_signal != "bearish":
+        action = "buy"
+
+    return {
+        "action": action,
+        "quantity": 0,
+        "confidence": 0.55 if action == "hold" else 0.45,
+        "agent_signals": [
+            {"agent_name": "technical_analysis", "signal": technical_signal, "confidence": 0.5},
+            {"agent_name": "fundamental_analysis", "signal": "neutral", "confidence": 0.0},
+            {"agent_name": "sentiment_analysis", "signal": sentiment_signal, "confidence": 0.5},
+            {"agent_name": "valuation_analysis", "signal": valuation_signal, "confidence": 0.5},
+            {"agent_name": "risk_management", "signal": risk_signal, "confidence": 1.0},
+            {"agent_name": "selected_stock_macro_analysis", "signal": "neutral", "confidence": 0.0},
+            {"agent_name": "market_wide_news_summary(沪深300指数)", "signal": "neutral", "confidence": 0.0},
+        ],
+        "reasoning": " ".join([r for r in reasons if r]) or "Fallback decision: defaulting to hold due to incomplete late-stage model output.",
+        "fallback": True,
+    }
+
+
+def get_latest_message_by_name(messages: list, name: str, warn_if_missing: bool = True):
     for msg in reversed(messages):
         if msg.name == name:
             return msg
-    logger.warning(
-        f"Message from agent '{name}' not found in portfolio_management_agent.")
-    # Return a dummy message object or raise an error, depending on desired handling
-    # For now, returning a dummy message to avoid crashing, but content will be None.
-    return HumanMessage(content=json.dumps({"signal": "error", "details": f"Message from {name} not found"}), name=name)
+    if warn_if_missing:
+        logger.warning(
+            f"Message from agent '{name}' not found in portfolio_management_agent.")
+    return None
+
+
+def build_message_from_data(name: str, payload):
+    if payload is None:
+        return None
+    if isinstance(payload, str):
+        content = payload
+    else:
+        content = json.dumps(payload, ensure_ascii=False)
+    return HumanMessage(content=content, name=name)
 
 
 @agent_endpoint("portfolio_management", "负责投资组合管理和最终交易决策")
@@ -50,7 +130,6 @@ def portfolio_management_agent(state: AgentState):
     # logger.info(
     # f"--- DEBUG: {agent_name} CLEANED messages for processing: {[msg.name for msg in cleaned_messages_for_processing]} ---")
 
-    show_workflow_status(f"{agent_name}: --- Executing Portfolio Manager ---")
     show_reasoning_flag = state["metadata"]["show_reasoning"]
     portfolio = state["data"]["portfolio"]
 
@@ -64,9 +143,42 @@ def portfolio_management_agent(state: AgentState):
     valuation_message = get_latest_message_by_name(
         cleaned_messages_for_processing, "valuation_agent")
     risk_message = get_latest_message_by_name(
-        cleaned_messages_for_processing, "risk_management_agent")
+        cleaned_messages_for_processing, "risk_management_agent", warn_if_missing=False)
     tool_based_macro_message = get_latest_message_by_name(
-        cleaned_messages_for_processing, "macro_analyst_agent")  # This is the main analysis path output
+        cleaned_messages_for_processing, "macro_analyst_agent", warn_if_missing=False)  # This is the main analysis path output
+
+    if not risk_message:
+        risk_message = build_message_from_data(
+            "risk_management_agent", state["data"].get("risk_analysis")
+        )
+    if not tool_based_macro_message:
+        tool_based_macro_message = build_message_from_data(
+            "macro_analyst_agent", state["data"].get("macro_analysis")
+        )
+
+    if not risk_message or not tool_based_macro_message:
+        missing_inputs = []
+        if not risk_message:
+            missing_inputs.append("risk_management_agent")
+        if not tool_based_macro_message:
+            missing_inputs.append("macro_analyst_agent")
+        logger.info(
+            f"Deferring portfolio manager output until required upstream inputs arrive: {', '.join(missing_inputs)}"
+        )
+        show_workflow_status(
+            f"{agent_name}: waiting for upstream inputs ({', '.join(missing_inputs)})"
+        )
+        return {
+            "messages": cleaned_messages_for_processing,
+            "data": state["data"],
+            "metadata": {
+                **state["metadata"],
+                f"{agent_name}_deferred": True,
+                f"{agent_name}_missing_inputs": missing_inputs,
+            },
+        }
+
+    show_workflow_status(f"{agent_name}: --- Executing Portfolio Manager ---")
 
     # Extract content, handling potential None if message not found by get_latest_message_by_name
     technical_content = technical_message.content if technical_message else json.dumps(
@@ -168,6 +280,10 @@ def portfolio_management_agent(state: AgentState):
 
     llm_interaction_messages = [system_message, user_message]
     llm_response_content = get_chat_completion(llm_interaction_messages)
+    risk_payload = _safe_json_loads(risk_content)
+    technical_payload = _safe_json_loads(technical_content)
+    sentiment_payload = _safe_json_loads(sentiment_content)
+    valuation_payload = _safe_json_loads(valuation_content)
 
     current_metadata = state["metadata"]
     current_metadata["current_agent_name"] = agent_name
@@ -176,32 +292,20 @@ def portfolio_management_agent(state: AgentState):
         return llm_response_content
     log_llm_interaction(state)(get_llm_result_for_logging_wrapper)()
 
-    if llm_response_content is None:
+    parsed_llm_response = _safe_json_loads(llm_response_content) if llm_response_content else None
+
+    if llm_response_content is None or parsed_llm_response is None:
         show_agent_reasoning(
-            agent_name, "LLM call failed. Using default conservative decision.")
-        # Ensure the dummy response matches the expected structure for agent_signals
-        llm_response_content = json.dumps({
-            "action": "hold",
-            "quantity": 0,
-            "confidence": 0.7,
-            "agent_signals": [
-                {"agent_name": "technical_analysis",
-                    "signal": "neutral", "confidence": 0.0},
-                {"agent_name": "fundamental_analysis",
-                    "signal": "neutral", "confidence": 0.0},
-                {"agent_name": "sentiment_analysis",
-                    "signal": "neutral", "confidence": 0.0},
-                {"agent_name": "valuation_analysis",
-                    "signal": "neutral", "confidence": 0.0},
-                {"agent_name": "risk_management",
-                    "signal": "hold", "confidence": 1.0},
-                {"agent_name": "macro_analyst_agent",
-                    "signal": "neutral", "confidence": 0.0},
-                {"agent_name": "macro_news_agent",
-                    "signal": "unavailable_or_llm_error", "confidence": 0.0}
-            ],
-            "reasoning": "LLM API error. Defaulting to conservative hold based on risk management."
-        })
+            agent_name, "LLM call failed or returned incomplete JSON. Using conservative fallback decision.")
+        llm_response_content = json.dumps(
+            build_conservative_portfolio_decision(
+                risk_payload=risk_payload,
+                technical_payload=technical_payload,
+                sentiment_payload=sentiment_payload,
+                valuation_payload=valuation_payload,
+            ),
+            ensure_ascii=False,
+        )
 
     final_decision_message = HumanMessage(
         content=llm_response_content,

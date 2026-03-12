@@ -18,7 +18,54 @@ def fundamentals_agent(state: AgentState):
     show_workflow_status("Fundamentals Analyst")
     show_reasoning = state["metadata"]["show_reasoning"]
     data = state["data"]
-    metrics = data["financial_metrics"][0]
+    security_type = data.get("security_type", "stock")
+    financial_metrics = data.get("financial_metrics", [])
+
+    if security_type == "etf" or not financial_metrics:
+        logger.warning("No company financial metrics available, skipping fundamentals analysis")
+        message_content = {
+            "signal": "neutral",
+            "confidence": "0%",
+            "reasoning": {
+                "profitability_signal": {
+                    "signal": "neutral",
+                    "details": "No company financial data available (likely ETF or no financial statements)",
+                },
+                "growth_signal": {
+                    "signal": "neutral",
+                    "details": "No company financial data available (likely ETF or no financial statements)",
+                },
+                "financial_health_signal": {
+                    "signal": "neutral",
+                    "details": "No company financial data available (likely ETF or no financial statements)",
+                },
+                "price_ratios_signal": {
+                    "signal": "neutral",
+                    "details": "No company financial data available (likely ETF or no financial statements)",
+                },
+            },
+        }
+
+        message = HumanMessage(
+            content=json.dumps(message_content),
+            name="fundamentals_agent",
+        )
+
+        if show_reasoning:
+            show_agent_reasoning(message_content, "Fundamental Analysis Agent")
+            state["metadata"]["agent_reasoning"] = message_content
+
+        show_workflow_status("Fundamentals Analyst", "completed")
+        return {
+            "messages": [message],
+            "data": {
+                **data,
+                "fundamental_analysis": message_content
+            },
+            "metadata": state["metadata"],
+        }
+
+    metrics = financial_metrics[0]
 
     # Initialize signals list for different fundamental aspects
     signals = []

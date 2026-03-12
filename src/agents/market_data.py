@@ -12,6 +12,12 @@ import pandas as pd
 logger = setup_logger('market_data_agent')
 
 
+def _is_etf_symbol(symbol: str) -> bool:
+    if len(symbol) != 6:
+        return False
+    return symbol.startswith(("15", "16", "50", "51", "58"))
+
+
 @agent_endpoint("market_data", "市场数据收集，负责获取股价历史、财务指标和市场信息")
 def market_data_agent(state: AgentState):
     """Responsible for gathering and preprocessing market data"""
@@ -41,6 +47,7 @@ def market_data_agent(state: AgentState):
 
     # Get all required data
     ticker = data["ticker"]
+    security_type = "etf" if _is_etf_symbol(ticker) else "stock"
 
     # 获取价格数据并验证
     prices_df = get_price_history(ticker, start_date, end_date)
@@ -50,18 +57,26 @@ def market_data_agent(state: AgentState):
             columns=['close', 'open', 'high', 'low', 'volume'])
 
     # 获取财务指标
-    try:
-        financial_metrics = get_financial_metrics(ticker)
-    except Exception as e:
-        logger.error(f"获取财务指标失败: {str(e)}")
-        financial_metrics = {}
+    if security_type == "etf":
+        logger.info(f"{ticker} 被识别为 ETF，跳过公司财务指标抓取")
+        financial_metrics = []
+    else:
+        try:
+            financial_metrics = get_financial_metrics(ticker)
+        except Exception as e:
+            logger.error(f"获取财务指标失败: {str(e)}")
+            financial_metrics = []
 
     # 获取财务报表
-    try:
-        financial_line_items = get_financial_statements(ticker)
-    except Exception as e:
-        logger.error(f"获取财务报表失败: {str(e)}")
-        financial_line_items = {}
+    if security_type == "etf":
+        logger.info(f"{ticker} 被识别为 ETF，跳过公司财务报表抓取")
+        financial_line_items = []
+    else:
+        try:
+            financial_line_items = get_financial_statements(ticker)
+        except Exception as e:
+            logger.error(f"获取财务报表失败: {str(e)}")
+            financial_line_items = []
 
     # 获取市场数据
     try:
@@ -81,6 +96,7 @@ def market_data_agent(state: AgentState):
     # 保存推理信息到metadata供API使用
     market_data_summary = {
         "ticker": ticker,
+        "security_type": security_type,
         "start_date": start_date,
         "end_date": end_date,
         "data_collected": {
@@ -101,6 +117,7 @@ def market_data_agent(state: AgentState):
         "data": {
             **data,
             "prices": prices_dict,
+            "security_type": security_type,
             "start_date": start_date,
             "end_date": end_date,
             "financial_metrics": financial_metrics,

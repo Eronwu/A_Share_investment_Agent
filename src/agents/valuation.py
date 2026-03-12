@@ -14,9 +14,43 @@ def valuation_agent(state: AgentState):
     show_workflow_status("Valuation Agent")
     show_reasoning = state["metadata"]["show_reasoning"]
     data = state["data"]
-    metrics = data["financial_metrics"][0]
-    current_financial_line_item = data["financial_line_items"][0]
-    previous_financial_line_item = data["financial_line_items"][1]
+    financial_metrics = data.get("financial_metrics", [])
+    financial_line_items = data.get("financial_line_items", [])
+    market_cap = data.get("market_cap", 0)
+
+    if not financial_metrics or len(financial_line_items) < 2 or not market_cap:
+        logger.warning("No financial metrics available, skipping valuation analysis")
+        message_content = {
+            "signal": "neutral",
+            "confidence": "0%",
+            "reasoning": {
+                "dcf_analysis": {
+                    "signal": "neutral",
+                    "details": "No financial data available (likely ETF or no financial statements)",
+                },
+                "owner_earnings_analysis": {
+                    "signal": "neutral",
+                    "details": "No financial data available (likely ETF or no financial statements)",
+                },
+            },
+        }
+        message = HumanMessage(
+            content=json.dumps(message_content),
+            name="valuation_agent",
+        )
+        if show_reasoning:
+            show_agent_reasoning(message_content, "Valuation Analysis Agent")
+            state["metadata"]["agent_reasoning"] = message_content
+        show_workflow_status("Valuation Agent", "completed")
+        return {
+            "messages": [message],
+            "data": {**data, "valuation_analysis": message_content},
+            "metadata": state["metadata"],
+        }
+
+    metrics = financial_metrics[0]
+    current_financial_line_item = financial_line_items[0]
+    previous_financial_line_item = financial_line_items[1]
     market_cap = data["market_cap"]
 
     reasoning = {}
