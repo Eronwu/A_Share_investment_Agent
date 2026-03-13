@@ -712,7 +712,6 @@ def extract_previous_final_map(previous_payload: dict[str, Any] | None) -> dict[
 
 def build_daily_diff(final_ranked: list[ScanResult], previous_payload: dict[str, Any] | None) -> dict[str, Any]:
     previous_map = extract_previous_final_map(previous_payload)
-    current_map = {item.ticker: item for item in final_ranked}
 
     current_top = final_ranked[: min(10, len(final_ranked))]
     previous_top = set(previous_payload.get("selected_for_reasoning", [])) if previous_payload else set()
@@ -773,6 +772,96 @@ def build_daily_diff(final_ranked: list[ScanResult], previous_payload: dict[str,
     }
 
 
+def classify_candidate(item: ScanResult, summary_map: dict[str, ScanResult]) -> tuple[str, list[str]]:
+    reasons: list[str] = []
+    flags = item.data_quality_flags or []
+    confidence = item.confidence if item.confidence is not None else -1.0
+    score = item.composite_score if item.composite_score is not None else -1.0
+    source = item.stage
+    summary_peer = summary_map.get(item.ticker)
+
+    if not item.success:
+        return "excluded", ["analysis_failed"]
+    if item.error:
+        reasons.append("has_error")
+    if score < 0:
+        reasons.append("missing_score")
+    if confidence < 0:
+        reasons.append("missing_confidence")
+    if confidence == 0:
+        reasons.append("zero_confidence")
+    if any("fallback" in flag.lower() for flag in flags):
+        reasons.append("fallback_detected")
+    if any("缺少" in flag or "偏少" in flag for flag in flags):
+        reasons.append("data_quality_warning")
+    if item.action is None:
+        reasons.append("missing_action")
+    if source == "summary":
+        reasons.append("not_reasoning_promoted")
+
+    if summary_peer and item.stage == "reasoning":
+        summary_score = summary_peer.composite_score if summary_peer.composite_score is not None else -1.0
+        if item.action != summary_peer.action:
+            reasons.append("summary_reasoning_action_changed")
+        if summary_score >= 0 and abs(score - summary_score) >= 25:
+            reasons.append("summary_reasoning_score_gap")
+
+    if item.action == "buy" and score >= 70 and confidence >= 0.55 and "fallback_detected" not in reasons and "missing_action" not in reasons:
+        if item.stage == "reasoning" or score >= 85:
+            return "top_picks", reasons
+        return "watchlist", reasons
+
+    if item.action == "hold":
+        if score >= 60 and confidence >= 0.5 and "zero_confidence" not in reasons:
+            return "watchlist", reasons
+        return "excluded", reasons
+
+    if item.action in {"sell", "reduce"}:
+        reasons.append("negative_action")
+        return "excluded", reasons
+
+    if score >= 60:
+        return "watchlist", reasons
+    return "excluded", reasons
+
+
+def build_final_candidates(final_ranked: list[ScanResult], summary_results: list[ScanResult]) -> dict[str, Any]:
+    summary_map = {item.ticker: item for item in summary_results}
+    top_picks: list[dict[str, Any]] = []
+    watchlist: list[dict[str, Any]] = []
+    excluded: list[dict[str, Any]] = []
+
+    for item in final_ranked:
+        bucket, reasons = classify_candidate(item, summary_map)
+        entry = {
+            "ticker": item.ticker,
+            "sector": item.sector,
+            "stage": item.stage,
+            "action": item.action,
+            "signal": item.signal,
+            "composite_score": item.composite_score,
+            "confidence": item.confidence,
+            "risk_score": item.risk_score,
+            "summary": item.summary,
+            "data_quality_flags": item.data_quality_flags or [],
+            "reasons": reasons,
+        }
+        if bucket == "top_picks":
+            top_picks.append(entry)
+        elif bucket == "watchlist":
+            watchlist.append(entry)
+        else:
+            excluded.append(entry)
+
+    return {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "rules_version": 1,
+        "top_picks": top_picks,
+        "watchlist": watchlist,
+        "excluded": excluded,
+    }
+
+
 def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_path: Path, report_root: Path) -> None:
     summary_results = [r for r in results if r.stage == "summary"]
     reasoning_results = [r for r in results if r.stage == "reasoning"]
@@ -798,6 +887,7 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
     summary_stats = compute_stage_stats(results, "summary")
     reasoning_stats = compute_stage_stats(results, "reasoning")
     final_top = final_ranked[: max(top_n, min(5, len(final_ranked)))]
+    final_candidates = build_final_candidates(final_ranked, summary_results)
 
     lines: list[str] = []
     lines.append(f"# A股夜间扫描报告 - {report_dir.name}")
@@ -844,6 +934,38 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
         lines.append("")
     else:
         lines.append("- 无成功样本")
+        lines.append("")
+
+    lines.append("## Final Candidates")
+    lines.append("")
+    if final_candidates["top_picks"]:
+        lines.append(f"- Top Picks: {', '.join(item['ticker'] for item in final_candidates['top_picks'])}")
+    else:
+        lines.append("- Top Picks: 无")
+    if final_candidates["watchlist"]:
+        lines.append(f"- Watchlist: {', '.join(item['ticker'] for item in final_candidates['watchlist'])}")
+    else:
+        lines.append("- Watchlist: 无")
+    if final_candidates["excluded"]:
+        lines.append(f"- Excluded: {', '.join(item['ticker'] for item in final_candidates['excluded'][:10])}")
+    else:
+        lines.append("- Excluded: 无")
+    lines.append("")
+
+    if final_candidates["top_picks"]:
+        lines.append("### Top Picks 说明")
+        lines.append("")
+        for item in final_candidates["top_picks"]:
+            reason_text = ", ".join(item["reasons"]) if item["reasons"] else "passed_default_filters"
+            lines.append(f"- **{item['ticker']} ({item['sector']})**: action={action_label(item['action'])} | score={item['composite_score']} | source={item['stage']} | {reason_text}")
+        lines.append("")
+
+    if final_candidates["watchlist"]:
+        lines.append("### Watchlist 说明")
+        lines.append("")
+        for item in final_candidates["watchlist"]:
+            reason_text = ", ".join(item["reasons"]) if item["reasons"] else "monitor"
+            lines.append(f"- **{item['ticker']} ({item['sector']})**: action={action_label(item['action'])} | score={item['composite_score']} | source={item['stage']} | {reason_text}")
         lines.append("")
 
     hold_items = [item for item in final_top if item.action == "hold"]
@@ -915,7 +1037,7 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
         lines.append("")
 
     report_payload = {
-        "version": 2,
+        "version": 3,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "pool": str(pool_path.relative_to(ROOT)) if pool_path.is_relative_to(ROOT) else str(pool_path),
         "report_dir": str(report_dir),
@@ -928,6 +1050,7 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
         "reasoning_stats": reasoning_stats,
         "daily_diff": daily_diff,
         "final_top_picks": [asdict(item) for item in final_top],
+        "final_candidates": final_candidates,
         "sector_leaders": {
             sector: {
                 "ticker": item.ticker,
@@ -944,6 +1067,10 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
     (report_dir / "daily_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     (report_dir / "report.json").write_text(
         json.dumps(report_payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    (report_dir / "final_candidates.json").write_text(
+        json.dumps(final_candidates, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
 
@@ -1133,6 +1260,7 @@ def main() -> int:
                 "report_dir": str(report_dir),
                 "report_md": str(report_dir / "daily_report.md"),
                 "report_json": str(report_dir / "report.json"),
+                "final_candidates_json": str(report_dir / "final_candidates.json"),
                 "count": len(results),
             },
             ensure_ascii=False,
