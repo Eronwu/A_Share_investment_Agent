@@ -88,6 +88,9 @@ class ScanResult:
     support_points: list[str] | None = None
     pressure_points: list[str] | None = None
     error: str | None = None
+    skipped: bool = False
+    reused_from: str | None = None
+    attempts: int = 1
 
 
 def load_pool(path: Path) -> list[dict[str, Any]]:
@@ -431,7 +434,7 @@ def build_stock_command(
     return cmd
 
 
-def run_stock(
+def run_stock_once(
     ticker: str,
     out_path: Path,
     summary_text_path: Path,
@@ -471,6 +474,40 @@ def run_stock(
     return proc.returncode, combined, None
 
 
+def result_has_cached_artifacts(raw_path: Path, summary_text_path: Path, summary_json_path: Path) -> bool:
+    return raw_path.exists() and (summary_text_path.exists() or summary_json_path.exists())
+
+
+def load_cached_stage_result(
+    ticker: str,
+    sector_name: str,
+    stage: str,
+    started: str,
+    report_dir: Path,
+    raw_path: Path,
+    summary_text_path: Path,
+    summary_json_path: Path,
+    reused_from: str,
+) -> ScanResult:
+    raw_output = safe_read_text(raw_path) or ""
+    return build_stage_result(
+        ticker=ticker,
+        sector_name=sector_name,
+        stage=stage,
+        started=started,
+        report_dir=report_dir,
+        raw_path=raw_path,
+        summary_text_path=summary_text_path,
+        summary_json_path=summary_json_path,
+        returncode=0,
+        raw_output=raw_output,
+        err=None,
+        skipped=True,
+        reused_from=reused_from,
+        attempts=0,
+    )
+
+
 def build_stage_result(
     ticker: str,
     sector_name: str,
@@ -483,6 +520,10 @@ def build_stage_result(
     returncode: int,
     raw_output: str,
     err: str | None,
+    *,
+    skipped: bool = False,
+    reused_from: str | None = None,
+    attempts: int = 1,
 ) -> ScanResult:
     summary_payload = read_json(summary_json_path)
     summary_text = safe_read_text(summary_text_path)
@@ -514,6 +555,9 @@ def build_stage_result(
         support_points=parsed["support_points"],
         pressure_points=parsed["pressure_points"],
         error=effective_error,
+        skipped=skipped,
+        reused_from=reused_from,
+        attempts=attempts,
     )
 
 
@@ -524,6 +568,10 @@ def ranking_key(result: ScanResult) -> tuple[bool, float, float, str]:
         -(result.confidence if result.confidence is not None else -1.0),
         result.ticker,
     )
+
+
+def reasoning_ranking_key(result: ScanResult) -> tuple[bool, float, float, str]:
+    return ranking_key(result)
 
 
 def limit_universe(universe: list[tuple[str, str]], limit: int) -> list[tuple[str, str]]:
@@ -578,23 +626,178 @@ def select_reasoning_candidates(ranked: list[ScanResult], top_n: int) -> list[Sc
     return selected
 
 
-def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_path: Path) -> None:
+def build_result_index(results: list[ScanResult], stage: str) -> dict[str, ScanResult]:
+    indexed: dict[str, ScanResult] = {}
+    for item in results:
+        if item.stage == stage:
+            indexed[item.ticker] = item
+    return indexed
+
+
+def merge_final_candidates(summary_results: list[ScanResult], reasoning_results: list[ScanResult]) -> list[ScanResult]:
+    summary_map = build_result_index(summary_results, "summary")
+    reasoning_map = build_result_index(reasoning_results, "reasoning")
+
+    merged: list[ScanResult] = []
+    seen: set[str] = set()
+
+    for ticker, item in reasoning_map.items():
+        merged.append(item)
+        seen.add(ticker)
+
+    for item in summary_results:
+        if item.ticker in seen:
+            continue
+        merged.append(summary_map.get(item.ticker, item))
+
+    return sorted([r for r in merged if r.success], key=reasoning_ranking_key)
+
+
+def compute_stage_stats(results: list[ScanResult], stage: str) -> dict[str, int]:
+    scoped = [r for r in results if r.stage == stage]
+    return {
+        "count": len(scoped),
+        "success": sum(1 for r in scoped if r.success),
+        "failed": sum(1 for r in scoped if not r.success),
+        "skipped": sum(1 for r in scoped if r.skipped),
+    }
+
+
+def compute_action_diff(before: ScanResult | None, after: ScanResult | None) -> str | None:
+    if before is None or after is None:
+        return None
+    if before.action == after.action and before.signal == after.signal and before.composite_score == after.composite_score:
+        return None
+    before_label = f"{action_label(before.action)}/{signal_label(before.signal)}"
+    after_label = f"{action_label(after.action)}/{signal_label(after.signal)}"
+    before_score = "N/A" if before.composite_score is None else f"{before.composite_score:.2f}"
+    after_score = "N/A" if after.composite_score is None else f"{after.composite_score:.2f}"
+    return f"{before_label}({before_score}) → {after_label}({after_score})"
+
+
+def load_previous_report(report_root: Path, current_report_dir: Path) -> tuple[dict[str, Any] | None, Path | None]:
+    if not report_root.exists():
+        return None, None
+
+    candidates = sorted(
+        p for p in report_root.iterdir()
+        if p.is_dir() and p.name != current_report_dir.name and (p / "report.json").exists()
+    )
+    if not candidates:
+        return None, None
+
+    prev_dir = candidates[-1]
+    prev_payload = read_json(prev_dir / "report.json")
+    return prev_payload, prev_dir
+
+
+def extract_previous_final_map(previous_payload: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+    if not previous_payload:
+        return {}
+    results = previous_payload.get("results", [])
+    latest_by_ticker: dict[str, dict[str, Any]] = {}
+    for item in results:
+        if not isinstance(item, dict):
+            continue
+        ticker = str(item.get("ticker", "")).strip()
+        if not ticker:
+            continue
+        current = latest_by_ticker.get(ticker)
+        current_stage = str(current.get("stage")) if current else ""
+        new_stage = str(item.get("stage"))
+        if current is None or (current_stage != "reasoning" and new_stage == "reasoning"):
+            latest_by_ticker[ticker] = item
+    return latest_by_ticker
+
+
+def build_daily_diff(final_ranked: list[ScanResult], previous_payload: dict[str, Any] | None) -> dict[str, Any]:
+    previous_map = extract_previous_final_map(previous_payload)
+    current_map = {item.ticker: item for item in final_ranked}
+
+    current_top = final_ranked[: min(10, len(final_ranked))]
+    previous_top = set(previous_payload.get("selected_for_reasoning", [])) if previous_payload else set()
+    current_top_tickers = [item.ticker for item in current_top]
+    current_top_set = set(current_top_tickers)
+
+    newly_entered = [ticker for ticker in current_top_tickers if ticker not in previous_top]
+    dropped = sorted(ticker for ticker in previous_top if ticker not in current_top_set)
+
+    changed: list[dict[str, Any]] = []
+    for item in current_top:
+        prev = previous_map.get(item.ticker)
+        if not prev:
+            continue
+        prev_result = ScanResult(
+            ticker=item.ticker,
+            sector=str(prev.get("sector", item.sector)),
+            stage=str(prev.get("stage", "summary")),
+            success=bool(prev.get("success", True)),
+            returncode=int(prev.get("returncode", 0)),
+            started_at=str(prev.get("started_at", "")),
+            finished_at=str(prev.get("finished_at", "")),
+            raw_path=str(prev.get("raw_path", "")),
+            summary_text_path=prev.get("summary_text_path"),
+            summary_json_path=prev.get("summary_json_path"),
+            used_structured_summary=bool(prev.get("used_structured_summary", False)),
+            composite_score=parse_float(prev.get("composite_score")),
+            confidence=parse_ratio(prev.get("confidence")),
+            risk_score=parse_float(prev.get("risk_score")),
+            action=normalize_action(prev.get("action")),
+            signal=normalize_signal(prev.get("signal")),
+            summary=prev.get("summary"),
+            hold_reason=prev.get("hold_reason"),
+            data_quality_flags=prev.get("data_quality_flags") or [],
+            support_points=prev.get("support_points") or [],
+            pressure_points=prev.get("pressure_points") or [],
+            error=prev.get("error"),
+            skipped=bool(prev.get("skipped", False)),
+            reused_from=prev.get("reused_from"),
+            attempts=int(prev.get("attempts", 1) or 1),
+        )
+        diff_text = compute_action_diff(prev_result, item)
+        if not diff_text:
+            continue
+        changed.append({
+            "ticker": item.ticker,
+            "sector": item.sector,
+            "change": diff_text,
+        })
+
+    return {
+        "has_previous": previous_payload is not None,
+        "newly_entered": newly_entered,
+        "dropped": dropped,
+        "changed": changed,
+        "current_top": current_top_tickers,
+        "previous_top": sorted(previous_top),
+    }
+
+
+def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_path: Path, report_root: Path) -> None:
     summary_results = [r for r in results if r.stage == "summary"]
     reasoning_results = [r for r in results if r.stage == "reasoning"]
-    ranked = sorted([r for r in summary_results if r.success], key=ranking_key)
+    ranked_summary = sorted([r for r in summary_results if r.success], key=ranking_key)
+    final_ranked = merge_final_candidates(summary_results, reasoning_results)
     selected_for_reasoning = [r.ticker for r in reasoning_results]
     reasoning_selection_strategy = {
         "summary_ranking": "先按 composite_score 降序；若缺失则回退 action/confidence/signal 的启发式排序",
         "reasoning_top_n": top_n,
         "reasoning_selection_mode": "diversified-first",
         "reasoning_selection_rule": "优先从不同板块各取 1 只进入 Reasoning；若板块数不足或 TopN 未满，再按总分从高到低回填",
+        "final_report_priority": "若股票进入 Reasoning，则最终榜单与结论优先采用 Reasoning 结果覆写 Summary 结果",
     }
     sector_best: dict[str, ScanResult] = {}
     failures = [r for r in results if not r.success]
 
-    for item in ranked:
-        if item.success and item.sector not in sector_best:
+    for item in final_ranked:
+        if item.sector not in sector_best:
             sector_best[item.sector] = item
+
+    previous_payload, previous_dir = load_previous_report(report_root, report_dir)
+    daily_diff = build_daily_diff(final_ranked, previous_payload)
+    summary_stats = compute_stage_stats(results, "summary")
+    reasoning_stats = compute_stage_stats(results, "reasoning")
+    final_top = final_ranked[: max(top_n, min(5, len(final_ranked)))]
 
     lines: list[str] = []
     lines.append(f"# A股夜间扫描报告 - {report_dir.name}")
@@ -611,44 +814,72 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
     lines.append(f"- Reasoning TopN: {reasoning_selection_strategy['reasoning_top_n']}")
     lines.append(f"- Reasoning 选股模式: **{reasoning_selection_strategy['reasoning_selection_mode']}**")
     lines.append(f"- 具体规则: {reasoning_selection_strategy['reasoning_selection_rule']}")
+    lines.append(f"- 最终榜单规则: {reasoning_selection_strategy['final_report_priority']}")
     if selected_for_reasoning:
         lines.append(f"- 本轮进入 Reasoning: {', '.join(selected_for_reasoning)}")
     lines.append("")
 
-    if ranked:
-        lines.append("## Top Picks")
-        lines.append("")
-        lines.append("| 排名 | 股票 | 板块 | 分数 | 动作 | 信号 | 置信度 | 风险 | 摘要 |")
-        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
-        display_count = max(top_n, min(5, len(ranked)))
-        for idx, item in enumerate(ranked[:display_count], start=1):
+    lines.append("## 运行统计")
+    lines.append("")
+    lines.append(f"- Summary: 成功 {summary_stats['success']} / 失败 {summary_stats['failed']} / 复用 {summary_stats['skipped']}")
+    lines.append(f"- Reasoning: 成功 {reasoning_stats['success']} / 失败 {reasoning_stats['failed']} / 复用 {reasoning_stats['skipped']}")
+    lines.append("")
+
+    lines.append("## Top Picks（最终以 Reasoning 结果优先）")
+    lines.append("")
+    if final_top:
+        lines.append("| 排名 | 股票 | 板块 | 来源 | 分数 | 动作 | 信号 | 置信度 | 风险 | 摘要 |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        for idx, item in enumerate(final_top, start=1):
             score = f"{item.composite_score:.2f}" if item.composite_score is not None else "N/A"
             confidence = f"{item.confidence * 100:.0f}%" if item.confidence is not None else "N/A"
             risk = f"{item.risk_score:.1f}" if item.risk_score is not None else "N/A"
             summary = (item.summary or "N/A").replace("\n", " ").replace("|", "/")
+            source = "Reasoning" if item.stage == "reasoning" else "Summary"
+            if item.skipped:
+                source += "(reused)"
             lines.append(
-                f"| {idx} | {item.ticker} | {item.sector} | {score} | {action_label(item.action)} | {signal_label(item.signal)} | {confidence} | {risk} | {summary} |"
+                f"| {idx} | {item.ticker} | {item.sector} | {source} | {score} | {action_label(item.action)} | {signal_label(item.signal)} | {confidence} | {risk} | {summary} |"
             )
         lines.append("")
-
-        hold_items = [item for item in ranked[:display_count] if item.action == "hold"]
-        if hold_items:
-            lines.append("## HOLD 解释")
-            lines.append("")
-            for item in hold_items:
-                reasons: list[str] = []
-                if item.pressure_points:
-                    reasons.append("压制因素: " + "；".join(item.pressure_points[:2]))
-                if item.hold_reason:
-                    reasons.append(item.hold_reason.strip().replace("\n", " "))
-                if item.data_quality_flags:
-                    reasons.append("数据质量: " + "；".join(item.data_quality_flags[:2]))
-                lines.append(f"- **{item.ticker} ({item.sector})**: {' | '.join(reasons) if reasons else '模型给出 HOLD，但缺少结构化解释'}")
-            lines.append("")
     else:
-        lines.append("## Top Picks")
+        lines.append("- 无成功样本")
         lines.append("")
-        lines.append("- 无成功 summary 样本")
+
+    hold_items = [item for item in final_top if item.action == "hold"]
+    if hold_items:
+        lines.append("## HOLD 解释")
+        lines.append("")
+        for item in hold_items:
+            reasons: list[str] = []
+            if item.pressure_points:
+                reasons.append("压制因素: " + "；".join(item.pressure_points[:2]))
+            if item.hold_reason:
+                reasons.append(item.hold_reason.strip().replace("\n", " "))
+            if item.data_quality_flags:
+                reasons.append("数据质量: " + "；".join(item.data_quality_flags[:2]))
+            lines.append(f"- **{item.ticker} ({item.sector})**: {' | '.join(reasons) if reasons else '模型给出 HOLD，但缺少结构化解释'}")
+        lines.append("")
+
+    if daily_diff["has_previous"]:
+        lines.append("## 昨日 vs 今日 Diff")
+        lines.append("")
+        if previous_dir:
+            lines.append(f"- 对比基线: `{previous_dir.name}`")
+        if daily_diff["newly_entered"]:
+            lines.append(f"- 新入选: {', '.join(daily_diff['newly_entered'])}")
+        else:
+            lines.append("- 新入选: 无")
+        if daily_diff["dropped"]:
+            lines.append(f"- 掉出榜单: {', '.join(daily_diff['dropped'])}")
+        else:
+            lines.append("- 掉出榜单: 无")
+        if daily_diff["changed"]:
+            lines.append("- 结论变化:")
+            for item in daily_diff["changed"]:
+                lines.append(f"  - {item['ticker']} ({item['sector']}): {item['change']}")
+        else:
+            lines.append("- 结论变化: 无")
         lines.append("")
 
     if sector_best:
@@ -659,29 +890,32 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
             extra = ""
             if item.support_points:
                 extra = f" | support={'; '.join(item.support_points[:1])}"
+            source = "reasoning" if item.stage == "reasoning" else "summary"
             lines.append(
-                f"- **{sector}**: {item.ticker} | score={score} | action={action_label(item.action)} | signal={signal_label(item.signal)}{extra}"
+                f"- **{sector}**: {item.ticker} | source={source} | score={score} | action={action_label(item.action)} | signal={signal_label(item.signal)}{extra}"
             )
         lines.append("")
 
     if reasoning_results:
         lines.append("## Reasoning 复核")
         lines.append("")
-        for item in reasoning_results:
-            lines.append(
-                f"- {item.ticker} | {item.sector} | score={item.composite_score if item.composite_score is not None else 'N/A'} | {item.summary or 'N/A'}"
-            )
+        for item in sorted(reasoning_results, key=reasoning_ranking_key):
+            score = item.composite_score if item.composite_score is not None else 'N/A'
+            reuse_tag = " [reused]" if item.skipped else ""
+            lines.append(f"- {item.ticker} | {item.sector} | score={score} | attempts={item.attempts}{reuse_tag} | {item.summary or 'N/A'}")
         lines.append("")
 
     if failures:
         lines.append("## 失败样本")
         lines.append("")
         for item in failures:
-            lines.append(f"- {item.stage} | {item.ticker} | rc={item.returncode} | {item.error or 'unknown error'} | `{item.raw_path}`")
+            lines.append(
+                f"- {item.stage} | {item.ticker} | rc={item.returncode} | attempts={item.attempts} | {item.error or 'unknown error'} | `{item.raw_path}`"
+            )
         lines.append("")
 
     report_payload = {
-        "version": 1,
+        "version": 2,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "pool": str(pool_path.relative_to(ROOT)) if pool_path.is_relative_to(ROOT) else str(pool_path),
         "report_dir": str(report_dir),
@@ -690,12 +924,17 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
         "selected_for_reasoning": selected_for_reasoning,
         "summary_count": len(summary_results),
         "reasoning_count": len(reasoning_results),
+        "summary_stats": summary_stats,
+        "reasoning_stats": reasoning_stats,
+        "daily_diff": daily_diff,
+        "final_top_picks": [asdict(item) for item in final_top],
         "sector_leaders": {
             sector: {
                 "ticker": item.ticker,
                 "composite_score": item.composite_score,
                 "action": item.action,
                 "signal": item.signal,
+                "stage": item.stage,
             }
             for sector, item in sector_best.items()
         },
@@ -709,6 +948,87 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
     )
 
 
+def run_stage(
+    *,
+    ticker: str,
+    sector_name: str,
+    stage: str,
+    report_dir: Path,
+    raw_path: Path,
+    summary_text_path: Path,
+    summary_json_path: Path,
+    reasoning: bool,
+    num_of_news: int,
+    timeout: int,
+    model: str | None,
+    hq: bool,
+    retries: int,
+    skip_existing: bool,
+) -> ScanResult:
+    started = datetime.now().isoformat(timespec="seconds")
+
+    if skip_existing and result_has_cached_artifacts(raw_path, summary_text_path, summary_json_path):
+        return load_cached_stage_result(
+            ticker=ticker,
+            sector_name=sector_name,
+            stage=stage,
+            started=started,
+            report_dir=report_dir,
+            raw_path=raw_path,
+            summary_text_path=summary_text_path,
+            summary_json_path=summary_json_path,
+            reused_from="existing-artifacts",
+        )
+
+    max_attempts = max(1, retries + 1)
+    last_returncode = 1
+    last_output = ""
+    last_err: str | None = None
+
+    for attempt in range(1, max_attempts + 1):
+        last_returncode, last_output, last_err = run_stock_once(
+            ticker=ticker,
+            out_path=raw_path,
+            summary_text_path=summary_text_path,
+            summary_json_path=summary_json_path,
+            reasoning=reasoning,
+            num_of_news=num_of_news,
+            timeout=timeout,
+            model=model,
+            hq=hq,
+        )
+        if last_returncode == 0:
+            return build_stage_result(
+                ticker=ticker,
+                sector_name=sector_name,
+                stage=stage,
+                started=started,
+                report_dir=report_dir,
+                raw_path=raw_path,
+                summary_text_path=summary_text_path,
+                summary_json_path=summary_json_path,
+                returncode=last_returncode,
+                raw_output=last_output,
+                err=last_err,
+                attempts=attempt,
+            )
+
+    return build_stage_result(
+        ticker=ticker,
+        sector_name=sector_name,
+        stage=stage,
+        started=started,
+        report_dir=report_dir,
+        raw_path=raw_path,
+        summary_text_path=summary_text_path,
+        summary_json_path=summary_json_path,
+        returncode=last_returncode,
+        raw_output=last_output,
+        err=last_err,
+        attempts=max_attempts,
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Nightly sector scan wrapper for A-share investment agent")
     parser.add_argument("--pool", default=str(DEFAULT_POOL), help="股票池配置 JSON")
@@ -719,15 +1039,21 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=0, help="仅跑前 N 只（调试用，0=全部）")
     parser.add_argument("--skip-reasoning", action="store_true", help="只跑 summary")
     parser.add_argument("--report-root", default=str(REPORT_ROOT), help="报告根目录")
+    parser.add_argument("--report-dir", default=None, help="复用已有报告目录（用于 resume）")
     parser.add_argument("--model", default=None, help="透传给 ./stock 的 --model")
     parser.add_argument("--hq", action="store_true", help="透传给 ./stock 的 --hq")
+    parser.add_argument("--retries", type=int, default=1, help="失败重试次数（默认 1，即最多跑 2 次）")
+    parser.add_argument("--skip-existing", action="store_true", help="若当前 report_dir 下已有阶段产物，则直接复用，避免重复跑")
     args = parser.parse_args()
 
     pool_path = Path(args.pool).resolve()
     sectors = load_pool(pool_path)
     report_root = Path(args.report_root).resolve()
-    day = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    report_dir = report_root / day
+    if args.report_dir:
+        report_dir = Path(args.report_dir).resolve()
+    else:
+        day = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        report_dir = report_root / day
     raw_summary_dir = report_dir / "raw" / "summary"
     raw_reasoning_dir = report_dir / "raw" / "reasoning"
     raw_summary_dir.mkdir(parents=True, exist_ok=True)
@@ -750,34 +1076,25 @@ def main() -> int:
     results: list[ScanResult] = []
     for sector_name, ticker in universe:
         base_name = f"{slugify(sector_name)}__{ticker}"
-        started = datetime.now().isoformat(timespec="seconds")
         raw_path = raw_summary_dir / f"{base_name}.txt"
         summary_text_path = raw_summary_dir / f"{base_name}.summary.txt"
         summary_json_path = raw_summary_dir / f"{base_name}.summary.json"
-        returncode, raw_output, err = run_stock(
-            ticker=ticker,
-            out_path=raw_path,
-            summary_text_path=summary_text_path,
-            summary_json_path=summary_json_path,
-            reasoning=False,
-            num_of_news=args.num_of_news,
-            timeout=args.timeout,
-            model=args.model,
-            hq=args.hq,
-        )
         results.append(
-            build_stage_result(
+            run_stage(
                 ticker=ticker,
                 sector_name=sector_name,
                 stage="summary",
-                started=started,
                 report_dir=report_dir,
                 raw_path=raw_path,
                 summary_text_path=summary_text_path,
                 summary_json_path=summary_json_path,
-                returncode=returncode,
-                raw_output=raw_output,
-                err=err,
+                reasoning=False,
+                num_of_news=args.num_of_news,
+                timeout=args.timeout,
+                model=args.model,
+                hq=args.hq,
+                retries=args.retries,
+                skip_existing=args.skip_existing,
             )
         )
 
@@ -786,39 +1103,30 @@ def main() -> int:
 
     if not args.skip_reasoning:
         for base in selected:
-            started = datetime.now().isoformat(timespec="seconds")
             base_name = f"{slugify(base.sector)}__{base.ticker}"
             raw_path = raw_reasoning_dir / f"{base_name}.txt"
             summary_text_path = raw_reasoning_dir / f"{base_name}.summary.txt"
             summary_json_path = raw_reasoning_dir / f"{base_name}.summary.json"
-            returncode, raw_output, err = run_stock(
-                ticker=base.ticker,
-                out_path=raw_path,
-                summary_text_path=summary_text_path,
-                summary_json_path=summary_json_path,
-                reasoning=True,
-                num_of_news=args.reasoning_num_of_news,
-                timeout=args.timeout,
-                model=args.model,
-                hq=args.hq,
-            )
             results.append(
-                build_stage_result(
+                run_stage(
                     ticker=base.ticker,
                     sector_name=base.sector,
                     stage="reasoning",
-                    started=started,
                     report_dir=report_dir,
                     raw_path=raw_path,
                     summary_text_path=summary_text_path,
                     summary_json_path=summary_json_path,
-                    returncode=returncode,
-                    raw_output=raw_output,
-                    err=err,
+                    reasoning=True,
+                    num_of_news=args.reasoning_num_of_news,
+                    timeout=args.timeout,
+                    model=args.model,
+                    hq=args.hq,
+                    retries=args.retries,
+                    skip_existing=args.skip_existing,
                 )
             )
 
-    build_report(results, report_dir, args.top_n, pool_path)
+    build_report(results, report_dir, args.top_n, pool_path, report_root)
     print(
         json.dumps(
             {
