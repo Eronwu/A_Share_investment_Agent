@@ -772,16 +772,95 @@ def build_daily_diff(final_ranked: list[ScanResult], previous_payload: dict[str,
     }
 
 
-def classify_candidate(item: ScanResult, summary_map: dict[str, ScanResult]) -> tuple[str, list[str]]:
+def load_recent_history(report_root: Path, current_report_dir: Path, lookback: int = 5) -> dict[str, list[dict[str, Any]]]:
+    history: dict[str, list[dict[str, Any]]] = {}
+    if not report_root.exists():
+        return history
+
+    candidates = sorted(
+        p for p in report_root.iterdir()
+        if p.is_dir() and p.name != current_report_dir.name and (p / "report.json").exists()
+    )[-lookback:]
+
+    for report_dir in candidates:
+        payload = read_json(report_dir / "report.json") or {}
+        final_items = payload.get("final_top_picks") or []
+        for item in final_items:
+            if not isinstance(item, dict):
+                continue
+            ticker = str(item.get("ticker", "")).strip()
+            if not ticker:
+                continue
+            history.setdefault(ticker, []).append({
+                "report": report_dir.name,
+                "action": normalize_action(item.get("action")),
+                "signal": normalize_signal(item.get("signal")),
+                "composite_score": parse_float(item.get("composite_score")),
+                "confidence": parse_ratio(item.get("confidence")),
+                "stage": item.get("stage"),
+            })
+    return history
+
+
+def build_stability_snapshot(item: ScanResult, recent_history: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+    entries = list(recent_history.get(item.ticker, []))
+    current_entry = {
+        "report": "current",
+        "action": item.action,
+        "signal": item.signal,
+        "composite_score": item.composite_score,
+        "confidence": item.confidence,
+        "stage": item.stage,
+    }
+    combined = entries + [current_entry]
+    recent_actions = [e.get("action") for e in combined if e.get("action")]
+    recent_scores = [e.get("composite_score") for e in combined if e.get("composite_score") is not None]
+
+    streak_days = 1
+    for prev in reversed(entries):
+        if prev.get("action") == item.action and item.action is not None:
+            streak_days += 1
+        else:
+            break
+
+    action_switches = 0
+    for i in range(1, len(recent_actions)):
+        if recent_actions[i] != recent_actions[i - 1]:
+            action_switches += 1
+
+    score_range = None
+    if recent_scores:
+        score_range = round(max(recent_scores) - min(recent_scores), 2)
+
+    if streak_days >= 3 and action_switches <= 1 and (score_range is None or score_range <= 15):
+        stability_label = "stable"
+    elif streak_days >= 2 and action_switches <= 2 and (score_range is None or score_range <= 25):
+        stability_label = "moderate"
+    else:
+        stability_label = "unstable"
+
+    return {
+        "lookback_reports": len(entries),
+        "streak_days": streak_days,
+        "recent_actions": recent_actions,
+        "recent_scores": recent_scores,
+        "action_switches": action_switches,
+        "score_range": score_range,
+        "stability_label": stability_label,
+    }
+
+
+def classify_candidate(item: ScanResult, summary_map: dict[str, ScanResult], recent_history: dict[str, list[dict[str, Any]]]) -> tuple[str, list[str], dict[str, Any]]:
     reasons: list[str] = []
     flags = item.data_quality_flags or []
     confidence = item.confidence if item.confidence is not None else -1.0
     score = item.composite_score if item.composite_score is not None else -1.0
     source = item.stage
     summary_peer = summary_map.get(item.ticker)
+    stability = build_stability_snapshot(item, recent_history)
 
     if not item.success:
-        return "excluded", ["analysis_failed"]
+        return "excluded", ["analysis_failed"], stability
     if item.error:
         reasons.append("has_error")
     if score < 0:
@@ -806,33 +885,41 @@ def classify_candidate(item: ScanResult, summary_map: dict[str, ScanResult]) -> 
         if summary_score >= 0 and abs(score - summary_score) >= 25:
             reasons.append("summary_reasoning_score_gap")
 
+    if stability["stability_label"] == "unstable":
+        reasons.append("unstable_multi_day")
+    elif stability["stability_label"] == "moderate":
+        reasons.append("moderate_multi_day")
+    else:
+        reasons.append("stable_multi_day")
+
     if item.action == "buy" and score >= 70 and confidence >= 0.55 and "fallback_detected" not in reasons and "missing_action" not in reasons:
-        if item.stage == "reasoning" or score >= 85:
-            return "top_picks", reasons
-        return "watchlist", reasons
+        if (item.stage == "reasoning" or score >= 85) and stability["stability_label"] != "unstable":
+            return "top_picks", reasons, stability
+        return "watchlist", reasons, stability
 
     if item.action == "hold":
-        if score >= 60 and confidence >= 0.5 and "zero_confidence" not in reasons:
-            return "watchlist", reasons
-        return "excluded", reasons
+        if score >= 60 and confidence >= 0.5 and "zero_confidence" not in reasons and stability["stability_label"] != "unstable":
+            return "watchlist", reasons, stability
+        return "excluded", reasons, stability
 
     if item.action in {"sell", "reduce"}:
         reasons.append("negative_action")
-        return "excluded", reasons
+        return "excluded", reasons, stability
 
-    if score >= 60:
-        return "watchlist", reasons
-    return "excluded", reasons
+    if score >= 60 and stability["stability_label"] != "unstable":
+        return "watchlist", reasons, stability
+    return "excluded", reasons, stability
 
 
-def build_final_candidates(final_ranked: list[ScanResult], summary_results: list[ScanResult]) -> dict[str, Any]:
+def build_final_candidates(final_ranked: list[ScanResult], summary_results: list[ScanResult], report_root: Path, current_report_dir: Path) -> dict[str, Any]:
     summary_map = {item.ticker: item for item in summary_results}
+    recent_history = load_recent_history(report_root, current_report_dir)
     top_picks: list[dict[str, Any]] = []
     watchlist: list[dict[str, Any]] = []
     excluded: list[dict[str, Any]] = []
 
     for item in final_ranked:
-        bucket, reasons = classify_candidate(item, summary_map)
+        bucket, reasons, stability = classify_candidate(item, summary_map, recent_history)
         entry = {
             "ticker": item.ticker,
             "sector": item.sector,
@@ -845,6 +932,7 @@ def build_final_candidates(final_ranked: list[ScanResult], summary_results: list
             "summary": item.summary,
             "data_quality_flags": item.data_quality_flags or [],
             "reasons": reasons,
+            "stability": stability,
         }
         if bucket == "top_picks":
             top_picks.append(entry)
@@ -855,7 +943,8 @@ def build_final_candidates(final_ranked: list[ScanResult], summary_results: list
 
     return {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
-        "rules_version": 1,
+        "rules_version": 2,
+        "history_lookback_reports": 5,
         "top_picks": top_picks,
         "watchlist": watchlist,
         "excluded": excluded,
@@ -887,7 +976,7 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
     summary_stats = compute_stage_stats(results, "summary")
     reasoning_stats = compute_stage_stats(results, "reasoning")
     final_top = final_ranked[: max(top_n, min(5, len(final_ranked)))]
-    final_candidates = build_final_candidates(final_ranked, summary_results)
+    final_candidates = build_final_candidates(final_ranked, summary_results, report_root, report_dir)
 
     lines: list[str] = []
     lines.append(f"# A股夜间扫描报告 - {report_dir.name}")
@@ -957,7 +1046,8 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
         lines.append("")
         for item in final_candidates["top_picks"]:
             reason_text = ", ".join(item["reasons"]) if item["reasons"] else "passed_default_filters"
-            lines.append(f"- **{item['ticker']} ({item['sector']})**: action={action_label(item['action'])} | score={item['composite_score']} | source={item['stage']} | {reason_text}")
+            stability = item.get("stability", {})
+            lines.append(f"- **{item['ticker']} ({item['sector']})**: action={action_label(item['action'])} | score={item['composite_score']} | source={item['stage']} | stability={stability.get('stability_label', 'unknown')} | streak={stability.get('streak_days', 1)} | {reason_text}")
         lines.append("")
 
     if final_candidates["watchlist"]:
@@ -965,7 +1055,21 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
         lines.append("")
         for item in final_candidates["watchlist"]:
             reason_text = ", ".join(item["reasons"]) if item["reasons"] else "monitor"
-            lines.append(f"- **{item['ticker']} ({item['sector']})**: action={action_label(item['action'])} | score={item['composite_score']} | source={item['stage']} | {reason_text}")
+            stability = item.get("stability", {})
+            lines.append(f"- **{item['ticker']} ({item['sector']})**: action={action_label(item['action'])} | score={item['composite_score']} | source={item['stage']} | stability={stability.get('stability_label', 'unknown')} | streak={stability.get('streak_days', 1)} | {reason_text}")
+        lines.append("")
+
+    if final_candidates["top_picks"] or final_candidates["watchlist"]:
+        lines.append("## 多日稳定性")
+        lines.append("")
+        for bucket_name in ["top_picks", "watchlist"]:
+            for item in final_candidates[bucket_name]:
+                stability = item.get("stability", {})
+                recent_actions = ",".join(stability.get("recent_actions", [])) or "N/A"
+                recent_scores = ",".join(str(s) for s in stability.get("recent_scores", [])) or "N/A"
+                lines.append(
+                    f"- **{item['ticker']} ({item['sector']})**: label={stability.get('stability_label', 'unknown')} | streak={stability.get('streak_days', 1)} | switches={stability.get('action_switches', 0)} | score_range={stability.get('score_range', 'N/A')} | actions=[{recent_actions}] | scores=[{recent_scores}]"
+                )
         lines.append("")
 
     hold_items = [item for item in final_top if item.action == "hold"]
