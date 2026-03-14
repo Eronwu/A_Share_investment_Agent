@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "description": "Nightly auto-run configuration for A-share investment agent",
+  "build_pool": {
+    "enabled": true,
+    "rules": "config/sector_pool_rules.v1.json",
+    "out": "config/sector_pool.generated.json"
+  },
+  "scan": {
+    "pool": "config/sector_pool.generated.json",
+    "top_n": 10,
+    "num_of_news": 6,
+    "reasoning_num_of_news": 10,
+    "timeout": 1800,
+    "retries": 1,
+    "skip_existing": true,
+    "hq": false,
+    "model": null,
+    "limit": 0,
+    "skip_reasoning": false,
+    "report_root": "reports"
+  },
+  "summary": {
+    "enabled": true,
+    "txt_name": "push_summary.txt",
+    "json_name": "push_summary.json"
+  },
+  "notify": {
+    "enabled": false,
+    "on_success": true,
+    "on_failure": true,
+    "command": null,
+    "shell": "/bin/zsh"
+  }
+}

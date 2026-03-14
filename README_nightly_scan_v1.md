@@ -23,12 +23,18 @@ python tools/nightly_scan.py --top-n 5
 # 指定模型或高质量模式
 python tools/nightly_scan.py --top-n 3 --model qwen2.5-coder:7b
 python tools/nightly_scan.py --top-n 3 --hq
+
+# 统一 nightly 入口（先建池，再跑 nightly，再产出 push summary，可挂通知）
+python tools/nightly_run.py --config config/nightly_run.v1.json
 ```
 
 ## 输出结构
 
 - `reports/<timestamp>/daily_report.md`：人读报告
 - `reports/<timestamp>/report.json`：汇总 JSON
+- `reports/<timestamp>/final_candidates.json`：最终候选分层结果
+- `reports/<timestamp>/push_summary.txt`：适合消息推送的短摘要
+- `reports/<timestamp>/push_summary.json`：适合通知/自动化消费的结构化摘要
 - `reports/<timestamp>/raw/summary/*.txt`：每只 summary 原始终端输出
 - `reports/<timestamp>/raw/summary/*.summary.txt`：每只 summary 渲染文本
 - `reports/<timestamp>/raw/summary/*.summary.json`：每只 summary 结构化结果

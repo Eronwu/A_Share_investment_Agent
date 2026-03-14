@@ -1169,6 +1169,55 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
     }
 
     (report_dir / "daily_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    push_summary = {
+        "generated_at": report_payload["generated_at"],
+        "report_dir": str(report_dir),
+        "summary_stats": summary_stats,
+        "reasoning_stats": reasoning_stats,
+        "selected_for_reasoning": selected_for_reasoning,
+        "top_picks": final_candidates["top_picks"][:3],
+        "watchlist": final_candidates["watchlist"][:5],
+        "failed": [
+            {
+                "ticker": item.ticker,
+                "sector": item.sector,
+                "stage": item.stage,
+                "returncode": item.returncode,
+                "attempts": item.attempts,
+                "error": item.error,
+            }
+            for item in failures[:10]
+        ],
+        "daily_diff": daily_diff,
+    }
+
+    push_lines: list[str] = []
+    push_lines.append(f"夜跑报告 {report_dir.name}")
+    push_lines.append(
+        f"Summary 成功 {summary_stats['success']}/{summary_stats['count']} | Reasoning 成功 {reasoning_stats['success']}/{reasoning_stats['count']}"
+    )
+    if final_candidates["top_picks"]:
+        push_lines.append("Top Picks: " + ", ".join(
+            f"{item['ticker']}({action_label(item['action'])},{item['composite_score']})"
+            for item in final_candidates["top_picks"][:3]
+        ))
+    elif final_candidates["watchlist"]:
+        push_lines.append("Watchlist: " + ", ".join(
+            f"{item['ticker']}({action_label(item['action'])},{item['composite_score']})"
+            for item in final_candidates["watchlist"][:5]
+        ))
+    else:
+        push_lines.append("Top Picks/Watchlist: 无")
+
+    if failures:
+        push_lines.append("失败: " + ", ".join(
+            f"{item.stage}:{item.ticker}(rc={item.returncode})" for item in failures[:5]
+        ))
+    if daily_diff.get("newly_entered"):
+        push_lines.append("新入选: " + ", ".join(daily_diff["newly_entered"][:5]))
+    if daily_diff.get("dropped"):
+        push_lines.append("掉出: " + ", ".join(daily_diff["dropped"][:5]))
+
     (report_dir / "report.json").write_text(
         json.dumps(report_payload, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -1177,6 +1226,11 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
         json.dumps(final_candidates, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    (report_dir / "push_summary.json").write_text(
+        json.dumps(push_summary, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    (report_dir / "push_summary.txt").write_text("\n".join(push_lines) + "\n", encoding="utf-8")
 
 
 def run_stage(

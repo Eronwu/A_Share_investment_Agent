@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "description": "A股半自动建池规则 v1（基于东方财富行业/概念板块成分 + 流动性排序）",
+  "defaults": {
+    "top_n": 5,
+    "categories": ["concept", "industry"],
+    "sort_by": ["成交额", "涨跌幅", "换手率"]
+  },
+  "sectors": [
+    {
+      "name": "半导体",
+      "description": "半导体相关板块中按成交额筛选代表股",
+      "categories": ["industry", "concept"],
+      "board_keywords": ["半导体"],
+      "fallback_tickers": ["002371", "603501", "688981", "688008", "002049"]
+    },
+    {
+      "name": "创新药",
+      "description": "创新药/CXO/生物制药方向代表股",
+      "categories": ["concept", "industry"],
+      "board_keywords": ["创新药", "CXO", "生物制品", "化学制药"],
+      "fallback_tickers": ["600276", "688235", "603259", "300759", "300122"]
+    },
+    {
+      "name": "算力",
+      "description": "算力/CPO/东数西算方向代表股",
+      "categories": ["concept", "industry"],
+      "board_keywords": ["算力概念", "CPO概念", "东数西算", "通信设备"],
+      "fallback_tickers": ["300308", "300502", "603019", "300394", "000977"]
+    },
+    {
+      "name": "消费电子",
+      "description": "消费电子与苹果链方向代表股",
+      "categories": ["industry", "concept"],
+      "board_keywords": ["消费电子", "苹果概念", "品牌消费电子"],
+      "fallback_tickers": ["002475", "300433", "002600", "002241", "300115"]
+    },
+    {
+      "name": "机器人",
+      "description": "机器人/人形机器人方向代表股",
+      "categories": ["industry", "concept"],
+      "board_keywords": ["机器人", "机器人概念", "人形机器人"],
+      "fallback_tickers": ["300124", "002747", "688017", "300450", "002527"]
+    },
+    {
+      "name": "新能源车",
+      "description": "新能源车方向代表股",
+      "categories": ["concept", "industry"],
+      "board_keywords": ["新能源车", "汽车整车", "汽车零部件", "电池"],
+      "fallback_tickers": ["300750", "002594", "601633", "601689", "002460"]
+    },
+    {
+      "name": "券商",
+      "description": "证券板块代表股",
+      "categories": ["industry"],
+      "board_keywords": ["证券"],
+      "fallback_tickers": ["600030", "601688", "601066", "601211", "600837"]
+    },
+    {
+      "name": "黄金有色",
+      "description": "黄金/有色方向代表股",
+      "categories": ["industry", "concept"],
+      "board_keywords": ["黄金", "有色金属", "黄金概念"],
+      "fallback_tickers": ["600547", "601899", "000975", "603993", "000960"]
+    },
+    {
+      "name": "红利央企",
+      "description": "中字头/央企/高股息风格代表股（规则命中不足时回退手工池）",
+      "categories": ["concept", "industry"],
+      "board_keywords": ["中字头", "央企改革", "银行", "煤炭行业", "石油行业"],
+      "fallback_tickers": ["600900", "601288", "600028", "601088", "601006"]
+    }
+  ]
+}
