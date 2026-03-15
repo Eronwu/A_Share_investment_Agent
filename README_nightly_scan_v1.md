@@ -38,7 +38,7 @@ python tools/nightly_run.py --config config/nightly_run.v1.json
 
 默认通知配置已支持读取本机 OpenClaw 渠道里的 Telegram bot 配置，并向 `config/nightly_run.v1.json` 中的 `notify.telegram_to` 发送摘要。
 
-另外，`tools/build_sector_pool.py` 现在会在调用东方财富 / AkShare 数据时显式屏蔽代理环境，避免东财接口因为全局代理导致的建池失败。
+另外，`tools/build_sector_pool.py` 现在已改为直接调用东方财富原始板块接口（不再依赖 AkShare 的板块抓取封装），并在请求时显式屏蔽代理环境，减少东财接口因全局代理或第三方封装导致的建池失败。
 
 ## 输出结构
 
