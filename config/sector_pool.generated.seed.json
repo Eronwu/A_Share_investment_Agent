@@ -1,9 +1,8 @@
 {
   "version": 1,
-  "generated_at": "2026-03-15T22:49:42",
-  "description": "A股半自动生成股票池（基于东方财富原始板块接口与成交额排序）",
+  "generated_at": "2026-03-14T08:36:49",
+  "description": "A股半自动生成股票池（基于EM板块成分与成交额排序）",
   "rules_file": "config/sector_pool_rules.v1.json",
-  "catalog_used": false,
   "sectors": [
     {
       "name": "半导体",
@@ -15,40 +14,33 @@
         "000547",
         "001309"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "industry",
-          "board": "半导体设备",
-          "board_code": "BK1326"
+          "board": "半导体设备"
         },
         {
           "category": "industry",
-          "board": "半导体材料",
-          "board_code": "BK1325"
+          "board": "半导体材料"
         },
         {
           "category": "industry",
-          "board": "半导体",
-          "board_code": "BK1036"
+          "board": "半导体"
         },
         {
           "category": "concept",
-          "board": "第四代半导体",
-          "board_code": "BK1121"
+          "board": "第四代半导体"
         },
         {
           "category": "concept",
-          "board": "第三代半导体",
-          "board_code": "BK0952"
+          "board": "第三代半导体"
         },
         {
           "category": "concept",
-          "board": "半导体概念",
-          "board_code": "BK0917"
+          "board": "半导体概念"
         }
       ],
-      "board_resolution": "explicit",
       "keywords": [
         "半导体"
       ],
@@ -110,30 +102,25 @@
         "600276",
         "600216"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "concept",
-          "board": "创新药",
-          "board_code": "BK1106"
+          "board": "创新药"
         },
         {
           "category": "industry",
-          "board": "化学制药",
-          "board_code": "BK0465"
+          "board": "生物制品"
         },
         {
           "category": "industry",
-          "board": "生物制品",
-          "board_code": "BK1044"
+          "board": "其他生物制品"
         },
         {
           "category": "industry",
-          "board": "其他生物制品",
-          "board_code": "BK1596"
+          "board": "化学制药"
         }
       ],
-      "board_resolution": "explicit",
       "keywords": [
         "创新药",
         "CXO",
@@ -198,35 +185,29 @@
         "300308",
         "688256"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "concept",
-          "board": "算力概念",
-          "board_code": "BK1134"
+          "board": "算力概念"
         },
         {
           "category": "concept",
-          "board": "CPO概念",
-          "board_code": "BK1128"
+          "board": "CPO概念"
         },
         {
           "category": "concept",
-          "board": "东数西算",
-          "board_code": "BK1064"
+          "board": "东数西算"
         },
         {
           "category": "industry",
-          "board": "通信设备",
-          "board_code": "BK0448"
+          "board": "通信设备"
         },
         {
           "category": "industry",
-          "board": "其他通信设备",
-          "board_code": "BK1590"
+          "board": "其他通信设备"
         }
       ],
-      "board_resolution": "explicit",
       "keywords": [
         "算力概念",
         "CPO概念",
@@ -291,30 +272,25 @@
         "601138",
         "002475"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "industry",
-          "board": "品牌消费电子",
-          "board_code": "BK1337"
+          "board": "品牌消费电子"
         },
         {
           "category": "industry",
-          "board": "消费电子",
-          "board_code": "BK1037"
+          "board": "消费电子"
         },
         {
           "category": "industry",
-          "board": "消费电子零部件及组装",
-          "board_code": "BK1338"
+          "board": "消费电子零部件及组装"
         },
         {
           "category": "concept",
-          "board": "苹果概念",
-          "board_code": "BK0666"
+          "board": "苹果概念"
         }
       ],
-      "board_resolution": "explicit",
       "keywords": [
         "消费电子",
         "苹果概念",
@@ -378,35 +354,29 @@
         "688525",
         "600487"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "industry",
-          "board": "机器人",
-          "board_code": "BK1408"
+          "board": "机器人"
         },
         {
           "category": "concept",
-          "board": "虚拟机器人",
-          "board_code": "BK1190"
+          "board": "机器人概念"
         },
         {
           "category": "concept",
-          "board": "人形机器人",
-          "board_code": "BK1184"
+          "board": "人形机器人"
         },
         {
           "category": "concept",
-          "board": "机器人执行器",
-          "board_code": "BK1145"
+          "board": "机器人执行器"
         },
         {
           "category": "concept",
-          "board": "机器人概念",
-          "board_code": "BK1090"
+          "board": "虚拟机器人"
         }
       ],
-      "board_resolution": "explicit",
       "keywords": [
         "机器人",
         "机器人概念",
@@ -470,120 +440,97 @@
         "002384",
         "002463"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "concept",
-          "board": "BC电池",
-          "board_code": "BK1148"
+          "board": "新能源车"
         },
         {
           "category": "concept",
-          "board": "TOPCon电池",
-          "board_code": "BK1097"
+          "board": "汽车整车"
         },
         {
           "category": "concept",
-          "board": "钒电池",
-          "board_code": "BK1095"
+          "board": "钠离子电池"
         },
         {
           "category": "concept",
-          "board": "钙钛矿电池",
-          "board_code": "BK1094"
+          "board": "刀片电池"
         },
         {
           "category": "concept",
-          "board": "麒麟电池",
-          "board_code": "BK1092"
+          "board": "动力电池回收"
         },
         {
           "category": "concept",
-          "board": "动力电池回收",
-          "board_code": "BK1052"
+          "board": "锂电池概念"
         },
         {
           "category": "concept",
-          "board": "汽车整车",
-          "board_code": "BK1029"
+          "board": "固态电池"
         },
         {
           "category": "concept",
-          "board": "钠离子电池",
-          "board_code": "BK0988"
+          "board": "HJT电池"
         },
         {
           "category": "concept",
-          "board": "固态电池",
-          "board_code": "BK0968"
+          "board": "燃料电池概念"
         },
         {
           "category": "concept",
-          "board": "刀片电池",
-          "board_code": "BK0951"
+          "board": "TOPCon电池"
         },
         {
           "category": "concept",
-          "board": "HJT电池",
-          "board_code": "BK0908"
+          "board": "BC电池"
         },
         {
           "category": "concept",
-          "board": "新能源车",
-          "board_code": "BK0900"
+          "board": "钙钛矿电池"
         },
         {
           "category": "concept",
-          "board": "燃料电池概念",
-          "board_code": "BK0682"
+          "board": "钒电池"
         },
         {
           "category": "concept",
-          "board": "锂电池概念",
-          "board_code": "BK0574"
+          "board": "麒麟电池"
         },
         {
           "category": "industry",
-          "board": "蓄电池及其他电池",
-          "board_code": "BK1306"
+          "board": "汽车零部件"
         },
         {
           "category": "industry",
-          "board": "电池化学品",
-          "board_code": "BK1302"
+          "board": "其他汽车零部件"
         },
         {
           "category": "industry",
-          "board": "电池",
-          "board_code": "BK1033"
+          "board": "蓄电池及其他电池"
         },
         {
           "category": "industry",
-          "board": "燃料电池",
-          "board_code": "BK1305"
+          "board": "电池化学品"
         },
         {
           "category": "industry",
-          "board": "锂电池",
-          "board_code": "BK1303"
+          "board": "电池"
         },
         {
           "category": "industry",
-          "board": "汽车零部件",
-          "board_code": "BK0481"
+          "board": "燃料电池"
         },
         {
           "category": "industry",
-          "board": "其他汽车零部件",
-          "board_code": "BK1528"
+          "board": "锂电池"
         },
         {
           "category": "industry",
-          "board": "光伏电池组件",
-          "board_code": "BK1315"
+          "board": "光伏电池组件"
         }
       ],
-      "board_resolution": "explicit",
       "keywords": [
         "新能源车",
         "汽车整车",
@@ -648,20 +595,17 @@
         "601211",
         "601696"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "industry",
-          "board": "证券Ⅲ",
-          "board_code": "BK1366"
+          "board": "证券Ⅱ"
         },
         {
           "category": "industry",
-          "board": "证券Ⅱ",
-          "board_code": "BK0473"
+          "board": "证券Ⅲ"
         }
       ],
-      "board_resolution": "explicit",
       "keywords": [
         "证券"
       ],
@@ -723,25 +667,21 @@
         "600089",
         "600549"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "industry",
-          "board": "有色金属",
-          "board_code": "BK0478"
+          "board": "黄金"
         },
         {
           "category": "industry",
-          "board": "黄金",
-          "board_code": "BK1617"
+          "board": "有色金属"
         },
         {
           "category": "concept",
-          "board": "黄金概念",
-          "board_code": "BK0547"
+          "board": "黄金概念"
         }
       ],
-      "board_resolution": "explicit",
       "keywords": [
         "黄金",
         "有色金属",
@@ -805,40 +745,33 @@
         "601179",
         "601611"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "concept",
-          "board": "参股银行",
-          "board_code": "BK0525"
+          "board": "中字头"
         },
         {
           "category": "concept",
-          "board": "中字头",
-          "board_code": "BK0505"
+          "board": "参股银行"
         },
         {
           "category": "industry",
-          "board": "股份制银行Ⅲ",
-          "board_code": "BK1610"
+          "board": "股份制银行Ⅲ"
         },
         {
           "category": "industry",
-          "board": "银行",
-          "board_code": "BK1283"
+          "board": "银行"
         },
         {
           "category": "industry",
-          "board": "银行Ⅱ",
-          "board_code": "BK0475"
+          "board": "银行Ⅱ"
         },
         {
           "category": "industry",
-          "board": "国有大型银行Ⅲ",
-          "board_code": "BK1611"
+          "board": "国有大型银行Ⅲ"
         }
       ],
-      "board_resolution": "explicit",
       "keywords": [
         "中字头",
         "央企改革",

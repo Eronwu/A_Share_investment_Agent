@@ -40,6 +40,19 @@ python tools/nightly_run.py --config config/nightly_run.v1.json
 
 另外，`tools/build_sector_pool.py` 现在已改为直接调用东方财富原始板块接口（不再依赖 AkShare 的板块抓取封装），并在请求时显式屏蔽代理环境，减少东财接口因全局代理或第三方封装导致的建池失败。
 
+当前版本还加入了两层稳定性兜底：
+
+1. 在 `config/sector_pool_rules.v1.json` 中显式固化目标板块 `board_code`
+2. 当东财 live 成分股抓取失败时，回退到最近一次成功生成的 seed cache（`config/sector_pool.generated.seed.json`）
+
+因此，当前 nightly 产品的实际工作模式更接近：
+
+- **显式板块码 + 东财成功快照缓存**
+
+而不是：
+
+- 每次都完全依赖东财 live constituent fetch 的全实时建池
+
 ## 输出结构
 
 - `reports/<timestamp>/daily_report.md`：人读报告

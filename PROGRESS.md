@@ -272,7 +272,50 @@
 
 ---
 
+## 最新状态（2026-03-16）
+
+### 已落地
+
+- 已将目标板块 `board_code` 固化到 `config/sector_pool_rules.v1.json`
+- `tools/build_sector_pool.py` 已优先使用显式板块码，不再依赖动态目录扫描
+- 已加入最近一次成功生成池作为 seed cache：`config/sector_pool.generated.seed.json`
+- 当前生成的 `config/sector_pool.generated.json` 已不再是纯手工 fallback，而是 **9/9 sector 进入 `cached`**
+- nightly smoke test 已验证可正常生成报告目录与产物
+
+### 当前真实结论
+
+nightly 链路已经可用；
+真正仍未完全打通的，是 **“东财 live 板块成分股接口在当前机器环境下的稳定获取”**。
+
+### 当前 blocker 的精确描述
+
+当前最核心的 blocker 已缩小为：
+
+- `push2.eastmoney.com/api/qt/clist/get?...fs=b:BKxxxx...`
+
+这条板块成分股接口在当前环境下稳定出现：
+
+- `ERR_EMPTY_RESPONSE`
+- `RemoteDisconnected`
+- `Connection aborted`
+
+并且已验证：
+
+- 不仅脚本请求失败
+- 真实浏览器页面上下文里，该端点也会稳定失败
+- 同页其他接口（如 `kamt/get`, `stock/trends2/get`）则可正常返回
+
+### 当前产品形态
+
+当前项目已经进入：
+
+- **显式板块码 + 东财成功快照缓存** 驱动的稳定版 nightly 产品
+
+而不是：
+
+- 每次都完全依赖东财 live constituent fetch 的全实时版本
+
 ## 一句话总结
 
-nightly 工程化外壳已经基本成型；
-真正没收口的，是 **“东财原始接口股票池构建在当前机器环境下的稳定打通”**。
+nightly 产品已经可以稳定使用；
+真正没收口的，是 **“东财板块成分股 live 接口的最终打通”**。

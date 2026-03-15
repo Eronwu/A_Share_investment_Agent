@@ -20,6 +20,7 @@ from requests.adapters import HTTPAdapter
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RULES = ROOT / "config" / "sector_pool_rules.v1.json"
 DEFAULT_OUT = ROOT / "config" / "sector_pool.generated.json"
+DEFAULT_SEED_CACHE = ROOT / "config" / "sector_pool.generated.seed.json"
 PROXY_ENV_KEYS = [
     "HTTP_PROXY",
     "HTTPS_PROXY",
@@ -42,6 +43,10 @@ EM_UT = "bd1d9ddb04089700cf9c27f6f7426281"
 EM_INDUSTRY_URL = "https://17.push2.eastmoney.com/api/qt/clist/get"
 EM_CONCEPT_URL = "https://79.push2.eastmoney.com/api/qt/clist/get"
 EM_CONS_URL = "https://29.push2.eastmoney.com/api/qt/clist/get"
+CATALOG_TIMEOUT = 12
+CATALOG_MAX_RETRIES = 3
+CONSTITUENT_TIMEOUT = 6
+CONSTITUENT_MAX_RETRIES = 2
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -113,9 +118,14 @@ def em_request(url: str, params: dict[str, Any], timeout: int = 15, max_retries:
         raise RuntimeError(f"eastmoney request failed: {last_exception}")
 
 
-def fetch_paginated_diff(url: str, base_params: dict[str, Any], timeout: int = 15) -> pd.DataFrame:
+def fetch_paginated_diff(
+    url: str,
+    base_params: dict[str, Any],
+    timeout: int = CATALOG_TIMEOUT,
+    max_retries: int = CATALOG_MAX_RETRIES,
+) -> pd.DataFrame:
     params = dict(base_params)
-    first = em_request(url, params, timeout=timeout)
+    first = em_request(url, params, timeout=timeout, max_retries=max_retries)
     data = first.get("data") or {}
     diff = data.get("diff") or []
     total = int(data.get("total") or len(diff) or 0)
@@ -126,7 +136,7 @@ def fetch_paginated_diff(url: str, base_params: dict[str, Any], timeout: int = 1
     for page in range(2, total_page + 1):
         params["pn"] = str(page)
         time.sleep(random.uniform(0.2, 0.8))
-        payload = em_request(url, params, timeout=timeout)
+        payload = em_request(url, params, timeout=timeout, max_retries=max_retries)
         page_diff = (payload.get("data") or {}).get("diff") or []
         if page_diff:
             frames.append(pd.DataFrame(page_diff))
@@ -195,20 +205,76 @@ def match_boards(board_names: list[str], keywords: list[str]) -> list[str]:
     return matched
 
 
+def explicit_boards_from_sector(sector: dict[str, Any], allowed_categories: list[str]) -> list[dict[str, str]]:
+    boards = sector.get("boards")
+    if not isinstance(boards, list):
+        return []
+
+    resolved: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for item in boards:
+        if not isinstance(item, dict):
+            continue
+        category = str(item.get("category", "")).strip()
+        board = str(item.get("board", "")).strip()
+        board_code = str(item.get("board_code", "")).strip()
+        if not category or not board or not board_code:
+            continue
+        if allowed_categories and category not in allowed_categories:
+            continue
+        key = (category, board_code)
+        if key in seen:
+            continue
+        seen.add(key)
+        resolved.append({"category": category, "board": board, "board_code": board_code})
+    return resolved
+
+
+def resolve_sector_boards(
+    sector: dict[str, Any],
+    *,
+    categories: list[str],
+    keywords: list[str],
+    catalog: dict[str, pd.DataFrame] | None,
+) -> tuple[list[dict[str, str]], str]:
+    explicit = explicit_boards_from_sector(sector, categories)
+    if explicit:
+        return explicit, "explicit"
+
+    if catalog is None:
+        return [], "unresolved"
+
+    matched_boards: list[dict[str, str]] = []
+    for category in categories:
+        category_df = catalog.get(category, pd.DataFrame())
+        names = board_names_from_catalog(category_df)
+        matched = match_boards(names, keywords)
+        for board_name in matched:
+            board_code = find_board_code(category_df, board_name)
+            if not board_code:
+                continue
+            matched_boards.append({"category": category, "board": board_name, "board_code": board_code})
+    return matched_boards, "catalog"
+
+
 def fetch_constituents(board_code: str) -> pd.DataFrame:
     params = {
         "pn": "1",
-        "pz": "100",
+        "pz": "120",
         "po": "1",
         "np": "1",
         "ut": EM_UT,
         "fltt": "2",
         "invt": "2",
-        "fid": "f3",
+        "fid": "f6",
         "fs": f"b:{board_code} f:!50",
         "fields": "f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f12,f13,f14,f15,f16,f17,f18,f20,f21,f23,f24,f25,f22,f11,f62,f128,f136,f115,f152,f45",
     }
-    return fetch_paginated_diff(EM_CONS_URL, params)
+    payload = em_request(EM_CONS_URL, params, timeout=CONSTITUENT_TIMEOUT, max_retries=CONSTITUENT_MAX_RETRIES)
+    diff = (payload.get("data") or {}).get("diff") or []
+    if not diff:
+        return pd.DataFrame()
+    return pd.DataFrame(diff)
 
 
 def rank_constituents(df: pd.DataFrame, sort_fields: list[str]) -> pd.DataFrame:
@@ -229,16 +295,46 @@ def rank_constituents(df: pd.DataFrame, sort_fields: list[str]) -> pd.DataFrame:
     return ranked.reset_index(drop=True)
 
 
-def build_pool(rules: dict[str, Any]) -> dict[str, Any]:
+def load_pool_cache(*paths: Path) -> dict[str, dict[str, Any]]:
+    for path in paths:
+        try:
+            if not path.exists():
+                continue
+            payload = load_json(path)
+            sectors = payload.get("sectors")
+            if not isinstance(sectors, list):
+                continue
+            cache: dict[str, dict[str, Any]] = {}
+            for sector in sectors:
+                if not isinstance(sector, dict):
+                    continue
+                name = str(sector.get("name", "")).strip()
+                if not name:
+                    continue
+                sample_rows = sector.get("sample_rows")
+                tickers = sector.get("tickers")
+                if isinstance(sample_rows, list) and sample_rows and isinstance(tickers, list) and tickers:
+                    cache[name] = sector
+            if cache:
+                return cache
+        except Exception:
+            continue
+    return {}
+
+
+def build_pool(rules: dict[str, Any], previous_pool_cache: dict[str, dict[str, Any]] | None = None) -> dict[str, Any]:
     defaults = rules.get("defaults", {}) if isinstance(rules.get("defaults"), dict) else {}
     default_top_n = int(defaults.get("top_n", 5) or 5)
     default_categories = defaults.get("categories", ["concept", "industry"])
     default_sort_by = defaults.get("sort_by", ["成交额", "涨跌幅", "换手率"])
+    previous_pool_cache = previous_pool_cache or {}
 
-    catalog = get_board_catalog()
+    sectors = [sector for sector in rules.get("sectors", []) if isinstance(sector, dict)]
+    needs_catalog = any(not explicit_boards_from_sector(sector, sector.get("categories") or default_categories) for sector in sectors)
+    catalog = get_board_catalog() if needs_catalog else None
     sectors_out: list[dict[str, Any]] = []
 
-    for sector in rules.get("sectors", []):
+    for sector in sectors:
         name = str(sector.get("name", "")).strip()
         if not name:
             continue
@@ -248,27 +344,28 @@ def build_pool(rules: dict[str, Any]) -> dict[str, Any]:
         sort_by = sector.get("sort_by") or default_sort_by
         fallback_tickers = [str(x).strip() for x in sector.get("fallback_tickers", []) if str(x).strip()]
 
-        matched_boards: list[dict[str, str]] = []
+        matched_boards, board_resolution = resolve_sector_boards(
+            sector,
+            categories=categories,
+            keywords=keywords,
+            catalog=catalog,
+        )
+
         frames: list[pd.DataFrame] = []
-        for category in categories:
-            category_df = catalog.get(category, pd.DataFrame())
-            names = board_names_from_catalog(category_df)
-            matched = match_boards(names, keywords)
-            for board_name in matched:
-                board_code = find_board_code(category_df, board_name)
-                if not board_code:
-                    continue
-                matched_boards.append({"category": category, "board": board_name, "board_code": board_code})
-                try:
-                    df = fetch_constituents(board_code)
-                except Exception:
-                    continue
-                if df is None or df.empty or "f12" not in df.columns:
-                    continue
-                df = df.copy()
-                df["source_category"] = category
-                df["source_board"] = board_name
-                frames.append(df)
+        for board_item in matched_boards:
+            category = board_item["category"]
+            board_name = board_item["board"]
+            board_code = board_item["board_code"]
+            try:
+                df = fetch_constituents(board_code)
+            except Exception:
+                continue
+            if df is None or df.empty or "f12" not in df.columns:
+                continue
+            df = df.copy()
+            df["source_category"] = category
+            df["source_board"] = board_name
+            frames.append(df)
 
         tickers: list[str] = []
         sample_rows: list[dict[str, Any]] = []
@@ -295,6 +392,33 @@ def build_pool(rules: dict[str, Any]) -> dict[str, Any]:
                 if len(tickers) >= top_n:
                     break
 
+        cached_sector = previous_pool_cache.get(name, {}) if isinstance(previous_pool_cache, dict) else {}
+        cached_rows = cached_sector.get("sample_rows") if isinstance(cached_sector.get("sample_rows"), list) else []
+
+        if len(tickers) < top_n and cached_rows:
+            existing = set(tickers)
+            for row in cached_rows:
+                if not isinstance(row, dict):
+                    continue
+                code = str(row.get("ticker", "")).strip()
+                if not code or code in existing:
+                    continue
+                tickers.append(code)
+                sample_rows.append({
+                    "ticker": code,
+                    "name": str(row.get("name", "")),
+                    "amount": safe_float(row.get("amount")),
+                    "change_pct": safe_float(row.get("change_pct")),
+                    "turnover_rate": safe_float(row.get("turnover_rate")),
+                    "source_category": row.get("source_category"),
+                    "source_board": row.get("source_board"),
+                })
+                existing.add(code)
+                if len(tickers) >= top_n:
+                    break
+            if tickers:
+                generation_mode = "cached" if not frames else "hybrid_cached"
+
         if len(tickers) < top_n:
             generation_mode = "fallback" if not tickers else "hybrid"
             for code in fallback_tickers:
@@ -303,12 +427,16 @@ def build_pool(rules: dict[str, Any]) -> dict[str, Any]:
                 if len(tickers) >= top_n:
                     break
 
+        if not sample_rows and cached_rows and generation_mode in {"cached", "hybrid_cached"}:
+            sample_rows = [row for row in cached_rows[:top_n] if isinstance(row, dict)]
+
         sectors_out.append({
             "name": name,
             "description": sector.get("description", ""),
             "tickers": tickers[:top_n],
             "generation_mode": generation_mode,
             "matched_boards": matched_boards,
+            "board_resolution": board_resolution,
             "keywords": keywords,
             "sample_rows": sample_rows[:top_n],
         })
@@ -318,6 +446,7 @@ def build_pool(rules: dict[str, Any]) -> dict[str, Any]:
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "description": "A股半自动生成股票池（基于东方财富原始板块接口与成交额排序）",
         "rules_file": str(DEFAULT_RULES.relative_to(ROOT)),
+        "catalog_used": needs_catalog,
         "sectors": sectors_out,
     }
 
@@ -331,7 +460,8 @@ def main() -> int:
     rules_path = Path(args.rules).resolve()
     out_path = Path(args.out).resolve()
     rules = load_json(rules_path)
-    payload = build_pool(rules)
+    previous_pool_cache = load_pool_cache(out_path, DEFAULT_SEED_CACHE)
+    payload = build_pool(rules, previous_pool_cache=previous_pool_cache)
     out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"out": str(out_path), "sector_count": len(payload.get('sectors', []))}, ensure_ascii=False))
     return 0
