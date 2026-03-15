@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 import akshare as ak
 import pandas as pd
@@ -13,6 +15,16 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RULES = ROOT / "config" / "sector_pool_rules.v1.json"
 DEFAULT_OUT = ROOT / "config" / "sector_pool.generated.json"
+PROXY_ENV_KEYS = [
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+    "NO_PROXY",
+    "no_proxy",
+]
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -26,9 +38,28 @@ def safe_float(value: Any) -> float:
         return 0.0
 
 
+@contextmanager
+def direct_network_env() -> Iterator[None]:
+    saved = {key: os.environ.get(key) for key in PROXY_ENV_KEYS}
+    try:
+        for key in PROXY_ENV_KEYS:
+            os.environ.pop(key, None)
+        os.environ["NO_PROXY"] = "*"
+        os.environ["no_proxy"] = "*"
+        yield
+    finally:
+        for key in PROXY_ENV_KEYS:
+            value = saved.get(key)
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
 def get_board_catalog() -> dict[str, list[str]]:
-    industry = ak.stock_board_industry_name_em()["板块名称"].astype(str).tolist()
-    concept = ak.stock_board_concept_name_em()["板块名称"].astype(str).tolist()
+    with direct_network_env():
+        industry = ak.stock_board_industry_name_em()["板块名称"].astype(str).tolist()
+        concept = ak.stock_board_concept_name_em()["板块名称"].astype(str).tolist()
     return {"industry": industry, "concept": concept}
 
 
@@ -44,10 +75,11 @@ def match_boards(board_names: list[str], keywords: list[str]) -> list[str]:
 
 
 def fetch_constituents(category: str, board_name: str) -> pd.DataFrame:
-    if category == "industry":
-        return ak.stock_board_industry_cons_em(symbol=board_name)
-    if category == "concept":
-        return ak.stock_board_concept_cons_em(symbol=board_name)
+    with direct_network_env():
+        if category == "industry":
+            return ak.stock_board_industry_cons_em(symbol=board_name)
+        if category == "concept":
+            return ak.stock_board_concept_cons_em(symbol=board_name)
     raise ValueError(f"Unknown category: {category}")
 
 
