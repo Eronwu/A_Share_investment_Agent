@@ -8,9 +8,11 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib import error, request
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / "config" / "nightly_run.v1.json"
+OPENCLAW_CONFIG = Path("/Users/kael/.openclaw/openclaw.json")
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -30,6 +32,61 @@ def run_command(cmd: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
+def split_text(text: str, limit: int = 3500) -> list[str]:
+    content = (text or "").strip()
+    if not content:
+        return []
+    chunks: list[str] = []
+    while len(content) > limit:
+        split_at = content.rfind("\n", 0, limit)
+        if split_at <= 0:
+            split_at = limit
+        chunks.append(content[:split_at].strip())
+        content = content[split_at:].lstrip()
+    if content:
+        chunks.append(content)
+    return chunks
+
+
+class TelegramClient:
+    def __init__(self, bot_token: str, proxy: str | None = None):
+        self.bot_token = bot_token
+        self.proxy = proxy
+
+    def _opener(self):
+        if self.proxy:
+            return request.build_opener(request.ProxyHandler({"http": self.proxy, "https": self.proxy}))
+        return request.build_opener()
+
+    def send_text(self, chat_id: str, text: str) -> list[dict[str, Any]]:
+        url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
+        responses: list[dict[str, Any]] = []
+        for chunk in split_text(text, 3500):
+            body = json.dumps({"chat_id": chat_id, "text": chunk}, ensure_ascii=False).encode("utf-8")
+            req = request.Request(url, data=body, headers={"Content-Type": "application/json; charset=utf-8"}, method="POST")
+            try:
+                with self._opener().open(req, timeout=25) as resp:
+                    payload = json.loads(resp.read().decode("utf-8"))
+                    responses.append(payload)
+                    if not payload.get("ok"):
+                        break
+            except error.URLError as exc:
+                responses.append({"ok": False, "error": str(exc)})
+                break
+        return responses
+
+
+def load_openclaw_channels() -> dict[str, Any]:
+    if not OPENCLAW_CONFIG.exists():
+        return {}
+    try:
+        cfg = load_json(OPENCLAW_CONFIG)
+    except Exception:
+        return {}
+    channels = cfg.get("channels")
+    return channels if isinstance(channels, dict) else {}
+
+
 def build_pool(config: dict[str, Any]) -> dict[str, Any]:
     pool_cfg = config.get("build_pool", {}) if isinstance(config.get("build_pool"), dict) else {}
     enabled = bool(pool_cfg.get("enabled", True))
@@ -40,6 +97,13 @@ def build_pool(config: dict[str, Any]) -> dict[str, Any]:
     out = resolve_path(pool_cfg.get("out") or "config/sector_pool.generated.json")
     cmd = ["poetry", "run", "python", "tools/build_sector_pool.py", "--rules", str(rules), "--out", str(out)]
     proc = run_command(cmd, cwd=ROOT)
+    reused_existing = False
+    fallback_reason = ""
+    success = proc.returncode == 0
+    if not success and out and out.exists():
+        reused_existing = True
+        success = True
+        fallback_reason = "build_pool failed; reused existing generated pool"
     return {
         "enabled": True,
         "command": cmd,
@@ -48,7 +112,9 @@ def build_pool(config: dict[str, Any]) -> dict[str, Any]:
         "stderr": proc.stderr,
         "rules": str(rules),
         "out": str(out),
-        "success": proc.returncode == 0,
+        "success": success,
+        "reused_existing": reused_existing,
+        "fallback_reason": fallback_reason,
     }
 
 
@@ -137,21 +203,7 @@ def load_report_artifacts(report_dir: Path, config: dict[str, Any]) -> dict[str,
     return payload
 
 
-def run_notification(config: dict[str, Any], artifacts: dict[str, Any], success: bool) -> dict[str, Any]:
-    notify_cfg = config.get("notify", {}) if isinstance(config.get("notify"), dict) else {}
-    enabled = bool(notify_cfg.get("enabled", False))
-    if not enabled:
-        return {"enabled": False, "skipped": True}
-
-    if success and not bool(notify_cfg.get("on_success", True)):
-        return {"enabled": True, "skipped": True, "reason": "success notifications disabled"}
-    if (not success) and not bool(notify_cfg.get("on_failure", True)):
-        return {"enabled": True, "skipped": True, "reason": "failure notifications disabled"}
-
-    command_template = notify_cfg.get("command")
-    if not command_template:
-        return {"enabled": True, "skipped": True, "reason": "missing notify.command"}
-
+def run_shell_notification(command_template: str, config: dict[str, Any], artifacts: dict[str, Any], success: bool) -> dict[str, Any]:
     summary_text = artifacts.get("push_summary_text") or ""
     report_dir = artifacts.get("report_dir") or ""
     rendered = str(command_template).format(
@@ -166,15 +218,66 @@ def run_notification(config: dict[str, Any], artifacts: dict[str, Any], success:
     env["NIGHTLY_SUMMARY_FILE"] = str(artifacts.get("push_summary_txt") or "")
     env["NIGHTLY_SUMMARY_JSON"] = str(artifacts.get("push_summary_json") or "")
     env["NIGHTLY_SUMMARY_TEXT"] = summary_text
-    shell = str(notify_cfg.get("shell") or "/bin/zsh")
+    shell = str((config.get("notify") or {}).get("shell") or "/bin/zsh")
     proc = subprocess.run([shell, "-lc", rendered], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
     return {
         "enabled": True,
+        "mode": "shell",
         "command": rendered,
         "returncode": proc.returncode,
         "stdout": proc.stdout,
         "stderr": proc.stderr,
         "success": proc.returncode == 0,
+    }
+
+
+def run_notification(config: dict[str, Any], artifacts: dict[str, Any], success: bool) -> dict[str, Any]:
+    notify_cfg = config.get("notify", {}) if isinstance(config.get("notify"), dict) else {}
+    enabled = bool(notify_cfg.get("enabled", False))
+    if not enabled:
+        return {"enabled": False, "skipped": True}
+
+    if success and not bool(notify_cfg.get("on_success", True)):
+        return {"enabled": True, "skipped": True, "reason": "success notifications disabled"}
+    if (not success) and not bool(notify_cfg.get("on_failure", True)):
+        return {"enabled": True, "skipped": True, "reason": "failure notifications disabled"}
+
+    command_template = notify_cfg.get("command")
+    if command_template:
+        return run_shell_notification(str(command_template), config, artifacts, success)
+
+    channel = str(notify_cfg.get("channel") or "telegram").strip().lower()
+    if channel != "telegram":
+        return {"enabled": True, "skipped": True, "reason": f"unsupported notify.channel: {channel}"}
+
+    channels_cfg = load_openclaw_channels()
+    telegram_cfg = channels_cfg.get("telegram") if isinstance(channels_cfg, dict) else {}
+    telegram_cfg = telegram_cfg if isinstance(telegram_cfg, dict) else {}
+    bot_token = str(telegram_cfg.get("botToken") or "").strip()
+    proxy = telegram_cfg.get("proxy") or None
+    telegram_to = str(notify_cfg.get("telegram_to") or "").strip()
+    if not bot_token or not telegram_to:
+        return {
+            "enabled": True,
+            "mode": "telegram",
+            "success": False,
+            "error": "missing telegram bot token or target",
+        }
+
+    summary_text = artifacts.get("push_summary_text") or ""
+    report_dir = str(artifacts.get("report_dir") or "")
+    prefix = "[A股夜跑成功]" if success else "[A股夜跑告警]"
+    text = f"{prefix}\n{summary_text}\n报告目录: {report_dir}".strip()
+    client = TelegramClient(bot_token, proxy=proxy)
+    responses = client.send_text(telegram_to, text)
+    ok = bool(responses) and all(item.get("ok") for item in responses)
+    return {
+        "enabled": True,
+        "mode": "telegram",
+        "to": telegram_to,
+        "response_count": len(responses),
+        "responses": responses,
+        "success": ok,
     }
 
 

@@ -24,9 +24,19 @@ python tools/nightly_scan.py --top-n 5
 python tools/nightly_scan.py --top-n 3 --model qwen2.5-coder:7b
 python tools/nightly_scan.py --top-n 3 --hq
 
-# 统一 nightly 入口（先建池，再跑 nightly，再产出 push summary，可挂通知）
+# 统一 nightly 入口（先建池，再跑 nightly，再产出 push summary，并按配置发送通知）
 python tools/nightly_run.py --config config/nightly_run.v1.json
 ```
+
+## 定时执行
+
+可配合外部 cron 包装脚本执行，例如：
+
+```bash
+15 23 * * * /Users/kael/workspace/scripts/a_share_nightly_run.sh
+```
+
+默认通知配置已支持读取本机 OpenClaw 渠道里的 Telegram bot 配置，并向 `config/nightly_run.v1.json` 中的 `notify.telegram_to` 发送摘要。
 
 ## 输出结构
 
