@@ -2,6 +2,13 @@ import json
 import re
 from typing import Any, Dict
 
+from src.utils.action_consistency import (
+    action_label as _canonical_action_label,
+    clean_mixed_language_text,
+    normalize_action_token,
+    resolve_action_consistency,
+)
+
 
 SIGNAL_LABELS = {
     "bullish": "Bullish",
@@ -107,6 +114,9 @@ def _label_signal(signal: Any) -> str:
 def _label_action(action: Any) -> str:
     if action is None:
         return "N/A"
+    normalized = normalize_action_token(action)
+    if normalized:
+        return _canonical_action_label(normalized)
     return ACTION_LABELS.get(str(action).lower(), str(action).upper())
 
 
@@ -195,7 +205,7 @@ def _translate_reasoning(text: Any) -> str:
     for src, dst in generic_replacements:
         translated = translated.replace(src, dst)
 
-    return translated
+    return clean_mixed_language_text(translated) or "N/A"
 
 
 def _extract_number(text: str, pattern: str) -> str | None:
@@ -351,6 +361,7 @@ def _build_signal_snapshot(payload: Any, signal_key: str = "signal") -> dict[str
 
 
 def _compute_composite_score(
+    final_action: Any,
     portfolio: Any,
     technical: Any,
     fundamentals: Any,
@@ -366,7 +377,7 @@ def _compute_composite_score(
     if isinstance(macro, dict):
         macro_signal = macro.get("impact_on_stock") or macro.get("macro_environment")
 
-    score += _action_score((portfolio or {}).get("action") if isinstance(portfolio, dict) else None) * 18
+    score += _action_score(final_action) * 18
     score += _signal_score((technical or {}).get("signal") if isinstance(technical, dict) else None) * 8
     score += _signal_score((fundamentals or {}).get("signal") if isinstance(fundamentals, dict) else None) * 8
     score += _signal_score((sentiment or {}).get("signal") if isinstance(sentiment, dict) else None) * 5
@@ -441,6 +452,14 @@ def build_summary_payload(state: Dict[str, Any]) -> Dict[str, Any]:
 
     final_action_raw = (portfolio or {}).get("action") if isinstance(portfolio, dict) else None
     risk_action_raw = (risk or {}).get("trading_action") if isinstance(risk, dict) else None
+    final_reasoning = (portfolio or {}).get("reasoning") if isinstance(portfolio, dict) else None
+    final_reasoning_cn = _translate_reasoning(final_reasoning)
+    resolved_action = resolve_action_consistency(
+        final_action_raw,
+        risk_action_raw,
+        final_reasoning,
+        final_reasoning_cn,
+    )
     macro_signal_raw = None
     if isinstance(macro, dict):
         macro_signal_raw = macro.get("impact_on_stock") or macro.get("macro_environment")
@@ -450,13 +469,13 @@ def build_summary_payload(state: Dict[str, Any]) -> Dict[str, Any]:
         "security_type": security_type,
         "analysis_date": end_date,
         "final": {
-            "action": _normalize_token(final_action_raw),
-            "action_label": _label_action(final_action_raw),
+            "action": resolved_action,
+            "action_label": _label_action(resolved_action),
             "confidence": _to_float_ratio((portfolio or {}).get("confidence") if isinstance(portfolio, dict) else None),
             "confidence_label": _format_confidence((portfolio or {}).get("confidence") if isinstance(portfolio, dict) else None),
             "quantity": (portfolio or {}).get("quantity") if isinstance(portfolio, dict) else None,
-            "reasoning": (portfolio or {}).get("reasoning") if isinstance(portfolio, dict) else None,
-            "reasoning_cn": _translate_reasoning((portfolio or {}).get("reasoning") if isinstance(portfolio, dict) else None),
+            "reasoning": final_reasoning,
+            "reasoning_cn": final_reasoning_cn,
         },
         "risk": {
             "score": _safe_float((risk or {}).get("risk_score") if isinstance(risk, dict) else None),
@@ -495,7 +514,7 @@ def build_summary_payload(state: Dict[str, Any]) -> Dict[str, Any]:
         "bear_thesis": bear if isinstance(bear, dict) else None,
         "timings": timings,
         "composite_score": _compute_composite_score(
-            portfolio, technical, fundamentals, sentiment, valuation, risk, macro
+            resolved_action, portfolio, technical, fundamentals, sentiment, valuation, risk, macro
         ),
     }
 

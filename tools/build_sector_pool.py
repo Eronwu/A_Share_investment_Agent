@@ -7,6 +7,7 @@ import math
 import os
 import random
 import socket
+import sys
 import time
 from contextlib import contextmanager
 from datetime import datetime
@@ -18,6 +19,11 @@ import requests
 from requests.adapters import HTTPAdapter
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.utils.sector_assignment import dedupe_sector_memberships
+
 DEFAULT_RULES = ROOT / "config" / "sector_pool_rules.v1.json"
 DEFAULT_OUT = ROOT / "config" / "sector_pool.generated.json"
 DEFAULT_SEED_CACHE = ROOT / "config" / "sector_pool.generated.seed.json"
@@ -438,8 +444,11 @@ def build_pool(rules: dict[str, Any], previous_pool_cache: dict[str, dict[str, A
             "matched_boards": matched_boards,
             "board_resolution": board_resolution,
             "keywords": keywords,
+            "fallback_tickers": fallback_tickers,
             "sample_rows": sample_rows[:top_n],
         })
+
+    sectors_out = dedupe_sector_memberships(sectors_out)
 
     return {
         "version": 1,

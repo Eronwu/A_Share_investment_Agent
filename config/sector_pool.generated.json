@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-03-15T22:49:42",
+  "generated_at": "2026-03-17T11:53:24",
   "description": "A股半自动生成股票池（基于东方财富原始板块接口与成交额排序）",
   "rules_file": "config/sector_pool_rules.v1.json",
   "catalog_used": false,
@@ -9,13 +9,12 @@
       "name": "半导体",
       "description": "半导体相关板块中按成交额筛选代表股",
       "tickers": [
-        "000988",
-        "688256",
+        "603986",
         "688525",
-        "000547",
-        "001309"
+        "002506",
+        "002371"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "industry",
@@ -52,51 +51,40 @@
       "keywords": [
         "半导体"
       ],
+      "fallback_tickers": [
+        "002371",
+        "603501",
+        "688981",
+        "688008",
+        "002049"
+      ],
       "sample_rows": [
         {
-          "ticker": "000988",
-          "name": "华工科技",
-          "amount": 19453659273.5,
-          "change_pct": -7.2,
-          "turnover_rate": 15.94,
-          "source_category": "concept",
-          "source_board": "半导体概念"
-        },
-        {
-          "ticker": "688256",
-          "name": "寒武纪-U",
-          "amount": 10301354225.0,
-          "change_pct": -0.26,
-          "turnover_rate": 2.22,
+          "ticker": "603986",
+          "name": "兆易创新",
+          "amount": 7327004806.0,
+          "change_pct": -0.55,
+          "turnover_rate": 3.59,
           "source_category": "industry",
           "source_board": "半导体"
         },
         {
           "ticker": "688525",
           "name": "佰维存储",
-          "amount": 7971218800.0,
-          "change_pct": 3.38,
-          "turnover_rate": 8.14,
+          "amount": 6050698741.0,
+          "change_pct": 0.45,
+          "turnover_rate": 5.44,
           "source_category": "industry",
           "source_board": "半导体"
         },
         {
-          "ticker": "000547",
-          "name": "航天发展",
-          "amount": 6944499576.83,
-          "change_pct": -1.4,
-          "turnover_rate": 13.93,
+          "ticker": "002506",
+          "name": "协鑫集成",
+          "amount": 4929331229.93,
+          "change_pct": 9.96,
+          "turnover_rate": 15.18,
           "source_category": "concept",
-          "source_board": "第三代半导体"
-        },
-        {
-          "ticker": "001309",
-          "name": "德明利",
-          "amount": 6929269535.5,
-          "change_pct": 9.05,
-          "turnover_rate": 13.69,
-          "source_category": "industry",
-          "source_board": "半导体"
+          "source_board": "半导体概念"
         }
       ]
     },
@@ -105,12 +93,12 @@
       "description": "创新药/CXO/生物制药方向代表股",
       "tickers": [
         "603259",
-        "000534",
-        "300436",
         "600276",
-        "600216"
+        "000534",
+        "603127",
+        "688331"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "concept",
@@ -140,49 +128,56 @@
         "生物制品",
         "化学制药"
       ],
+      "fallback_tickers": [
+        "600276",
+        "688235",
+        "603259",
+        "300759",
+        "300122"
+      ],
       "sample_rows": [
         {
           "ticker": "603259",
           "name": "药明康德",
-          "amount": 2073395291.0,
-          "change_pct": -1.13,
-          "turnover_rate": 0.92,
-          "source_category": "concept",
-          "source_board": "创新药"
-        },
-        {
-          "ticker": "000534",
-          "name": "万泽股份",
-          "amount": 1773217059.84,
-          "change_pct": -9.24,
-          "turnover_rate": 8.57,
-          "source_category": "industry",
-          "source_board": "生物制品"
-        },
-        {
-          "ticker": "300436",
-          "name": "广生堂",
-          "amount": 1581745636.69,
-          "change_pct": 8.72,
-          "turnover_rate": 10.41,
+          "amount": 2736783073.0,
+          "change_pct": 2.73,
+          "turnover_rate": 1.19,
           "source_category": "concept",
           "source_board": "创新药"
         },
         {
           "ticker": "600276",
           "name": "恒瑞医药",
-          "amount": 1347312522.0,
-          "change_pct": -0.34,
-          "turnover_rate": 0.38,
+          "amount": 2034555322.0,
+          "change_pct": 2.57,
+          "turnover_rate": 0.56,
           "source_category": "concept",
           "source_board": "创新药"
         },
         {
-          "ticker": "600216",
-          "name": "浙江医药",
-          "amount": 1001841848.0,
-          "change_pct": 2.66,
-          "turnover_rate": 5.95,
+          "ticker": "000534",
+          "name": "万泽股份",
+          "amount": 898354536.86,
+          "change_pct": 3.49,
+          "turnover_rate": 4.47,
+          "source_category": "industry",
+          "source_board": "生物制品"
+        },
+        {
+          "ticker": "603127",
+          "name": "昭衍新药",
+          "amount": 739682956.0,
+          "change_pct": -9.82,
+          "turnover_rate": 3.95,
+          "source_category": "concept",
+          "source_board": "创新药"
+        },
+        {
+          "ticker": "688331",
+          "name": "荣昌生物",
+          "amount": 664348836.0,
+          "change_pct": 4.69,
+          "turnover_rate": 3.49,
           "source_category": "concept",
           "source_board": "创新药"
         }
@@ -192,13 +187,11 @@
       "name": "算力",
       "description": "算力/CPO/东数西算方向代表股",
       "tickers": [
-        "000988",
         "300502",
-        "601868",
-        "300308",
-        "688256"
+        "300394",
+        "300308"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "concept",
@@ -233,49 +226,38 @@
         "东数西算",
         "通信设备"
       ],
+      "fallback_tickers": [
+        "300308",
+        "300502",
+        "603019",
+        "300394",
+        "000977"
+      ],
       "sample_rows": [
-        {
-          "ticker": "000988",
-          "name": "华工科技",
-          "amount": 19453659273.5,
-          "change_pct": -7.2,
-          "turnover_rate": 15.94,
-          "source_category": "concept",
-          "source_board": "CPO概念"
-        },
         {
           "ticker": "300502",
           "name": "新易盛",
-          "amount": 15913142977.38,
-          "change_pct": 4.03,
-          "turnover_rate": 4.61,
+          "amount": 10478588135.51,
+          "change_pct": -1.98,
+          "turnover_rate": 2.87,
           "source_category": "concept",
           "source_board": "算力概念"
         },
         {
-          "ticker": "601868",
-          "name": "中国能建",
-          "amount": 14411953529.0,
-          "change_pct": -1.58,
-          "turnover_rate": 11.71,
+          "ticker": "300394",
+          "name": "天孚通信",
+          "amount": 10246396394.8,
+          "change_pct": -9.15,
+          "turnover_rate": 4.65,
           "source_category": "concept",
-          "source_board": "东数西算"
+          "source_board": "算力概念"
         },
         {
           "ticker": "300308",
           "name": "中际旭创",
-          "amount": 11483224114.63,
-          "change_pct": 1.35,
-          "turnover_rate": 1.92,
-          "source_category": "concept",
-          "source_board": "算力概念"
-        },
-        {
-          "ticker": "688256",
-          "name": "寒武纪-U",
-          "amount": 10301354225.0,
-          "change_pct": -0.26,
-          "turnover_rate": 2.22,
+          "amount": 10186568908.45,
+          "change_pct": -0.39,
+          "turnover_rate": 1.62,
           "source_category": "concept",
           "source_board": "算力概念"
         }
@@ -285,13 +267,11 @@
       "name": "消费电子",
       "description": "消费电子与苹果链方向代表股",
       "tickers": [
-        "000988",
-        "002384",
+        "002475",
         "600703",
-        "601138",
-        "002475"
+        "601138"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "industry",
@@ -320,49 +300,38 @@
         "苹果概念",
         "品牌消费电子"
       ],
+      "fallback_tickers": [
+        "002475",
+        "300433",
+        "002600",
+        "002241",
+        "300115"
+      ],
       "sample_rows": [
         {
-          "ticker": "000988",
-          "name": "华工科技",
-          "amount": 19453659273.5,
-          "change_pct": -7.2,
-          "turnover_rate": 15.94,
-          "source_category": "concept",
-          "source_board": "苹果概念"
-        },
-        {
-          "ticker": "002384",
-          "name": "东山精密",
-          "amount": 11887996997.48,
-          "change_pct": 1.49,
-          "turnover_rate": 7.49,
-          "source_category": "concept",
-          "source_board": "苹果概念"
+          "ticker": "002475",
+          "name": "立讯精密",
+          "amount": 6683650144.84,
+          "change_pct": 3.15,
+          "turnover_rate": 1.8,
+          "source_category": "industry",
+          "source_board": "消费电子"
         },
         {
           "ticker": "600703",
           "name": "三安光电",
-          "amount": 6247031443.0,
-          "change_pct": -3.2,
-          "turnover_rate": 6.83,
+          "amount": 3393152564.0,
+          "change_pct": -4.55,
+          "turnover_rate": 3.95,
           "source_category": "concept",
           "source_board": "苹果概念"
         },
         {
           "ticker": "601138",
           "name": "工业富联",
-          "amount": 4954742371.0,
-          "change_pct": -0.1,
-          "turnover_rate": 0.47,
-          "source_category": "industry",
-          "source_board": "消费电子"
-        },
-        {
-          "ticker": "002475",
-          "name": "立讯精密",
-          "amount": 4071284135.66,
-          "change_pct": -0.74,
-          "turnover_rate": 1.13,
+          "amount": 3104910396.0,
+          "change_pct": -0.85,
+          "turnover_rate": 0.3,
           "source_category": "industry",
           "source_board": "消费电子"
         }
@@ -372,13 +341,10 @@
       "name": "机器人",
       "description": "机器人/人形机器人方向代表股",
       "tickers": [
-        "000988",
         "300476",
-        "002261",
-        "688525",
-        "600487"
+        "000988"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "industry",
@@ -412,49 +378,29 @@
         "机器人概念",
         "人形机器人"
       ],
+      "fallback_tickers": [
+        "300124",
+        "002747",
+        "688017",
+        "300450",
+        "002527"
+      ],
       "sample_rows": [
-        {
-          "ticker": "000988",
-          "name": "华工科技",
-          "amount": 19453659273.5,
-          "change_pct": -7.2,
-          "turnover_rate": 15.94,
-          "source_category": "concept",
-          "source_board": "机器人概念"
-        },
         {
           "ticker": "300476",
           "name": "胜宏科技",
-          "amount": 8394697319.2,
-          "change_pct": -0.81,
-          "turnover_rate": 3.49,
+          "amount": 10964232750.66,
+          "change_pct": -0.12,
+          "turnover_rate": 4.3,
           "source_category": "concept",
-          "source_board": "机器人概念"
+          "source_board": "人形机器人"
         },
         {
-          "ticker": "002261",
-          "name": "拓维信息",
-          "amount": 8063280383.77,
-          "change_pct": -7.1,
-          "turnover_rate": 18.76,
-          "source_category": "concept",
-          "source_board": "机器人概念"
-        },
-        {
-          "ticker": "688525",
-          "name": "佰维存储",
-          "amount": 7971218800.0,
-          "change_pct": 3.38,
-          "turnover_rate": 8.14,
-          "source_category": "concept",
-          "source_board": "机器人概念"
-        },
-        {
-          "ticker": "600487",
-          "name": "亨通光电",
-          "amount": 6660754105.0,
-          "change_pct": -3.38,
-          "turnover_rate": 5.35,
+          "ticker": "000988",
+          "name": "华工科技",
+          "amount": 7335739155.48,
+          "change_pct": -2.59,
+          "turnover_rate": 6.28,
           "source_category": "concept",
           "source_board": "机器人概念"
         }
@@ -464,13 +410,11 @@
       "name": "新能源车",
       "description": "新能源车方向代表股",
       "tickers": [
-        "000988",
-        "300274",
-        "300750",
-        "002384",
-        "002463"
+        "002594",
+        "002463",
+        "300750"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "concept",
@@ -590,51 +534,40 @@
         "汽车零部件",
         "电池"
       ],
+      "fallback_tickers": [
+        "300750",
+        "002594",
+        "601633",
+        "601689",
+        "002460"
+      ],
       "sample_rows": [
         {
-          "ticker": "000988",
-          "name": "华工科技",
-          "amount": 19453659273.5,
-          "change_pct": -7.2,
-          "turnover_rate": 15.94,
-          "source_category": "concept",
+          "ticker": "002594",
+          "name": "比亚迪",
+          "amount": 5511522220.99,
+          "change_pct": 0.02,
+          "turnover_rate": 1.5,
+          "source_category": "preferred_fallback",
           "source_board": "新能源车"
         },
         {
-          "ticker": "300274",
-          "name": "阳光电源",
-          "amount": 18160418915.14,
-          "change_pct": 1.32,
-          "turnover_rate": 6.42,
+          "ticker": "002463",
+          "name": "沪电股份",
+          "amount": 10720049432.87,
+          "change_pct": 4.82,
+          "turnover_rate": 6.33,
           "source_category": "concept",
           "source_board": "新能源车"
         },
         {
           "ticker": "300750",
           "name": "宁德时代",
-          "amount": 14201304444.44,
-          "change_pct": 0.38,
-          "turnover_rate": 0.84,
+          "amount": 8373416836.43,
+          "change_pct": 0.41,
+          "turnover_rate": 0.48,
           "source_category": "concept",
-          "source_board": "新能源车"
-        },
-        {
-          "ticker": "002384",
-          "name": "东山精密",
-          "amount": 11887996997.48,
-          "change_pct": 1.49,
-          "turnover_rate": 7.49,
-          "source_category": "concept",
-          "source_board": "新能源车"
-        },
-        {
-          "ticker": "002463",
-          "name": "沪电股份",
-          "amount": 10416944888.1,
-          "change_pct": 6.34,
-          "turnover_rate": 6.82,
-          "source_category": "concept",
-          "source_board": "新能源车"
+          "source_board": "麒麟电池"
         }
       ]
     },
@@ -644,11 +577,11 @@
       "tickers": [
         "300059",
         "600030",
+        "601688",
         "002797",
-        "601211",
-        "601696"
+        "002736"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "industry",
@@ -665,51 +598,58 @@
       "keywords": [
         "证券"
       ],
+      "fallback_tickers": [
+        "600030",
+        "601688",
+        "601066",
+        "601211",
+        "600837"
+      ],
       "sample_rows": [
         {
           "ticker": "300059",
           "name": "东方财富",
-          "amount": 3748142630.14,
-          "change_pct": -1.22,
-          "turnover_rate": 1.32,
+          "amount": 6894260478.32,
+          "change_pct": 2.69,
+          "turnover_rate": 2.37,
           "source_category": "industry",
-          "source_board": "证券Ⅱ"
+          "source_board": "证券Ⅲ"
         },
         {
           "ticker": "600030",
           "name": "中信证券",
-          "amount": 2080610907.0,
-          "change_pct": -0.69,
-          "turnover_rate": 0.66,
+          "amount": 4312409471.0,
+          "change_pct": 2.75,
+          "turnover_rate": 1.36,
           "source_category": "industry",
-          "source_board": "证券Ⅱ"
+          "source_board": "证券Ⅲ"
+        },
+        {
+          "ticker": "601688",
+          "name": "华泰证券",
+          "amount": 1708930796.0,
+          "change_pct": 2.77,
+          "turnover_rate": 1.17,
+          "source_category": "industry",
+          "source_board": "证券Ⅲ"
         },
         {
           "ticker": "002797",
           "name": "第一创业",
-          "amount": 1459172048.0,
-          "change_pct": -2.2,
-          "turnover_rate": 4.54,
+          "amount": 1508406200.59,
+          "change_pct": 1.05,
+          "turnover_rate": 4.6,
           "source_category": "industry",
-          "source_board": "证券Ⅱ"
+          "source_board": "证券Ⅲ"
         },
         {
-          "ticker": "601211",
-          "name": "国泰海通",
-          "amount": 1244712607.0,
-          "change_pct": -0.88,
-          "turnover_rate": 0.51,
+          "ticker": "002736",
+          "name": "国信证券",
+          "amount": 1485076398.3,
+          "change_pct": 5.67,
+          "turnover_rate": 1.2,
           "source_category": "industry",
-          "source_board": "证券Ⅱ"
-        },
-        {
-          "ticker": "601696",
-          "name": "中银证券",
-          "amount": 987671903.0,
-          "change_pct": -4.23,
-          "turnover_rate": 2.58,
-          "source_category": "industry",
-          "source_board": "证券Ⅱ"
+          "source_board": "证券Ⅲ"
         }
       ]
     },
@@ -718,12 +658,12 @@
       "description": "黄金/有色方向代表股",
       "tickers": [
         "601899",
-        "603993",
-        "000657",
         "600089",
-        "600549"
+        "603993",
+        "601600",
+        "002378"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "industry",
@@ -747,49 +687,56 @@
         "有色金属",
         "黄金概念"
       ],
+      "fallback_tickers": [
+        "600547",
+        "601899",
+        "000975",
+        "603993",
+        "000960"
+      ],
       "sample_rows": [
         {
           "ticker": "601899",
           "name": "紫金矿业",
-          "amount": 8945230520.0,
-          "change_pct": -2.67,
-          "turnover_rate": 1.2,
-          "source_category": "industry",
-          "source_board": "有色金属"
-        },
-        {
-          "ticker": "603993",
-          "name": "洛阳钼业",
-          "amount": 7110088050.0,
-          "change_pct": -4.36,
-          "turnover_rate": 2.02,
-          "source_category": "industry",
-          "source_board": "有色金属"
-        },
-        {
-          "ticker": "000657",
-          "name": "中钨高新",
-          "amount": 7058483767.68,
-          "change_pct": -10.0,
-          "turnover_rate": 8.49,
+          "amount": 4723246082.0,
+          "change_pct": 1.29,
+          "turnover_rate": 0.65,
           "source_category": "industry",
           "source_board": "有色金属"
         },
         {
           "ticker": "600089",
           "name": "特变电工",
-          "amount": 6294311708.0,
-          "change_pct": -1.69,
-          "turnover_rate": 4.05,
+          "amount": 2962436656.0,
+          "change_pct": -0.34,
+          "turnover_rate": 1.99,
           "source_category": "concept",
           "source_board": "黄金概念"
         },
         {
-          "ticker": "600549",
-          "name": "厦门钨业",
-          "amount": 6185911570.0,
-          "change_pct": -8.41,
-          "turnover_rate": 6.21,
+          "ticker": "603993",
+          "name": "洛阳钼业",
+          "amount": 2845243845.0,
+          "change_pct": 1.91,
+          "turnover_rate": 0.82,
+          "source_category": "industry",
+          "source_board": "有色金属"
+        },
+        {
+          "ticker": "601600",
+          "name": "中国铝业",
+          "amount": 2716334481.0,
+          "change_pct": -1.7,
+          "turnover_rate": 1.52,
+          "source_category": "industry",
+          "source_board": "有色金属"
+        },
+        {
+          "ticker": "002378",
+          "name": "章源钨业",
+          "amount": 2050197519.51,
+          "change_pct": 0.68,
+          "turnover_rate": 4.61,
           "source_category": "industry",
           "source_board": "有色金属"
         }
@@ -800,12 +747,11 @@
       "description": "中字头/央企/高股息风格代表股（规则命中不足时回退手工池）",
       "tickers": [
         "601868",
-        "601669",
         "600410",
-        "601179",
-        "601611"
+        "000617",
+        "601318"
       ],
-      "generation_mode": "cached",
+      "generation_mode": "matched",
       "matched_boards": [
         {
           "category": "concept",
@@ -846,51 +792,49 @@
         "煤炭行业",
         "石油行业"
       ],
+      "fallback_tickers": [
+        "600900",
+        "601288",
+        "600028",
+        "601088",
+        "601006"
+      ],
       "sample_rows": [
         {
           "ticker": "601868",
           "name": "中国能建",
-          "amount": 14411953529.0,
-          "change_pct": -1.58,
-          "turnover_rate": 11.71,
-          "source_category": "concept",
-          "source_board": "中字头"
-        },
-        {
-          "ticker": "601669",
-          "name": "中国电建",
-          "amount": 12775678440.0,
-          "change_pct": 9.94,
-          "turnover_rate": 13.77,
+          "amount": 4587398047.0,
+          "change_pct": -2.62,
+          "turnover_rate": 4.19,
           "source_category": "concept",
           "source_board": "中字头"
         },
         {
           "ticker": "600410",
           "name": "华胜天成",
-          "amount": 8356705252.0,
-          "change_pct": -10.01,
-          "turnover_rate": 25.92,
+          "amount": 4369695891.0,
+          "change_pct": -2.25,
+          "turnover_rate": 14.45,
           "source_category": "concept",
           "source_board": "参股银行"
         },
         {
-          "ticker": "601179",
-          "name": "中国西电",
-          "amount": 5801199563.0,
-          "change_pct": -5.31,
-          "turnover_rate": 6.29,
+          "ticker": "000617",
+          "name": "中油资本",
+          "amount": 4361046684.24,
+          "change_pct": 0.2,
+          "turnover_rate": 3.51,
           "source_category": "concept",
-          "source_board": "中字头"
+          "source_board": "参股银行"
         },
         {
-          "ticker": "601611",
-          "name": "中国核建",
-          "amount": 5725504295.0,
-          "change_pct": 10.02,
-          "turnover_rate": 10.2,
+          "ticker": "601318",
+          "name": "中国平安",
+          "amount": 4046379298.0,
+          "change_pct": 2.74,
+          "turnover_rate": 0.61,
           "source_category": "concept",
-          "source_board": "中字头"
+          "source_board": "参股银行"
         }
       ]
     }

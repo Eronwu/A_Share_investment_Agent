@@ -5,13 +5,26 @@ import argparse
 import json
 import re
 import subprocess
+import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.utils.action_consistency import (
+    clean_mixed_language_text,
+    normalize_action_token,
+    resolve_action_consistency,
+    rewrite_summary_action_prefix,
+)
+from src.utils.sector_assignment import dedupe_sector_memberships
+
 DEFAULT_POOL = ROOT / "config" / "sector_pool.v1.json"
+DEFAULT_POOL_RULES = ROOT / "config" / "sector_pool_rules.v1.json"
 REPORT_ROOT = ROOT / "reports"
 STOCK_CMD = ROOT / "stock"
 
@@ -63,6 +76,12 @@ SIGNAL_LABELS = {
     "neutral": "Neutral",
 }
 
+STABILITY_LABELS = {
+    "stable": "稳定",
+    "moderate": "跟踪",
+    "unstable": "波动",
+}
+
 
 @dataclass
 class ScanResult:
@@ -98,7 +117,32 @@ def load_pool(path: Path) -> list[dict[str, Any]]:
     sectors = data.get("sectors")
     if not isinstance(sectors, list):
         raise ValueError(f"Invalid pool file: {path}")
-    return sectors
+    rules_map: dict[str, dict[str, Any]] = {}
+    if DEFAULT_POOL_RULES.exists():
+        rules_payload = read_json(DEFAULT_POOL_RULES) or {}
+        for item in rules_payload.get("sectors", []):
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name", "")).strip()
+            if name:
+                rules_map[name] = item
+
+    enriched: list[dict[str, Any]] = []
+    for sector in sectors:
+        if not isinstance(sector, dict):
+            continue
+        merged = dict(sector)
+        name = str(merged.get("name", "")).strip()
+        rule = rules_map.get(name, {})
+        if rule:
+            if not merged.get("fallback_tickers") and isinstance(rule.get("fallback_tickers"), list):
+                merged["fallback_tickers"] = rule.get("fallback_tickers")
+            if not merged.get("keywords") and isinstance(rule.get("board_keywords"), list):
+                merged["keywords"] = rule.get("board_keywords")
+            if not merged.get("matched_boards") and isinstance(rule.get("boards"), list):
+                merged["matched_boards"] = rule.get("boards")
+        enriched.append(merged)
+    return dedupe_sector_memberships(enriched)
 
 
 def slugify(text: str) -> str:
@@ -107,10 +151,7 @@ def slugify(text: str) -> str:
 
 
 def normalize_action(value: Any) -> str | None:
-    if value is None:
-        return None
-    text = str(value).strip()
-    return ACTION_ALIASES.get(text) or ACTION_ALIASES.get(text.lower())
+    return normalize_action_token(value)
 
 
 def normalize_signal(value: Any) -> str | None:
@@ -126,6 +167,114 @@ def action_label(value: str | None) -> str:
 
 def signal_label(value: str | None) -> str:
     return SIGNAL_LABELS.get(value or "", "N/A")
+
+
+def compress_text(text: str | None, limit: int = 96) -> str | None:
+    if not text:
+        return text
+    cleaned = clean_mixed_language_text(text)
+    if not cleaned:
+        return None
+    if len(cleaned) <= limit:
+        return cleaned
+    snippet = cleaned[: limit - 1].rstrip(" ，,.;；:")
+    return snippet + "…"
+
+
+def source_label(item: ScanResult | dict[str, Any]) -> str:
+    stage = str(item.get("stage") if isinstance(item, dict) else item.stage)
+    skipped = bool(item.get("skipped") if isinstance(item, dict) else item.skipped)
+    label = "复核" if stage == "reasoning" else "初筛"
+    return f"{label}/复用" if skipped else label
+
+
+def stability_label(stability: dict[str, Any] | None) -> str:
+    key = str((stability or {}).get("stability_label") or "")
+    streak = int((stability or {}).get("streak_days") or 1)
+    return f"{STABILITY_LABELS.get(key, '待观察')}({streak}天)"
+
+
+def selection_label(ticker: str, daily_diff: dict[str, Any]) -> str:
+    return "新入选" if ticker in set(daily_diff.get("newly_entered") or []) else "延续"
+
+
+def build_brief_note(item: dict[str, Any]) -> str | None:
+    supports = [str(point).strip() for point in item.get("support_points") or [] if str(point).strip()]
+    pressures = [str(point).strip() for point in item.get("pressure_points") or [] if str(point).strip()]
+    summary = compress_text(item.get("summary"), limit=66)
+    if item.get("action") == "hold":
+        return pressures[0] if pressures else summary
+    return supports[0] if supports else summary
+
+
+def build_decision_note(action: str | None, reasoning: str | None) -> str:
+    cleaned = clean_mixed_language_text(reasoning) or ""
+    lowered = cleaned.lower()
+
+    if action == "hold":
+        if "风险管理信号" in cleaned or "risk" in lowered:
+            return "风控约束仍在，先持有或继续空仓等待。"
+        return "多空尚未形成一致，先观察不追价。"
+    if action == "buy":
+        if "估值" in cleaned and ("看多" in cleaned or "正向" in cleaned):
+            return "估值与趋势共振，可按计划分批跟进。"
+        return "多因子仍偏正面，可优先列入开盘复核。"
+    if action == "sell":
+        return "下行压力占优，优先退出或规避回撤。"
+    if action == "reduce":
+        return "赔率下降但趋势未坏，先降仓控制波动。"
+    return "关键信号尚不充分，继续跟踪。"
+
+
+def render_result_summary(item: ScanResult) -> str:
+    parts: list[str] = []
+    if item.support_points:
+        parts.append(f"支持: {item.support_points[0]}")
+    if item.pressure_points:
+        parts.append(f"压制: {item.pressure_points[0]}")
+    parts.append("拍板: " + build_decision_note(item.action, item.hold_reason or item.summary))
+    return compress_text(" | ".join(parts), limit=120) or "N/A"
+
+
+def build_actionable_brief(final_candidates: dict[str, Any], daily_diff: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    tiers = {"main_focus": [], "secondary_focus": [], "observe": []}
+    caps = {"main_focus": 3, "secondary_focus": 4, "observe": 5}
+    ordered = list(final_candidates.get("top_picks") or []) + list(final_candidates.get("watchlist") or [])
+
+    for item in ordered:
+        score = parse_float(item.get("composite_score")) or 0.0
+        stability = item.get("stability") or {}
+        stability_key = str(stability.get("stability_label") or "")
+        entry = {
+            "ticker": item.get("ticker"),
+            "sector": item.get("sector"),
+            "action": item.get("action"),
+            "signal": item.get("signal"),
+            "composite_score": parse_float(item.get("composite_score")),
+            "confidence": parse_ratio(item.get("confidence")),
+            "source": source_label(item),
+            "stability": stability_label(stability),
+            "selection": selection_label(str(item.get("ticker", "")), daily_diff),
+            "note": build_brief_note(item),
+        }
+
+        preferred_bucket = "observe"
+        if item in (final_candidates.get("top_picks") or []):
+            preferred_bucket = "main_focus" if score >= 75 or stability_key == "stable" else "secondary_focus"
+        elif score >= 65 and stability_key in {"stable", "moderate"}:
+            preferred_bucket = "secondary_focus"
+
+        target_bucket = preferred_bucket
+        if len(tiers[target_bucket]) >= caps[target_bucket]:
+            target_bucket = "secondary_focus" if target_bucket == "main_focus" else "observe"
+        if len(tiers[target_bucket]) >= caps[target_bucket]:
+            continue
+        tiers[target_bucket].append(entry)
+
+    if not tiers["main_focus"]:
+        while tiers["secondary_focus"] and len(tiers["main_focus"]) < caps["main_focus"]:
+            tiers["main_focus"].append(tiers["secondary_focus"].pop(0))
+    return tiers
 
 
 def parse_ratio(value: Any) -> float | None:
@@ -273,8 +422,7 @@ def summarize_from_structured(payload: dict[str, Any]) -> str | None:
         snippets.append(f"压制: {pressure_points[0]}")
 
     reasoning = final.get("reasoning_cn") or final.get("reasoning")
-    if isinstance(reasoning, str) and reasoning.strip():
-        snippets.append(reasoning.strip())
+    snippets.append("拍板: " + build_decision_note(normalize_action(final.get("action") or final.get("action_label")), reasoning))
 
     body = " | ".join(snippets[:3]).strip()
     header = " ".join([part for part in leading_parts if part]).strip()
@@ -331,8 +479,10 @@ def extract_from_text_report(summary_text: str) -> dict[str, Any]:
 def parse_result_payload(raw_text: str, summary_text: str | None, summary_payload: dict[str, Any] | None) -> dict[str, Any]:
     final_result = extract_final_result_payload(raw_text) or {}
     text_fields = extract_from_text_report(summary_text or raw_text)
+    final_payload = summary_payload.get("final", {}) if isinstance(summary_payload, dict) and isinstance(summary_payload.get("final"), dict) else {}
 
     action = None
+    risk_action = None
     confidence = None
     risk_score = None
     signal = None
@@ -353,6 +503,7 @@ def parse_result_payload(raw_text: str, summary_text: str | None, summary_payloa
         quality = summary_payload.get("quality", {}) if isinstance(summary_payload.get("quality"), dict) else {}
 
         action = normalize_action(final.get("action") or final.get("action_label"))
+        risk_action = normalize_action(risk.get("action") or risk.get("action_label"))
         confidence = parse_ratio(final.get("confidence") or final.get("confidence_label"))
         risk_score = parse_float(risk.get("score"))
         signal = normalize_signal(
@@ -369,7 +520,15 @@ def parse_result_payload(raw_text: str, summary_text: str | None, summary_payloa
     if isinstance(final_result.get("agent_signals"), list):
         agent_signals = [item for item in final_result["agent_signals"] if isinstance(item, dict)]
 
-    action = action or normalize_action(final_result.get("action")) or text_fields["action"]
+    raw_action = action or normalize_action(final_result.get("action")) or text_fields["action"]
+    action = raw_action
+    action = resolve_action_consistency(
+        action,
+        risk_action,
+        hold_reason,
+        final_payload.get("reasoning"),
+        final_payload.get("reasoning_cn"),
+    )
     if confidence is None:
         final_confidence = parse_ratio(final_result.get("confidence"))
         confidence = final_confidence if final_confidence is not None else text_fields["confidence"]
@@ -384,11 +543,14 @@ def parse_result_payload(raw_text: str, summary_text: str | None, summary_payloa
             "sell": "bearish",
         }.get(action)
 
-    if composite_score is None:
+    if composite_score is None or action != raw_action:
         composite_score = derive_composite_score(action, signal, confidence, risk_score, agent_signals)
 
     if not summary:
         summary = summarize_from_text(summary_text or raw_text)
+    summary = rewrite_summary_action_prefix(summary, action)
+    summary = compress_text(summary, limit=120)
+    hold_reason = compress_text(clean_mixed_language_text(hold_reason), limit=180)
 
     return {
         "action": action,
@@ -608,28 +770,53 @@ def select_reasoning_candidates(ranked: list[ScanResult], top_n: int) -> list[Sc
 
     selected: list[ScanResult] = []
     seen_sectors: set[str] = set()
+    seen_tickers: set[str] = set()
 
     for item in ranked:
-        if item.sector in seen_sectors:
+        if item.sector in seen_sectors or item.ticker in seen_tickers:
             continue
         selected.append(item)
         seen_sectors.add(item.sector)
+        seen_tickers.add(item.ticker)
         if len(selected) >= top_n:
             return selected
 
     for item in ranked:
-        if item in selected:
+        if item in selected or item.ticker in seen_tickers:
             continue
         selected.append(item)
+        seen_tickers.add(item.ticker)
         if len(selected) >= top_n:
             break
     return selected
 
 
+def result_preference_key(item: ScanResult) -> tuple[int, int, float, float, str]:
+    return (
+        0 if item.stage == "reasoning" else 1,
+        0 if item.success else 1,
+        -(item.composite_score if item.composite_score is not None else -1.0),
+        -(item.confidence if item.confidence is not None else -1.0),
+        item.sector,
+    )
+
+
+def dedupe_results_by_ticker(results: list[ScanResult]) -> list[ScanResult]:
+    best_by_ticker: dict[str, ScanResult] = {}
+    for item in results:
+        current = best_by_ticker.get(item.ticker)
+        if current is None or result_preference_key(item) < result_preference_key(current):
+            best_by_ticker[item.ticker] = item
+    return list(best_by_ticker.values())
+
+
 def build_result_index(results: list[ScanResult], stage: str) -> dict[str, ScanResult]:
     indexed: dict[str, ScanResult] = {}
     for item in results:
-        if item.stage == stage:
+        if item.stage != stage:
+            continue
+        current = indexed.get(item.ticker)
+        if current is None or result_preference_key(item) < result_preference_key(current):
             indexed[item.ticker] = item
     return indexed
 
@@ -931,6 +1118,8 @@ def build_final_candidates(final_ranked: list[ScanResult], summary_results: list
             "risk_score": item.risk_score,
             "summary": item.summary,
             "data_quality_flags": item.data_quality_flags or [],
+            "support_points": item.support_points or [],
+            "pressure_points": item.pressure_points or [],
             "reasons": reasons,
             "stability": stability,
         }
@@ -952,8 +1141,8 @@ def build_final_candidates(final_ranked: list[ScanResult], summary_results: list
 
 
 def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_path: Path, report_root: Path) -> None:
-    summary_results = [r for r in results if r.stage == "summary"]
-    reasoning_results = [r for r in results if r.stage == "reasoning"]
+    summary_results = dedupe_results_by_ticker([r for r in results if r.stage == "summary"])
+    reasoning_results = dedupe_results_by_ticker([r for r in results if r.stage == "reasoning"])
     ranked_summary = sorted([r for r in summary_results if r.success], key=ranking_key)
     final_ranked = merge_final_candidates(summary_results, reasoning_results)
     selected_for_reasoning = [r.ticker for r in reasoning_results]
@@ -977,6 +1166,7 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
     reasoning_stats = compute_stage_stats(results, "reasoning")
     final_top = final_ranked[: max(top_n, min(5, len(final_ranked)))]
     final_candidates = build_final_candidates(final_ranked, summary_results, report_root, report_dir)
+    actionable_brief = build_actionable_brief(final_candidates, daily_diff)
 
     lines: list[str] = []
     lines.append(f"# A股夜间扫描报告 - {report_dir.name}")
@@ -1013,7 +1203,7 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
             score = f"{item.composite_score:.2f}" if item.composite_score is not None else "N/A"
             confidence = f"{item.confidence * 100:.0f}%" if item.confidence is not None else "N/A"
             risk = f"{item.risk_score:.1f}" if item.risk_score is not None else "N/A"
-            summary = (item.summary or "N/A").replace("\n", " ").replace("|", "/")
+            summary = render_result_summary(item).replace("\n", " ").replace("|", "/")
             source = "Reasoning" if item.stage == "reasoning" else "Summary"
             if item.skipped:
                 source += "(reused)"
@@ -1025,20 +1215,29 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
         lines.append("- 无成功样本")
         lines.append("")
 
-    lines.append("## Final Candidates")
+    lines.append("## 可执行晨报分层")
     lines.append("")
-    if final_candidates["top_picks"]:
-        lines.append(f"- Top Picks: {', '.join(item['ticker'] for item in final_candidates['top_picks'])}")
-    else:
-        lines.append("- Top Picks: 无")
-    if final_candidates["watchlist"]:
-        lines.append(f"- Watchlist: {', '.join(item['ticker'] for item in final_candidates['watchlist'])}")
-    else:
-        lines.append("- Watchlist: 无")
+    for title, key in [("主看", "main_focus"), ("次看", "secondary_focus"), ("观察", "observe")]:
+        lines.append(f"### {title}")
+        lines.append("")
+        entries = actionable_brief[key]
+        if not entries:
+            lines.append("- 无")
+            lines.append("")
+            continue
+        for item in entries:
+            score = "N/A" if item["composite_score"] is None else f"{item['composite_score']:.2f}"
+            confidence = "N/A" if item["confidence"] is None else f"{item['confidence'] * 100:.0f}%"
+            note = f" | 看点: {item['note']}" if item.get("note") else ""
+            lines.append(
+                f"- **{item['ticker']} ({item['sector']})**: {action_label(item['action'])}/{signal_label(item['signal'])} | score={score} | conf={confidence} | {item['stability']} | {item['selection']} | {item['source']}{note}"
+            )
+        lines.append("")
+
     if final_candidates["excluded"]:
-        lines.append(f"- Excluded: {', '.join(item['ticker'] for item in final_candidates['excluded'][:10])}")
+        lines.append(f"- 暂不纳入: {', '.join(item['ticker'] for item in final_candidates['excluded'][:10])}")
     else:
-        lines.append("- Excluded: 无")
+        lines.append("- 暂不纳入: 无")
     lines.append("")
 
     if final_candidates["top_picks"]:
@@ -1080,8 +1279,7 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
             reasons: list[str] = []
             if item.pressure_points:
                 reasons.append("压制因素: " + "；".join(item.pressure_points[:2]))
-            if item.hold_reason:
-                reasons.append(item.hold_reason.strip().replace("\n", " "))
+            reasons.append("拍板: " + build_decision_note(item.action, item.hold_reason))
             if item.data_quality_flags:
                 reasons.append("数据质量: " + "；".join(item.data_quality_flags[:2]))
             lines.append(f"- **{item.ticker} ({item.sector})**: {' | '.join(reasons) if reasons else '模型给出 HOLD，但缺少结构化解释'}")
@@ -1128,7 +1326,7 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
         for item in sorted(reasoning_results, key=reasoning_ranking_key):
             score = item.composite_score if item.composite_score is not None else 'N/A'
             reuse_tag = " [reused]" if item.skipped else ""
-            lines.append(f"- {item.ticker} | {item.sector} | score={score} | attempts={item.attempts}{reuse_tag} | {item.summary or 'N/A'}")
+            lines.append(f"- {item.ticker} | {item.sector} | score={score} | attempts={item.attempts}{reuse_tag} | {render_result_summary(item)}")
         lines.append("")
 
     if failures:
@@ -1153,6 +1351,7 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
         "summary_stats": summary_stats,
         "reasoning_stats": reasoning_stats,
         "daily_diff": daily_diff,
+        "actionable_brief": actionable_brief,
         "final_top_picks": [asdict(item) for item in final_top],
         "final_candidates": final_candidates,
         "sector_leaders": {
@@ -1175,8 +1374,10 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
         "summary_stats": summary_stats,
         "reasoning_stats": reasoning_stats,
         "selected_for_reasoning": selected_for_reasoning,
-        "top_picks": final_candidates["top_picks"][:3],
-        "watchlist": final_candidates["watchlist"][:5],
+        "actionable_brief": actionable_brief,
+        "main_focus": actionable_brief["main_focus"],
+        "secondary_focus": actionable_brief["secondary_focus"],
+        "observe": actionable_brief["observe"],
         "failed": [
             {
                 "ticker": item.ticker,
@@ -1192,22 +1393,22 @@ def build_report(results: list[ScanResult], report_dir: Path, top_n: int, pool_p
     }
 
     push_lines: list[str] = []
-    push_lines.append(f"夜跑报告 {report_dir.name}")
+    push_lines.append(f"夜跑晨报 {report_dir.name}")
     push_lines.append(
         f"Summary 成功 {summary_stats['success']}/{summary_stats['count']} | Reasoning 成功 {reasoning_stats['success']}/{reasoning_stats['count']}"
     )
-    if final_candidates["top_picks"]:
-        push_lines.append("Top Picks: " + ", ".join(
-            f"{item['ticker']}({action_label(item['action'])},{item['composite_score']})"
-            for item in final_candidates["top_picks"][:3]
-        ))
-    elif final_candidates["watchlist"]:
-        push_lines.append("Watchlist: " + ", ".join(
-            f"{item['ticker']}({action_label(item['action'])},{item['composite_score']})"
-            for item in final_candidates["watchlist"][:5]
-        ))
-    else:
-        push_lines.append("Top Picks/Watchlist: 无")
+    for title, key in [("主看", "main_focus"), ("次看", "secondary_focus"), ("观察", "observe")]:
+        entries = actionable_brief[key]
+        if not entries:
+            push_lines.append(f"{title}: 无")
+            continue
+        push_lines.append(f"{title}:")
+        for item in entries:
+            score = "N/A" if item["composite_score"] is None else f"{item['composite_score']:.1f}"
+            note = f" | {item['note']}" if item.get("note") else ""
+            push_lines.append(
+                f"- {item['ticker']} {item['sector']} | {action_label(item['action'])} {score} | {item['stability']} | {item['selection']} | {item['source']}{note}"
+            )
 
     if failures:
         push_lines.append("失败: " + ", ".join(
