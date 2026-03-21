@@ -11,7 +11,7 @@
     "top_n": 10,
     "num_of_news": 6,
     "reasoning_num_of_news": 10,
-    "timeout": 1800,
+    "timeout": 7200,
     "retries": 1,
     "skip_existing": true,
     "hq": false,
@@ -26,9 +26,9 @@
     "json_name": "push_summary.json"
   },
   "notify": {
-    "enabled": true,
+    "enabled": false,
     "channel": "telegram",
-    "telegram_to": "8210028618",
+    "telegram_to": "-5083916395",
     "on_success": true,
     "on_failure": true,
     "command": null,
